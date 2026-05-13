@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import com.pampoukidis.streamcoretv.common.R
+import com.pampoukidis.streamcoretv.core.ui.R
 
 enum class LoginBackgroundVariant {
     Portrait,

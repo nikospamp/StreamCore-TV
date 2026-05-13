@@ -2,25 +2,24 @@ package com.pampoukidis.streamcoretv.feature.login.mobile
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pampoukidis.streamcoretv.feature.login.common.effects.LoginRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginViewModel
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
 
 @Composable
 fun MobileLoginRoute(
-    onSubmitCredentials: (LoginCredentials) -> Unit,
+    onLoginSucceeded: () -> Unit,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
-    viewModel: LoginViewModel = viewModel(),
+    viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LoginRouteEventEffect(
         viewModel = viewModel,
-        onSubmitCredentials = onSubmitCredentials,
+        onLoginSucceeded = onLoginSucceeded,
         onForgotPassword = onForgotPassword,
         onCreateAccount = onCreateAccount,
         onHelp = onHelp,

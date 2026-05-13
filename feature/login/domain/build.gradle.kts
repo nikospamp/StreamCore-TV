@@ -7,5 +7,12 @@ kotlin {
 }
 
 dependencies {
+    // Core
+    implementation(projects.core.domain)
+
+    // Libraries
+    implementation(libs.javax.inject)
+
+    // Testing
     testImplementation(libs.junit)
 }

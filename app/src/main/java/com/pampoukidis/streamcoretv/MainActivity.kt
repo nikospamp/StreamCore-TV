@@ -8,15 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.common.utils.LoginPlatform
-import com.pampoukidis.streamcoretv.common.utils.rememberLoginPlatform
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.utils.LoginPlatform
+import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.login.mobile.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.TvLoginRoute
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,10 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             StreamCoreTVTheme {
                 LoginApp(
-                    onSubmitCredentials = {
-                        val email = it.email
-                        Toast.makeText(this@MainActivity, "Login: $email", Toast.LENGTH_SHORT).show()
-                    },
+                    onLoginSucceeded = {},
                     onForgotPassword = {},
                     onCreateAccount = {},
                     onHelp = {},
@@ -46,46 +43,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
 private fun LoginApp(
-    onSubmitCredentials: (LoginCredentials) -> Unit,
+    onLoginSucceeded: () -> Unit,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         LoginPlatform.Mobile -> MobileLoginRoute(
-            onSubmitCredentials = onSubmitCredentials,
+            onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
             onHelp = onHelp,
         )
 
         LoginPlatform.Tablet -> TabletLoginRoute(
-            onSubmitCredentials = onSubmitCredentials,
+            onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
             onHelp = onHelp,
         )
 
         LoginPlatform.Tv -> TvLoginRoute(
-            onSubmitCredentials = onSubmitCredentials,
+            onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
             onHelp = onHelp,
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun LoginAppPreview() {
-    StreamCoreTVTheme {
-        LoginApp(
-            onSubmitCredentials = {},
-            onForgotPassword = {},
-            onCreateAccount = {},
-            onHelp = {},
         )
     }
 }

@@ -18,11 +18,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.common.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.common.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.common.utils.PreviewMobile
-import com.pampoukidis.streamcoretv.common.R
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
+import com.pampoukidis.streamcoretv.core.ui.R
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState

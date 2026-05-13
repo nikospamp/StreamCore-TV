@@ -1,6 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.login.domain
 
-class ValidateLoginCredentialsUseCase {
+import javax.inject.Inject
+
+class ValidateLoginCredentialsUseCase @Inject constructor() {
     operator fun invoke(
         email: String,
         password: String,

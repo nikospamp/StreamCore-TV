@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.dagger.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -27,6 +29,17 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
+    flavorDimensions += "client"
+    productFlavors {
+        create("clientA") {
+            dimension = "client"
+        }
+        create("clientB") {
+            dimension = "client"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -36,11 +49,23 @@ android {
     }
 }
 
+val clientAImplementation by configurations
+val clientBImplementation by configurations
+
 dependencies {
-    implementation(project(":common"))
-    implementation(project(":feature:login:ui-mobile"))
-    implementation(project(":feature:login:ui-tablet"))
-    implementation(project(":feature:login:ui-tv"))
+    // Clients
+    clientAImplementation(projects.data.clientA)
+    clientBImplementation(projects.data.clientB)
+
+    // Core
+    implementation(projects.core.ui)
+
+    // Features
+    implementation(projects.feature.login.uiMobile)
+    implementation(projects.feature.login.uiTablet)
+    implementation(projects.feature.login.uiTv)
+
+    // Libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -50,6 +75,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.dagger.hilt.android)
+    ksp(libs.dagger.hilt.compiler)
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

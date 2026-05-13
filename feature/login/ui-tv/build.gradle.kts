@@ -27,8 +27,13 @@ android {
 }
 
 dependencies {
-    implementation(project(":common"))
-    api(project(":feature:login:ui-common"))
+    // Core
+    implementation(projects.core.ui)
+
+    // Features
+    api(projects.feature.login.uiCommon)
+
+    // Libraries
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
@@ -37,7 +42,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 
+    // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
