@@ -28,16 +28,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import com.pampoukidis.streamcoretv.common.ui.components.StreamCoreTvButton
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.common.utils.PreviewTV
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginBackground
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginBackgroundVariant
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
-import com.pampoukidis.streamcoretv.common.R
+import com.pampoukidis.streamcoretv.core.ui.R
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.passwordText
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.text
 
@@ -185,6 +185,7 @@ private fun TvLoginForm(
         StreamCoreTvButton(
             text = stringResource(R.string.login_continue),
             enabled = state.isSubmitEnabled && !state.isLoading,
+            loading = state.isLoading,
             onClick = { onAction(LoginAction.Submit) },
             modifier = Modifier
                 .fillMaxWidth()

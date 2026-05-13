@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.login.common.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginFieldError
-import com.pampoukidis.streamcoretv.common.R
+import com.pampoukidis.streamcoretv.core.ui.R
 
 @Composable
 fun LoginFieldError.text(): String = when (this) {

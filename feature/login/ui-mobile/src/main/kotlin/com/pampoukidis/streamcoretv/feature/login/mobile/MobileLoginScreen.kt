@@ -22,15 +22,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.common.utils.PreviewMobile
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginBackground
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginBackgroundVariant
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginMaterialForm
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
-import com.pampoukidis.streamcoretv.common.R
+import com.pampoukidis.streamcoretv.core.ui.R
 
 @Composable
 fun MobileLoginScreen(

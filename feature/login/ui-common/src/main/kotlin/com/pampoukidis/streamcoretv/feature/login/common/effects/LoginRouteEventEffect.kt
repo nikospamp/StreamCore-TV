@@ -9,18 +9,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginViewModel
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEvent
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
 
 @Composable
 fun LoginRouteEventEffect(
     viewModel: LoginViewModel,
-    onSubmitCredentials: (LoginCredentials) -> Unit,
+    onLoginSucceeded: () -> Unit,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val currentSubmit by rememberUpdatedState(onSubmitCredentials)
+    val currentLoginSucceeded by rememberUpdatedState(onLoginSucceeded)
     val currentForgotPassword by rememberUpdatedState(onForgotPassword)
     val currentCreateAccount by rememberUpdatedState(onCreateAccount)
     val currentHelp by rememberUpdatedState(onHelp)
@@ -29,10 +28,7 @@ fun LoginRouteEventEffect(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    is LoginEvent.SubmitCredentials -> {
-                        currentSubmit(event.credentials)
-                        viewModel.onLoginRequestDispatched()
-                    }
+                    LoginEvent.LoginSucceeded -> currentLoginSucceeded()
                     LoginEvent.ForgotPassword -> currentForgotPassword()
                     LoginEvent.CreateAccount -> currentCreateAccount()
                     LoginEvent.Help -> currentHelp()

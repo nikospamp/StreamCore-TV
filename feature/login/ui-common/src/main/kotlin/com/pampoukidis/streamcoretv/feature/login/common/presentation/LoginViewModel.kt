@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.login.common.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEvent
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
@@ -16,9 +17,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class LoginViewModel(
-    private val validateCredentials: ValidateLoginCredentialsUseCase = ValidateLoginCredentialsUseCase(),
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val validateCredentials: ValidateLoginCredentialsUseCase,
+    private val loginWithCredentials: LoginWithCredentialsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -38,19 +43,6 @@ class LoginViewModel(
             LoginAction.CreateAccount -> emitEvent(LoginEvent.CreateAccount)
             LoginAction.Help -> emitEvent(LoginEvent.Help)
             LoginAction.DismissError -> _uiState.update { it.copy(errorMessage = null) }
-        }
-    }
-
-    fun onLoginRequestDispatched() {
-        _uiState.update { it.copy(isLoading = false) }
-    }
-
-    fun onLoginFailed(message: String? = null) {
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                errorMessage = message ?: "",
-            )
         }
     }
 
@@ -90,6 +82,7 @@ class LoginViewModel(
             email = currentState.email.trim(),
             password = currentState.password,
         )
+
         _uiState.update {
             it.copy(
                 emailError = null,
@@ -99,7 +92,28 @@ class LoginViewModel(
                 errorMessage = null,
             )
         }
-        emitEvent(LoginEvent.SubmitCredentials(credentials))
+
+        viewModelScope.launch {
+            runCatching { loginWithCredentials(credentials) }
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            isSubmitEnabled = true,
+                        )
+                    }
+                    _events.emit(LoginEvent.LoginSucceeded)
+                }
+                .onFailure { error ->
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            isSubmitEnabled = true,
+                            errorMessage = error.message,
+                        )
+                    }
+                }
+        }
     }
 
     private fun showValidationErrors(validation: LoginValidationResult) {

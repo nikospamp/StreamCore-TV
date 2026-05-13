@@ -1,0 +1,20 @@
+package com.pampoukidis.streamcoretv.data.clienta.di
+
+import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
+import com.pampoukidis.streamcoretv.data.clienta.auth.ClientAAuthenticateRepository
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class ClientAAuthModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthenticateRepository(
+        impl: ClientAAuthenticateRepository,
+    ): AuthenticateRepository
+}

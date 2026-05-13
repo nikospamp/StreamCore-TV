@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.login.tablet
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
 import org.junit.Rule
