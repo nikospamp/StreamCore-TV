@@ -37,6 +37,10 @@ android {
 }
 
 dependencies {
+    implementation(project(":common"))
+    implementation(project(":feature:login:ui-mobile"))
+    implementation(project(":feature:login:ui-tablet"))
+    implementation(project(":feature:login:ui-tv"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
