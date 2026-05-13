@@ -1,4 +1,4 @@
-package com.pampoukidis.streamcoretv.ui.theme
+package com.pampoukidis.streamcoretv.common.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

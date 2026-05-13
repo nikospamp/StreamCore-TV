@@ -1,4 +1,4 @@
-package com.pampoukidis.streamcoretv.ui.theme
+package com.pampoukidis.streamcoretv.common.ui.theme
 
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.pampoukidis.streamcoretv.common.utils.LoginPlatform
+import com.pampoukidis.streamcoretv.common.utils.rememberLoginPlatform
 
 private val LightColorScheme = lightColorScheme(
     primary = StreamCorePrimary,
@@ -74,28 +76,35 @@ private val DarkColorScheme = darkColorScheme(
 fun StreamCoreTVTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
+    val platform = rememberLoginPlatform()
+
     val targetColorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme) {
+                dynamicDarkColorScheme(context)
+            } else {
+                dynamicLightColorScheme(context)
+            }
         }
 
-        darkTheme -> DarkColorScheme
+        darkTheme && platform != LoginPlatform.Tv -> DarkColorScheme
+
         else -> LightColorScheme
     }
 
     MaterialTheme(
         colorScheme = targetColorScheme.animateColorScheme(),
         typography = Typography,
-        content = content
+        content = content,
     )
 }
 
 @Composable
 private fun ColorScheme.animateColorScheme(): ColorScheme {
-    val animationSpec = tween<androidx.compose.ui.graphics.Color>(
+    val animationSpec = tween<Color>(
         durationMillis = ThemeColorAnimationDurationMillis,
         easing = FastOutSlowInEasing,
     )
