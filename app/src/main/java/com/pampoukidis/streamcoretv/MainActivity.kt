@@ -1,94 +1,91 @@
 package com.pampoukidis.streamcoretv
 
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.common.utils.LoginPlatform
+import com.pampoukidis.streamcoretv.common.utils.rememberLoginPlatform
+import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
+import com.pampoukidis.streamcoretv.feature.login.mobile.MobileLoginRoute
+import com.pampoukidis.streamcoretv.feature.login.tablet.TabletLoginRoute
+import com.pampoukidis.streamcoretv.feature.login.tv.TvLoginRoute
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        configureTvSoftInputMode()
         enableEdgeToEdge()
         setContent {
-            var darkTheme by rememberSaveable { mutableStateOf(false) }
-
-            StreamCoreTVTheme(darkTheme = darkTheme) {
-                MainScreen(
-                    darkTheme = darkTheme,
-                    onToggleTheme = { darkTheme = !darkTheme },
+            StreamCoreTVTheme {
+                LoginApp(
+                    onSubmitCredentials = {
+                        val email = it.email
+                        Toast.makeText(this@MainActivity, "Login: $email", Toast.LENGTH_SHORT).show()
+                    },
+                    onForgotPassword = {},
+                    onCreateAccount = {},
+                    onHelp = {},
                 )
             }
         }
     }
-}
 
-@Composable
-fun MainScreen(
-    darkTheme: Boolean,
-    onToggleTheme: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            ThemeToggleButton(
-                darkTheme = darkTheme,
-                onClick = onToggleTheme,
-                modifier = Modifier.align(Alignment.TopEnd),
+    private fun configureTvSoftInputMode() {
+        val uiModeType = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+        if (uiModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
+            window.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
             )
-            Greeting(name = "Android")
         }
     }
 }
-
 @Composable
-fun ThemeToggleButton(
-    darkTheme: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun LoginApp(
+    onSubmitCredentials: (LoginCredentials) -> Unit,
+    onForgotPassword: () -> Unit,
+    onCreateAccount: () -> Unit,
+    onHelp: () -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-    ) {
-        Text(text = if (darkTheme) "Light" else "Dark")
-    }
-}
+    when (rememberLoginPlatform()) {
+        LoginPlatform.Mobile -> MobileLoginRoute(
+            onSubmitCredentials = onSubmitCredentials,
+            onForgotPassword = onForgotPassword,
+            onCreateAccount = onCreateAccount,
+            onHelp = onHelp,
+        )
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+        LoginPlatform.Tablet -> TabletLoginRoute(
+            onSubmitCredentials = onSubmitCredentials,
+            onForgotPassword = onForgotPassword,
+            onCreateAccount = onCreateAccount,
+            onHelp = onHelp,
+        )
+
+        LoginPlatform.Tv -> TvLoginRoute(
+            onSubmitCredentials = onSubmitCredentials,
+            onForgotPassword = onForgotPassword,
+            onCreateAccount = onCreateAccount,
+            onHelp = onHelp,
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    val isDarkTheme = false
-    StreamCoreTVTheme(darkTheme = isDarkTheme) {
-        MainScreen(
-            darkTheme = isDarkTheme,
-            onToggleTheme = {},
+private fun LoginAppPreview() {
+    StreamCoreTVTheme {
+        LoginApp(
+            onSubmitCredentials = {},
+            onForgotPassword = {},
+            onCreateAccount = {},
+            onHelp = {},
         )
     }
 }

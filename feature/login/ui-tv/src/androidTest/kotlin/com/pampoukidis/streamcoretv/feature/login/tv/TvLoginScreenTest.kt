@@ -1,0 +1,32 @@
+package com.pampoukidis.streamcoretv.feature.login.tv
+
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import com.pampoukidis.streamcoretv.common.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
+import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
+import org.junit.Rule
+import org.junit.Test
+
+class TvLoginScreenTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun emailReceivesInitialFocus() {
+        composeRule.setContent {
+            StreamCoreTVTheme {
+                TvLoginScreen(
+                    state = LoginUiState(),
+                    onAction = {},
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(LoginTestTags.Root).assertExists()
+        composeRule.onNodeWithTag(LoginTestTags.EmailField).assertIsFocused()
+    }
+}

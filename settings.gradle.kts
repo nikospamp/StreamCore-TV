@@ -24,3 +24,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "StreamCore TV"
 include(":app")
+include(":common")
+include(":feature:login:domain")
+include(":feature:login:ui-common")
+include(":feature:login:ui-mobile")
+include(":feature:login:ui-tablet")
+include(":feature:login:ui-tv")
