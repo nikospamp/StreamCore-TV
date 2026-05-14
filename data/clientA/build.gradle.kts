@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.pampoukidis.streamcoretv.data.clienta"
+    namespace = "com.pampoukidis.streamcoretv.data.client"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -26,6 +26,7 @@ android {
 dependencies {
     // Core
     implementation(projects.core.domain)
+    implementation(projects.core.model)
 
     // Libraries
     implementation(libs.dagger.hilt.android)

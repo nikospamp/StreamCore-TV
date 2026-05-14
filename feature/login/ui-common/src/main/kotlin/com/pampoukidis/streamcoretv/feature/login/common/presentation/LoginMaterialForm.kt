@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,14 +72,6 @@ fun LoginMaterialForm(
                 .fillMaxWidth()
                 .testTag(LoginTestTags.PasswordField),
         )
-        state.errorMessage?.let { message ->
-            Text(
-                text = message.ifBlank { stringResource(R.string.login_generic_error) },
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag(LoginTestTags.ErrorMessage),
-            )
-        }
         StreamCoreButton(
             text = stringResource(R.string.login_continue),
             onClick = { onAction(LoginAction.Submit) },

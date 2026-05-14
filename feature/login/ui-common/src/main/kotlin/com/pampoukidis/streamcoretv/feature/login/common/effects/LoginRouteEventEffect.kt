@@ -7,8 +7,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEffect
 import com.pampoukidis.streamcoretv.feature.login.common.presentation.LoginViewModel
-import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEvent
 
 @Composable
 fun LoginRouteEventEffect(
@@ -17,21 +18,24 @@ fun LoginRouteEventEffect(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
+    onError: (AppError) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentLoginSucceeded by rememberUpdatedState(onLoginSucceeded)
     val currentForgotPassword by rememberUpdatedState(onForgotPassword)
     val currentCreateAccount by rememberUpdatedState(onCreateAccount)
     val currentHelp by rememberUpdatedState(onHelp)
+    val currentError by rememberUpdatedState(onError)
 
     LaunchedEffect(lifecycleOwner, viewModel) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.events.collect { event ->
-                when (event) {
-                    LoginEvent.LoginSucceeded -> currentLoginSucceeded()
-                    LoginEvent.ForgotPassword -> currentForgotPassword()
-                    LoginEvent.CreateAccount -> currentCreateAccount()
-                    LoginEvent.Help -> currentHelp()
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    LoginEffect.LoginSucceeded -> currentLoginSucceeded()
+                    LoginEffect.ForgotPassword -> currentForgotPassword()
+                    LoginEffect.CreateAccount -> currentCreateAccount()
+                    LoginEffect.Help -> currentHelp()
+                    is LoginEffect.ShowError -> currentError(effect.error)
                 }
             }
         }

@@ -7,5 +7,4 @@ sealed interface LoginAction {
     data object ForgotPassword : LoginAction
     data object CreateAccount : LoginAction
     data object Help : LoginAction
-    data object DismissError : LoginAction
 }

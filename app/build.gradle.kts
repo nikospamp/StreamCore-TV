@@ -58,6 +58,7 @@ dependencies {
     clientBImplementation(projects.data.clientB)
 
     // Core
+    implementation(projects.core.model)
     implementation(projects.core.ui)
 
     // Features

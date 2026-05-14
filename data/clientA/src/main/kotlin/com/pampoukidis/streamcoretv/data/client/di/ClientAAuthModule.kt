@@ -1,7 +1,7 @@
-package com.pampoukidis.streamcoretv.data.clienta.di
+package com.pampoukidis.streamcoretv.data.client.di
 
 import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
-import com.pampoukidis.streamcoretv.data.clienta.auth.ClientAAuthenticateRepository
+import com.pampoukidis.streamcoretv.data.client.auth.ClientAAuthenticateRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

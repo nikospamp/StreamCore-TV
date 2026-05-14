@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="client_a_error_authentication_title">Client A Error Title</string>
+    <string name="client_a_error_authentication_message">Client A Error Message</string>
+    <string name="error_action_ok">OK</string>
+</resources>
