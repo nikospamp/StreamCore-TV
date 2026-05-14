@@ -104,12 +104,12 @@ class LoginViewModel @Inject constructor(
                     }
                     _events.emit(LoginEvent.LoginSucceeded)
                 }
-                .onFailure { error ->
+                .onFailure {
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
                             isSubmitEnabled = true,
-                            errorMessage = error.message,
+                            errorMessage = "",
                         )
                     }
                 }
