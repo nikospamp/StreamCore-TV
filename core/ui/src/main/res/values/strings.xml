@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="login_brand">StreamCore</string>
+    <string name="app_name">StreamCore TV</string>
     <string name="login_title">Sign in</string>
     <string name="login_subtitle">Continue to your movies, shows, and live channels.</string>
     <string name="login_email_label">Email</string>
@@ -13,4 +13,17 @@
     <string name="login_email_invalid">Enter a valid email</string>
     <string name="login_password_required">Password is required</string>
     <string name="login_generic_error">Unable to continue. Try again.</string>
+    <string name="error_action_ok">OK</string>
+    <string name="error_authentication_title">Sign-in failed</string>
+    <string name="error_authentication_message">Check your email and password, then try again.</string>
+    <string name="error_network_title">Connection issue</string>
+    <string name="error_network_message">Check your connection and try again.</string>
+    <string name="error_timeout_title">Request timed out</string>
+    <string name="error_timeout_message">The request took too long. Try again.</string>
+    <string name="error_unauthorized_title">Authentication required</string>
+    <string name="error_unauthorized_message">Sign in again to continue.</string>
+    <string name="error_session_expired_title">Session expired</string>
+    <string name="error_session_expired_message">Your session has expired. Sign in again to continue.</string>
+    <string name="error_generic_title">Something went wrong</string>
+    <string name="error_generic_message">Unable to continue. Try again.</string>
 </resources>

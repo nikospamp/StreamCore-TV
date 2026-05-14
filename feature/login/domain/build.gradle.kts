@@ -9,6 +9,7 @@ kotlin {
 dependencies {
     // Core
     implementation(projects.core.domain)
+    implementation(projects.core.model)
 
     // Libraries
     implementation(libs.javax.inject)

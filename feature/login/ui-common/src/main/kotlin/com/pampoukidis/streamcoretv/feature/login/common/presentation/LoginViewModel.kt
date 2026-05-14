@@ -2,22 +2,23 @@ package com.pampoukidis.streamcoretv.feature.login.common.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginAction
-import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEvent
+import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginEffect
 import com.pampoukidis.streamcoretv.feature.login.common.contract.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginValidationResult
 import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
-import kotlinx.coroutines.flow.MutableSharedFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
@@ -29,8 +30,8 @@ class LoginViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<LoginEvent>(extraBufferCapacity = 1)
-    val events: SharedFlow<LoginEvent> = _events.asSharedFlow()
+    private val effectsChannel = Channel<LoginEffect>(capacity = Channel.BUFFERED)
+    val effects: Flow<LoginEffect> = effectsChannel.receiveAsFlow()
 
     private var hasRequestedValidation = false
 
@@ -39,10 +40,9 @@ class LoginViewModel @Inject constructor(
             is LoginAction.EmailChanged -> onCredentialsChanged(email = action.value)
             is LoginAction.PasswordChanged -> onCredentialsChanged(password = action.value)
             LoginAction.Submit -> submit()
-            LoginAction.ForgotPassword -> emitEvent(LoginEvent.ForgotPassword)
-            LoginAction.CreateAccount -> emitEvent(LoginEvent.CreateAccount)
-            LoginAction.Help -> emitEvent(LoginEvent.Help)
-            LoginAction.DismissError -> _uiState.update { it.copy(errorMessage = null) }
+            LoginAction.ForgotPassword -> emitEffect(LoginEffect.ForgotPassword)
+            LoginAction.CreateAccount -> emitEffect(LoginEffect.CreateAccount)
+            LoginAction.Help -> emitEffect(LoginEffect.Help)
         }
     }
 
@@ -58,7 +58,6 @@ class LoginViewModel @Inject constructor(
                 emailError = validation.emailError.takeIf { hasRequestedValidation },
                 passwordError = validation.passwordError.takeIf { hasRequestedValidation },
                 isSubmitEnabled = validation.isValid && !it.isLoading,
-                errorMessage = null,
             )
         }
     }
@@ -89,30 +88,31 @@ class LoginViewModel @Inject constructor(
                 passwordError = null,
                 isSubmitEnabled = false,
                 isLoading = true,
-                errorMessage = null,
             )
         }
 
         viewModelScope.launch {
-            runCatching { loginWithCredentials(credentials) }
-                .onSuccess {
+            when (val result = loginWithCredentials(credentials)) {
+                is AppResult.Success -> {
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
                             isSubmitEnabled = true,
                         )
                     }
-                    _events.emit(LoginEvent.LoginSucceeded)
+                    effectsChannel.send(LoginEffect.LoginSucceeded)
                 }
-                .onFailure {
+
+                is AppResult.Failure -> {
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
                             isSubmitEnabled = true,
-                            errorMessage = "",
                         )
                     }
+                    effectsChannel.send(LoginEffect.ShowError(result.error))
                 }
+            }
         }
     }
 
@@ -127,9 +127,9 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun emitEvent(event: LoginEvent) {
+    private fun emitEffect(effect: LoginEffect) {
         viewModelScope.launch {
-            _events.emit(event)
+            effectsChannel.send(effect)
         }
     }
 }

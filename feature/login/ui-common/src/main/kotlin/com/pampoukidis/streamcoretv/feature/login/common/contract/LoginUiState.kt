@@ -9,5 +9,4 @@ data class LoginUiState(
     val passwordError: LoginFieldError? = null,
     val isSubmitEnabled: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
 )

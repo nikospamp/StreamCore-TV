@@ -56,7 +56,7 @@ fun MobileLoginScreen(
                 modifier = Modifier.width(120.dp)
             )
             Text(
-                text = stringResource(R.string.login_brand),
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium
             )
             Spacer(modifier = Modifier.weight(1f))

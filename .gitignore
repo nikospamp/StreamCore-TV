@@ -16,6 +16,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+*.ap_
 *.aab
 *.apk
 output.json
@@ -209,11 +210,6 @@ gradle-app.setting
 # Java heap dump
 
 ### AndroidStudio ###
-# Covers files to be ignored for android development using Android Studio.
-
-# Built application files
-*.ap_
-*.aab
 
 # Files for the ART/Dalvik VM
 *.dex
@@ -322,3 +318,8 @@ hs_err_pid*
 ### Αgents
 
 /AGENTS.md
+
+## Local Files
+
+/inspiration/
+/issues/

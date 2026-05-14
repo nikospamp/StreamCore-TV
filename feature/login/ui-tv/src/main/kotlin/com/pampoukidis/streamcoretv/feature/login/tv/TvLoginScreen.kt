@@ -174,14 +174,6 @@ private fun TvLoginForm(
                 }
                 .testTag(LoginTestTags.PasswordField),
         )
-        state.errorMessage?.let { message ->
-            Text(
-                text = message.ifBlank { stringResource(R.string.login_generic_error) },
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.testTag(LoginTestTags.ErrorMessage),
-            )
-        }
         StreamCoreTvButton(
             text = stringResource(R.string.login_continue),
             enabled = state.isSubmitEnabled && !state.isLoading,
