@@ -47,6 +47,6 @@ class ClientAAuthenticateRepository @Inject constructor() : AuthenticateReposito
         const val INVALID_CREDENTIALS_CODE = "INVALID_CREDENTIALS"
         const val MOCK_EMAIL = "example@example.invalid"
         const val MOCK_PASSWORD = "example-password"
-        const val LOGIN_DELAY_MILLIS = 4_000L
+        const val LOGIN_DELAY_MILLIS = 2_000L
     }
 }
