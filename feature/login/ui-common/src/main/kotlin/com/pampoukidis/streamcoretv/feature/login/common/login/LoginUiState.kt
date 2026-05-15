@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.login.common.login
 
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginFieldError
+import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
 
 data class LoginUiState(
     val email: String = "",

@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.login.domain
 
+import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

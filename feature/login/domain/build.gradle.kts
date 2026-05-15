@@ -11,6 +11,9 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.model)
 
+    // Features
+    implementation(projects.feature.login.data)
+
     // Libraries
     implementation(libs.javax.inject)
 

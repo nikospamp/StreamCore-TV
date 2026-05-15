@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.login.common.login
 import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginFieldError
+import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
 import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
