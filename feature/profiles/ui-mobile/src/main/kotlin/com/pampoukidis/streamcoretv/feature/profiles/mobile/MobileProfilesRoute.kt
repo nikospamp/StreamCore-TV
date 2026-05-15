@@ -12,6 +12,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.Profile
 @Composable
 fun MobileProfilesRoute(
     onProfileSelected: (ProfileModel) -> Unit,
+    onCreateProfile: () -> Unit,
+    onEditProfile: (String) -> Unit,
     onError: (AppError) -> Unit,
     viewModel: ProfilesViewModel = hiltViewModel(),
 ) {
@@ -26,5 +28,7 @@ fun MobileProfilesRoute(
     MobileProfilesScreen(
         state = state,
         onAction = viewModel::onAction,
+        onCreateProfile = onCreateProfile,
+        onEditProfile = onEditProfile,
     )
 }

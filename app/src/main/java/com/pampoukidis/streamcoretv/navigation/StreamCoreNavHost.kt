@@ -25,8 +25,12 @@ import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.login.mobile.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.TvLoginRoute
+import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.mobile.MobileProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.MobileProfilesRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tablet.TabletProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.TabletProfilesRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tv.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.TvProfilesRoute
 
 private const val NavigationAnimationMillis = 250
@@ -84,7 +88,9 @@ internal fun StreamCoreNavHost(
                     }
                 },
                 onForgotPassword = {},
-                onCreateAccount = {},
+                onCreateAccount = {
+                    navController.navigate(AppRoute.CreateProfile(fromLogin = true))
+                },
                 onHelp = {},
                 onError = onError,
             )
@@ -101,6 +107,60 @@ internal fun StreamCoreNavHost(
                         }
                         launchSingleTop = true
                     }
+                },
+                onCreateProfile = {
+                    navController.navigate(AppRoute.CreateProfile(fromLogin = false))
+                },
+                onEditProfile = { profileId ->
+                    navController.navigate(AppRoute.EditProfile(profileId = profileId))
+                },
+                onError = onError,
+            )
+        }
+
+        composable<AppRoute.CreateProfile> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.CreateProfile>()
+
+            ProfileEditorDestination(
+                mode = ProfileEditorMode.Create,
+                profileId = null,
+                onProfileSaved = {
+                    navController.navigate(AppRoute.Profiles) {
+                        if (route.fromLogin) {
+                            popUpTo<AppRoute.Login> {
+                                inclusive = true
+                            }
+                        } else {
+                            popUpTo<AppRoute.Profiles> {
+                                inclusive = true
+                            }
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onClose = {
+                    navController.popBackStack()
+                },
+                onError = onError,
+            )
+        }
+
+        composable<AppRoute.EditProfile> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.EditProfile>()
+
+            ProfileEditorDestination(
+                mode = ProfileEditorMode.Edit,
+                profileId = route.profileId,
+                onProfileSaved = {
+                    navController.navigate(AppRoute.Profiles) {
+                        popUpTo<AppRoute.Profiles> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onClose = {
+                    navController.popBackStack()
                 },
                 onError = onError,
             )
@@ -154,21 +214,64 @@ private fun LoginDestination(
 @Composable
 private fun ProfilesDestination(
     onProfileSelected: (ProfileModel) -> Unit,
+    onCreateProfile: () -> Unit,
+    onEditProfile: (String) -> Unit,
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         LoginPlatform.Mobile -> MobileProfilesRoute(
             onProfileSelected = onProfileSelected,
+            onCreateProfile = onCreateProfile,
+            onEditProfile = onEditProfile,
             onError = onError,
         )
 
         LoginPlatform.Tablet -> TabletProfilesRoute(
             onProfileSelected = onProfileSelected,
+            onCreateProfile = onCreateProfile,
+            onEditProfile = onEditProfile,
             onError = onError,
         )
 
         LoginPlatform.Tv -> TvProfilesRoute(
             onProfileSelected = onProfileSelected,
+            onCreateProfile = onCreateProfile,
+            onEditProfile = onEditProfile,
+            onError = onError,
+        )
+    }
+}
+
+@Composable
+private fun ProfileEditorDestination(
+    mode: ProfileEditorMode,
+    profileId: String?,
+    onProfileSaved: () -> Unit,
+    onClose: () -> Unit,
+    onError: (AppError) -> Unit,
+) {
+    when (rememberLoginPlatform()) {
+        LoginPlatform.Mobile -> MobileProfileEditorRoute(
+            mode = mode,
+            profileId = profileId,
+            onProfileSaved = onProfileSaved,
+            onClose = onClose,
+            onError = onError,
+        )
+
+        LoginPlatform.Tablet -> TabletProfileEditorRoute(
+            mode = mode,
+            profileId = profileId,
+            onProfileSaved = onProfileSaved,
+            onClose = onClose,
+            onError = onError,
+        )
+
+        LoginPlatform.Tv -> TvProfileEditorRoute(
+            mode = mode,
+            profileId = profileId,
+            onProfileSaved = onProfileSaved,
+            onClose = onClose,
             onError = onError,
         )
     }

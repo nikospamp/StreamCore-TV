@@ -23,7 +23,6 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesDeleteConfirmationDialog
-import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesEditorDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesGrid
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -32,6 +31,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 fun TvProfilesScreen(
     state: ProfilesUiState,
     onAction: (ProfilesAction) -> Unit,
+    onCreateProfile: () -> Unit,
+    onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -69,7 +70,7 @@ fun TvProfilesScreen(
                 }
                 StreamCoreTvButton(
                     text = "Add profile",
-                    onClick = { onAction(ProfilesAction.StartCreateProfile) },
+                    onClick = onCreateProfile,
                     enabled = !state.isLoading && !state.isSaving,
                     modifier = Modifier.testTag(ProfilesTestTags.AddProfileButton),
                 )
@@ -91,6 +92,7 @@ fun TvProfilesScreen(
                         columns = GridCells.Adaptive(220.dp),
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
                         onAction = onAction,
+                        onEditProfile = onEditProfile,
                         avatarSize = 96.dp,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -99,12 +101,6 @@ fun TvProfilesScreen(
         }
     }
 
-    ProfilesEditorDialog(
-        editor = state.editor,
-        options = state.editorOptions,
-        isSaving = state.isSaving,
-        onAction = onAction,
-    )
     ProfilesDeleteConfirmationDialog(
         profile = state.pendingDeleteProfile,
         isSaving = state.isSaving,
@@ -120,9 +116,10 @@ private fun TvProfilesScreenPreview() {
             state = ProfilesUiState(
                 isLoading = false,
                 profiles = ProfilesPreviewData.profiles,
-                editorOptions = ProfilesPreviewData.editorOptions,
             ),
             onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
         )
     }
 }

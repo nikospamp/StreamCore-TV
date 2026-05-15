@@ -11,6 +11,16 @@ internal sealed interface AppRoute {
     data object Profiles : AppRoute
 
     @Serializable
+    data class CreateProfile(
+        val fromLogin: Boolean,
+    ) : AppRoute
+
+    @Serializable
+    data class EditProfile(
+        val profileId: String,
+    ) : AppRoute
+
+    @Serializable
     data class Authenticated(
         val profileId: String,
     ) : AppRoute

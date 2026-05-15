@@ -6,6 +6,7 @@ object ProfilesTestTags {
     const val ProfileCardPrefix = "profiles:profile:"
     const val EditProfileButtonPrefix = "profiles:edit-profile:"
     const val DeleteProfileButtonPrefix = "profiles:delete-profile:"
+    const val EditorRoot = "profiles:editor:root"
     const val EditorDisplayNameField = "profiles:editor:display-name"
     const val EditorSubmitButton = "profiles:editor:submit"
 }

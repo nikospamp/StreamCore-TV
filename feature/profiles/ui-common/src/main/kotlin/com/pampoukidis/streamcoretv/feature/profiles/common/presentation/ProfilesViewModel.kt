@@ -2,23 +2,15 @@ package com.pampoukidis.streamcoretv.feature.profiles.common.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfileEditorUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesEffect
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesUiState
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.domain.CreateProfileUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.DeleteProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOptionsUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.SelectProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.UpdateProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.ValidateProfileDraftUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -33,10 +25,6 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfilesViewModel @Inject constructor(
     private val loadProfiles: LoadProfilesUseCase,
-    private val loadProfileEditorOptions: LoadProfileEditorOptionsUseCase,
-    private val validateProfileDraft: ValidateProfileDraftUseCase,
-    private val createProfile: CreateProfileUseCase,
-    private val updateProfile: UpdateProfileUseCase,
     private val deleteProfile: DeleteProfileUseCase,
     private val selectProfile: SelectProfileUseCase,
 ) : ViewModel() {
@@ -55,15 +43,6 @@ class ProfilesViewModel @Inject constructor(
         when (action) {
             ProfilesAction.Refresh -> refresh()
             is ProfilesAction.SelectProfile -> select(action.profileId)
-            ProfilesAction.StartCreateProfile -> startCreateProfile()
-            is ProfilesAction.StartEditProfile -> startEditProfile(action.profileId)
-            is ProfilesAction.DisplayNameChanged -> updateDraft { it.copy(displayName = action.value) }
-            is ProfilesAction.AvatarChanged -> updateDraft { it.copy(avatarId = action.avatarId) }
-            is ProfilesAction.ParentalLevelChanged -> updateDraft {
-                it.copy(parentalLevelId = action.parentalLevelId)
-            }
-            ProfilesAction.SubmitEditor -> submitEditor()
-            ProfilesAction.DismissEditor -> _uiState.update { it.copy(editor = null) }
             is ProfilesAction.RequestDeleteProfile -> requestDelete(action.profileId)
             ProfilesAction.ConfirmDeleteProfile -> confirmDelete()
             ProfilesAction.DismissDeleteConfirmation -> _uiState.update { it.copy(pendingDeleteProfile = null) }
@@ -108,86 +87,6 @@ class ProfilesViewModel @Inject constructor(
         }
     }
 
-    private fun startCreateProfile() {
-        viewModelScope.launch {
-            val options = ensureEditorOptions() ?: return@launch
-            _uiState.update {
-                it.copy(
-                    editor = ProfileEditorUiState(
-                        mode = ProfileEditorMode.Create,
-                        draft = ProfileDraftModel(
-                            avatarId = options.avatars.firstOrNull()?.id.orEmpty(),
-                            parentalLevelId = options.parentalLevels.firstOrNull()?.id.orEmpty(),
-                        ),
-                    ),
-                )
-            }
-        }
-    }
-
-    private fun startEditProfile(profileId: String) {
-        val profile = _uiState.value.profiles.firstOrNull { it.id == profileId } ?: return
-
-        viewModelScope.launch {
-            ensureEditorOptions() ?: return@launch
-            _uiState.update {
-                it.copy(
-                    editor = ProfileEditorUiState(
-                        mode = ProfileEditorMode.Edit,
-                        draft = profile.toDraftModel(),
-                    ),
-                )
-            }
-        }
-    }
-
-    private suspend fun ensureEditorOptions(): ProfileEditorOptionsModel? {
-        return _uiState.value.editorOptions ?: when (val result = loadProfileEditorOptions()) {
-            is AppResult.Success -> {
-                _uiState.update { it.copy(editorOptions = result.value) }
-                result.value
-            }
-
-            is AppResult.Failure -> {
-                emitError(result.error)
-                null
-            }
-        }
-    }
-
-    private fun updateDraft(transform: (ProfileDraftModel) -> ProfileDraftModel) {
-        _uiState.update { state ->
-            val editor = state.editor ?: return@update state
-            val draft = transform(editor.draft)
-            state.copy(
-                editor = editor.copy(
-                    draft = draft,
-                    validation = validateProfileDraft(draft, state.editorOptions),
-                ),
-            )
-        }
-    }
-
-    private fun submitEditor() {
-        val editor = _uiState.value.editor ?: return
-        val validation = validateProfileDraft(editor.draft, _uiState.value.editorOptions)
-        if (!validation.isValid) {
-            _uiState.update {
-                it.copy(editor = editor.copy(validation = validation))
-            }
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true) }
-            val result = when (editor.mode) {
-                ProfileEditorMode.Create -> createProfile(editor.draft)
-                ProfileEditorMode.Edit -> updateProfile(editor.draft)
-            }
-            handleEditorResult(result)
-        }
-    }
-
     private fun requestDelete(profileId: String) {
         val profile = _uiState.value.profiles.firstOrNull { it.id == profileId } ?: return
         if (!profile.canDelete) return
@@ -216,42 +115,7 @@ class ProfilesViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleEditorResult(result: AppResult<ProfileModel>) {
-        when (result) {
-            is AppResult.Success -> _uiState.update { state ->
-                val updatedProfile = result.value
-                val profiles = if (state.profiles.any { it.id == updatedProfile.id }) {
-                    state.profiles.map { profile ->
-                        if (profile.id == updatedProfile.id) updatedProfile else profile
-                    }
-                } else {
-                    state.profiles + updatedProfile
-                }
-
-                state.copy(
-                    isSaving = false,
-                    profiles = profiles,
-                    editor = null,
-                )
-            }
-
-            is AppResult.Failure -> {
-                _uiState.update { it.copy(isSaving = false) }
-                emitError(result.error)
-            }
-        }
-    }
-
     private suspend fun emitError(error: AppError) {
         effectsChannel.send(ProfilesEffect.ShowError(error))
-    }
-
-    private fun ProfileModel.toDraftModel(): ProfileDraftModel {
-        return ProfileDraftModel(
-            profileId = id,
-            displayName = displayName,
-            avatarId = avatar.id,
-            parentalLevelId = parentalLevel.id,
-        )
     }
 }
