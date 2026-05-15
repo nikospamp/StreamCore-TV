@@ -28,13 +28,27 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "StreamCoreTV"
 include(":app")
+
+// Core
 include(":core:model")
 include(":core:domain")
 include(":core:ui")
+
+// Clients
 include(":data:clientA")
 include(":data:clientB")
+
+// Login
 include(":feature:login:domain")
 include(":feature:login:ui-common")
 include(":feature:login:ui-mobile")
 include(":feature:login:ui-tablet")
 include(":feature:login:ui-tv")
+
+// Profiles
+include(":feature:profiles:data")
+include(":feature:profiles:domain")
+include(":feature:profiles:ui-common")
+include(":feature:profiles:ui-mobile")
+include(":feature:profiles:ui-tablet")
+include(":feature:profiles:ui-tv")
