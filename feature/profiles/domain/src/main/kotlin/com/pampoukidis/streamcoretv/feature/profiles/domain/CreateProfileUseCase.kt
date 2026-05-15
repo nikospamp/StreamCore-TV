@@ -17,7 +17,7 @@ class CreateProfileUseCase @Inject constructor(
                 displayName = draft.displayName.trim(),
                 avatarId = draft.avatarId,
                 parentalLevelId = draft.parentalLevelId,
-            ),
+            )
         )
     }
 }
