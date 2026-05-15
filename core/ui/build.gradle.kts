@@ -30,7 +30,7 @@ android {
 
 dependencies {
     // Core
-    implementation(projects.core.model)
+    implementation(projects.core.data)
 
     // Libraries
     implementation(platform(libs.androidx.compose.bom))

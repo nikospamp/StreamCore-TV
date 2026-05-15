@@ -30,7 +30,7 @@ rootProject.name = "StreamCoreTV"
 include(":app")
 
 // Core
-include(":core:model")
+include(":core:data")
 include(":core:domain")
 include(":core:ui")
 
