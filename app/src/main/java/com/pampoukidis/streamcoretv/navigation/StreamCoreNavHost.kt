@@ -22,16 +22,16 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.LoginPlatform
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
-import com.pampoukidis.streamcoretv.feature.login.mobile.MobileLoginRoute
-import com.pampoukidis.streamcoretv.feature.login.tablet.TabletLoginRoute
-import com.pampoukidis.streamcoretv.feature.login.tv.TvLoginRoute
-import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.mobile.MobileProfileEditorRoute
-import com.pampoukidis.streamcoretv.feature.profiles.mobile.MobileProfilesRoute
-import com.pampoukidis.streamcoretv.feature.profiles.tablet.TabletProfileEditorRoute
-import com.pampoukidis.streamcoretv.feature.profiles.tablet.TabletProfilesRoute
-import com.pampoukidis.streamcoretv.feature.profiles.tv.TvProfileEditorRoute
-import com.pampoukidis.streamcoretv.feature.profiles.tv.TvProfilesRoute
+import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
+import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
+import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.mobile.editor.MobileProfileEditorRoute
+import com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles.MobileProfilesRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfileEditorRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfilesRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
+import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
 
 private const val NavigationAnimationMillis = 250
 
