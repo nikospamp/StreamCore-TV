@@ -3,9 +3,9 @@ package com.pampoukidis.streamcoretv.feature.login.common.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.feature.login.data.LoginCredentials
+import com.pampoukidis.streamcoretv.feature.login.data.LoginValidationResult
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginCredentials
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginValidationResult
 import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel

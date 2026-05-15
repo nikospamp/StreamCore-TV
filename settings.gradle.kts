@@ -39,6 +39,7 @@ include(":data:clientA")
 include(":data:clientB")
 
 // Login
+include(":feature:login:data")
 include(":feature:login:domain")
 include(":feature:login:ui-common")
 include(":feature:login:ui-mobile")

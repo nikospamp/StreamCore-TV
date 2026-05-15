@@ -1,4 +1,4 @@
-package com.pampoukidis.streamcoretv.feature.login.domain
+package com.pampoukidis.streamcoretv.feature.login.data
 
 data class LoginCredentials(
     val email: String,

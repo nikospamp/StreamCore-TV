@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.login.domain
 
+import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
+import com.pampoukidis.streamcoretv.feature.login.data.LoginValidationResult
 import javax.inject.Inject
 
 class ValidateLoginCredentialsUseCase @Inject constructor() {

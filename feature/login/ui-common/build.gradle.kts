@@ -35,6 +35,7 @@ dependencies {
     implementation(projects.core.ui)
 
     // Features
+    api(projects.feature.login.data)
     api(projects.feature.login.domain)
 
     // Libraries
