@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.common.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
@@ -140,8 +141,8 @@ class ProfilesViewModel @Inject constructor(
         }
     }
 
-    private suspend fun ensureEditorOptions() =
-        _uiState.value.editorOptions ?: when (val result = loadProfileEditorOptions()) {
+    private suspend fun ensureEditorOptions(): ProfileEditorOptionsModel? {
+        return _uiState.value.editorOptions ?: when (val result = loadProfileEditorOptions()) {
             is AppResult.Success -> {
                 _uiState.update { it.copy(editorOptions = result.value) }
                 result.value
@@ -152,6 +153,7 @@ class ProfilesViewModel @Inject constructor(
                 null
             }
         }
+    }
 
     private fun updateDraft(transform: (ProfileDraftModel) -> ProfileDraftModel) {
         _uiState.update { state ->
@@ -244,10 +246,12 @@ class ProfilesViewModel @Inject constructor(
         effectsChannel.send(ProfilesEffect.ShowError(error))
     }
 
-    private fun ProfileModel.toDraftModel() = ProfileDraftModel(
-        profileId = id,
-        displayName = displayName,
-        avatarId = avatar.id,
-        parentalLevelId = parentalLevel.id,
-    )
+    private fun ProfileModel.toDraftModel(): ProfileDraftModel {
+        return ProfileDraftModel(
+            profileId = id,
+            displayName = displayName,
+            avatarId = avatar.id,
+            parentalLevelId = parentalLevel.id,
+        )
+    }
 }

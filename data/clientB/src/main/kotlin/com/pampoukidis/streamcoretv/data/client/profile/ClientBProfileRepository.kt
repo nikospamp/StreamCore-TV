@@ -61,13 +61,14 @@ class ClientBProfileRepository @Inject constructor() : ProfileRepository {
         return AppResult.Success(profiles.map { it.toModel() })
     }
 
-    override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> =
-        AppResult.Success(
+    override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> {
+        return AppResult.Success(
             ProfileEditorOptionsModel(
                 avatars = avatars.map { it.toModel() },
                 parentalLevels = parentalLevels.map { it.toModel() },
             ),
         )
+    }
 
     override suspend fun createProfile(profile: CreateProfileModel): AppResult<ProfileModel> {
         val avatar = findAvatar(profile.avatarId)
@@ -139,17 +140,19 @@ class ClientBProfileRepository @Inject constructor() : ProfileRepository {
         return AppResult.Success(profile.toModel())
     }
 
-    private fun findAvatar(id: String): ProfileAvatarDto? =
-        avatars.firstOrNull { it.id == id }
+    private fun findAvatar(id: String): ProfileAvatarDto? {
+        return avatars.firstOrNull { it.id == id }
+    }
 
-    private fun findParentalLevel(id: String): ProfileParentalLevelDto? =
-        parentalLevels.firstOrNull { it.id == id }
+    private fun findParentalLevel(id: String): ProfileParentalLevelDto? {
+        return parentalLevels.firstOrNull { it.id == id }
+    }
 
     private fun <T> profileFailure(
         operation: String,
         backendCode: String,
-    ): AppResult<T> =
-        AppResult.Failure(
+    ): AppResult<T> {
+        return AppResult.Failure(
             AppError.Unknown(
                 source = ErrorSource(
                     client = CLIENT,
@@ -158,6 +161,7 @@ class ClientBProfileRepository @Inject constructor() : ProfileRepository {
                 ),
             ),
         )
+    }
 
     private companion object {
         const val CLIENT = "clientB"

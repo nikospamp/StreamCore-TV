@@ -366,21 +366,23 @@ private fun FieldErrorText(error: ProfileFieldError) {
     )
 }
 
-private fun ProfileFieldError.message(): String =
-    when (this) {
+private fun ProfileFieldError.message(): String {
+    return when (this) {
         ProfileFieldError.Blank -> "Required"
         ProfileFieldError.TooLong -> "Maximum 32 characters"
         ProfileFieldError.MissingSelection -> "Select an option"
         ProfileFieldError.UnknownSelection -> "Selection is unavailable"
     }
+}
 
-private fun String.initials(): String =
-    trim()
+private fun String.initials(): String {
+    return trim()
         .split(" ")
         .filter { it.isNotBlank() }
         .take(2)
         .joinToString(separator = "") { it.first().uppercase() }
         .ifBlank { "?" }
+}
 
 private fun String.readableId(): String {
     return substringAfterLast("-")
