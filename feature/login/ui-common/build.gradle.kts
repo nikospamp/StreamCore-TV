@@ -31,7 +31,7 @@ android {
 dependencies {
     // Core
     implementation(projects.core.domain)
-    implementation(projects.core.model)
+    implementation(projects.core.data)
     implementation(projects.core.ui)
 
     // Features

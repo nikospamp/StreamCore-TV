@@ -7,7 +7,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(projects.core.model)
+    implementation(projects.core.data)
 
     implementation(libs.javax.inject)
 }

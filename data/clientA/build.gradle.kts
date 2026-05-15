@@ -26,7 +26,7 @@ android {
 dependencies {
     // Core
     implementation(projects.core.domain)
-    implementation(projects.core.model)
+    implementation(projects.core.data)
 
     // Libraries
     implementation(libs.dagger.hilt.android)

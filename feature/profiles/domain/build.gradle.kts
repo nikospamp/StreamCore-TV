@@ -9,7 +9,7 @@ kotlin {
 dependencies {
     // Core
     implementation(projects.core.domain)
-    implementation(projects.core.model)
+    implementation(projects.core.data)
 
     // Features
     implementation(projects.feature.profiles.data)

@@ -394,7 +394,7 @@ kotlin {
 
 dependencies {
     implementation(projects.core.domain)
-    implementation(projects.core.model)
+    implementation(projects.core.data)
     implementation(projects.feature.<feature>.data)
     implementation(libs.javax.inject)
 
@@ -442,7 +442,7 @@ dependencies {
     api(projects.feature.<feature>.data)
 
     implementation(projects.core.domain)
-    implementation(projects.core.model)
+    implementation(projects.core.data)
     implementation(projects.core.ui)
 
     implementation(platform(libs.androidx.compose.bom))
@@ -496,7 +496,7 @@ android {
 dependencies {
     api(projects.feature.<feature>.uiCommon)
 
-    implementation(projects.core.model)
+    implementation(projects.core.data)
     implementation(projects.core.ui)
 
     implementation(platform(libs.androidx.compose.bom))
