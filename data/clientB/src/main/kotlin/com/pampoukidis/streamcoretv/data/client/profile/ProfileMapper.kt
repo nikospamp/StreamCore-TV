@@ -11,8 +11,8 @@ import com.pampoukidis.streamcoretv.data.client.model.ProfileDto
 import com.pampoukidis.streamcoretv.data.client.model.ProfileParentalLevelDto
 import com.pampoukidis.streamcoretv.data.client.model.UpdateProfileRequestDto
 
-internal fun ProfileDto.toModel(): ProfileModel =
-    ProfileModel(
+internal fun ProfileDto.toModel(): ProfileModel {
+    return ProfileModel(
         id = id,
         displayName = displayName,
         avatar = ProfileAvatarModel(
@@ -27,31 +27,36 @@ internal fun ProfileDto.toModel(): ProfileModel =
         canDelete = canDelete,
         isKidsProfile = isKidsProfile,
     )
+}
 
-internal fun ProfileAvatarDto.toModel(): ProfileAvatarModel =
-    ProfileAvatarModel(
+internal fun ProfileAvatarDto.toModel(): ProfileAvatarModel {
+    return ProfileAvatarModel(
         id = id,
         imageUrl = imageUrl,
     )
+}
 
-internal fun ProfileParentalLevelDto.toModel(): ProfileParentalLevelModel =
-    ProfileParentalLevelModel(
+internal fun ProfileParentalLevelDto.toModel(): ProfileParentalLevelModel {
+    return ProfileParentalLevelModel(
         id = id,
         label = label,
         rank = rank,
     )
+}
 
-internal fun CreateProfileModel.toDto(): CreateProfileRequestDto =
-    CreateProfileRequestDto(
+internal fun CreateProfileModel.toDto(): CreateProfileRequestDto {
+    return CreateProfileRequestDto(
         displayName = displayName,
         avatarId = avatarId,
         parentalLevelId = parentalLevelId,
     )
+}
 
-internal fun UpdateProfileModel.toDto(): UpdateProfileRequestDto =
-    UpdateProfileRequestDto(
+internal fun UpdateProfileModel.toDto(): UpdateProfileRequestDto {
+    return UpdateProfileRequestDto(
         profileId = profileId,
         displayName = displayName,
         avatarId = avatarId,
         parentalLevelId = parentalLevelId,
     )
+}

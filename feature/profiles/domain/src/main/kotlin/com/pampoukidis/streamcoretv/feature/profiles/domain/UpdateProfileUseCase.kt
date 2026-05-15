@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.profiles.domain
 
 import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
@@ -11,8 +12,8 @@ class UpdateProfileUseCase @Inject constructor(
     private val profileRepository: ProfileRepository,
 ) {
 
-    suspend operator fun invoke(draft: ProfileDraftModel) =
-        draft.profileId?.let { profileId ->
+    suspend operator fun invoke(draft: ProfileDraftModel): AppResult<ProfileModel> {
+        return draft.profileId?.let { profileId ->
             profileRepository.updateProfile(
                 UpdateProfileModel(
                     profileId = profileId,
@@ -22,4 +23,5 @@ class UpdateProfileUseCase @Inject constructor(
                 ),
             )
         } ?: AppResult.Failure(AppError.Unknown())
+    }
 }
