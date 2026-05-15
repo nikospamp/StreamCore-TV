@@ -23,7 +23,6 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesDeleteConfirmationDialog
-import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesEditorDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesGrid
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -32,6 +31,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 fun MobileProfilesScreen(
     state: ProfilesUiState,
     onAction: (ProfilesAction) -> Unit,
+    onCreateProfile: () -> Unit,
+    onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -58,7 +59,7 @@ fun MobileProfilesScreen(
             )
             StreamCoreButton(
                 text = "Add profile",
-                onClick = { onAction(ProfilesAction.StartCreateProfile) },
+                onClick = onCreateProfile,
                 enabled = !state.isLoading && !state.isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -67,18 +68,13 @@ fun MobileProfilesScreen(
             ProfilesBody(
                 state = state,
                 onAction = onAction,
+                onEditProfile = onEditProfile,
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.weight(1f),
             )
         }
     }
 
-    ProfilesEditorDialog(
-        editor = state.editor,
-        options = state.editorOptions,
-        isSaving = state.isSaving,
-        onAction = onAction,
-    )
     ProfilesDeleteConfirmationDialog(
         profile = state.pendingDeleteProfile,
         isSaving = state.isSaving,
@@ -90,6 +86,7 @@ fun MobileProfilesScreen(
 private fun ProfilesBody(
     state: ProfilesUiState,
     onAction: (ProfilesAction) -> Unit,
+    onEditProfile: (String) -> Unit,
     columns: GridCells,
     modifier: Modifier = Modifier,
 ) {
@@ -110,6 +107,7 @@ private fun ProfilesBody(
                 columns = columns,
                 pendingSelectionProfileId = state.pendingSelectionProfileId,
                 onAction = onAction,
+                onEditProfile = onEditProfile,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -124,9 +122,10 @@ private fun MobileProfilesScreenPreview() {
             state = ProfilesUiState(
                 isLoading = false,
                 profiles = ProfilesPreviewData.profiles,
-                editorOptions = ProfilesPreviewData.editorOptions,
             ),
             onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
         )
     }
 }

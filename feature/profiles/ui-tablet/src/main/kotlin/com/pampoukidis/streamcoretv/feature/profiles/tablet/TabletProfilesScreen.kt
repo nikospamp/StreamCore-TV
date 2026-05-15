@@ -24,7 +24,6 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.contract.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesDeleteConfirmationDialog
-import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesEditorDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.presentation.ProfilesGrid
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -33,6 +32,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 fun TabletProfilesScreen(
     state: ProfilesUiState,
     onAction: (ProfilesAction) -> Unit,
+    onCreateProfile: () -> Unit,
+    onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -63,7 +64,7 @@ fun TabletProfilesScreen(
                 )
                 StreamCoreButton(
                     text = "Add profile",
-                    onClick = { onAction(ProfilesAction.StartCreateProfile) },
+                    onClick = onCreateProfile,
                     enabled = !state.isLoading && !state.isSaving,
                     modifier = Modifier.testTag(ProfilesTestTags.AddProfileButton),
                 )
@@ -85,6 +86,7 @@ fun TabletProfilesScreen(
                         columns = GridCells.Adaptive(180.dp),
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
                         onAction = onAction,
+                        onEditProfile = onEditProfile,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -92,12 +94,6 @@ fun TabletProfilesScreen(
         }
     }
 
-    ProfilesEditorDialog(
-        editor = state.editor,
-        options = state.editorOptions,
-        isSaving = state.isSaving,
-        onAction = onAction,
-    )
     ProfilesDeleteConfirmationDialog(
         profile = state.pendingDeleteProfile,
         isSaving = state.isSaving,
@@ -113,9 +109,10 @@ private fun TabletProfilesScreenPreview() {
             state = ProfilesUiState(
                 isLoading = false,
                 profiles = ProfilesPreviewData.profiles,
-                editorOptions = ProfilesPreviewData.editorOptions,
             ),
             onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
         )
     }
 }
