@@ -63,6 +63,7 @@ class LoginViewModel @Inject constructor(
         if (_uiState.value.isLoading) return
 
         hasRequestedValidation = true
+
         val currentState = _uiState.value
         val validation = validateCredentials(
             email = currentState.email,

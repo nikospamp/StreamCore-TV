@@ -19,13 +19,13 @@ import androidx.navigation.toRoute
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.core.ui.utils.LoginPlatform
+import com.pampoukidis.streamcoretv.core.model.general.Platform
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.editor.MobileProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles.MobileProfilesRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfileEditorRoute
@@ -185,7 +185,7 @@ private fun LoginDestination(
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
-        LoginPlatform.Mobile -> MobileLoginRoute(
+        Platform.Mobile -> MobileLoginRoute(
             onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
@@ -193,7 +193,7 @@ private fun LoginDestination(
             onError = onError,
         )
 
-        LoginPlatform.Tablet -> TabletLoginRoute(
+        Platform.Tablet -> TabletLoginRoute(
             onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
@@ -201,7 +201,7 @@ private fun LoginDestination(
             onError = onError,
         )
 
-        LoginPlatform.Tv -> TvLoginRoute(
+        Platform.Tv -> TvLoginRoute(
             onLoginSucceeded = onLoginSucceeded,
             onForgotPassword = onForgotPassword,
             onCreateAccount = onCreateAccount,
@@ -219,21 +219,21 @@ private fun ProfilesDestination(
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
-        LoginPlatform.Mobile -> MobileProfilesRoute(
+        Platform.Mobile -> MobileProfilesRoute(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
             onError = onError,
         )
 
-        LoginPlatform.Tablet -> TabletProfilesRoute(
+        Platform.Tablet -> TabletProfilesRoute(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
             onError = onError,
         )
 
-        LoginPlatform.Tv -> TvProfilesRoute(
+        Platform.Tv -> TvProfilesRoute(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
@@ -251,7 +251,7 @@ private fun ProfileEditorDestination(
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
-        LoginPlatform.Mobile -> MobileProfileEditorRoute(
+        Platform.Mobile -> MobileProfileEditorRoute(
             mode = mode,
             profileId = profileId,
             onProfileSaved = onProfileSaved,
@@ -259,7 +259,7 @@ private fun ProfileEditorDestination(
             onError = onError,
         )
 
-        LoginPlatform.Tablet -> TabletProfileEditorRoute(
+        Platform.Tablet -> TabletProfileEditorRoute(
             mode = mode,
             profileId = profileId,
             onProfileSaved = onProfileSaved,
@@ -267,7 +267,7 @@ private fun ProfileEditorDestination(
             onError = onError,
         )
 
-        LoginPlatform.Tv -> TvProfileEditorRoute(
+        Platform.Tv -> TvProfileEditorRoute(
             mode = mode,
             profileId = profileId,
             onProfileSaved = onProfileSaved,

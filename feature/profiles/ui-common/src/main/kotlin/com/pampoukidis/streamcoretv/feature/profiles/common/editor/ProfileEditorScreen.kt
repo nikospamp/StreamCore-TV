@@ -34,6 +34,7 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileFieldError
 
 @Composable
@@ -86,7 +87,7 @@ fun ProfileEditorScreen(
 @Composable
 private fun ProfileEditorLoadedContent(
     title: String,
-    editor: ProfileEditorUiState,
+    editor: ProfileEditorFormUiState,
     options: ProfileEditorOptionsModel,
     isSaving: Boolean,
     onAction: (ProfileEditorAction) -> Unit,
@@ -167,7 +168,7 @@ private fun ProfileEditorActions(
 
 @Composable
 private fun ProfileEditorContent(
-    editor: ProfileEditorUiState,
+    editor: ProfileEditorFormUiState,
     options: ProfileEditorOptionsModel,
     isSaving: Boolean,
     onAction: (ProfileEditorAction) -> Unit,
@@ -266,8 +267,7 @@ private fun ProfileFieldError.message(): String {
 }
 
 private fun String.readableId(): String {
-    return substringAfterLast("-")
-        .replaceFirstChar { it.uppercase() }
+    return substringAfterLast("-").replaceFirstChar { it.uppercase() }
 }
 
 @PreviewMobile
@@ -276,7 +276,7 @@ private fun ProfileEditorContentPreview() {
     StreamCoreTVTheme {
         Surface {
             ProfileEditorContent(
-                editor = ProfileEditorUiState(
+                editor = ProfileEditorFormUiState(
                     mode = ProfileEditorMode.Edit,
                     draft = ProfileDraftModel(
                         profileId = "profile-1",
@@ -302,7 +302,7 @@ private fun ProfileEditorScreenPreview() {
             state = ProfileEditorScreenUiState(
                 isLoading = false,
                 editorOptions = ProfilesPreviewData.editorOptions,
-                editor = ProfileEditorUiState(
+                editor = ProfileEditorFormUiState(
                     mode = ProfileEditorMode.Create,
                     draft = ProfileDraftModel(
                         avatarId = "avatar-default",
@@ -314,5 +314,3 @@ private fun ProfileEditorScreenPreview() {
         )
     }
 }
-
-

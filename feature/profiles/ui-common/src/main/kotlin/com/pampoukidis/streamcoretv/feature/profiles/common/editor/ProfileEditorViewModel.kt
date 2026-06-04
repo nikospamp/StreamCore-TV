@@ -6,7 +6,9 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.feature.profiles.data.EditorRequest
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.domain.CreateProfileUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOptionsUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
@@ -72,7 +74,10 @@ class ProfileEditorViewModel @Inject constructor(
             mode = mode,
             profileId = profileId,
         )
-        if (activeRequest == request) return
+        if (activeRequest == request) {
+            return
+        }
+
         activeRequest = request
 
         viewModelScope.launch {
@@ -91,7 +96,7 @@ class ProfileEditorViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     editorOptions = options,
-                    editor = ProfileEditorUiState(
+                    editor = ProfileEditorFormUiState(
                         mode = mode,
                         draft = draft,
                     ),
@@ -220,11 +225,4 @@ class ProfileEditorViewModel @Inject constructor(
             parentalLevelId = parentalLevel.id,
         )
     }
-
-    private data class EditorRequest(
-        val mode: ProfileEditorMode,
-        val profileId: String?,
-    )
 }
-
-
