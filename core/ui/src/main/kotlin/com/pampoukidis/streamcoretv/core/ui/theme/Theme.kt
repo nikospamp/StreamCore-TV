@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.pampoukidis.streamcoretv.core.ui.utils.LoginPlatform
+import com.pampoukidis.streamcoretv.core.model.general.Platform
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 
 private val LightColorScheme = lightColorScheme(
@@ -90,7 +90,7 @@ fun StreamCoreTVTheme(
             }
         }
 
-        darkTheme && platform != LoginPlatform.Tv -> DarkColorScheme
+        darkTheme && platform != Platform.Tv -> DarkColorScheme
 
         else -> LightColorScheme
     }

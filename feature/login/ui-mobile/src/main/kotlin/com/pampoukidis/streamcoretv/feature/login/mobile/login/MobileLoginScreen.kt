@@ -26,7 +26,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
-import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackgroundVariant
+import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginMaterialForm
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
