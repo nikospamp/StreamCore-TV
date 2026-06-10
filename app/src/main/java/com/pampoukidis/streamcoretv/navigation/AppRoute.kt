@@ -21,7 +21,7 @@ internal sealed interface AppRoute {
     ) : AppRoute
 
     @Serializable
-    data class Authenticated(
+    data class Home(
         val profileId: String,
     ) : AppRoute
 }
