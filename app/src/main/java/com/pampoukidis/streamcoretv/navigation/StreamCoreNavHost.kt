@@ -4,24 +4,18 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.model.general.Platform
-import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
+import com.pampoukidis.streamcoretv.feature.home.mobile.home.MobileHomeRoute
+import com.pampoukidis.streamcoretv.feature.home.tablet.home.TabletHomeRoute
+import com.pampoukidis.streamcoretv.feature.home.tv.home.TvHomeRoute
 import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
@@ -100,7 +94,7 @@ internal fun StreamCoreNavHost(
             ProfilesDestination(
                 onProfileSelected = { profile ->
                     navController.navigate(
-                        AppRoute.Authenticated(profileId = profile.id),
+                        AppRoute.Home(profileId = profile.id),
                     ) {
                         popUpTo<AppRoute.Profiles> {
                             inclusive = true
@@ -166,11 +160,12 @@ internal fun StreamCoreNavHost(
             )
         }
 
-        composable<AppRoute.Authenticated> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.Authenticated>()
+        composable<AppRoute.Home> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.Home>()
 
-            AuthenticatedPlaceholder(
+            HomeDestination(
                 profileId = route.profileId,
+                onError = onError,
             )
         }
     }
@@ -278,31 +273,24 @@ private fun ProfileEditorDestination(
 }
 
 @Composable
-private fun AuthenticatedPlaceholder(
+private fun HomeDestination(
     profileId: String,
+    onError: (AppError) -> Unit,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Text(
-                text = "Active profile id: $profileId",
-                style = MaterialTheme.typography.titleLarge,
-            )
-        }
-    }
-}
+    when (rememberLoginPlatform()) {
+        Platform.Mobile -> MobileHomeRoute(
+            profileId = profileId,
+            onError = onError,
+        )
 
-@PreviewMobile
-@Composable
-private fun AuthenticatedPlaceholderPreview() {
-    StreamCoreTVTheme {
-        AuthenticatedPlaceholder(
-            profileId = "adult-profile",
+        Platform.Tablet -> TabletHomeRoute(
+            profileId = profileId,
+            onError = onError,
+        )
+
+        Platform.Tv -> TvHomeRoute(
+            profileId = profileId,
+            onError = onError,
         )
     }
 }

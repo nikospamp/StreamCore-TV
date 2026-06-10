@@ -53,3 +53,10 @@ include(":feature:profiles:ui-common")
 include(":feature:profiles:ui-mobile")
 include(":feature:profiles:ui-tablet")
 include(":feature:profiles:ui-tv")
+
+// Home
+include(":feature:home:domain")
+include(":feature:home:ui-common")
+include(":feature:home:ui-mobile")
+include(":feature:home:ui-tablet")
+include(":feature:home:ui-tv")
