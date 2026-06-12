@@ -76,6 +76,7 @@ fun MobileHomeScreen(
             }
             MobileHomeBody(
                 state = state,
+                onAction = onAction,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -116,6 +117,7 @@ private fun HomeHeader(
 @Composable
 private fun MobileHomeBody(
     state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -140,7 +142,10 @@ private fun MobileHomeBody(
                     key = { it.id },
                     contentType = { it.style },
                 ) { row ->
-                    MobileContentRow(row = row)
+                    MobileContentRow(
+                        row = row,
+                        onAction = onAction,
+                    )
                 }
             }
         }
@@ -150,6 +155,7 @@ private fun MobileHomeBody(
 @Composable
 private fun MobileContentRow(
     row: RowModel,
+    onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -187,6 +193,9 @@ private fun MobileContentRow(
                     content = content,
                     style = row.style,
                     rank = index + 1,
+                    onClick = {
+                        onAction(HomeAction.ContentSelected(content))
+                    },
                 )
             }
         }
@@ -199,6 +208,7 @@ private fun MobileContentCard(
     content: ContentModel,
     style: RowStyle,
     rank: Int,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spec = style.mobileCardSpec()
@@ -207,6 +217,7 @@ private fun MobileContentCard(
     }
 
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,

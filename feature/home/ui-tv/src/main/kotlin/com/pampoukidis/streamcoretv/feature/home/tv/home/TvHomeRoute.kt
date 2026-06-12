@@ -13,6 +13,7 @@ import com.pampoukidis.streamcoretv.feature.home.common.home.HomeViewModel
 @Composable
 fun TvHomeRoute(
     profileId: String,
+    onContentSelected: (String) -> Unit,
     onError: (AppError) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -24,6 +25,7 @@ fun TvHomeRoute(
 
     HomeRouteEventEffect(
         viewModel = viewModel,
+        onContentSelected = onContentSelected,
         onError = onError,
     )
 

@@ -72,7 +72,21 @@ class HomeViewModelTest {
         }
     }
 
-    private fun homeViewModel(repository: HomeRepository): HomeViewModel {
+    @Test
+    fun `content selection emits selected content id`() {
+        runTest {
+            val content = contentModel()
+            val subject = homeViewModel()
+
+            subject.onAction(HomeAction.ContentSelected(content))
+
+            assertEquals(HomeEffect.ContentSelected(content.id), subject.effects.first())
+        }
+    }
+
+    private fun homeViewModel(
+        repository: HomeRepository = FakeHomeRepository(AppResult.Success(emptyList())),
+    ): HomeViewModel {
         return HomeViewModel(
             loadHomeRows = LoadHomeRowsUseCase(repository),
         )

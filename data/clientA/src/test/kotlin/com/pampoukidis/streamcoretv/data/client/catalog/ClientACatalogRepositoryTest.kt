@@ -8,7 +8,7 @@ import org.junit.Test
 
 class ClientACatalogRepositoryTest {
 
-    private val subject = ClientACatalogRepository()
+    private val subject = ClientACatalogRepository(ClientACatalogSource())
 
     @Test
     fun `kids profile receives maturity-filtered catalog`() {

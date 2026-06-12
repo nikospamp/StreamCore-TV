@@ -60,3 +60,11 @@ include(":feature:home:ui-common")
 include(":feature:home:ui-mobile")
 include(":feature:home:ui-tablet")
 include(":feature:home:ui-tv")
+
+// Details
+include(":feature:details:data")
+include(":feature:details:domain")
+include(":feature:details:ui-common")
+include(":feature:details:ui-mobile")
+include(":feature:details:ui-tablet")
+include(":feature:details:ui-tv")
