@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.home.common.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
@@ -34,6 +35,7 @@ class HomeViewModel @Inject constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.Load -> load(action.profileId)
+            is HomeAction.ContentSelected -> selectContent(action.content)
             HomeAction.Refresh -> refresh()
         }
     }
@@ -80,6 +82,12 @@ class HomeViewModel @Inject constructor(
     private fun refresh() {
         val profileId = activeProfileId ?: return
         load(profileId = profileId, force = true)
+    }
+
+    private fun selectContent(content: ContentModel) {
+        viewModelScope.launch {
+            effectsChannel.send(HomeEffect.ContentSelected(content.id))
+        }
     }
 
     private suspend fun emitError(error: AppError) {

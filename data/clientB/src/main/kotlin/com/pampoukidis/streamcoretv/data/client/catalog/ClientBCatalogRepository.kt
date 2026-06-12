@@ -5,144 +5,23 @@ import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
-import com.pampoukidis.streamcoretv.data.client.model.ClientBCategoryDto
-import com.pampoukidis.streamcoretv.data.client.model.ClientBContentDto
-import com.pampoukidis.streamcoretv.data.client.model.ClientBContributorDto
-import com.pampoukidis.streamcoretv.data.client.model.ClientBHomeLaneDto
-import com.pampoukidis.streamcoretv.data.client.model.ClientBLaneTemplateDto
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ClientBCatalogRepository @Inject constructor() : HomeRepository {
-
-    private val catalog = listOf(
-        content(
-            id = "client-b-last-archive",
-            title = "The Last Archive",
-            description = "An archivist discovers a record that should not exist.",
-            rating = 9,
-            parentalRating = "13+",
-            parentalLevel = 13,
-            categories = listOf(
-                ClientBCategoryDto(code = "mystery", displayName = "Mystery"),
-                ClientBCategoryDto(code = "science-fiction", displayName = "Science Fiction"),
-            ),
-        ),
-        content(
-            id = "client-b-city-lights",
-            title = "City Lights",
-            description = "Five stories intersect over one night in a changing city.",
-            rating = 8,
-            parentalRating = "16+",
-            parentalLevel = 16,
-            categories = listOf(
-                ClientBCategoryDto(code = "drama", displayName = "Drama"),
-            ),
-        ),
-        content(
-            id = "client-b-paper-rockets",
-            title = "Paper Rockets",
-            description = "Friends build a backyard mission control for a school competition.",
-            rating = 8,
-            parentalRating = "All",
-            parentalLevel = 0,
-            categories = listOf(
-                ClientBCategoryDto(code = "family", displayName = "Family"),
-                ClientBCategoryDto(code = "adventure", displayName = "Adventure"),
-            ),
-        ),
-        content(
-            id = "client-b-deep-current",
-            title = "Deep Current",
-            description = "Researchers map an unexplored current beneath the Atlantic.",
-            rating = 7,
-            parentalRating = "7+",
-            parentalLevel = 7,
-            categories = listOf(
-                ClientBCategoryDto(code = "documentary", displayName = "Documentary"),
-            ),
-        ),
-    )
+class ClientBCatalogRepository @Inject constructor(
+    private val catalogSource: ClientBCatalogSource,
+) : HomeRepository {
 
     override suspend fun getHomeRows(profileId: String): AppResult<List<RowModel>> {
         if (profileId.isBlank()) {
             return catalogFailure("PROFILE_ID_REQUIRED")
         }
 
-        val profileCatalog = if (profileId.contains("kids", ignoreCase = true)) {
-            catalog.filter { it.parentalLevel <= KIDS_MATURITY_LEVEL }
-        } else {
-            catalog
-        }
         return AppResult.Success(
-            homeLanes(profileCatalog)
+            catalogSource.homeLanes(catalogSource.contentForProfile(profileId))
                 .filter { it.assets.isNotEmpty() }
                 .map { it.toModel() },
-        )
-    }
-
-    private fun homeLanes(content: List<ClientBContentDto>): List<ClientBHomeLaneDto> {
-        return listOf(
-            ClientBHomeLaneDto(
-                laneId = "client-b-spotlight",
-                title = "Spotlight",
-                caption = "Featured for this profile",
-                template = ClientBLaneTemplateDto.Spotlight,
-                assets = content.take(3),
-            ),
-            ClientBHomeLaneDto(
-                laneId = "client-b-ranking",
-                title = "Top 10 today",
-                caption = "Trending on Client B",
-                template = ClientBLaneTemplateDto.Ranking,
-                assets = content.sortedByDescending { it.ratingOutOfTen },
-            ),
-            ClientBHomeLaneDto(
-                laneId = "client-b-for-you",
-                title = "For you",
-                caption = "Recommended from your viewing profile",
-                template = ClientBLaneTemplateDto.Portrait,
-                assets = content,
-            ),
-            ClientBHomeLaneDto(
-                laneId = "client-b-latest",
-                title = "Latest releases",
-                caption = "Recently added to the catalog",
-                template = ClientBLaneTemplateDto.Landscape,
-                assets = content.sortedByDescending { it.releaseEpochMillis },
-            ),
-        )
-    }
-
-    private fun content(
-        id: String,
-        title: String,
-        description: String,
-        rating: Int,
-        parentalRating: String,
-        parentalLevel: Int,
-        categories: List<ClientBCategoryDto>,
-    ): ClientBContentDto {
-        return ClientBContentDto(
-            assetId = id,
-            displayTitle = title,
-            description = description,
-            ratingOutOfTen = rating,
-            parentalRating = parentalRating,
-            parentalLevel = parentalLevel,
-            portraitImage = "https://images.client-b.example/$id/portrait.jpg",
-            landscapeImage = "https://images.client-b.example/$id/landscape.jpg",
-            releaseEpochMillis = 1_711_929_600_000L,
-            contributors = listOf(
-                ClientBContributorDto(
-                    id = "client-b-contributor-lead",
-                    displayName = "Jordan Lee",
-                    roleName = "Lead",
-                    imageUrl = null,
-                ),
-            ),
-            categories = categories,
         )
     }
 
@@ -161,6 +40,5 @@ class ClientBCatalogRepository @Inject constructor() : HomeRepository {
     private companion object {
         const val CLIENT = "clientB"
         const val GET_HOME_ROWS_OPERATION = "getHomeRows"
-        const val KIDS_MATURITY_LEVEL = 7
     }
 }

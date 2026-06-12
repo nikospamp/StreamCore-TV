@@ -72,6 +72,9 @@ dependencies {
     implementation(projects.feature.home.uiMobile)
     implementation(projects.feature.home.uiTablet)
     implementation(projects.feature.home.uiTv)
+    implementation(projects.feature.details.uiMobile)
+    implementation(projects.feature.details.uiTablet)
+    implementation(projects.feature.details.uiTv)
 
     // Libraries
     implementation(libs.androidx.core.ktx)

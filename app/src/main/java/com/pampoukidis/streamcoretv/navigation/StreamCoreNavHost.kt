@@ -13,6 +13,9 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.general.Platform
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
+import com.pampoukidis.streamcoretv.feature.details.mobile.details.MobileDetailsRoute
+import com.pampoukidis.streamcoretv.feature.details.tablet.details.TabletDetailsRoute
+import com.pampoukidis.streamcoretv.feature.details.tv.details.TvDetailsRoute
 import com.pampoukidis.streamcoretv.feature.home.mobile.home.MobileHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tablet.home.TabletHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tv.home.TvHomeRoute
@@ -165,6 +168,42 @@ internal fun StreamCoreNavHost(
 
             HomeDestination(
                 profileId = route.profileId,
+                onContentSelected = { contentId ->
+                    navController.navigate(
+                        AppRoute.AssetDetails(
+                            profileId = route.profileId,
+                            contentId = contentId,
+                        ),
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+                onError = onError,
+            )
+        }
+
+        composable<AppRoute.AssetDetails> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.AssetDetails>()
+
+            DetailsDestination(
+                profileId = route.profileId,
+                contentId = route.contentId,
+                onRecommendationSelected = { contentId ->
+                    navController.navigate(
+                        AppRoute.AssetDetails(
+                            profileId = route.profileId,
+                            contentId = contentId,
+                        ),
+                    ) {
+                        popUpTo<AppRoute.Home> {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
+                },
                 onError = onError,
             )
         }
@@ -275,21 +314,60 @@ private fun ProfileEditorDestination(
 @Composable
 private fun HomeDestination(
     profileId: String,
+    onContentSelected: (String) -> Unit,
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileHomeRoute(
             profileId = profileId,
+            onContentSelected = onContentSelected,
             onError = onError,
         )
 
         Platform.Tablet -> TabletHomeRoute(
             profileId = profileId,
+            onContentSelected = onContentSelected,
             onError = onError,
         )
 
         Platform.Tv -> TvHomeRoute(
             profileId = profileId,
+            onContentSelected = onContentSelected,
+            onError = onError,
+        )
+    }
+}
+
+@Composable
+private fun DetailsDestination(
+    profileId: String,
+    contentId: String,
+    onRecommendationSelected: (String) -> Unit,
+    onBack: () -> Unit,
+    onError: (AppError) -> Unit,
+) {
+    when (rememberLoginPlatform()) {
+        Platform.Mobile -> MobileDetailsRoute(
+            profileId = profileId,
+            contentId = contentId,
+            onRecommendationSelected = onRecommendationSelected,
+            onBack = onBack,
+            onError = onError,
+        )
+
+        Platform.Tablet -> TabletDetailsRoute(
+            profileId = profileId,
+            contentId = contentId,
+            onRecommendationSelected = onRecommendationSelected,
+            onBack = onBack,
+            onError = onError,
+        )
+
+        Platform.Tv -> TvDetailsRoute(
+            profileId = profileId,
+            contentId = contentId,
+            onRecommendationSelected = onRecommendationSelected,
+            onBack = onBack,
             onError = onError,
         )
     }

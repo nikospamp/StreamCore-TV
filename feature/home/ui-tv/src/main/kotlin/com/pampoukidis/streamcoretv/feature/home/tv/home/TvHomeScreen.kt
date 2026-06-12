@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.feature.home.tv.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,6 +94,7 @@ fun TvHomeScreen(
             }
             TvHomeBody(
                 state = state,
+                onAction = onAction,
                 firstContentFocusRequester = firstContentFocusRequester,
                 modifier = Modifier.weight(1f),
             )
@@ -135,6 +136,7 @@ private fun HomeHeader(
 @Composable
 private fun TvHomeBody(
     state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
     firstContentFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -162,6 +164,7 @@ private fun TvHomeBody(
                 ) { rowIndex, row ->
                     TvContentRow(
                         row = row,
+                        onAction = onAction,
                         firstContentFocusRequester = if (rowIndex == 0) {
                             firstContentFocusRequester
                         } else {
@@ -177,6 +180,7 @@ private fun TvHomeBody(
 @Composable
 private fun TvContentRow(
     row: RowModel,
+    onAction: (HomeAction) -> Unit,
     firstContentFocusRequester: FocusRequester?,
     modifier: Modifier = Modifier,
 ) {
@@ -218,6 +222,9 @@ private fun TvContentRow(
                     content = content,
                     style = row.style,
                     rank = contentIndex + 1,
+                    onClick = {
+                        onAction(HomeAction.ContentSelected(content))
+                    },
                     focusRequester = if (contentIndex == 0) {
                         firstContentFocusRequester
                     } else {
@@ -235,6 +242,7 @@ private fun TvContentCard(
     content: ContentModel,
     style: RowStyle,
     rank: Int,
+    onClick: () -> Unit,
     focusRequester: FocusRequester?,
     modifier: Modifier = Modifier,
 ) {
@@ -265,7 +273,7 @@ private fun TvContentCard(
             .width(spec.width)
             .then(focusModifier)
             .onFocusChanged { isFocused = it.isFocused }
-            .focusable()
+            .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

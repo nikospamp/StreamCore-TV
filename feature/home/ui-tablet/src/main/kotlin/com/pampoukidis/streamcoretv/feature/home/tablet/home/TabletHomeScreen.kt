@@ -76,6 +76,7 @@ fun TabletHomeScreen(
             }
             TabletHomeBody(
                 state = state,
+                onAction = onAction,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -116,6 +117,7 @@ private fun HomeHeader(
 @Composable
 private fun TabletHomeBody(
     state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -140,7 +142,10 @@ private fun TabletHomeBody(
                     key = { it.id },
                     contentType = { it.style },
                 ) { row ->
-                    TabletContentRow(row = row)
+                    TabletContentRow(
+                        row = row,
+                        onAction = onAction,
+                    )
                 }
             }
         }
@@ -150,6 +155,7 @@ private fun TabletHomeBody(
 @Composable
 private fun TabletContentRow(
     row: RowModel,
+    onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -187,6 +193,9 @@ private fun TabletContentRow(
                     content = content,
                     style = row.style,
                     rank = index + 1,
+                    onClick = {
+                        onAction(HomeAction.ContentSelected(content))
+                    },
                 )
             }
         }
@@ -199,6 +208,7 @@ private fun TabletContentCard(
     content: ContentModel,
     style: RowStyle,
     rank: Int,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spec = style.tabletCardSpec()
@@ -207,6 +217,7 @@ private fun TabletContentCard(
     }
 
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,

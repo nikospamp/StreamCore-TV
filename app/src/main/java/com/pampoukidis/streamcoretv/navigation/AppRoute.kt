@@ -24,4 +24,10 @@ internal sealed interface AppRoute {
     data class Home(
         val profileId: String,
     ) : AppRoute
+
+    @Serializable
+    data class AssetDetails(
+        val profileId: String,
+        val contentId: String,
+    ) : AppRoute
 }
