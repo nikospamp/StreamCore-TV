@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.details.tv.details
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,11 +33,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
@@ -199,18 +201,17 @@ private fun DetailsHero(
     content: ContentModel,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    StreamCoreContentImage(
+        imageUrl = content.backdrop ?: content.poster,
+        contentDescription = content.title,
+        fallbackText = content.fallbackText(),
+        contentScale = ContentScale.Crop,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        fallbackTextStyle = MaterialTheme.typography.displayLarge,
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Text(
-            text = content.title.firstOrNull()?.uppercase() ?: "?",
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-    }
+            .clip(RoundedCornerShape(16.dp)),
+    )
 }
 
 @Composable
@@ -336,30 +337,27 @@ private fun RecommendationCard(
             .testTag(DetailsTestTags.RecommendationPrefix + content.id),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                contentAlignment = Alignment.Center,
+            StreamCoreContentImage(
+                imageUrl = content.backdrop ?: content.poster,
+                contentDescription = content.title,
+                fallbackText = content.fallbackText(),
+                contentScale = ContentScale.Crop,
+                containerColor = if (isFocused) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+                contentColor = if (isFocused) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                fallbackTextStyle = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    .background(
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                    ),
-            ) {
-                Text(
-                    text = content.title.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = if (isFocused) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+            )
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),

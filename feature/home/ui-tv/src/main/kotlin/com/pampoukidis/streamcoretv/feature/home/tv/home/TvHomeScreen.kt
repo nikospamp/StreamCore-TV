@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.home.tv.home
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.model.content.imageUrl
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
@@ -277,29 +280,27 @@ private fun TvContentCard(
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                contentAlignment = Alignment.Center,
+            StreamCoreContentImage(
+                imageUrl = content.imageUrl(style),
+                contentDescription = content.title,
+                fallbackText = content.fallbackText(),
+                contentScale = ContentScale.Crop,
+                containerColor = if (isFocused) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+                contentColor = if (isFocused) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                fallbackTextStyle = MaterialTheme.typography.displayLarge,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(spec.aspectRatio)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    .background(
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                    ),
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
             ) {
-                Text(
-                    text = content.title.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = if (isFocused) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
                 if (style == RowStyle.TopTen) {
                     Text(
                         text = rank.toString(),
