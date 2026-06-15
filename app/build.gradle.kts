@@ -33,7 +33,7 @@ android {
 
     flavorDimensions += "client"
     productFlavors {
-        create("clientA") {
+        create("tmdb") {
             dimension = "client"
         }
         create("clientB") {
@@ -50,12 +50,12 @@ android {
     }
 }
 
-val clientAImplementation by configurations
+val tmdbImplementation by configurations
 val clientBImplementation by configurations
 
 dependencies {
     // Clients
-    clientAImplementation(projects.data.clientA)
+    tmdbImplementation(projects.data.tmdb)
     clientBImplementation(projects.data.clientB)
 
     // Core

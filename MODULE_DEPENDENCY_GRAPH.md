@@ -7,7 +7,7 @@ flowchart LR
     app[":app"]
 
     subgraph clients["Client data modules"]
-        dataClientA[":data:clientA"]
+        dataTmdb[":data:tmdb"]
         dataClientB[":data:clientB"]
     end
 
@@ -25,7 +25,7 @@ flowchart LR
         coreModel[":core:model"]
     end
 
-    app -->|"clientAImplementation"| dataClientA
+    app -->|"tmdbImplementation"| dataTmdb
     app -->|"clientBImplementation"| dataClientB
     app -->|"implementation"| coreModel
     app -->|"implementation"| coreUi
@@ -33,9 +33,9 @@ flowchart LR
     app -->|"implementation"| loginTablet
     app -->|"implementation"| loginTv
 
-    dataClientA -->|"implementation"| coreDomain
-    dataClientA -->|"implementation"| coreModel
-    dataClientA -->|"implementation"| coreUi
+    dataTmdb -->|"implementation"| coreDomain
+    dataTmdb -->|"implementation"| coreModel
+    dataTmdb -->|"implementation"| coreUi
     dataClientB -->|"implementation"| coreDomain
     dataClientB -->|"implementation"| coreModel
     dataClientB -->|"implementation"| coreUi
@@ -66,7 +66,7 @@ flowchart LR
 
 ```text
 :app
-  clientAImplementation -> :data:clientA
+  tmdbImplementation -> :data:tmdb
     implementation -> :core:domain
       implementation -> :core:model
     implementation -> :core:model
@@ -111,7 +111,7 @@ flowchart LR
 
 | Source | Configuration | Target |
 |---|---:|---|
-| `:app` | `clientAImplementation` | `:data:clientA` |
+| `:app` | `tmdbImplementation` | `:data:tmdb` |
 | `:app` | `clientBImplementation` | `:data:clientB` |
 | `:app` | `implementation` | `:core:model` |
 | `:app` | `implementation` | `:core:ui` |
@@ -120,9 +120,9 @@ flowchart LR
 | `:app` | `implementation` | `:feature:login:ui-tv` |
 | `:core:domain` | `implementation` | `:core:model` |
 | `:core:ui` | `implementation` | `:core:model` |
-| `:data:clientA` | `implementation` | `:core:domain` |
-| `:data:clientA` | `implementation` | `:core:model` |
-| `:data:clientA` | `implementation` | `:core:ui` |
+| `:data:tmdb` | `implementation` | `:core:domain` |
+| `:data:tmdb` | `implementation` | `:core:model` |
+| `:data:tmdb` | `implementation` | `:core:ui` |
 | `:data:clientB` | `implementation` | `:core:domain` |
 | `:data:clientB` | `implementation` | `:core:model` |
 | `:data:clientB` | `implementation` | `:core:ui` |
