@@ -16,3 +16,17 @@ data class ContentModel(
     val releaseDate: Long,
     val genres: List<Genre>,
 )
+
+fun ContentModel.fallbackText(): String {
+    return title.firstOrNull()?.uppercase() ?: "?"
+}
+
+fun ContentModel.imageUrl(style: RowStyle): String? {
+    return when (style) {
+        RowStyle.Carousel,
+        RowStyle.Landscape -> backdrop ?: poster
+
+        RowStyle.Poster,
+        RowStyle.TopTen -> poster
+    }
+}
