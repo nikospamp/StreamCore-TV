@@ -206,9 +206,6 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
-### Gradle Patch ###
-# Java heap dump
-
 ### AndroidStudio ###
 
 # Files for the ART/Dalvik VM

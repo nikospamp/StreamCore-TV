@@ -5,13 +5,21 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
-import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbContentDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieSummaryDto
+import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbApi
+import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbCallExecutor
+import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceData
+import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 @Singleton
-class TmdbDetailsRepository @Inject constructor(
-    private val catalogSource: TmdbCatalogSource,
+class TmdbDetailsRepository @Inject internal constructor(
+    private val tmdbApi: TmdbApi,
+    private val referenceDataSource: TmdbReferenceDataSource,
+    private val callExecutor: TmdbCallExecutor,
 ) : DetailsRepository {
 
     override suspend fun getDetails(
@@ -27,15 +35,19 @@ class TmdbDetailsRepository @Inject constructor(
             return validationFailure
         }
 
-        val content = findContent(
-            profileId = profileId,
-            contentId = contentId,
-        ) ?: return detailsFailure(
+        val movieId = contentId.toMovieIdOrNull() ?: return detailsFailure(
             operation = GET_DETAILS_OPERATION,
-            backendCode = "CONTENT_NOT_FOUND",
+            backendCode = "CONTENT_ID_INVALID",
         )
 
-        return AppResult.Success(content.toModel())
+        return callExecutor.execute(operation = GET_DETAILS_OPERATION) {
+            coroutineScope {
+                val referenceData = async { referenceDataSource.getReferenceData() }
+                val details = async { tmdbApi.getMovieDetails(movieId = movieId) }
+
+                details.await().toModel(referenceData = referenceData.await())
+            }
+        }
     }
 
     override suspend fun getRecommendations(
@@ -51,43 +63,25 @@ class TmdbDetailsRepository @Inject constructor(
             return validationFailure
         }
 
-        val profileCatalog = catalogSource.contentForProfile(profileId)
-        val selected = profileCatalog.firstOrNull { it.contentId == contentId }
-            ?: return detailsFailure(
-                operation = GET_RECOMMENDATIONS_OPERATION,
-                backendCode = "CONTENT_NOT_FOUND",
-            )
-
-        return AppResult.Success(
-            recommendations(
-                selected = selected,
-                catalog = profileCatalog,
-            ).map { it.toModel() },
+        val movieId = contentId.toMovieIdOrNull() ?: return detailsFailure(
+            operation = GET_RECOMMENDATIONS_OPERATION,
+            backendCode = "CONTENT_ID_INVALID",
         )
-    }
 
-    private fun findContent(
-        profileId: String,
-        contentId: String,
-    ): TmdbContentDto? {
-        return catalogSource.contentForProfile(profileId)
-            .firstOrNull { it.contentId == contentId }
-    }
+        return callExecutor.execute(operation = GET_RECOMMENDATIONS_OPERATION) {
+            coroutineScope {
+                val referenceData = async { referenceDataSource.getReferenceData() }
+                val recommendations = async {
+                    tmdbApi.getMovieRecommendations(movieId = movieId)
+                }
 
-    private fun recommendations(
-        selected: TmdbContentDto,
-        catalog: List<TmdbContentDto>,
-    ): List<TmdbContentDto> {
-        val selectedGenreIds = selected.genres.map { it.genreId }.toSet()
-        val candidates = catalog.filterNot { it.contentId == selected.contentId }
-
-        return candidates
-            .sortedWith(
-                compareByDescending<TmdbContentDto> { content ->
-                    content.genres.any { it.genreId in selectedGenreIds }
-                }.thenByDescending { it.score },
-            )
-            .take(MAX_RECOMMENDATIONS)
+                recommendations.await().results
+                    .contentVisibleForProfile(profileId = profileId)
+                    .filterNot { movie -> movie.id == movieId }
+                    .take(MAX_RECOMMENDATIONS)
+                    .toModels(referenceData = referenceData.await())
+            }
+        }
     }
 
     private fun validateRequest(
@@ -112,6 +106,20 @@ class TmdbDetailsRepository @Inject constructor(
         return null
     }
 
+    private fun String.toMovieIdOrNull(): Int? {
+        return toIntOrNull()?.takeIf { movieId -> movieId > 0 }
+    }
+
+    private fun List<TmdbMovieSummaryDto>.contentVisibleForProfile(
+        profileId: String,
+    ): List<TmdbMovieSummaryDto> {
+        if (profileId.contains(KIDS_PROFILE_MARKER, ignoreCase = true)) {
+            return filterNot { movie -> movie.adult }
+        }
+
+        return this
+    }
+
     private fun detailsFailure(
         operation: String,
         backendCode: String,
@@ -132,5 +140,6 @@ class TmdbDetailsRepository @Inject constructor(
         const val GET_DETAILS_OPERATION = "getDetails"
         const val GET_RECOMMENDATIONS_OPERATION = "getRecommendations"
         const val MAX_RECOMMENDATIONS = 12
+        const val KIDS_PROFILE_MARKER = "kids"
     }
 }
