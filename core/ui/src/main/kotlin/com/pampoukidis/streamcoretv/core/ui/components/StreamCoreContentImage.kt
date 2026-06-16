@@ -3,6 +3,7 @@ package com.pampoukidis.streamcoretv.core.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +33,7 @@ fun StreamCoreContentImage(
     containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     fallbackTextStyle: TextStyle = MaterialTheme.typography.displayMedium,
+    crossfade: Boolean = true,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val normalizedImageUrl = imageUrl?.takeIf { url -> url.isNotBlank() }
@@ -39,11 +41,12 @@ fun StreamCoreContentImage(
     val imageRequest = remember(
         context,
         normalizedImageUrl,
+        crossfade,
     ) {
         normalizedImageUrl?.let { url ->
             ImageRequest.Builder(context)
                 .data(url)
-                .crossfade(true)
+                .crossfade(crossfade)
                 .build()
         }
     }
@@ -73,11 +76,13 @@ fun StreamCoreContentImage(
 @Composable
 private fun StreamCoreContentImagePreview() {
     StreamCoreTVTheme {
-        StreamCoreContentImage(
-            imageUrl = null,
-            contentDescription = "Preview",
-            fallbackText = "S",
-            modifier = Modifier.size(160.dp),
-        )
+        Row {
+            StreamCoreContentImage(
+                imageUrl = null,
+                contentDescription = "Preview",
+                fallbackText = "S",
+                modifier = Modifier.size(160.dp),
+            )
+        }
     }
 }

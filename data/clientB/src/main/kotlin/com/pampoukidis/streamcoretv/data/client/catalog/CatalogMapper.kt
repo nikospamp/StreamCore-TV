@@ -16,12 +16,14 @@ internal fun ClientBHomeLaneDto.toModel(): RowModel {
         id = laneId,
         title = title,
         subtitle = caption,
-        content = assets.map { it.toModel() },
+        content = assets.map { asset ->
+            asset.toModel(row = laneId)
+        },
         style = template.toModel(),
     )
 }
 
-internal fun ClientBContentDto.toModel(): ContentModel {
+internal fun ClientBContentDto.toModel(row: String? = null): ContentModel {
     return ContentModel(
         id = assetId,
         title = displayTitle,
@@ -34,6 +36,7 @@ internal fun ClientBContentDto.toModel(): ContentModel {
         cast = contributors.map { it.toModel() },
         releaseDate = releaseEpochMillis,
         genres = categories.map { it.toModel() },
+        row = row,
     )
 }
 

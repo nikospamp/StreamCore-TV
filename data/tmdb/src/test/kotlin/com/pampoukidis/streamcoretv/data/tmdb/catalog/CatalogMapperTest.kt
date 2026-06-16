@@ -27,7 +27,7 @@ class CatalogMapperTest {
             genreIds = listOf(878),
             releaseDate = "2026-05-01",
             voteAverage = 8.6,
-        ).toModel(referenceData = referenceData())
+        ).toContentModel(referenceData = referenceData())
 
         assertEquals("1", model.id)
         assertEquals("Orbit Fall", model.title)
@@ -77,7 +77,7 @@ class CatalogMapperTest {
                     ),
                 ),
             ),
-        ).toModel(referenceData = referenceData())
+        ).toContentModel(referenceData = referenceData())
 
         assertEquals("PG-13", model.pgRatingName)
         assertEquals(13, model.pgRatingLevel)

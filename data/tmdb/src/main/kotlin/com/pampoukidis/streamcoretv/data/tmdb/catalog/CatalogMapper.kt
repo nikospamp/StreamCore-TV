@@ -13,21 +13,25 @@ import java.util.GregorianCalendar
 import java.util.TimeZone
 import kotlin.math.roundToInt
 
-internal fun TmdbMovieSummaryDto.toModel(referenceData: TmdbReferenceData): ContentModel {
+internal fun TmdbMovieSummaryDto.toContentModel(
+    referenceData: TmdbReferenceData,
+    row: String? = null,
+): ContentModel {
     return ContentModel(
         id = id.toString(),
         title = title,
         description = overview,
         rating = voteAverage.toRating(),
-        pgRatingName = adult.toSummaryCertificationName(),
-        pgRatingLevel = adult.toSummaryCertificationLevel(),
+        pgRatingName = getSummaryCertificationName(adult),
+        pgRatingLevel = getSummaryCertificationLevel(adult),
         poster = referenceData.posterUrl(posterPath).orEmpty(),
         backdrop = referenceData.backdropUrl(backdropPath),
         cast = emptyList(),
         releaseDate = releaseDate.toEpochMillis(),
         genres = genreIds.mapNotNull { genreId ->
-            referenceData.genre(genreId)?.toModel()
+            referenceData.genre(genreId)?.toGenre()
         },
+        row = row,
     )
 }
 
@@ -42,27 +46,39 @@ internal fun TmdbMovieDetailsDto.toModel(
         title = title,
         description = overview,
         rating = voteAverage.toRating(),
-        pgRatingName = certificationName ?: adult.toSummaryCertificationName(),
-        pgRatingLevel = certificationName?.toCertificationLevel()
-            ?: adult.toSummaryCertificationLevel(),
+        pgRatingName = certificationName ?: getSummaryCertificationName(adult),
+        pgRatingLevel = getCertificationLevel(certificationName),
         poster = referenceData.posterUrl(posterPath).orEmpty(),
         backdrop = referenceData.backdropUrl(backdropPath),
         cast = credits?.cast.orEmpty()
             .sortedBy { castMember -> castMember.order }
             .take(MAX_CAST_MEMBERS)
-            .map { castMember -> castMember.toModel(referenceData = referenceData) },
+            .map { castMember -> castMember.toCast(referenceData = referenceData) },
         releaseDate = releaseDate.toEpochMillis(),
-        genres = genres.map { genre -> genre.toModel() },
+        genres = genres.map { genre -> genre.toGenre() },
     )
 }
 
 internal fun List<TmdbMovieSummaryDto>.toModels(
     referenceData: TmdbReferenceData,
+    row: String? = null,
 ): List<ContentModel> {
-    return map { movie -> movie.toModel(referenceData = referenceData) }
+    return map { movie ->
+        movie.toContentModel(
+            referenceData = referenceData,
+            row = row,
+        )
+    }
 }
 
-private fun TmdbCastMemberDto.toModel(referenceData: TmdbReferenceData): Cast {
+internal fun TmdbApiGenreDto.toGenre(): Genre {
+    return Genre(
+        id = id.toString(),
+        name = name,
+    )
+}
+
+internal fun TmdbCastMemberDto.toCast(referenceData: TmdbReferenceData): Cast {
     return Cast(
         id = id.toString(),
         name = name,
@@ -71,27 +87,20 @@ private fun TmdbCastMemberDto.toModel(referenceData: TmdbReferenceData): Cast {
     )
 }
 
-private fun TmdbApiGenreDto.toModel(): Genre {
-    return Genre(
-        id = id.toString(),
-        name = name,
-    )
-}
-
 private fun Double.toRating(): Int {
     return roundToInt().coerceIn(MIN_RATING, MAX_RATING)
 }
 
-private fun Boolean.toSummaryCertificationName(): String {
-    if (this) {
+private fun getSummaryCertificationName(value: Boolean): String {
+    if (value) {
         return ADULT_CERTIFICATION_NAME
     }
 
     return UNRATED_CERTIFICATION_NAME
 }
 
-private fun Boolean.toSummaryCertificationLevel(): Int {
-    if (this) {
+private fun getSummaryCertificationLevel(value: Boolean): Int {
+    if (value) {
         return ADULT_CERTIFICATION_LEVEL
     }
 
@@ -117,8 +126,8 @@ private fun TmdbReleaseDateDto.certificationPriority(): Int {
     }
 }
 
-private fun String.toCertificationLevel(): Int {
-    return when (trim().uppercase()) {
+fun getCertificationLevel(value: String?): Int {
+    return when (value?.trim()?.uppercase()) {
         "G",
         "U",
         "ALL" -> 0

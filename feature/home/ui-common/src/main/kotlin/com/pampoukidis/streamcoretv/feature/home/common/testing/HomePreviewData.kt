@@ -66,31 +66,35 @@ object HomePreviewData {
             id = "featured",
             title = "Featured",
             subtitle = "Selected for your profile",
-            content = content.take(3),
+            content = content.take(3).withRow(row = "featured"),
             style = RowStyle.Carousel,
         ),
         RowModel(
             id = "top-ten",
             title = "Top 10 today",
             subtitle = "Most watched right now",
-            content = content,
+            content = content.withRow(row = "top-ten"),
             style = RowStyle.TopTen,
         ),
         RowModel(
             id = "recommended",
             title = "Recommended for you",
             subtitle = "Based on your viewing profile",
-            content = content,
+            content = content.withRow(row = "recommended"),
             style = RowStyle.Poster,
         ),
         RowModel(
             id = "new-releases",
             title = "New releases",
             subtitle = "Recently added",
-            content = content.reversed(),
+            content = content.reversed().withRow(row = "new-releases"),
             style = RowStyle.Landscape,
         ),
     )
+
+    private fun List<ContentModel>.withRow(row: String): List<ContentModel> {
+        return map { content -> content.copy(row = row) }
+    }
 
     private fun content(
         id: String,

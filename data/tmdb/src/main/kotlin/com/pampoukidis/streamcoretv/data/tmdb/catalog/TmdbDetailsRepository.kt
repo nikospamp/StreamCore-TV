@@ -8,7 +8,6 @@ import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieSummaryDto
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbApi
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbCallExecutor
-import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceData
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceDataSource
 import javax.inject.Inject
 import javax.inject.Singleton

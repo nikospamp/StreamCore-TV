@@ -80,7 +80,7 @@ class HomeViewModelTest {
 
             subject.onAction(HomeAction.ContentSelected(content))
 
-            assertEquals(HomeEffect.ContentSelected(content.id), subject.effects.first())
+            assertEquals(HomeEffect.ContentSelected(content), subject.effects.first())
         }
     }
 

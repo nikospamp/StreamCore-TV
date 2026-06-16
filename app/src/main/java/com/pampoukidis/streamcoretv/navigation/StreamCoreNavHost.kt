@@ -1,17 +1,27 @@
 package com.pampoukidis.streamcoretv.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.general.Platform
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.details.mobile.details.MobileDetailsRoute
 import com.pampoukidis.streamcoretv.feature.details.tablet.details.TabletDetailsRoute
@@ -30,182 +40,214 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfi
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
 
-private const val NavigationAnimationMillis = 250
-
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun StreamCoreNavHost(
     onError: (AppError) -> Unit,
 ) {
     val navController = rememberNavController()
+    var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
 
-    NavHost(
-        navController = navController,
-        startDestination = AppRoute.Login,
-        enterTransition = {
-            fadeIn(
-                animationSpec = tween(NavigationAnimationMillis),
-            ) + slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(NavigationAnimationMillis),
-            )
-        },
-        exitTransition = {
-            fadeOut(
-                animationSpec = tween(NavigationAnimationMillis),
-            ) + slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(NavigationAnimationMillis),
-            )
-        },
-        popEnterTransition = {
-            fadeIn(
-                animationSpec = tween(NavigationAnimationMillis),
-            ) + slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(NavigationAnimationMillis),
-            )
-        },
-        popExitTransition = {
-            fadeOut(
-                animationSpec = tween(NavigationAnimationMillis),
-            ) + slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(NavigationAnimationMillis),
-            )
-        },
-    ) {
-        composable<AppRoute.Login> {
-            LoginDestination(
-                onLoginSucceeded = {
-                    navController.navigate(AppRoute.Profiles) {
-                        popUpTo<AppRoute.Login> {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                },
-                onForgotPassword = {},
-                onCreateAccount = {
-                    navController.navigate(AppRoute.CreateProfile(fromLogin = true))
-                },
-                onHelp = {},
-                onError = onError,
-            )
-        }
+    SharedTransitionLayout {
+        val sharedTransitionScope = this
 
-        composable<AppRoute.Profiles> {
-            ProfilesDestination(
-                onProfileSelected = { profile ->
-                    navController.navigate(
-                        AppRoute.Home(profileId = profile.id),
-                    ) {
-                        popUpTo<AppRoute.Profiles> {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                },
-                onCreateProfile = {
-                    navController.navigate(AppRoute.CreateProfile(fromLogin = false))
-                },
-                onEditProfile = { profileId ->
-                    navController.navigate(AppRoute.EditProfile(profileId = profileId))
-                },
-                onError = onError,
-            )
-        }
-
-        composable<AppRoute.CreateProfile> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.CreateProfile>()
-
-            ProfileEditorDestination(
-                mode = ProfileEditorMode.Create,
-                profileId = null,
-                onProfileSaved = {
-                    navController.navigate(AppRoute.Profiles) {
-                        if (route.fromLogin) {
+        NavHost(
+            navController = navController,
+            startDestination = AppRoute.Login,
+            enterTransition = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = NavigationFadeMillis,
+                        delayMillis = NavigationFadeDelayMillis,
+                    ),
+                ) + slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                    animationSpec = tween(
+                        durationMillis = NavigationSlideMillis,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            exitTransition = {
+                fadeOut(
+                    animationSpec = tween(NavigationExitFadeMillis),
+                )
+            },
+            popEnterTransition = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = NavigationFadeMillis,
+                        delayMillis = NavigationFadeDelayMillis,
+                    ),
+                ) + slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                    animationSpec = tween(
+                        durationMillis = NavigationSlideMillis,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            popExitTransition = {
+                fadeOut(
+                    animationSpec = tween(NavigationExitFadeMillis),
+                )
+            },
+        ) {
+            composable<AppRoute.Login> {
+                LoginDestination(
+                    onLoginSucceeded = {
+                        selectedContent = null
+                        navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Login> {
                                 inclusive = true
                             }
-                        } else {
+                            launchSingleTop = true
+                        }
+                    },
+                    onForgotPassword = {},
+                    onCreateAccount = {
+                        navController.navigate(AppRoute.CreateProfile(fromLogin = true))
+                    },
+                    onHelp = {},
+                    onError = onError,
+                )
+            }
+
+            composable<AppRoute.Profiles> {
+                ProfilesDestination(
+                    onProfileSelected = { profile ->
+                        selectedContent = null
+                        navController.navigate(
+                            AppRoute.Home(profileId = profile.id),
+                        ) {
                             popUpTo<AppRoute.Profiles> {
                                 inclusive = true
                             }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
-                    }
-                },
-                onClose = {
-                    navController.popBackStack()
-                },
-                onError = onError,
-            )
-        }
+                    },
+                    onCreateProfile = {
+                        navController.navigate(AppRoute.CreateProfile(fromLogin = false))
+                    },
+                    onEditProfile = { profileId ->
+                        navController.navigate(AppRoute.EditProfile(profileId = profileId))
+                    },
+                    onError = onError,
+                )
+            }
 
-        composable<AppRoute.EditProfile> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.EditProfile>()
+            composable<AppRoute.CreateProfile> { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.CreateProfile>()
 
-            ProfileEditorDestination(
-                mode = ProfileEditorMode.Edit,
-                profileId = route.profileId,
-                onProfileSaved = {
-                    navController.navigate(AppRoute.Profiles) {
-                        popUpTo<AppRoute.Profiles> {
-                            inclusive = true
+                ProfileEditorDestination(
+                    mode = ProfileEditorMode.Create,
+                    profileId = null,
+                    onProfileSaved = {
+                        selectedContent = null
+                        navController.navigate(AppRoute.Profiles) {
+                            if (route.fromLogin) {
+                                popUpTo<AppRoute.Login> {
+                                    inclusive = true
+                                }
+                            } else {
+                                popUpTo<AppRoute.Profiles> {
+                                    inclusive = true
+                                }
+                            }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
-                    }
-                },
-                onClose = {
-                    navController.popBackStack()
-                },
-                onError = onError,
-            )
-        }
+                    },
+                    onClose = {
+                        navController.popBackStack()
+                    },
+                    onError = onError,
+                )
+            }
 
-        composable<AppRoute.Home> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.Home>()
+            composable<AppRoute.EditProfile> { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.EditProfile>()
 
-            HomeDestination(
-                profileId = route.profileId,
-                onContentSelected = { contentId ->
-                    navController.navigate(
-                        AppRoute.AssetDetails(
-                            profileId = route.profileId,
-                            contentId = contentId,
-                        ),
-                    ) {
-                        launchSingleTop = true
-                    }
-                },
-                onError = onError,
-            )
-        }
-
-        composable<AppRoute.AssetDetails> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.AssetDetails>()
-
-            DetailsDestination(
-                profileId = route.profileId,
-                contentId = route.contentId,
-                onRecommendationSelected = { contentId ->
-                    navController.navigate(
-                        AppRoute.AssetDetails(
-                            profileId = route.profileId,
-                            contentId = contentId,
-                        ),
-                    ) {
-                        popUpTo<AppRoute.Home> {
-                            inclusive = false
+                ProfileEditorDestination(
+                    mode = ProfileEditorMode.Edit,
+                    profileId = route.profileId,
+                    onProfileSaved = {
+                        selectedContent = null
+                        navController.navigate(AppRoute.Profiles) {
+                            popUpTo<AppRoute.Profiles> {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
-                    }
-                },
-                onBack = {
-                    navController.popBackStack()
-                },
-                onError = onError,
-            )
+                    },
+                    onClose = {
+                        navController.popBackStack()
+                    },
+                    onError = onError,
+                )
+            }
+
+            composable<AppRoute.Home> { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.Home>()
+
+                HomeDestination(
+                    profileId = route.profileId,
+                    selectedContentKey = selectedContent?.let { content ->
+                        streamCoreContentSharedIdentity(
+                            contentId = content.id,
+                            row = content.row,
+                        )
+                    },
+                    sharedElementScope = StreamCoreSharedElementScope(
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = this,
+                    ),
+                    onContentSelected = { content ->
+                        selectedContent = content
+                        navController.navigate(
+                            AppRoute.AssetDetails(
+                                profileId = route.profileId,
+                                contentId = content.id,
+                            ),
+                        ) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onError = onError,
+                )
+            }
+
+            composable<AppRoute.AssetDetails> { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.AssetDetails>()
+
+                DetailsDestination(
+                    profileId = route.profileId,
+                    contentId = route.contentId,
+                    initialContent = selectedContent?.takeIf { content ->
+                        content.id == route.contentId
+                    },
+                    sharedElementScope = StreamCoreSharedElementScope(
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = this,
+                    ),
+                    onRecommendationSelected = { contentId ->
+                        navController.navigate(
+                            AppRoute.AssetDetails(
+                                profileId = route.profileId,
+                                contentId = contentId,
+                            ),
+                        ) {
+                            popUpTo<AppRoute.Home> {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onError = onError,
+                )
+            }
         }
     }
 }
@@ -314,26 +356,34 @@ private fun ProfileEditorDestination(
 @Composable
 private fun HomeDestination(
     profileId: String,
-    onContentSelected: (String) -> Unit,
+    selectedContentKey: String?,
+    sharedElementScope: StreamCoreSharedElementScope?,
+    onContentSelected: (ContentModel) -> Unit,
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileHomeRoute(
             profileId = profileId,
+            selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onError = onError,
+            sharedElementScope = sharedElementScope,
         )
 
         Platform.Tablet -> TabletHomeRoute(
             profileId = profileId,
+            selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onError = onError,
+            sharedElementScope = sharedElementScope,
         )
 
         Platform.Tv -> TvHomeRoute(
             profileId = profileId,
+            selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onError = onError,
+            sharedElementScope = sharedElementScope,
         )
     }
 }
@@ -342,6 +392,8 @@ private fun HomeDestination(
 private fun DetailsDestination(
     profileId: String,
     contentId: String,
+    initialContent: ContentModel?,
+    sharedElementScope: StreamCoreSharedElementScope?,
     onRecommendationSelected: (String) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
@@ -353,6 +405,8 @@ private fun DetailsDestination(
             onRecommendationSelected = onRecommendationSelected,
             onBack = onBack,
             onError = onError,
+            initialContent = initialContent,
+            sharedElementScope = sharedElementScope,
         )
 
         Platform.Tablet -> TabletDetailsRoute(
@@ -361,6 +415,8 @@ private fun DetailsDestination(
             onRecommendationSelected = onRecommendationSelected,
             onBack = onBack,
             onError = onError,
+            initialContent = initialContent,
+            sharedElementScope = sharedElementScope,
         )
 
         Platform.Tv -> TvDetailsRoute(
@@ -369,6 +425,13 @@ private fun DetailsDestination(
             onRecommendationSelected = onRecommendationSelected,
             onBack = onBack,
             onError = onError,
+            initialContent = initialContent,
+            sharedElementScope = sharedElementScope,
         )
     }
 }
+
+private const val NavigationSlideMillis = 240
+private const val NavigationFadeMillis = 140
+private const val NavigationExitFadeMillis = 90
+private const val NavigationFadeDelayMillis = 20
