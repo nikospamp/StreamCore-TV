@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +41,13 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
@@ -57,6 +63,7 @@ fun TvDetailsScreen(
     state: DetailsUiState,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val backFocusRequester = remember { FocusRequester() }
     val contentId = state.content?.id
@@ -85,16 +92,10 @@ fun TvDetailsScreen(
                     horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
                 ),
             )
-            if (state.isLoading && state.content != null) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding),
-                )
-            }
             DetailsBody(
                 state = state,
                 onAction = onAction,
+                sharedElementScope = sharedElementScope,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -135,6 +136,7 @@ private fun DetailsBody(
     state: DetailsUiState,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
+    sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     val content = state.content
 
@@ -158,18 +160,39 @@ private fun DetailsBody(
                 item(contentType = "summary") {
                     SummarySection(
                         content = content,
+                        sharedElementScope = sharedElementScope,
                         modifier = Modifier.padding(
                             horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
                         ),
                     )
                 }
                 item(contentType = "recommendations") {
-                    RecommendationsRow(
-                        recommendations = state.recommendations,
-                        onAction = onAction,
-                    )
+                    StreamCoreDelayedEntrance(
+                        visibleKey = "${content.id}:recommendations",
+                        delayMillis = RecommendationsEntranceDelayMillis,
+                    ) {
+                        RecommendationsRow(
+                            recommendations = state.recommendations,
+                            onAction = onAction,
+                        )
+                    }
                 }
             }
+        }
+
+        if (state.isLoading && content != null) {
+            StreamCoreLoadingChip(
+                text = "Updating",
+                textStyle = MaterialTheme.typography.labelLarge,
+                indicatorSize = 18.dp,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(
+                        top = 12.dp,
+                        end = StreamCoreDimens.Tv.ScreenHorizontalPadding,
+                    ),
+            )
         }
     }
 }
@@ -177,6 +200,7 @@ private fun DetailsBody(
 @Composable
 private fun SummarySection(
     content: ContentModel,
+    sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -185,12 +209,14 @@ private fun SummarySection(
     ) {
         DetailsHero(
             content = content,
+            sharedElementScope = sharedElementScope,
             modifier = Modifier
                 .weight(0.56f)
                 .aspectRatio(16f / 9f),
         )
         DetailsMetadata(
             content = content,
+            sharedElementScope = sharedElementScope,
             modifier = Modifier.weight(0.44f),
         )
     }
@@ -199,8 +225,11 @@ private fun SummarySection(
 @Composable
 private fun DetailsHero(
     content: ContentModel,
+    sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
+    val heroShape = RoundedCornerShape(16.dp)
+
     StreamCoreContentImage(
         imageUrl = content.backdrop ?: content.poster,
         contentDescription = content.title,
@@ -209,14 +238,23 @@ private fun DetailsHero(
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         fallbackTextStyle = MaterialTheme.typography.displayLarge,
+        crossfade = true,
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp)),
+            .streamCoreSharedBounds(
+                sharedElementScope = sharedElementScope,
+                key = streamCoreArtworkSharedKey(
+                    contentId = content.id,
+                    row = content.row,
+                ),
+                clipShape = heroShape,
+            ),
     )
 }
 
 @Composable
 private fun DetailsMetadata(
     content: ContentModel,
+    sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
     val genreText = remember(content.genres) {
@@ -238,31 +276,50 @@ private fun DetailsMetadata(
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.streamCoreSharedBounds(
+                sharedElementScope = sharedElementScope,
+                key = streamCoreTitleSharedKey(
+                    contentId = content.id,
+                    row = content.row,
+                ),
+                clipShape = RectangleShape,
+            ),
         )
-        Text(
-            text = "${releaseYear(content.releaseDate)} · ${content.pgRatingName} · ${content.rating}/10",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = genreText,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = content.description,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 5,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (castText.isNotBlank()) {
-            Text(
-                text = castText,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
+        StreamCoreDelayedEntrance(
+            visibleKey = content.id,
+            delayMillis = MetadataEntranceDelayMillis,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "${releaseYear(content.releaseDate)} · ${content.pgRatingName} · ${content.rating}/10",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = genreText,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = content.description,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (castText.isNotBlank()) {
+                    Text(
+                        text = castText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -384,6 +441,9 @@ private fun releaseYear(epochMillis: Long): Int {
     calendar.timeInMillis = epochMillis
     return calendar.get(Calendar.YEAR)
 }
+
+private const val MetadataEntranceDelayMillis = 90
+private const val RecommendationsEntranceDelayMillis = 170
 
 @PreviewTV
 @Composable

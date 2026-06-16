@@ -25,7 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -36,9 +36,15 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowStyle
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
@@ -51,6 +57,8 @@ fun TabletHomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
+    selectedContentKey: String? = null,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -80,6 +88,8 @@ fun TabletHomeScreen(
             TabletHomeBody(
                 state = state,
                 onAction = onAction,
+                selectedContentKey = selectedContentKey,
+                sharedElementScope = sharedElementScope,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -122,6 +132,8 @@ private fun TabletHomeBody(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
+    selectedContentKey: String?,
+    sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -148,6 +160,8 @@ private fun TabletHomeBody(
                     TabletContentRow(
                         row = row,
                         onAction = onAction,
+                        selectedContentKey = selectedContentKey,
+                        sharedElementScope = sharedElementScope,
                     )
                 }
             }
@@ -160,6 +174,8 @@ private fun TabletContentRow(
     row: RowModel,
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
+    selectedContentKey: String?,
+    sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -196,6 +212,11 @@ private fun TabletContentRow(
                     content = content,
                     style = row.style,
                     rank = index + 1,
+                    useSharedTransition = streamCoreContentSharedIdentity(
+                        contentId = content.id,
+                        row = content.row,
+                    ) == selectedContentKey,
+                    sharedElementScope = sharedElementScope,
                     onClick = {
                         onAction(HomeAction.ContentSelected(content))
                     },
@@ -211,10 +232,18 @@ private fun TabletContentCard(
     content: ContentModel,
     style: RowStyle,
     rank: Int,
+    useSharedTransition: Boolean,
+    sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spec = style.tabletCardSpec()
+    val imageShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    val elementScope = if (useSharedTransition) {
+        sharedElementScope
+    } else {
+        null
+    }
     val genreText = remember(content.genres) {
         content.genres.joinToString(separator = " · ") { it.name }
     }
@@ -240,7 +269,14 @@ private fun TabletContentCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(spec.aspectRatio)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    .streamCoreSharedBounds(
+                        sharedElementScope = elementScope,
+                        key = streamCoreArtworkSharedKey(
+                            contentId = content.id,
+                            row = content.row,
+                        ),
+                        clipShape = imageShape,
+                    ),
             ) {
                 if (style == RowStyle.TopTen) {
                     Text(
@@ -263,6 +299,14 @@ private fun TabletContentCard(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.streamCoreSharedBounds(
+                        sharedElementScope = elementScope,
+                        key = streamCoreTitleSharedKey(
+                            contentId = content.id,
+                            row = content.row,
+                        ),
+                        clipShape = RectangleShape,
+                    ),
                 )
                 if (spec.showDescription) {
                     Text(
@@ -281,7 +325,7 @@ private fun TabletContentCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${content.rating}/10 · ${content.pgRatingName}",
+                    text = content.homeMetadataText(),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -336,6 +380,7 @@ private fun TabletHomeScreenPreview() {
                 rows = HomePreviewData.rows,
             ),
             onAction = {},
+            selectedContentKey = null,
         )
     }
 }

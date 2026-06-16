@@ -29,10 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -43,9 +43,15 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowStyle
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
@@ -59,6 +65,8 @@ fun TvHomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
+    selectedContentKey: String? = null,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val firstContentFocusRequester = remember { FocusRequester() }
     val firstContentId = state.rows.firstOrNull()?.content?.firstOrNull()?.id
@@ -99,6 +107,8 @@ fun TvHomeScreen(
                 state = state,
                 onAction = onAction,
                 firstContentFocusRequester = firstContentFocusRequester,
+                selectedContentKey = selectedContentKey,
+                sharedElementScope = sharedElementScope,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -142,6 +152,8 @@ private fun TvHomeBody(
     onAction: (HomeAction) -> Unit,
     firstContentFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
+    selectedContentKey: String?,
+    sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -173,6 +185,8 @@ private fun TvHomeBody(
                         } else {
                             null
                         },
+                        selectedContentKey = selectedContentKey,
+                        sharedElementScope = sharedElementScope,
                     )
                 }
             }
@@ -186,6 +200,8 @@ private fun TvContentRow(
     onAction: (HomeAction) -> Unit,
     firstContentFocusRequester: FocusRequester?,
     modifier: Modifier = Modifier,
+    selectedContentKey: String?,
+    sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -233,6 +249,11 @@ private fun TvContentRow(
                     } else {
                         null
                     },
+                    useSharedTransition = streamCoreContentSharedIdentity(
+                        contentId = content.id,
+                        row = content.row,
+                    ) == selectedContentKey,
+                    sharedElementScope = sharedElementScope,
                 )
             }
         }
@@ -247,10 +268,18 @@ private fun TvContentCard(
     rank: Int,
     onClick: () -> Unit,
     focusRequester: FocusRequester?,
+    useSharedTransition: Boolean,
+    sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val spec = style.tvCardSpec()
+    val imageShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    val elementScope = if (useSharedTransition) {
+        sharedElementScope
+    } else {
+        null
+    }
     val genreText = remember(content.genres) {
         content.genres.joinToString(separator = " · ") { it.name }
     }
@@ -299,7 +328,14 @@ private fun TvContentCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(spec.aspectRatio)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    .streamCoreSharedBounds(
+                        sharedElementScope = elementScope,
+                        key = streamCoreArtworkSharedKey(
+                            contentId = content.id,
+                            row = content.row,
+                        ),
+                        clipShape = imageShape,
+                    ),
             ) {
                 if (style == RowStyle.TopTen) {
                     Text(
@@ -326,6 +362,14 @@ private fun TvContentCard(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.streamCoreSharedBounds(
+                        sharedElementScope = elementScope,
+                        key = streamCoreTitleSharedKey(
+                            contentId = content.id,
+                            row = content.row,
+                        ),
+                        clipShape = RectangleShape,
+                    ),
                 )
                 if (spec.showDescription) {
                     Text(
@@ -344,7 +388,7 @@ private fun TvContentCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${content.rating}/10 · ${content.pgRatingName}",
+                    text = content.homeMetadataText(),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -399,6 +443,7 @@ private fun TvHomeScreenPreview() {
                 rows = HomePreviewData.rows,
             ),
             onAction = {},
+            selectedContentKey = null,
         )
     }
 }

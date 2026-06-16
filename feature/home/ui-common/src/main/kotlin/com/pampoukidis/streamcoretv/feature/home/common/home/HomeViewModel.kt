@@ -86,7 +86,7 @@ class HomeViewModel @Inject constructor(
 
     private fun selectContent(content: ContentModel) {
         viewModelScope.launch {
-            effectsChannel.send(HomeEffect.ContentSelected(content.id))
+            effectsChannel.send(HomeEffect.ContentSelected(content))
         }
     }
 

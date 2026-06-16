@@ -12,10 +12,10 @@ import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceData
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbReferenceDataSource
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbTrendingTimeWindow
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class TmdbCatalogRepository @Inject internal constructor(
@@ -104,7 +104,10 @@ class TmdbCatalogRepository @Inject internal constructor(
             content = content
                 .contentVisibleForProfile(profileId = profileId)
                 .take(ROW_CONTENT_LIMIT)
-                .toModels(referenceData = referenceData),
+                .toModels(
+                    referenceData = referenceData,
+                    row = id,
+                ),
             style = style,
         )
     }
