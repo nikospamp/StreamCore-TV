@@ -60,6 +60,7 @@ dependencies {
 
     // Core
     implementation(projects.core.data)
+    implementation(projects.core.domain)
     implementation(projects.core.ui)
 
     // Features
@@ -79,6 +80,8 @@ dependencies {
     // Libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.animation)
@@ -87,7 +90,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.dagger.hilt.android)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     ksp(libs.dagger.hilt.compiler)
 

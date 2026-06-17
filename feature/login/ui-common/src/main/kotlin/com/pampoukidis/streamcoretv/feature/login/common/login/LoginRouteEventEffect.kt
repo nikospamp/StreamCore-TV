@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -19,6 +20,7 @@ fun LoginRouteEventEffect(
     onError: (AppError) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val autofillManager = LocalAutofillManager.current
     val currentLoginSucceeded by rememberUpdatedState(onLoginSucceeded)
     val currentForgotPassword by rememberUpdatedState(onForgotPassword)
     val currentCreateAccount by rememberUpdatedState(onCreateAccount)
@@ -29,11 +31,17 @@ fun LoginRouteEventEffect(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effects.collect { effect ->
                 when (effect) {
-                    LoginEffect.LoginSucceeded -> currentLoginSucceeded()
+                    LoginEffect.LoginSucceeded -> {
+                        autofillManager?.commit()
+                        currentLoginSucceeded()
+                    }
                     LoginEffect.ForgotPassword -> currentForgotPassword()
                     LoginEffect.CreateAccount -> currentCreateAccount()
                     LoginEffect.Help -> currentHelp()
-                    is LoginEffect.ShowError -> currentError(effect.error)
+                    is LoginEffect.ShowError -> {
+                        autofillManager?.cancel()
+                        currentError(effect.error)
+                    }
                 }
             }
         }

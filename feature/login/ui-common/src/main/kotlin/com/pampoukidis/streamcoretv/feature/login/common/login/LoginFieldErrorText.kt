@@ -7,12 +7,10 @@ import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
 
 @Composable
 fun LoginFieldError.text(): String = when (this) {
-    LoginFieldError.Required -> stringResource(R.string.login_email_required)
-    LoginFieldError.InvalidEmail -> stringResource(R.string.login_email_invalid)
+    LoginFieldError.Required -> stringResource(R.string.login_identifier_required)
 }
 
 @Composable
 fun LoginFieldError.passwordText(): String = when (this) {
     LoginFieldError.Required -> stringResource(R.string.login_password_required)
-    LoginFieldError.InvalidEmail -> stringResource(R.string.login_password_required)
 }

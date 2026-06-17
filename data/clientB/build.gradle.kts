@@ -30,6 +30,7 @@ dependencies {
 
     // Libraries
     implementation(libs.dagger.hilt.android)
+    implementation(libs.kotlinx.coroutines.core)
     ksp(libs.dagger.hilt.compiler)
 
     // Testing

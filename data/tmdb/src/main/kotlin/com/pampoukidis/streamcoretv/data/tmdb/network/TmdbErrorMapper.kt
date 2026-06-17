@@ -25,6 +25,13 @@ internal class TmdbErrorMapper @Inject constructor() {
         throwable: Throwable,
     ): AppError {
         return when (throwable) {
+            is TmdbAuthenticationFailureException -> AppError.Authentication(
+                source = source(
+                    operation = operation,
+                    backendCode = throwable.backendCode,
+                    backendMessage = throwable.message,
+                ),
+            )
             is HttpRequestTimeoutException,
             is SocketTimeoutException -> AppError.Timeout(source = source(operation = operation))
             is ClientRequestException -> mapHttpError(
@@ -58,7 +65,13 @@ internal class TmdbErrorMapper @Inject constructor() {
 
         return when (httpCode) {
             401,
-            403 -> AppError.Unauthorized(source = errorSource)
+            403 -> {
+                if (operation == LOGIN_OPERATION) {
+                    AppError.Authentication(source = errorSource)
+                } else {
+                    AppError.Unauthorized(source = errorSource)
+                }
+            }
             408 -> AppError.Timeout(source = errorSource)
             429 -> AppError.Server(source = errorSource)
             in 500..599 -> AppError.Server(source = errorSource)
@@ -69,17 +82,20 @@ internal class TmdbErrorMapper @Inject constructor() {
     private fun source(
         operation: String,
         httpCode: Int? = null,
+        backendCode: String? = null,
         backendMessage: String? = null,
     ): ErrorSource {
         return ErrorSource(
             client = CLIENT,
             operation = operation,
             httpCode = httpCode,
+            backendCode = backendCode,
             backendMessage = backendMessage,
         )
     }
 
     private companion object {
         const val CLIENT = "tmdb"
+        const val LOGIN_OPERATION = "loginUser"
     }
 }

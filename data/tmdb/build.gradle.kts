@@ -47,6 +47,11 @@ android {
             "TMDB_READ_ACCESS_TOKEN",
             propertyOrLocalValue("tmdbReadAccessToken").asBuildConfigString(),
         )
+        buildConfigField(
+            "String",
+            "TMDB_ACCOUNT_ID",
+            propertyOrLocalValue("tmdbAccountId").asBuildConfigString(),
+        )
     }
 
     compileOptions {
@@ -66,7 +71,9 @@ dependencies {
 
     // Libraries
     implementation(libs.androidx.annotation.experimental)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.dagger.hilt.android)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)

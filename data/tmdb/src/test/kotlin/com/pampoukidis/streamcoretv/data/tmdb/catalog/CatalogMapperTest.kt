@@ -77,7 +77,7 @@ class CatalogMapperTest {
                     ),
                 ),
             ),
-        ).toContentModel(referenceData = referenceData())
+        ).toModel(referenceData = referenceData())
 
         assertEquals("PG-13", model.pgRatingName)
         assertEquals(13, model.pgRatingLevel)

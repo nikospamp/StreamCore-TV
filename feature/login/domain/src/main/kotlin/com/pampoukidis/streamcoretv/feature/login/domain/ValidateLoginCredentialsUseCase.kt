@@ -6,15 +6,14 @@ import javax.inject.Inject
 
 class ValidateLoginCredentialsUseCase @Inject constructor() {
     operator fun invoke(
-        email: String,
+        identifier: String,
         password: String,
     ): LoginValidationResult {
-        val normalizedEmail = email.trim()
+        val normalizedIdentifier = identifier.trim()
 
         return LoginValidationResult(
-            emailError = when {
-                normalizedEmail.isBlank() -> LoginFieldError.Required
-                !EmailRegex.matches(normalizedEmail) -> LoginFieldError.InvalidEmail
+            identifierError = when {
+                normalizedIdentifier.isBlank() -> LoginFieldError.Required
                 else -> null
             },
             passwordError = when {
@@ -22,9 +21,5 @@ class ValidateLoginCredentialsUseCase @Inject constructor() {
                 else -> null
             },
         )
-    }
-
-    private companion object {
-        val EmailRegex = Regex("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", RegexOption.IGNORE_CASE)
     }
 }

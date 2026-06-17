@@ -13,34 +13,35 @@ class ValidateLoginCredentialsUseCaseTest {
     @Test
     fun `valid credentials pass validation`() {
         val result = subject(
-            email = "lead@streamcore.tv",
+            identifier = "lead@streamcore.tv",
             password = "password",
         )
 
         assertTrue(result.isValid)
-        assertNull(result.emailError)
+        assertNull(result.identifierError)
         assertNull(result.passwordError)
     }
 
     @Test
     fun `blank credentials return required errors`() {
         val result = subject(
-            email = "",
+            identifier = "",
             password = "",
         )
 
-        assertEquals(LoginFieldError.Required, result.emailError)
+        assertEquals(LoginFieldError.Required, result.identifierError)
         assertEquals(LoginFieldError.Required, result.passwordError)
     }
 
     @Test
-    fun `invalid email returns email error`() {
+    fun `non email identifier passes validation`() {
         val result = subject(
-            email = "lead",
+            identifier = "tmdb_user",
             password = "password",
         )
 
-        assertEquals(LoginFieldError.InvalidEmail, result.emailError)
+        assertTrue(result.isValid)
+        assertNull(result.identifierError)
         assertNull(result.passwordError)
     }
 }

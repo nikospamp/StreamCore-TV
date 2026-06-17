@@ -49,6 +49,12 @@ object TmdbNetworkModule {
         return BuildConfig.TMDB_READ_ACCESS_TOKEN
     }
 
+    @Provides
+    @Named(TMDB_ACCOUNT_ID)
+    fun provideAccountId(): String {
+        return BuildConfig.TMDB_ACCOUNT_ID
+    }
+
     /**
      * Builds the TMDB HTTP client with bearer-token auth and default response validation.
      */
@@ -85,6 +91,7 @@ object TmdbNetworkModule {
     private const val TMDB_JSON = "tmdbJson"
     private const val TMDB_BASE_URL = "tmdbBaseUrl"
     private const val TMDB_READ_ACCESS_TOKEN = "tmdbReadAccessToken"
+    private const val TMDB_ACCOUNT_ID = "tmdbAccountId"
     private const val CONNECT_TIMEOUT_MILLIS = 10_000L
     private const val REQUEST_TIMEOUT_MILLIS = 15_000L
     private const val SOCKET_TIMEOUT_MILLIS = 15_000L

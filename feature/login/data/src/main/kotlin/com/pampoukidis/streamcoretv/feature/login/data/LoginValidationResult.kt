@@ -1,8 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.login.data
 
 data class LoginValidationResult(
-    val emailError: LoginFieldError?,
+    val identifierError: LoginFieldError?,
     val passwordError: LoginFieldError?,
 ) {
-    val isValid: Boolean = emailError == null && passwordError == null
+    val isValid: Boolean = identifierError == null && passwordError == null
 }

@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -44,6 +45,7 @@ import kotlin.reflect.typeOf
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun StreamCoreNavHost(
+    startDestination: AppRoute,
     onError: (AppError) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -54,7 +56,7 @@ internal fun StreamCoreNavHost(
 
         NavHost(
             navController = navController,
-            startDestination = AppRoute.Login,
+            startDestination = startDestination,
             enterTransition = {
                 fadeIn(
                     animationSpec = tween(
@@ -255,6 +257,15 @@ internal fun StreamCoreNavHost(
                 )
             }
         }
+    }
+}
+
+internal fun startDestinationForAuthState(
+    authState: AuthStateModel,
+): AppRoute {
+    return when (authState) {
+        is AuthStateModel.LoggedIn -> AppRoute.Profiles
+        AuthStateModel.LoggedOut -> AppRoute.Login
     }
 }
 
