@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.navigation
 
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import kotlinx.serialization.Serializable
 
 internal sealed interface AppRoute {
@@ -29,5 +30,6 @@ internal sealed interface AppRoute {
     data class AssetDetails(
         val profileId: String,
         val contentId: String,
+        val initialContent: ContentModel? = null
     ) : AppRoute
 }

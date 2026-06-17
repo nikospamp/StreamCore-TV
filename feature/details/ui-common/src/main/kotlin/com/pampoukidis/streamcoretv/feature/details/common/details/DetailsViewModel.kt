@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.details.common.details
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
@@ -36,7 +37,7 @@ class DetailsViewModel @Inject constructor(
         when (action) {
             is DetailsAction.Load -> load(action.request)
             DetailsAction.Refresh -> refresh()
-            is DetailsAction.RecommendationSelected -> selectRecommendation(action.contentId)
+            is DetailsAction.RecommendationSelected -> selectRecommendation(action.content)
             DetailsAction.BackSelected -> navigateBack()
         }
     }
@@ -86,9 +87,9 @@ class DetailsViewModel @Inject constructor(
         load(request = request, force = true)
     }
 
-    private fun selectRecommendation(contentId: String) {
+    private fun selectRecommendation(content: ContentModel) {
         viewModelScope.launch {
-            effectsChannel.send(DetailsEffect.RecommendationSelected(contentId))
+            effectsChannel.send(DetailsEffect.RecommendationSelected(content))
         }
     }
 

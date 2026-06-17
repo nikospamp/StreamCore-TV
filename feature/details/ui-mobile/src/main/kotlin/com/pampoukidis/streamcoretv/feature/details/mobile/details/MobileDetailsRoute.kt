@@ -14,12 +14,13 @@ import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewMo
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun MobileDetailsRoute(
     profileId: String,
     contentId: String,
-    onRecommendationSelected: (String) -> Unit,
+    onRecommendationSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
@@ -34,8 +35,9 @@ fun MobileDetailsRoute(
 
     LaunchedEffect(profileId, contentId, viewModel) {
         if (initialContent?.id == contentId) {
-            delay(InitialContentLoadDelayMillis)
+            delay(InitialContentLoadDelayMillis.milliseconds)
         }
+
         viewModel.onAction(
             DetailsAction.Load(
                 DetailsRequest(

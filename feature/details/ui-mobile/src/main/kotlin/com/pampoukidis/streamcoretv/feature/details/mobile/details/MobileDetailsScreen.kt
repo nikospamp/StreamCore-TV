@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -123,15 +122,18 @@ private fun DetailsBody(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize(),
     ) {
+        if (state.isLoading) {
+            CircularProgressIndicator()
+        }
+
         when {
-            state.isLoading && content == null -> CircularProgressIndicator()
-            content == null -> Text(
+            !state.isLoading && content == null -> Text(
                 text = "Unable to load details.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            else -> LazyColumn(
+            content != null -> LazyColumn(
                 contentPadding = PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(22.dp),
                 modifier = Modifier.fillMaxSize(),
@@ -162,15 +164,6 @@ private fun DetailsBody(
                     }
                 }
             }
-        }
-
-        if (state.isLoading) {
-            StreamCoreLoadingChip(
-                text = "Updating",
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 8.dp, end = 28.dp),
-            )
         }
     }
 }
@@ -305,7 +298,7 @@ private fun RecommendationsRow(
                 RecommendationCard(
                     content = content,
                     onClick = {
-                        onAction(DetailsAction.RecommendationSelected(content.id))
+                        onAction(DetailsAction.RecommendationSelected(content))
                     },
                 )
             }

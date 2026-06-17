@@ -323,7 +323,7 @@ private fun RecommendationsRow(
                 RecommendationCard(
                     content = content,
                     onClick = {
-                        onAction(DetailsAction.RecommendationSelected(content.id))
+                        onAction(DetailsAction.RecommendationSelected(content))
                     },
                 )
             }

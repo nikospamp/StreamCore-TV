@@ -7,12 +7,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 
 @Composable
 fun DetailsRouteEventEffect(
     viewModel: DetailsViewModel,
-    onRecommendationSelected: (String) -> Unit,
+    onRecommendationSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
@@ -26,7 +27,7 @@ fun DetailsRouteEventEffect(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     is DetailsEffect.RecommendationSelected -> {
-                        currentRecommendationSelected(effect.contentId)
+                        currentRecommendationSelected(effect.content)
                     }
                     DetailsEffect.NavigateBack -> currentBack()
                     is DetailsEffect.ShowError -> currentError(effect.error)
