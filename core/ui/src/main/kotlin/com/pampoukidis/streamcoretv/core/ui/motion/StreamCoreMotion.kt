@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 class StreamCoreSharedElementScope(
     internal val sharedTransitionScope: SharedTransitionScope,
@@ -85,7 +86,7 @@ fun StreamCoreDelayedEntrance(
     if (!isInPreview) {
         LaunchedEffect(visibleKey, delayMillis) {
             if (delayMillis > 0) {
-                delay(delayMillis.toLong())
+                delay(delayMillis.toLong().milliseconds)
             }
             visible = true
         }

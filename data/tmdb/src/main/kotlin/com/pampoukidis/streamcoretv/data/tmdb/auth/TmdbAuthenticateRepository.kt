@@ -6,6 +6,7 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import kotlinx.coroutines.delay
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 class TmdbAuthenticateRepository @Inject constructor() : AuthenticateRepository {
 
@@ -13,7 +14,7 @@ class TmdbAuthenticateRepository @Inject constructor() : AuthenticateRepository 
         email: String,
         password: String,
     ): AppResult<Unit> {
-        delay(LOGIN_DELAY_MILLIS)
+        delay(LOGIN_DELAY_MILLIS.milliseconds)
 
         if (email != MOCK_EMAIL || password != MOCK_PASSWORD) {
             return AppResult.Failure(

@@ -2,9 +2,11 @@ package com.pampoukidis.streamcoretv.core.model.content
 
 import com.pampoukidis.streamcoretv.core.model.general.Cast
 import com.pampoukidis.streamcoretv.core.model.general.Genre
+import kotlinx.serialization.Serializable
 import kotlin.text.equals
 import kotlin.text.isBlank
 
+@Serializable
 data class ContentModel(
     val id: String,
     val title: String,

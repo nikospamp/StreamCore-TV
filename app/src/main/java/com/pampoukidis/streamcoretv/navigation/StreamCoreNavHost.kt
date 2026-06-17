@@ -39,6 +39,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfile
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfilesRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
+import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -216,24 +217,29 @@ internal fun StreamCoreNavHost(
                 )
             }
 
-            composable<AppRoute.AssetDetails> { backStackEntry ->
+            composable<AppRoute.AssetDetails>(
+                typeMap = mapOf(typeOf<ContentModel?>() to ContentModelNavType)
+            ) { backStackEntry ->
                 val route = backStackEntry.toRoute<AppRoute.AssetDetails>()
+
+                val initialContent = route.initialContent ?: selectedContent?.takeIf { content ->
+                    content.id == route.contentId
+                }
 
                 DetailsDestination(
                     profileId = route.profileId,
                     contentId = route.contentId,
-                    initialContent = selectedContent?.takeIf { content ->
-                        content.id == route.contentId
-                    },
+                    initialContent = initialContent,
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
                     ),
-                    onRecommendationSelected = { contentId ->
+                    onRecommendationSelected = { content ->
                         navController.navigate(
                             AppRoute.AssetDetails(
                                 profileId = route.profileId,
-                                contentId = contentId,
+                                contentId = content.id,
+                                initialContent = content
                             ),
                         ) {
                             popUpTo<AppRoute.Home> {
@@ -394,7 +400,7 @@ private fun DetailsDestination(
     contentId: String,
     initialContent: ContentModel?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onRecommendationSelected: (String) -> Unit,
+    onRecommendationSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
 ) {

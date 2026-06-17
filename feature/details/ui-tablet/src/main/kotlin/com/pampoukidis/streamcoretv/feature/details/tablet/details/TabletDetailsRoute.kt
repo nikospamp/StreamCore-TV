@@ -10,17 +10,17 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRouteEventEffect
-import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun TabletDetailsRoute(
     profileId: String,
     contentId: String,
-    onRecommendationSelected: (String) -> Unit,
+    onRecommendationSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
@@ -35,7 +35,7 @@ fun TabletDetailsRoute(
 
     LaunchedEffect(profileId, contentId, viewModel) {
         if (initialContent?.id == contentId) {
-            delay(InitialContentLoadDelayMillis)
+            delay(InitialContentLoadDelayMillis.milliseconds)
         }
         viewModel.onAction(
             DetailsAction.Load(

@@ -98,10 +98,10 @@ class DetailsViewModelTest {
             val recommendation = contentModel("content-2")
             val subject = detailsViewModel()
 
-            subject.onAction(DetailsAction.RecommendationSelected(recommendation.id))
+            subject.onAction(DetailsAction.RecommendationSelected(recommendation))
 
             assertEquals(
-                DetailsEffect.RecommendationSelected(recommendation.id),
+                DetailsEffect.RecommendationSelected(recommendation),
                 subject.effects.first(),
             )
         }
