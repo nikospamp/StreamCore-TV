@@ -76,7 +76,7 @@ private fun TabletLoginScreenPreview() {
     StreamCoreTVTheme {
         TabletLoginScreen(
             state = LoginUiState(
-                email = "lead@streamcore.tv",
+                identifier = "lead@streamcore.tv",
                 password = "password",
                 isSubmitEnabled = true,
             ),

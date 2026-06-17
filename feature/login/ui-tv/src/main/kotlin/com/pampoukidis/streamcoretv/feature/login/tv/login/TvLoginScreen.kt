@@ -11,23 +11,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
@@ -125,17 +133,19 @@ private fun TvLoginForm(
     helpFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
+    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tv.SectionSpacing),
     ) {
         OutlinedTextField(
-            value = state.email,
-            onValueChange = { onAction(LoginAction.EmailChanged(it)) },
-            label = { Text(text = stringResource(R.string.login_email_label)) },
+            value = state.identifier,
+            onValueChange = { onAction(LoginAction.IdentifierChanged(it)) },
+            label = { Text(text = stringResource(R.string.login_identifier_label)) },
             singleLine = true,
-            isError = state.emailError != null,
-            supportingText = state.emailError?.let { { Text(text = it.text()) } },
+            isError = state.identifierError != null,
+            supportingText = state.identifierError?.let { { Text(text = it.text()) } },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
@@ -147,7 +157,7 @@ private fun TvLoginForm(
                 .focusProperties {
                     down = passwordFocusRequester
                 }
-                .testTag(LoginTestTags.EmailField),
+                .testTag(LoginTestTags.IdentifierField),
         )
         OutlinedTextField(
             value = state.password,
@@ -156,7 +166,33 @@ private fun TvLoginForm(
             singleLine = true,
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { { Text(text = it.passwordText()) } },
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                val contentDescription = if (isPasswordVisible) {
+                    stringResource(R.string.login_password_hide)
+                } else {
+                    stringResource(R.string.login_password_show)
+                }
+                IconButton(
+                    onClick = { isPasswordVisible = !isPasswordVisible },
+                    modifier = Modifier.testTag(LoginTestTags.PasswordVisibilityToggle),
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isPasswordVisible) {
+                                R.drawable.ic_visibility_off_24
+                            } else {
+                                R.drawable.ic_visibility_24
+                            },
+                        ),
+                        contentDescription = contentDescription,
+                    )
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
@@ -238,7 +274,7 @@ private fun TvLoginScreenPreview() {
     StreamCoreTVTheme {
         TvLoginScreen(
             state = LoginUiState(
-                email = "lead@streamcore.tv",
+                identifier = "lead@streamcore.tv",
                 password = "password",
                 isSubmitEnabled = true,
             ),

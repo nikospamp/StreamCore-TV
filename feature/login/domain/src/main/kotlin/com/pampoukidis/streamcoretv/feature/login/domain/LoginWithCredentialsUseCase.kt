@@ -9,9 +9,10 @@ class LoginWithCredentialsUseCase @Inject constructor(
     private val authenticateRepository: AuthenticateRepository,
 ) {
 
-    suspend operator fun invoke(credentials: LoginCredentials): AppResult<Unit> =
-        authenticateRepository.loginUser(
-            email = credentials.email,
+    suspend operator fun invoke(credentials: LoginCredentials): AppResult<Unit> {
+        return authenticateRepository.loginUser(
+            identifier = credentials.identifier,
             password = credentials.password,
         )
+    }
 }

@@ -1,13 +1,25 @@
 package com.pampoukidis.streamcoretv.data.tmdb.network
 
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbAccountDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbConfigurationDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionRequestDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionRequestDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbValidateLoginRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.http.path
 import javax.inject.Inject
 
@@ -21,6 +33,66 @@ import javax.inject.Inject
 internal class KtorTmdbApi @Inject constructor(
     private val httpClient: HttpClient,
 ) : TmdbApi {
+
+    override suspend fun createRequestToken(): TmdbRequestTokenResponseDto {
+        return httpClient.get {
+            url {
+                path(API_VERSION, "authentication", "token", "new")
+            }
+        }.body()
+    }
+
+    override suspend fun validateRequestTokenWithLogin(
+        identifier: String,
+        password: String,
+        requestToken: String,
+    ): TmdbRequestTokenResponseDto {
+        return httpClient.post {
+            url {
+                path(API_VERSION, "authentication", "token", "validate_with_login")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(
+                TmdbValidateLoginRequestDto(
+                    username = identifier,
+                    password = password,
+                    requestToken = requestToken,
+                ),
+            )
+        }.body()
+    }
+
+    override suspend fun createSession(requestToken: String): TmdbSessionResponseDto {
+        return httpClient.post {
+            url {
+                path(API_VERSION, "authentication", "session", "new")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(TmdbSessionRequestDto(requestToken = requestToken))
+        }.body()
+    }
+
+    override suspend fun deleteSession(sessionId: String): TmdbDeleteSessionResponseDto {
+        return httpClient.delete {
+            url {
+                path(API_VERSION, "authentication", "session")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(TmdbDeleteSessionRequestDto(sessionId = sessionId))
+        }.body()
+    }
+
+    override suspend fun getAccountDetails(
+        accountId: Int,
+        sessionId: String,
+    ): TmdbAccountDetailsDto {
+        return httpClient.get {
+            url {
+                path(API_VERSION, "account", accountId.toString())
+            }
+            parameter("session_id", sessionId)
+        }.body()
+    }
 
     override suspend fun getConfiguration(): TmdbConfigurationDto {
         return httpClient.get {

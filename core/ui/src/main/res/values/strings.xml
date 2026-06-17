@@ -3,12 +3,16 @@
     <string name="app_name">StreamCore TV</string>
     <string name="login_title">Sign in</string>
     <string name="login_subtitle">Continue to your movies, shows, and live channels.</string>
+    <string name="login_identifier_label">Username or email</string>
     <string name="login_email_label">Email</string>
     <string name="login_password_label">Password</string>
+    <string name="login_password_show">Show password</string>
+    <string name="login_password_hide">Hide password</string>
     <string name="login_continue">Continue</string>
     <string name="login_forgot_password">Forgot password?</string>
     <string name="login_create_account">Create account</string>
     <string name="login_help">Need help?</string>
+    <string name="login_identifier_required">Username or email is required</string>
     <string name="login_email_required">Email is required</string>
     <string name="login_email_invalid">Enter a valid email</string>
     <string name="login_password_required">Password is required</string>

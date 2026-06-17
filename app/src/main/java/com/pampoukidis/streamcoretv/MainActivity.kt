@@ -10,11 +10,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pampoukidis.streamcoretv.auth.AppAuthUiState
+import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
+import com.pampoukidis.streamcoretv.navigation.startDestinationForAuthState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -30,13 +35,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StreamCoreTVTheme {
+                val appAuthViewModel: AppAuthViewModel = hiltViewModel()
+                val appAuthUiState by appAuthViewModel.uiState.collectAsStateWithLifecycle()
                 var activeError by remember { mutableStateOf<ErrorModel?>(null) }
 
-                StreamCoreNavHost(
-                    onError = { error ->
-                        activeError = errorPresentationMapper.map(error)
-                    },
-                )
+                when (val state = appAuthUiState) {
+                    AppAuthUiState.Loading -> Unit
+                    is AppAuthUiState.Ready -> {
+                        StreamCoreNavHost(
+                            startDestination = startDestinationForAuthState(state.authState),
+                            onError = { error ->
+                                activeError = errorPresentationMapper.map(error)
+                            },
+                        )
+                    }
+                }
 
                 ErrorHost(
                     presentation = activeError,

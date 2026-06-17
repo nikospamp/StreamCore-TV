@@ -1,17 +1,21 @@
 package com.pampoukidis.streamcoretv.data.tmdb.catalog
 
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbAccountDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbApiGenreDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbCastMemberDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbConfigurationDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbCreditsDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbImagesConfigurationDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieSummaryDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDateDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDatesCountryDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDatesResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbApi
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbTrendingTimeWindow
 
@@ -22,6 +26,52 @@ internal class FakeTmdbApi : TmdbApi {
         private set
     var genreCalls = 0
         private set
+    var createRequestTokenCalls = 0
+        private set
+    var validateRequestTokenCalls = 0
+        private set
+    var createSessionCalls = 0
+        private set
+    var deleteSessionCalls = 0
+        private set
+    var accountDetailsCalls = 0
+        private set
+
+    var lastLoginIdentifier: String? = null
+        private set
+    var lastLoginPassword: String? = null
+        private set
+    var lastValidatedRequestToken: String? = null
+        private set
+    var lastSessionRequestToken: String? = null
+        private set
+    var lastDeletedSessionId: String? = null
+        private set
+    var lastAccountId: Int? = null
+        private set
+    var lastAccountSessionId: String? = null
+        private set
+
+    var requestTokenResponse = TmdbRequestTokenResponseDto(
+        success = true,
+        expiresAt = "2026-06-17 12:00:00 UTC",
+        requestToken = "request-token",
+    )
+    var validatedTokenResponse = TmdbRequestTokenResponseDto(
+        success = true,
+        expiresAt = "2026-06-17 12:00:00 UTC",
+        requestToken = "validated-token",
+    )
+    var sessionResponse = TmdbSessionResponseDto(
+        success = true,
+        sessionId = "session-id",
+    )
+    var deleteSessionResponse = TmdbDeleteSessionResponseDto(success = true)
+    var accountDetailsResponse: TmdbAccountDetailsDto? = TmdbAccountDetailsDto(
+        id = 548,
+        username = "lead",
+        displayName = "Lead",
+    )
 
     private val imageConfiguration = TmdbImagesConfigurationDto(
         secureBaseUrl = "https://image.tmdb.test/t/p/",
@@ -81,6 +131,50 @@ internal class FakeTmdbApi : TmdbApi {
         releaseDate = "2026-02-10",
         voteAverage = 6.1,
     )
+
+    override suspend fun createRequestToken(): TmdbRequestTokenResponseDto {
+        throwIfNeeded()
+        createRequestTokenCalls += 1
+        return requestTokenResponse
+    }
+
+    override suspend fun validateRequestTokenWithLogin(
+        identifier: String,
+        password: String,
+        requestToken: String,
+    ): TmdbRequestTokenResponseDto {
+        throwIfNeeded()
+        validateRequestTokenCalls += 1
+        lastLoginIdentifier = identifier
+        lastLoginPassword = password
+        lastValidatedRequestToken = requestToken
+        return validatedTokenResponse
+    }
+
+    override suspend fun createSession(requestToken: String): TmdbSessionResponseDto {
+        throwIfNeeded()
+        createSessionCalls += 1
+        lastSessionRequestToken = requestToken
+        return sessionResponse
+    }
+
+    override suspend fun deleteSession(sessionId: String): TmdbDeleteSessionResponseDto {
+        throwIfNeeded()
+        deleteSessionCalls += 1
+        lastDeletedSessionId = sessionId
+        return deleteSessionResponse
+    }
+
+    override suspend fun getAccountDetails(
+        accountId: Int,
+        sessionId: String,
+    ): TmdbAccountDetailsDto {
+        throwIfNeeded()
+        accountDetailsCalls += 1
+        lastAccountId = accountId
+        lastAccountSessionId = sessionId
+        return accountDetailsResponse ?: error("No TMDB account details configured")
+    }
 
     override suspend fun getConfiguration(): TmdbConfigurationDto {
         throwIfNeeded()

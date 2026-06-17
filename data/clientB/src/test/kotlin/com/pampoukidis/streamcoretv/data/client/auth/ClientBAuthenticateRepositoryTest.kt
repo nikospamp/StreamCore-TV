@@ -1,8 +1,11 @@
 package com.pampoukidis.streamcoretv.data.client.auth
 
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ClientBAuthenticateRepositoryTest {
@@ -14,10 +17,11 @@ class ClientBAuthenticateRepositoryTest {
         assertEquals(
             AppResult.Success(Unit),
             subject.loginUser(
-                email = "lead@streamcore.tv",
+                identifier = "lead@streamcore.tv",
                 password = "password",
             ),
         )
+        assertTrue(subject.authState.first() is AuthStateModel.LoggedIn)
         assertEquals(
             AppResult.Success(Unit),
             subject.loginUserWithQR(qrCode = "qr-code"),
@@ -30,5 +34,6 @@ class ClientBAuthenticateRepositoryTest {
             ),
         )
         assertEquals(AppResult.Success(Unit), subject.logoutUser())
+        assertEquals(AuthStateModel.LoggedOut, subject.authState.first())
     }
 }

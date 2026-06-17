@@ -34,7 +34,7 @@ class LoginViewModel @Inject constructor(
 
     fun onAction(action: LoginAction) {
         when (action) {
-            is LoginAction.EmailChanged -> onCredentialsChanged(email = action.value)
+            is LoginAction.IdentifierChanged -> onCredentialsChanged(identifier = action.value)
             is LoginAction.PasswordChanged -> onCredentialsChanged(password = action.value)
             LoginAction.Submit -> submit()
             LoginAction.ForgotPassword -> emitEffect(LoginEffect.ForgotPassword)
@@ -44,15 +44,15 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun onCredentialsChanged(
-        email: String = _uiState.value.email,
+        identifier: String = _uiState.value.identifier,
         password: String = _uiState.value.password,
     ) {
-        val validation = validateCredentials(email = email, password = password)
+        val validation = validateCredentials(identifier = identifier, password = password)
         _uiState.update {
             it.copy(
-                email = email,
+                identifier = identifier,
                 password = password,
-                emailError = validation.emailError.takeIf { hasRequestedValidation },
+                identifierError = validation.identifierError.takeIf { hasRequestedValidation },
                 passwordError = validation.passwordError.takeIf { hasRequestedValidation },
                 isSubmitEnabled = validation.isValid && !it.isLoading,
             )
@@ -60,13 +60,15 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun submit() {
-        if (_uiState.value.isLoading) return
+        if (_uiState.value.isLoading) {
+            return
+        }
 
         hasRequestedValidation = true
 
         val currentState = _uiState.value
         val validation = validateCredentials(
-            email = currentState.email,
+            identifier = currentState.identifier,
             password = currentState.password,
         )
 
@@ -76,13 +78,13 @@ class LoginViewModel @Inject constructor(
         }
 
         val credentials = LoginCredentials(
-            email = currentState.email.trim(),
+            identifier = currentState.identifier.trim(),
             password = currentState.password,
         )
 
         _uiState.update {
             it.copy(
-                emailError = null,
+                identifierError = null,
                 passwordError = null,
                 isSubmitEnabled = false,
                 isLoading = true,
@@ -117,7 +119,7 @@ class LoginViewModel @Inject constructor(
     private fun showValidationErrors(validation: LoginValidationResult) {
         _uiState.update {
             it.copy(
-                emailError = validation.emailError,
+                identifierError = validation.identifierError,
                 passwordError = validation.passwordError,
                 isSubmitEnabled = false,
                 isLoading = false,

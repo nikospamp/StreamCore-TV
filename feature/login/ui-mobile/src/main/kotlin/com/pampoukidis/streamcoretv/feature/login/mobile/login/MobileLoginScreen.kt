@@ -98,7 +98,7 @@ private fun MobileLoginScreenPreview() {
     StreamCoreTVTheme {
         MobileLoginScreen(
             state = LoginUiState(
-                email = "lead@streamcore.tv",
+                identifier = "lead@streamcore.tv",
                 password = "password",
                 isSubmitEnabled = true,
             ),

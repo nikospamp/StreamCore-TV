@@ -1,9 +1,13 @@
 package com.pampoukidis.streamcoretv.data.tmdb.network
 
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbAccountDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbConfigurationDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionResponseDto
 
 /**
  * Internal TMDB HTTP contract used by the provider repositories.
@@ -13,6 +17,27 @@ import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
  * of returning app models; mapping happens in the catalog layer.
  */
 internal interface TmdbApi {
+
+    suspend fun createRequestToken(): TmdbRequestTokenResponseDto
+
+    suspend fun validateRequestTokenWithLogin(
+        identifier: String,
+        password: String,
+        requestToken: String,
+    ): TmdbRequestTokenResponseDto
+
+    suspend fun createSession(
+        requestToken: String,
+    ): TmdbSessionResponseDto
+
+    suspend fun deleteSession(
+        sessionId: String,
+    ): TmdbDeleteSessionResponseDto
+
+    suspend fun getAccountDetails(
+        accountId: Int,
+        sessionId: String,
+    ): TmdbAccountDetailsDto
 
     /**
      * Loads global TMDB configuration, mainly image base URLs and supported sizes.

@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.login.common.login
 
 import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
+import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
@@ -9,6 +10,8 @@ import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredential
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,11 +31,11 @@ class LoginViewModelTest {
     fun `valid credentials enable submit`() {
         val subject = loginViewModel()
 
-        subject.onAction(LoginAction.EmailChanged("lead@streamcore.tv"))
+        subject.onAction(LoginAction.IdentifierChanged("lead@streamcore.tv"))
         subject.onAction(LoginAction.PasswordChanged("password"))
 
         assertTrue(subject.uiState.value.isSubmitEnabled)
-        assertNull(subject.uiState.value.emailError)
+        assertNull(subject.uiState.value.identifierError)
         assertNull(subject.uiState.value.passwordError)
     }
 
@@ -43,7 +46,7 @@ class LoginViewModelTest {
         subject.onAction(LoginAction.Submit)
 
         val state = subject.uiState.value
-        assertEquals(LoginFieldError.Required, state.emailError)
+        assertEquals(LoginFieldError.Required, state.identifierError)
         assertEquals(LoginFieldError.Required, state.passwordError)
         assertFalse(state.isSubmitEnabled)
         assertFalse(state.isLoading)
@@ -56,12 +59,12 @@ class LoginViewModelTest {
         val effect = async { subject.effects.first() }
         runCurrent()
 
-        subject.onAction(LoginAction.EmailChanged(" lead@streamcore.tv "))
+        subject.onAction(LoginAction.IdentifierChanged(" lead@streamcore.tv "))
         subject.onAction(LoginAction.PasswordChanged("password"))
         subject.onAction(LoginAction.Submit)
         runCurrent()
 
-        assertEquals("lead@streamcore.tv", repository.loginEmail)
+        assertEquals("lead@streamcore.tv", repository.loginIdentifier)
         assertEquals("password", repository.loginPassword)
         assertEquals(LoginEffect.LoginSucceeded, effect.await())
         assertFalse(subject.uiState.value.isLoading)
@@ -79,7 +82,7 @@ class LoginViewModelTest {
         val effect = async { subject.effects.first() }
         runCurrent()
 
-        subject.onAction(LoginAction.EmailChanged("lead@streamcore.tv"))
+        subject.onAction(LoginAction.IdentifierChanged("lead@streamcore.tv"))
         subject.onAction(LoginAction.PasswordChanged("password"))
         subject.onAction(LoginAction.Submit)
         runCurrent()
@@ -110,26 +113,36 @@ class LoginViewModelTest {
         private val loginResult: AppResult<Unit> = AppResult.Success(Unit),
     ) : AuthenticateRepository {
 
-        var loginEmail: String? = null
+        private val _authState = MutableStateFlow<AuthStateModel>(AuthStateModel.LoggedOut)
+        override val authState: StateFlow<AuthStateModel> = _authState
+
+        var loginIdentifier: String? = null
             private set
 
         var loginPassword: String? = null
             private set
 
         override suspend fun loginUser(
-            email: String,
+            identifier: String,
             password: String,
         ): AppResult<Unit> {
-            loginEmail = email
+            loginIdentifier = identifier
             loginPassword = password
+            if (loginResult is AppResult.Success) {
+                _authState.value = AuthStateModel.LoggedIn(account = null)
+            }
             return loginResult
         }
 
-        override suspend fun loginUserWithQR(qrCode: String): AppResult<Unit> =
-            AppResult.Success(Unit)
+        override suspend fun loginUserWithQR(qrCode: String): AppResult<Unit> {
+            _authState.value = AuthStateModel.LoggedIn(account = null)
+            return AppResult.Success(Unit)
+        }
 
-        override suspend fun logoutUser(): AppResult<Unit> =
-            AppResult.Success(Unit)
+        override suspend fun logoutUser(): AppResult<Unit> {
+            _authState.value = AuthStateModel.LoggedOut
+            return AppResult.Success(Unit)
+        }
 
         override suspend fun forgotPassword(
             email: String,
