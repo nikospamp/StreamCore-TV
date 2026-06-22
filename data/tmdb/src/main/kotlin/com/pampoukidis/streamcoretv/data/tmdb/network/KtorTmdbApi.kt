@@ -5,6 +5,7 @@ import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbConfigurationDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionRequestDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieAccountStatesDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
@@ -89,6 +90,18 @@ internal class KtorTmdbApi @Inject constructor(
         return httpClient.get {
             url {
                 path(API_VERSION, "account", accountId.toString())
+            }
+            parameter("session_id", sessionId)
+        }.body()
+    }
+
+    override suspend fun getMovieAccountStates(
+        movieId: Int,
+        sessionId: String,
+    ): TmdbMovieAccountStatesDto {
+        return httpClient.get {
+            url {
+                path(API_VERSION, "movie", movieId.toString(), "account_states")
             }
             parameter("session_id", sessionId)
         }.body()

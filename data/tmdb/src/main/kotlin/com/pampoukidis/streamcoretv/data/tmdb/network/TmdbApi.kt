@@ -4,6 +4,7 @@ import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbAccountDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbConfigurationDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieAccountStatesDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
@@ -38,6 +39,15 @@ internal interface TmdbApi {
         accountId: Int,
         sessionId: String,
     ): TmdbAccountDetailsDto
+
+    /**
+     * Loads account-specific state for a known movie. Used as a session validation
+     * request because TMDB only requires a session id for this endpoint.
+     */
+    suspend fun getMovieAccountStates(
+        movieId: Int,
+        sessionId: String,
+    ): TmdbMovieAccountStatesDto
 
     /**
      * Loads global TMDB configuration, mainly image base URLs and supported sizes.

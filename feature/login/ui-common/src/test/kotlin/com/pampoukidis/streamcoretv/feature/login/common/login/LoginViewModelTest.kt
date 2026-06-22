@@ -9,9 +9,9 @@ import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUse
 import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -121,6 +121,11 @@ class LoginViewModelTest {
 
         var loginPassword: String? = null
             private set
+
+        override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
+            _authState.value = AuthStateModel.LoggedOut
+            return AppResult.Success(AuthStateModel.LoggedOut)
+        }
 
         override suspend fun loginUser(
             identifier: String,

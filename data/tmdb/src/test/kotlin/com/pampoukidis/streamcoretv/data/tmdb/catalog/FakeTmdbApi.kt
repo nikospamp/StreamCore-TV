@@ -8,13 +8,14 @@ import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbCreditsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbDeleteSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbGenreListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbImagesConfigurationDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieAccountStatesDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieListResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbMovieSummaryDto
-import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDateDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDatesCountryDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbReleaseDatesResponseDto
+import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbApi
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbTrendingTimeWindow
@@ -36,6 +37,8 @@ internal class FakeTmdbApi : TmdbApi {
         private set
     var accountDetailsCalls = 0
         private set
+    var movieAccountStatesCalls = 0
+        private set
 
     var lastLoginIdentifier: String? = null
         private set
@@ -50,6 +53,10 @@ internal class FakeTmdbApi : TmdbApi {
     var lastAccountId: Int? = null
         private set
     var lastAccountSessionId: String? = null
+        private set
+    var lastMovieAccountStatesMovieId: Int? = null
+        private set
+    var lastMovieAccountStatesSessionId: String? = null
         private set
 
     var requestTokenResponse = TmdbRequestTokenResponseDto(
@@ -71,6 +78,11 @@ internal class FakeTmdbApi : TmdbApi {
         id = 548,
         username = "lead",
         displayName = "Lead",
+    )
+    var movieAccountStatesResponse = TmdbMovieAccountStatesDto(
+        id = 550,
+        favorite = false,
+        watchlist = false,
     )
 
     private val imageConfiguration = TmdbImagesConfigurationDto(
@@ -174,6 +186,17 @@ internal class FakeTmdbApi : TmdbApi {
         lastAccountId = accountId
         lastAccountSessionId = sessionId
         return accountDetailsResponse ?: error("No TMDB account details configured")
+    }
+
+    override suspend fun getMovieAccountStates(
+        movieId: Int,
+        sessionId: String,
+    ): TmdbMovieAccountStatesDto {
+        throwIfNeeded()
+        movieAccountStatesCalls += 1
+        lastMovieAccountStatesMovieId = movieId
+        lastMovieAccountStatesSessionId = sessionId
+        return movieAccountStatesResponse
     }
 
     override suspend fun getConfiguration(): TmdbConfigurationDto {

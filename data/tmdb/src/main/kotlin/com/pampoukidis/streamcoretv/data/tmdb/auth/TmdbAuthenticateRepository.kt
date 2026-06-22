@@ -3,16 +3,20 @@ package com.pampoukidis.streamcoretv.data.tmdb.auth
 import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
 import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
 import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
+import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbAccountDetailsDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbRequestTokenResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.model.TmdbSessionResponseDto
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbApi
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbAuthenticationFailureException
 import com.pampoukidis.streamcoretv.data.tmdb.network.TmdbCallExecutor
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Named
-import kotlinx.coroutines.flow.Flow
 
 class TmdbAuthenticateRepository @Inject internal constructor(
     private val tmdbApi: TmdbApi,
@@ -22,7 +26,40 @@ class TmdbAuthenticateRepository @Inject internal constructor(
     private val accountId: String,
 ) : AuthenticateRepository {
 
-    override val authState: Flow<AuthStateModel> = authStore.authState
+    private val _authState = MutableStateFlow<AuthStateModel>(AuthStateModel.LoggedOut)
+    override val authState: StateFlow<AuthStateModel> = _authState.asStateFlow()
+
+    override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
+        val sessionId = authStore.currentSessionId()
+        if (sessionId == null) {
+            _authState.value = AuthStateModel.LoggedOut
+            return AppResult.Success(AuthStateModel.LoggedOut)
+        }
+
+        return when (
+            val result = callExecutor.execute(operation = BOOTSTRAP_OPERATION) {
+                tmdbApi.getMovieAccountStates(
+                    movieId = BOOTSTRAP_SESSION_VALIDATION_MOVIE_ID,
+                    sessionId = sessionId,
+                )
+            }
+        ) {
+            is AppResult.Success -> {
+                val account = loadAccount(sessionId = sessionId)
+                val authState = AuthStateModel.LoggedIn(account = account)
+                authStore.saveSession(
+                    sessionId = sessionId,
+                    account = account,
+                )
+                _authState.value = authState
+                AppResult.Success(authState)
+            }
+
+            is AppResult.Failure -> clearSessionAndFail(
+                error = result.error.toBootstrapFailure(),
+            )
+        }
+    }
 
     override suspend fun loginUser(
         identifier: String,
@@ -47,6 +84,7 @@ class TmdbAuthenticateRepository @Inject internal constructor(
                 sessionId = sessionId,
                 account = account,
             )
+            _authState.value = AuthStateModel.LoggedIn(account = account)
         }
     }
 
@@ -68,6 +106,7 @@ class TmdbAuthenticateRepository @Inject internal constructor(
         }
 
         authStore.clear()
+        _authState.value = AuthStateModel.LoggedOut
         return AppResult.Success(Unit)
     }
 
@@ -126,11 +165,56 @@ class TmdbAuthenticateRepository @Inject internal constructor(
         )
     }
 
+    private suspend fun <T> clearSessionAndFail(error: AppError): AppResult<T> {
+        authStore.clear()
+        _authState.value = AuthStateModel.LoggedOut
+        return AppResult.Failure(error)
+    }
+
+    private fun AppError.toBootstrapFailure(): AppError {
+        return when (this) {
+            is AppError.Authentication -> sessionExpiredError(
+                backendCode = source?.backendCode,
+                backendMessage = source?.backendMessage,
+                httpCode = source?.httpCode,
+            )
+
+            is AppError.Unauthorized -> sessionExpiredError(
+                backendCode = source?.backendCode,
+                backendMessage = source?.backendMessage,
+                httpCode = source?.httpCode,
+            )
+
+            else -> this
+        }
+    }
+
+    private fun sessionExpiredError(
+        backendCode: String? = null,
+        backendMessage: String? = null,
+        httpCode: Int? = null,
+    ): AppError.SessionExpired {
+        return AppError.SessionExpired(
+            source = ErrorSource(
+                client = CLIENT,
+                operation = BOOTSTRAP_OPERATION,
+                httpCode = httpCode,
+                backendCode = backendCode,
+                backendMessage = backendMessage,
+            ),
+        )
+    }
+
     private companion object {
+        const val CLIENT = "tmdb"
         const val TMDB_ACCOUNT_ID = "tmdbAccountId"
+        const val BOOTSTRAP_OPERATION = "bootstrapAuth"
         const val LOGIN_OPERATION = "loginUser"
         const val LOGOUT_OPERATION = "logoutUser"
         const val GET_ACCOUNT_DETAILS_OPERATION = "getAccountDetails"
+
+        // Known stable TMDB movie id used only to validate the user session.
+        const val BOOTSTRAP_SESSION_VALIDATION_MOVIE_ID = 550
         const val CREATE_REQUEST_TOKEN_FAILED_CODE = "CREATE_REQUEST_TOKEN_FAILED"
         const val VALIDATE_LOGIN_FAILED_CODE = "VALIDATE_LOGIN_FAILED"
         const val CREATE_SESSION_FAILED_CODE = "CREATE_SESSION_FAILED"

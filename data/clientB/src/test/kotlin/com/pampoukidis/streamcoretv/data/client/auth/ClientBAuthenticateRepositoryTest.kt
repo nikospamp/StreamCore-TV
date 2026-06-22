@@ -1,7 +1,7 @@
 package com.pampoukidis.streamcoretv.data.client.auth
 
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
+import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -14,6 +14,8 @@ class ClientBAuthenticateRepositoryTest {
 
     @Test
     fun `auth operations complete`() = runTest {
+        assertEquals(AppResult.Success(AuthStateModel.LoggedOut), subject.bootstrapAuth())
+        assertEquals(AuthStateModel.LoggedOut, subject.authState.first())
         assertEquals(
             AppResult.Success(Unit),
             subject.loginUser(
