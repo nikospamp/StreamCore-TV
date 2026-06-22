@@ -8,6 +8,8 @@ interface AuthenticateRepository {
 
     val authState: Flow<AuthStateModel>
 
+    suspend fun bootstrapAuth(): AppResult<AuthStateModel>
+
     suspend fun loginUser(
         identifier: String,
         password: String

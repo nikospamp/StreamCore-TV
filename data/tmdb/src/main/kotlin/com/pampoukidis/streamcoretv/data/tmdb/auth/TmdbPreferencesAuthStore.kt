@@ -7,12 +7,9 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import java.io.IOException
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 internal class TmdbPreferencesAuthStore(
     private val dataStore: DataStore<Preferences>,
@@ -24,15 +21,6 @@ internal class TmdbPreferencesAuthStore(
         } else {
             throw throwable
         }
-    }
-
-    override val authState: Flow<AuthStateModel> = preferences.map { prefs ->
-        val sessionId = prefs[Keys.SessionId]
-        if (sessionId.isNullOrBlank()) {
-            return@map AuthStateModel.LoggedOut
-        }
-
-        AuthStateModel.LoggedIn(account = prefs.toAccountModel())
     }
 
     override suspend fun currentSessionId(): String? {
@@ -68,17 +56,6 @@ internal class TmdbPreferencesAuthStore(
             prefs.remove(Keys.AccountUsername)
             prefs.remove(Keys.AccountDisplayName)
         }
-    }
-
-    private fun Preferences.toAccountModel(): AuthAccountModel? {
-        val accountId = this[Keys.AccountId] ?: return null
-        val username = this[Keys.AccountUsername]?.takeIf { it.isNotBlank() } ?: return null
-
-        return AuthAccountModel(
-            id = accountId,
-            username = username,
-            displayName = this[Keys.AccountDisplayName],
-        )
     }
 
     private object Keys {
