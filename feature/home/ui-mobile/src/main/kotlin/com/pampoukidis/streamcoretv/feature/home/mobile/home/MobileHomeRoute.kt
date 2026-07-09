@@ -17,6 +17,7 @@ fun MobileHomeRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -36,6 +37,7 @@ fun MobileHomeRoute(
     MobileHomeScreen(
         state = state,
         onAction = viewModel::onAction,
+        onProfileSelected = onProfileSelected,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,
     )

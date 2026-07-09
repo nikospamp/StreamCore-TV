@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.home.domain
 import com.pampoukidis.streamcoretv.core.domain.HomeRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -31,7 +31,7 @@ class LoadHomeRowsUseCaseTest {
             title = "Featured",
             subtitle = "Selected for you",
             content = listOf(contentModel()),
-            style = RowStyle.Carousel,
+            type = RowType.Featured,
         )
     }
 

@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
@@ -175,7 +175,7 @@ private fun TvHomeBody(
                 itemsIndexed(
                     items = state.rows,
                     key = { _, row -> row.id },
-                    contentType = { _, row -> row.style },
+                    contentType = { _, row -> row.type },
                 ) { rowIndex, row ->
                     TvContentRow(
                         row = row,
@@ -234,12 +234,12 @@ private fun TvContentRow(
             itemsIndexed(
                 items = row.content,
                 key = { _, content -> content.id },
-                contentType = { _, _ -> row.style },
+                contentType = { _, _ -> row.type },
             ) { contentIndex, content ->
                 TvContentCard(
                     rowId = row.id,
                     content = content,
-                    style = row.style,
+                    type = row.type,
                     rank = contentIndex + 1,
                     onClick = {
                         onAction(HomeAction.ContentSelected(content))
@@ -264,7 +264,7 @@ private fun TvContentRow(
 private fun TvContentCard(
     rowId: String,
     content: ContentModel,
-    style: RowStyle,
+    type: RowType,
     rank: Int,
     onClick: () -> Unit,
     focusRequester: FocusRequester?,
@@ -273,7 +273,7 @@ private fun TvContentCard(
     modifier: Modifier = Modifier,
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val spec = style.tvCardSpec()
+    val spec = type.tvCardSpec()
     val imageShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
     val elementScope = if (useSharedTransition) {
         sharedElementScope
@@ -310,7 +310,7 @@ private fun TvContentCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             StreamCoreContentImage(
-                imageUrl = content.imageUrl(style),
+                imageUrl = content.imageUrl(type),
                 contentDescription = content.title,
                 fallbackText = content.fallbackText(),
                 contentScale = ContentScale.Crop,
@@ -337,7 +337,7 @@ private fun TvContentCard(
                         clipShape = imageShape,
                     ),
             ) {
-                if (style == RowStyle.TopTen) {
+                if (type == RowType.TopTen) {
                     Text(
                         text = rank.toString(),
                         style = MaterialTheme.typography.displayLarge,
@@ -397,12 +397,14 @@ private fun TvContentCard(
     }
 }
 
-private fun RowStyle.tvCardSpec(): TvCardSpec {
+private fun RowType.tvCardSpec(): TvCardSpec {
     return when (this) {
-        RowStyle.Carousel -> TvCarouselCardSpec
-        RowStyle.Poster -> TvPosterCardSpec
-        RowStyle.Landscape -> TvLandscapeCardSpec
-        RowStyle.TopTen -> TvTopTenCardSpec
+        RowType.Featured -> TvCarouselCardSpec
+        RowType.ContinueWatching,
+        RowType.Landscape -> TvLandscapeCardSpec
+
+        RowType.Poster -> TvPosterCardSpec
+        RowType.TopTen -> TvTopTenCardSpec
     }
 }
 

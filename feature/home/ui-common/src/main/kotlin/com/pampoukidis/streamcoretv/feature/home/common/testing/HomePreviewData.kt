@@ -1,8 +1,9 @@
 package com.pampoukidis.streamcoretv.feature.home.common.testing
 
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.general.Cast
 import com.pampoukidis.streamcoretv.core.model.general.Genre
 
@@ -67,28 +68,43 @@ object HomePreviewData {
             title = "Featured",
             subtitle = "Selected for your profile",
             content = content.take(3).withRow(row = "featured"),
-            style = RowStyle.Carousel,
+            type = RowType.Featured,
+        ),
+        RowModel(
+            id = "continue-watching",
+            title = "Bookmarks",
+            subtitle = "Continue where you left off",
+            content = content.take(3).mapIndexed { index, item ->
+                item.copy(
+                    row = "continue-watching",
+                    playbackProgress = PlaybackProgressModel(
+                        positionMillis = (index + 2L) * 12L * 60L * 1000L,
+                        durationMillis = 90L * 60L * 1000L,
+                    ),
+                )
+            },
+            type = RowType.ContinueWatching,
         ),
         RowModel(
             id = "top-ten",
             title = "Top 10 today",
             subtitle = "Most watched right now",
             content = content.withRow(row = "top-ten"),
-            style = RowStyle.TopTen,
+            type = RowType.TopTen,
         ),
         RowModel(
             id = "recommended",
             title = "Recommended for you",
             subtitle = "Based on your viewing profile",
             content = content.withRow(row = "recommended"),
-            style = RowStyle.Poster,
+            type = RowType.Poster,
         ),
         RowModel(
             id = "new-releases",
             title = "New releases",
             subtitle = "Recently added",
             content = content.reversed().withRow(row = "new-releases"),
-            style = RowStyle.Landscape,
+            type = RowType.Landscape,
         ),
     )
 

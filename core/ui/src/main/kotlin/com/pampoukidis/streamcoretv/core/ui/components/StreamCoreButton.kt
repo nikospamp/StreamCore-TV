@@ -2,21 +2,24 @@ package com.pampoukidis.streamcoretv.core.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 
 @Composable
 fun StreamCoreButton(
@@ -25,11 +28,32 @@ fun StreamCoreButton(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     loading: Boolean = false,
+    size: StreamCoreButtonSize = StreamCoreButtonSize.Standard,
+    variant: StreamCoreButtonVariant = StreamCoreButtonVariant.Primary,
+    leadingIcon: (@Composable () -> Unit)? = null,
 ) {
+    val minHeight = when (size) {
+        StreamCoreButtonSize.Standard -> StreamCoreDimens.Button.MinHeight
+        StreamCoreButtonSize.Compact -> StreamCoreDimens.Button.CompactHeight
+    }
+    val contentPadding = when (size) {
+        StreamCoreButtonSize.Standard -> ButtonDefaults.ContentPadding
+        StreamCoreButtonSize.Compact -> PaddingValues(horizontal = 15.dp)
+    }
+    val colors = when (variant) {
+        StreamCoreButtonVariant.Primary -> ButtonDefaults.buttonColors()
+        StreamCoreButtonVariant.Secondary -> ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.defaultMinSize(minHeight = StreamCoreDimens.Button.MinHeight),
+        colors = colors,
+        contentPadding = contentPadding,
+        modifier = modifier.defaultMinSize(minHeight = minHeight),
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -37,7 +61,13 @@ fun StreamCoreButton(
                 modifier = Modifier.size(StreamCoreDimens.Button.LoadingIndicatorSize),
             )
         } else {
-            Text(text = text)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                leadingIcon?.invoke()
+                Text(text = text)
+            }
         }
     }
 }

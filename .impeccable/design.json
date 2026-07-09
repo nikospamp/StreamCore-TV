@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-22T15:12:27.0964485+03:00",
+  "title": "Design System: StreamCoreTV",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Ember Action",
+        "canonical": "#EB5E28",
+        "tonalRamp": [
+          "#3D1400",
+          "#732700",
+          "#A63D0F",
+          "#EB5E28",
+          "#F48B5D",
+          "#FFB89A",
+          "#FFFFDBCE",
+          "#FFFFFCF2"
+        ]
+      },
+      "primary-container": {
+        "role": "primary",
+        "displayName": "Ember Mist",
+        "canonical": "#FFFFDBCE",
+        "tonalRamp": [
+          "#3A0B00",
+          "#732700",
+          "#A64B26",
+          "#D77C58",
+          "#FFB89A",
+          "#FFFFDBCE",
+          "#FFF0E8",
+          "#FFFFFCF2"
+        ]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Warm Control Neutral",
+        "canonical": "#635D55",
+        "tonalRamp": [
+          "#1C1B17",
+          "#252422",
+          "#403D39",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E9E1D4",
+          "#FFFFFCF2"
+        ]
+      },
+      "tertiary": {
+        "role": "tertiary",
+        "displayName": "Charcoal Tertiary",
+        "canonical": "#403D39",
+        "tonalRamp": [
+          "#1C1B17",
+          "#252422",
+          "#403D39",
+          "#635D55",
+          "#968F86",
+          "#BFA892",
+          "#DCCEBD",
+          "#E6E1D9"
+        ]
+      },
+      "background-light": {
+        "role": "neutral",
+        "displayName": "Canvas Light",
+        "canonical": "#FFFFFCF2",
+        "tonalRamp": [
+          "#1A1918",
+          "#252422",
+          "#403D39",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E6E2D9",
+          "#FFFFFCF2"
+        ]
+      },
+      "surface-light": {
+        "role": "neutral",
+        "displayName": "Surface Light",
+        "canonical": "#FFFFFCF2",
+        "tonalRamp": [
+          "#1A1918",
+          "#252422",
+          "#403D39",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E6E2D9",
+          "#FFFFFCF2"
+        ]
+      },
+      "background-dark": {
+        "role": "neutral",
+        "displayName": "Cinema Black",
+        "canonical": "#1A1918",
+        "tonalRamp": [
+          "#1A1918",
+          "#252422",
+          "#403D39",
+          "#4A4641",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E6E2D9"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Panel Charcoal",
+        "canonical": "#252422",
+        "tonalRamp": [
+          "#1A1918",
+          "#252422",
+          "#403D39",
+          "#4A4641",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E6E2D9"
+        ]
+      },
+      "surface-variant-dark": {
+        "role": "neutral",
+        "displayName": "Raised Charcoal",
+        "canonical": "#403D39",
+        "tonalRamp": [
+          "#1A1918",
+          "#252422",
+          "#403D39",
+          "#4A4641",
+          "#635D55",
+          "#968F86",
+          "#CCC5B9",
+          "#E6E2D9"
+        ]
+      },
+      "error": {
+        "role": "error",
+        "displayName": "Failure Red",
+        "canonical": "#BA1A1A",
+        "tonalRamp": [
+          "#410002",
+          "#690005",
+          "#93000A",
+          "#BA1A1A",
+          "#E33D35",
+          "#FFB4AB",
+          "#FFDAD6",
+          "#FFFFFF"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Large TV and details titles where distance or artwork scale requires it."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Screen titles, TV row headers, and important section labels."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Row titles, card titles, dialogs, and form headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, helper copy, and readable text blocks."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Metadata, chips, button labels, ratings, and compact status text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "tonalElevation = 2dp",
+        "purpose": "Default content cards and profile cards."
+      },
+      {
+        "name": "focused-status-lift",
+        "value": "tonalElevation = 8dp",
+        "purpose": "TV focus, loading chips, and temporary status surfaces."
+      },
+      {
+        "name": "login-panel",
+        "value": "tonalElevation = 6dp mobile/tablet, 8dp TV",
+        "purpose": "Separate form panels from cinematic background imagery."
+      }
+    ],
+    "motion": [
+      {
+        "name": "theme-color-transition",
+        "value": "350ms FastOutSlowInEasing",
+        "purpose": "Theme color changes."
+      },
+      {
+        "name": "shared-element-fade",
+        "value": "90ms fade",
+        "purpose": "Shared artwork/title transitions."
+      },
+      {
+        "name": "delayed-entrance",
+        "value": "220ms FastOutSlowInEasing, 80dp vertical offset",
+        "purpose": "Metadata and recommendations reveal after details content loads."
+      },
+      {
+        "name": "navigation-slide",
+        "value": "240ms slide + 140ms fade + 90ms exit fade",
+        "purpose": "Route transitions between app destinations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-preview",
+        "value": "390dp x 844dp"
+      },
+      {
+        "name": "tablet-preview",
+        "value": "1024dp x 768dp"
+      },
+      {
+        "name": "tv-preview",
+        "value": "960dp x 540dp"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary Material-style action with StreamCore accent and loading support.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { min-height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: #EB5E28; color: #FFFFFCF2; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; transition: background 180ms ease, opacity 180ms ease; } .ds-btn-primary:hover { background: #D94F1F; } .ds-btn-primary:focus-visible { outline: 2px solid #EB5E28; outline-offset: 3px; } .ds-btn-primary:active { background: #BA4218; } .ds-btn-primary:disabled { opacity: 0.38; }"
+    },
+    {
+      "name": "Text Button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Low-weight action for recovery, profile editing, back, and refresh actions.",
+      "html": "<button class=\"ds-btn-text\">Forgot password</button>",
+      "css": ".ds-btn-text { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; transition: background 180ms ease, color 180ms ease; } .ds-btn-text:hover { background: rgba(235, 94, 40, 0.12); } .ds-btn-text:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-btn-text:active { background: rgba(235, 94, 40, 0.18); } .ds-btn-text:disabled { opacity: 0.38; }"
+    },
+    {
+      "name": "TV Button",
+      "kind": "button",
+      "refersTo": "tv-button",
+      "description": "D-pad-safe TV action with fixed scale and visible focus border.",
+      "html": "<button class=\"ds-tv-button\">Refresh</button>",
+      "css": ".ds-tv-button { padding: 10px 18px; border: 2px solid transparent; border-radius: 8px; background: #EB5E28; color: #FFFFFCF2; font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; transition: border-color 160ms ease, background 160ms ease; } .ds-tv-button:hover { background: #D94F1F; } .ds-tv-button:focus-visible { border-color: #EB5E28; outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-button:active { background: #BA4218; } .ds-tv-button:disabled { opacity: 0.38; }"
+    },
+    {
+      "name": "Outlined Field",
+      "kind": "input",
+      "refersTo": "input-outlined",
+      "description": "Material login field for email and password entry with supporting text.",
+      "html": "<label class=\"ds-field\"><span>Email</span><input type=\"email\" value=\"lead@streamcore.tv\" /></label>",
+      "css": ".ds-field { display: grid; gap: 6px; color: #403D39; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 500; } .ds-field input { min-height: 52px; padding: 0 14px; border: 1px solid #7F7A72; border-radius: 4px; background: transparent; color: #252422; font-size: 16px; } .ds-field input:hover { border-color: #635D55; } .ds-field input:focus-visible { border-color: #EB5E28; outline: 1px solid #EB5E28; outline-offset: 0; } .ds-field input:disabled { opacity: 0.38; }"
+    },
+    {
+      "name": "Loading Chip",
+      "kind": "chip",
+      "refersTo": "loading-chip",
+      "description": "Compact async status surface for updates in progress.",
+      "html": "<span class=\"ds-loading-chip\"><span class=\"ds-spinner\"></span>Updating</span>",
+      "css": ".ds-loading-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 7px 10px; border-radius: 8px; background: #FFFFDBCE; color: #3A0B00; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 600; box-shadow: 0 8px 16px rgba(0,0,0,0.18); } .ds-spinner { width: 14px; height: 14px; border: 2px solid rgba(58,11,0,0.28); border-top-color: #3A0B00; border-radius: 999px; }"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "content-card",
+      "description": "Poster-first browse card with low tonal lift and compact metadata.",
+      "html": "<article class=\"ds-content-card\"><div class=\"ds-art\">SC</div><div class=\"ds-card-body\"><strong>Midnight Signal</strong><span>Drama · 8.2/10</span></div></article>",
+      "css": ".ds-content-card { width: 140px; overflow: hidden; border: 0; border-radius: 10px; background: #FFFFFCF2; color: #252422; font-family: system-ui, sans-serif; box-shadow: 0 2px 6px rgba(37,36,34,0.12); transition: box-shadow 180ms ease, transform 180ms ease; } .ds-content-card:hover { box-shadow: 0 6px 12px rgba(37,36,34,0.16); } .ds-content-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-art { display: grid; place-items: center; aspect-ratio: 2 / 3; background: #FFFFDBCE; color: #3A0B00; font-size: 45px; font-weight: 600; } .ds-card-body { display: grid; gap: 4px; padding: 8px 10px 10px; } .ds-card-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; } .ds-card-body span { color: #403D39; font-size: 12px; }"
+    },
+    {
+      "name": "TV Focused Card",
+      "kind": "card",
+      "refersTo": "tv-content-card-focused",
+      "description": "TV content card state with primary focus border and no scale jump.",
+      "html": "<article class=\"ds-tv-card\"><div class=\"ds-tv-art\">7</div><div class=\"ds-tv-body\"><strong>Northline</strong><span>Thriller · 9.1/10</span></div></article>",
+      "css": ".ds-tv-card { width: 250px; overflow: hidden; border: 2px solid #EB5E28; border-radius: 12px; background: #252422; color: #E6E2D9; font-family: system-ui, sans-serif; box-shadow: 0 8px 18px rgba(0,0,0,0.28); } .ds-tv-card:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-art { display: grid; align-items: end; justify-items: start; aspect-ratio: 2 / 3; padding: 12px; background: #FFFFDBCE; color: #3A0B00; font-size: 57px; font-weight: 700; } .ds-tv-body { display: grid; gap: 6px; padding: 10px 14px 14px; } .ds-tv-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; font-weight: 600; } .ds-tv-body span { color: #CCC5B9; font-size: 14px; }"
+    },
+    {
+      "name": "Profile Card",
+      "kind": "card",
+      "refersTo": "profile-card",
+      "description": "Profile selection card with circular initials avatar and secondary actions.",
+      "html": "<article class=\"ds-profile-card\"><div class=\"ds-avatar\">NP</div><strong>Nikos</strong><span>Adult</span><button>Edit</button></article>",
+      "css": ".ds-profile-card { display: grid; justify-items: center; gap: 10px; min-width: 180px; padding: 16px; border-radius: 8px; background: #FFFFFCF2; color: #252422; font-family: system-ui, sans-serif; box-shadow: 0 2px 6px rgba(37,36,34,0.12); } .ds-profile-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-avatar { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 999px; background: #FFFFDBCE; color: #3A0B00; font-size: 28px; font-weight: 600; } .ds-profile-card strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; } .ds-profile-card span { color: #403D39; font-size: 12px; } .ds-profile-card button { border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-weight: 600; padding: 8px 12px; } .ds-profile-card button:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cinematic Control Room",
+    "overview": "StreamCoreTV is a product UI system for a backend-agnostic Android streaming app family. The visual language is premium, cinematic, calm, and task-focused: content artwork creates the atmosphere, while the app chrome stays restrained enough for browsing, profile management, login, and details workflows to feel direct.\n\nThe system uses familiar streaming-category patterns without cloning competitors. Mobile and tablet screens use Material 3 structure, content-led rows, compact forms, and adaptive density. TV screens use larger typography, 32dp screen padding, 8dp focus geometry, and explicit D-pad focus states so the selected object is never ambiguous.\n\nIt rejects generic SaaS dashboards, marketing landing-page composition, loud orange-and-black demo styling, white or cream streaming canvases, social-feed layouts, device mockups inside the UI, busy chrome, and provider-specific branding in shared surfaces.",
+    "keyCharacteristics": [
+      "Content-led hierarchy: posters, backdrops, profile imagery, and row rhythm carry the brand more than accent color.",
+      "Restrained accent: StreamCore orange is for primary action, focus, selected state, and loading emphasis, not decoration.",
+      "Platform-fit composition: touch surfaces stay compact; TV surfaces increase spacing, type scale, and focus affordance.",
+      "Backend-agnostic neutrality: UI language must not expose provider DTOs, SDKs, copy, or client identities."
+    ],
+    "rules": [
+      {
+        "name": "The Artwork First Rule",
+        "body": "Primary orange must remain rare on catalogue and details screens; artwork and typography provide the cinematic weight.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Cream Streaming Canvas Rule",
+        "body": "Light theme tokens exist, but browsing, details, and TV streaming surfaces should not read as white, cream, or beige product pages.",
+        "section": "colors"
+      },
+      {
+        "name": "The Native Product Rule",
+        "body": "Do not introduce display fonts into labels, buttons, fields, or metadata. System typography is a strength here.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Line Streaming Rule",
+        "body": "Descriptions on browse surfaces should cap at two lines; details screens may expand, but TV copy must stay readable at distance.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal First Rule",
+        "body": "Use Material tonal elevation and surface contrast before adding visible shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Focus Earns Lift Rule",
+        "body": "Elevation is allowed when the user moves focus, when async status is active, or when a form panel must separate from artwork.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the target architecture backend-agnostic: feature UI consumes app models, UI state, actions, and effects, not provider DTOs or SDK types.",
+      "Do use StreamCoreButton, StreamCoreTextButton, StreamCoreTvButton, StreamCoreContentImage, and other app-owned components before raw Material primitives in feature UI.",
+      "Do keep StreamCore orange (primary) reserved for primary action, selection, focus, and meaningful status.",
+      "Do use stable lazy keys and content types for content rows and grids.",
+      "Do use TV-specific focus states with a 2dp primary border and enough spacing for D-pad movement.",
+      "Do preserve preview-friendly composables wrapped in StreamCoreTVTheme."
+    ],
+    "donts": [
+      "Don't build generic SaaS dashboards for subscriber-facing streaming flows.",
+      "Don't use marketing landing-page composition for authenticated app screens.",
+      "Don't lean into loud orange-and-black demo styling; orange is an accent, not the whole brand.",
+      "Don't use white or cream page backgrounds as the default for streaming browse, details, or TV surfaces.",
+      "Don't clone Netflix, Disney+, HBO Max, Prime Video, or provider-specific layouts, logos, icon shapes, or copy.",
+      "Don't introduce social-feed layouts into catalogue browsing.",
+      "Don't place device mockups inside the app UI.",
+      "Don't add busy chrome, random notification actions, decorative badges, or non-content UI noise.",
+      "Don't ship tiny TV controls or subtle TV focus rings.",
+      "Don't put provider-specific branding, DTO language, SDK concepts, or client-specific model names in shared UI."
+    ]
+  }
+}

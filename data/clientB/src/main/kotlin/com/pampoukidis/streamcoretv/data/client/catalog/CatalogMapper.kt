@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.data.client.catalog
 
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.general.Cast
 import com.pampoukidis.streamcoretv.core.model.general.Genre
 import com.pampoukidis.streamcoretv.data.client.model.ClientBCategoryDto
@@ -19,7 +19,7 @@ internal fun ClientBHomeLaneDto.toModel(): RowModel {
         content = assets.map { asset ->
             asset.toModel(row = laneId)
         },
-        style = template.toModel(),
+        type = template.toRowType(),
     )
 }
 
@@ -56,11 +56,11 @@ private fun ClientBCategoryDto.toModel(): Genre {
     )
 }
 
-private fun ClientBLaneTemplateDto.toModel(): RowStyle {
+private fun ClientBLaneTemplateDto.toRowType(): RowType {
     return when (this) {
-        ClientBLaneTemplateDto.Spotlight -> RowStyle.Carousel
-        ClientBLaneTemplateDto.Portrait -> RowStyle.Poster
-        ClientBLaneTemplateDto.Landscape -> RowStyle.Landscape
-        ClientBLaneTemplateDto.Ranking -> RowStyle.TopTen
+        ClientBLaneTemplateDto.Spotlight -> RowType.Featured
+        ClientBLaneTemplateDto.Portrait -> RowType.Poster
+        ClientBLaneTemplateDto.Landscape -> RowType.Landscape
+        ClientBLaneTemplateDto.Ranking -> RowType.TopTen
     }
 }

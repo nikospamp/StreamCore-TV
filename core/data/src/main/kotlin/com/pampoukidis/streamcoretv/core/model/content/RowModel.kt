@@ -5,5 +5,5 @@ data class RowModel(
     val title: String,
     val subtitle: String,
     val content: List<ContentModel>,
-    val style: RowStyle,
+    val type: RowType
 )
