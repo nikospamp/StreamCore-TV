@@ -21,8 +21,8 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.general.Platform
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.details.mobile.details.MobileDetailsRoute
 import com.pampoukidis.streamcoretv.feature.details.tablet.details.TabletDetailsRoute
@@ -215,6 +215,15 @@ internal fun StreamCoreNavHost(
                             launchSingleTop = true
                         }
                     },
+                    onProfileSelected = {
+                        selectedContent = null
+                        navController.navigate(AppRoute.Profiles) {
+                            popUpTo<AppRoute.Home> {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
                     onError = onError,
                 )
             }
@@ -376,6 +385,7 @@ private fun HomeDestination(
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
+    onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
@@ -383,6 +393,7 @@ private fun HomeDestination(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
+            onProfileSelected = onProfileSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )
@@ -391,6 +402,7 @@ private fun HomeDestination(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
+            onProfileSelected = onProfileSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )

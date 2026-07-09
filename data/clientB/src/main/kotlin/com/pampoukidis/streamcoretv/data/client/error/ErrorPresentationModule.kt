@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.data.client.error
 
+import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -12,5 +13,5 @@ abstract class ErrorPresentationModule {
     @Binds
     abstract fun bindErrorPresentationMapper(
         impl: ErrorPresentationPresentationMapper,
-    ): ErrorPresentationPresentationMapper
+    ): ErrorPresentationMapper
 }

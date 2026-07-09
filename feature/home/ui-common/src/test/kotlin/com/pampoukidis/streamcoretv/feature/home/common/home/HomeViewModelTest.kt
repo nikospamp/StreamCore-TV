@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.home.common.home
 import com.pampoukidis.streamcoretv.core.domain.HomeRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
@@ -98,7 +98,7 @@ class HomeViewModelTest {
             title = "Featured",
             subtitle = "Selected for you",
             content = listOf(contentModel()),
-            style = RowStyle.Carousel,
+            type = RowType.Featured,
         )
     }
 

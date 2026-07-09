@@ -3,8 +3,8 @@ package com.pampoukidis.streamcoretv.core.model.content
 import com.pampoukidis.streamcoretv.core.model.general.Cast
 import com.pampoukidis.streamcoretv.core.model.general.Genre
 import kotlinx.serialization.Serializable
-import kotlin.text.equals
-import kotlin.text.isBlank
+import java.util.Calendar
+import java.util.TimeZone
 
 @Serializable
 data class ContentModel(
@@ -20,19 +20,20 @@ data class ContentModel(
     val releaseDate: Long,
     val genres: List<Genre>,
     val row: String? = null,
+    val playbackProgress: PlaybackProgressModel? = null,
 )
 
 fun ContentModel.fallbackText(): String {
     return title.firstOrNull()?.uppercase() ?: "?"
 }
 
-fun ContentModel.imageUrl(style: RowStyle): String? {
-    return when (style) {
-        RowStyle.Carousel,
-        RowStyle.Landscape -> backdrop ?: poster
+fun ContentModel.imageUrl(type: RowType): String? {
+    return when (type) {
+        RowType.Featured,
+        RowType.ContinueWatching,
+        RowType.Landscape -> backdrop ?: poster
 
-        RowStyle.Poster,
-        RowStyle.TopTen -> poster
+        RowType.Poster, RowType.TopTen -> poster
     }
 }
 
@@ -49,6 +50,29 @@ fun ContentModel.homeMetadataText(): String {
     }
 
     return "$rating/10 · $certification"
+}
+
+fun ContentModel.heroMetadata(): String {
+    val values = buildList {
+        val year = releaseYear(releaseDate)
+        if (year > 0) {
+            add(year.toString())
+        }
+        genres.firstOrNull()?.name?.let(::add)
+        add(homeMetadataText())
+    }
+    return values.joinToString(separator = "  ·  ")
+}
+
+private fun releaseYear(epochMillis: Long): Int {
+    if (epochMillis <= 0L) {
+        return 0
+    }
+
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
+        timeInMillis = epochMillis
+        get(Calendar.YEAR)
+    }
 }
 
 private const val UNRATED_CERTIFICATION_NAME = "NR"

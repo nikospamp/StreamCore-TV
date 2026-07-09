@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.data.client.catalog
 
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.data.client.model.ClientBCategoryDto
 import com.pampoukidis.streamcoretv.data.client.model.ClientBContentDto
 import com.pampoukidis.streamcoretv.data.client.model.ClientBContributorDto
@@ -24,7 +24,7 @@ class CatalogMapperTest {
     }
 
     @Test
-    fun `maps client B lane template into backend agnostic row style`() {
+    fun `maps client B lane template into backend agnostic row type`() {
         val dto = ClientBHomeLaneDto(
             laneId = "lane-1",
             title = "Spotlight",
@@ -36,7 +36,7 @@ class CatalogMapperTest {
         val model = dto.toModel()
 
         assertEquals("lane-1", model.id)
-        assertEquals(RowStyle.Carousel, model.style)
+        assertEquals(RowType.Featured, model.type)
         assertEquals("content-1", model.content.single().id)
     }
 

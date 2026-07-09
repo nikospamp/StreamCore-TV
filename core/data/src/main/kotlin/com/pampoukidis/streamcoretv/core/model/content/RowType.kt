@@ -1,7 +1,8 @@
 package com.pampoukidis.streamcoretv.core.model.content
 
-enum class RowStyle {
-    Carousel,
+enum class RowType {
+    Featured,
+    ContinueWatching,
     Poster,
     Landscape,
     TopTen,

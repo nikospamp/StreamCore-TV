@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.data.tmdb.catalog
 
 import com.pampoukidis.streamcoretv.core.domain.HomeRepository
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.RowStyle
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
@@ -51,7 +51,7 @@ class TmdbCatalogRepository @Inject internal constructor(
                         id = "tmdb-trending-week",
                         title = "Trending this week",
                         subtitle = "Movies people are watching now",
-                        style = RowStyle.Carousel,
+                        type = RowType.Featured,
                         content = trendingWeek.await().results,
                         profileId = profileId,
                         referenceData = references,
@@ -60,7 +60,7 @@ class TmdbCatalogRepository @Inject internal constructor(
                         id = "tmdb-top-ten",
                         title = "Top 10 today",
                         subtitle = "Trending on TMDB",
-                        style = RowStyle.TopTen,
+                        type = RowType.TopTen,
                         content = trendingDay.await().results.take(TOP_TEN_LIMIT),
                         profileId = profileId,
                         referenceData = references,
@@ -69,7 +69,7 @@ class TmdbCatalogRepository @Inject internal constructor(
                         id = "tmdb-popular",
                         title = "Popular movies",
                         subtitle = "Most watched on TMDB",
-                        style = RowStyle.Poster,
+                        type = RowType.Poster,
                         content = popular.await().results,
                         profileId = profileId,
                         referenceData = references,
@@ -78,7 +78,7 @@ class TmdbCatalogRepository @Inject internal constructor(
                         id = "tmdb-now-playing",
                         title = "Now playing",
                         subtitle = "Recently released movies",
-                        style = RowStyle.Landscape,
+                        type = RowType.Landscape,
                         content = nowPlaying.await().results,
                         profileId = profileId,
                         referenceData = references,
@@ -92,7 +92,7 @@ class TmdbCatalogRepository @Inject internal constructor(
         id: String,
         title: String,
         subtitle: String,
-        style: RowStyle,
+        type: RowType,
         content: List<TmdbMovieSummaryDto>,
         profileId: String,
         referenceData: TmdbReferenceData,
@@ -101,6 +101,7 @@ class TmdbCatalogRepository @Inject internal constructor(
             id = id,
             title = title,
             subtitle = subtitle,
+            type = type,
             content = content
                 .contentVisibleForProfile(profileId = profileId)
                 .take(ROW_CONTENT_LIMIT)
@@ -108,7 +109,6 @@ class TmdbCatalogRepository @Inject internal constructor(
                     referenceData = referenceData,
                     row = id,
                 ),
-            style = style,
         )
     }
 
