@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-22T15:12:27.0964485+03:00",
+  "generatedAt": "2026-07-12T20:05:17.0170405+03:00",
   "title": "Design System: StreamCoreTV",
   "extensions": {
     "colorMeta": {
@@ -9,134 +9,134 @@
         "displayName": "Ember Action",
         "canonical": "#EB5E28",
         "tonalRamp": [
-          "#3D1400",
-          "#732700",
+          "#3A1404",
+          "#682500",
           "#A63D0F",
           "#EB5E28",
-          "#F48B5D",
-          "#FFB89A",
-          "#FFFFDBCE",
-          "#FFFFFCF2"
+          "#F58B5F",
+          "#FFB59A",
+          "#FFE0D2",
+          "#FAFAFB"
         ]
       },
       "primary-container": {
         "role": "primary",
         "displayName": "Ember Mist",
-        "canonical": "#FFFFDBCE",
+        "canonical": "#FFE0D2",
         "tonalRamp": [
-          "#3A0B00",
-          "#732700",
-          "#A64B26",
-          "#D77C58",
-          "#FFB89A",
-          "#FFFFDBCE",
-          "#FFF0E8",
-          "#FFFFFCF2"
+          "#2B1004",
+          "#682500",
+          "#A63D0F",
+          "#EB5E28",
+          "#F58B5F",
+          "#FFB59A",
+          "#FFE0D2",
+          "#FAFAFB"
         ]
       },
       "secondary": {
         "role": "secondary",
-        "displayName": "Warm Control Neutral",
-        "canonical": "#635D55",
+        "displayName": "Control Neutral",
+        "canonical": "#5B626B",
         "tonalRamp": [
-          "#1C1B17",
-          "#252422",
-          "#403D39",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E9E1D4",
-          "#FFFFFCF2"
+          "#171C22",
+          "#2C3137",
+          "#3F4650",
+          "#5B626B",
+          "#727982",
+          "#BCC5D0",
+          "#D8DEE6",
+          "#FAFAFB"
         ]
       },
       "tertiary": {
         "role": "tertiary",
-        "displayName": "Charcoal Tertiary",
-        "canonical": "#403D39",
+        "displayName": "Muted Utility Green",
+        "canonical": "#4F635D",
         "tonalRamp": [
-          "#1C1B17",
-          "#252422",
-          "#403D39",
-          "#635D55",
-          "#968F86",
-          "#BFA892",
-          "#DCCEBD",
-          "#E6E1D9"
+          "#0B1F1A",
+          "#24332F",
+          "#354A44",
+          "#4F635D",
+          "#6F837D",
+          "#B7CFC6",
+          "#D3E5DE",
+          "#FAFAFB"
         ]
       },
       "background-light": {
         "role": "neutral",
-        "displayName": "Canvas Light",
-        "canonical": "#FFFFFCF2",
+        "displayName": "Cinematic Light Canvas",
+        "canonical": "#F5F6F8",
         "tonalRamp": [
-          "#1A1918",
-          "#252422",
-          "#403D39",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E6E2D9",
-          "#FFFFFCF2"
+          "#101214",
+          "#191C20",
+          "#41464D",
+          "#727982",
+          "#C1C7CF",
+          "#DDE1E7",
+          "#F0F2F5",
+          "#F5F6F8"
         ]
       },
       "surface-light": {
         "role": "neutral",
         "displayName": "Surface Light",
-        "canonical": "#FFFFFCF2",
+        "canonical": "#FAFAFB",
         "tonalRamp": [
-          "#1A1918",
-          "#252422",
-          "#403D39",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E6E2D9",
-          "#FFFFFCF2"
+          "#101214",
+          "#191C20",
+          "#41464D",
+          "#727982",
+          "#C1C7CF",
+          "#DDE1E7",
+          "#F0F2F5",
+          "#FAFAFB"
         ]
       },
       "background-dark": {
         "role": "neutral",
         "displayName": "Cinema Black",
-        "canonical": "#1A1918",
+        "canonical": "#101214",
         "tonalRamp": [
-          "#1A1918",
-          "#252422",
-          "#403D39",
-          "#4A4641",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E6E2D9"
+          "#090A0B",
+          "#101214",
+          "#171A1D",
+          "#1C2024",
+          "#262B30",
+          "#3F454D",
+          "#C2C8D0",
+          "#E4E7EB"
         ]
       },
       "surface-dark": {
         "role": "neutral",
         "displayName": "Panel Charcoal",
-        "canonical": "#252422",
+        "canonical": "#171A1D",
         "tonalRamp": [
-          "#1A1918",
-          "#252422",
-          "#403D39",
-          "#4A4641",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E6E2D9"
+          "#090A0B",
+          "#101214",
+          "#171A1D",
+          "#1C2024",
+          "#262B30",
+          "#3F454D",
+          "#C2C8D0",
+          "#E4E7EB"
         ]
       },
       "surface-variant-dark": {
         "role": "neutral",
         "displayName": "Raised Charcoal",
-        "canonical": "#403D39",
+        "canonical": "#3F454D",
         "tonalRamp": [
-          "#1A1918",
-          "#252422",
-          "#403D39",
-          "#4A4641",
-          "#635D55",
-          "#968F86",
-          "#CCC5B9",
-          "#E6E2D9"
+          "#090A0B",
+          "#101214",
+          "#171A1D",
+          "#1C2024",
+          "#262B30",
+          "#3F454D",
+          "#C2C8D0",
+          "#E4E7EB"
         ]
       },
       "error": {
@@ -175,13 +175,17 @@
       "label": {
         "displayName": "Label",
         "purpose": "Metadata, chips, button labels, ratings, and compact status text."
+      },
+      "label-large": {
+        "displayName": "Label Large",
+        "purpose": "Button labels and prominent compact actions."
       }
     },
     "shadows": [
       {
         "name": "card-rest",
         "value": "tonalElevation = 2dp",
-        "purpose": "Default content cards and profile cards."
+        "purpose": "Elevated content surfaces and profile cards at rest."
       },
       {
         "name": "focused-status-lift",
@@ -190,7 +194,7 @@
       },
       {
         "name": "login-panel",
-        "value": "tonalElevation = 6dp mobile/tablet, 8dp TV",
+        "value": "tonalElevation = 8dp",
         "purpose": "Separate form panels from cinematic background imagery."
       }
     ],
@@ -238,7 +242,7 @@
       "refersTo": "button-primary",
       "description": "Primary Material-style action with StreamCore accent and loading support.",
       "html": "<button class=\"ds-btn-primary\">Continue</button>",
-      "css": ".ds-btn-primary { min-height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: #EB5E28; color: #FFFFFCF2; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; transition: background 180ms ease, opacity 180ms ease; } .ds-btn-primary:hover { background: #D94F1F; } .ds-btn-primary:focus-visible { outline: 2px solid #EB5E28; outline-offset: 3px; } .ds-btn-primary:active { background: #BA4218; } .ds-btn-primary:disabled { opacity: 0.38; }"
+      "css": ".ds-btn-primary { min-height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: #EB5E28; color: #2B1004; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.1px; transition: background 180ms ease, opacity 180ms ease; } .ds-btn-primary:hover { background: #D94F1F; } .ds-btn-primary:focus-visible { outline: 2px solid #EB5E28; outline-offset: 3px; } .ds-btn-primary:active { background: #BA4218; } .ds-btn-primary:disabled { opacity: 0.38; }"
     },
     {
       "name": "Text Button",
@@ -246,7 +250,7 @@
       "refersTo": "button-text",
       "description": "Low-weight action for recovery, profile editing, back, and refresh actions.",
       "html": "<button class=\"ds-btn-text\">Forgot password</button>",
-      "css": ".ds-btn-text { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; transition: background 180ms ease, color 180ms ease; } .ds-btn-text:hover { background: rgba(235, 94, 40, 0.12); } .ds-btn-text:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-btn-text:active { background: rgba(235, 94, 40, 0.18); } .ds-btn-text:disabled { opacity: 0.38; }"
+      "css": ".ds-btn-text { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 500; transition: background 180ms ease, color 180ms ease; } .ds-btn-text:hover { background: rgba(235, 94, 40, 0.12); } .ds-btn-text:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-btn-text:active { background: rgba(235, 94, 40,0.18); } .ds-btn-text:disabled { opacity: 0.38; }"
     },
     {
       "name": "TV Button",
@@ -254,7 +258,7 @@
       "refersTo": "tv-button",
       "description": "D-pad-safe TV action with fixed scale and visible focus border.",
       "html": "<button class=\"ds-tv-button\">Refresh</button>",
-      "css": ".ds-tv-button { padding: 10px 18px; border: 2px solid transparent; border-radius: 8px; background: #EB5E28; color: #FFFFFCF2; font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; transition: border-color 160ms ease, background 160ms ease; } .ds-tv-button:hover { background: #D94F1F; } .ds-tv-button:focus-visible { border-color: #EB5E28; outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-button:active { background: #BA4218; } .ds-tv-button:disabled { opacity: 0.38; }"
+      "css": ".ds-tv-button { padding: 10px 18px; border: 2px solid transparent; border-radius: 8px; background: #EB5E28; color: #2B1004; font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; transition: border-color 160ms ease, background 160ms ease; } .ds-tv-button:hover { background: #D94F1F; } .ds-tv-button:focus-visible { border-color: #EB5E28; outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-button:active { background: #BA4218; } .ds-tv-button:disabled { opacity: 0.38; }"
     },
     {
       "name": "Outlined Field",
@@ -262,7 +266,7 @@
       "refersTo": "input-outlined",
       "description": "Material login field for email and password entry with supporting text.",
       "html": "<label class=\"ds-field\"><span>Email</span><input type=\"email\" value=\"lead@streamcore.tv\" /></label>",
-      "css": ".ds-field { display: grid; gap: 6px; color: #403D39; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 500; } .ds-field input { min-height: 52px; padding: 0 14px; border: 1px solid #7F7A72; border-radius: 4px; background: transparent; color: #252422; font-size: 16px; } .ds-field input:hover { border-color: #635D55; } .ds-field input:focus-visible { border-color: #EB5E28; outline: 1px solid #EB5E28; outline-offset: 0; } .ds-field input:disabled { opacity: 0.38; }"
+      "css": ".ds-field { display: grid; gap: 6px; color: #41464D; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 500; } .ds-field input { min-height: 52px; padding: 0 14px; border: 1px solid #727982; border-radius: 4px; background: transparent; color: #191C20; font-size: 16px; } .ds-field input:hover { border-color: #5B626B; } .ds-field input:focus-visible { border-color: #EB5E28; outline: 1px solid #EB5E28; outline-offset: 0; } .ds-field input:disabled { opacity: 0.38; }"
     },
     {
       "name": "Loading Chip",
@@ -270,7 +274,7 @@
       "refersTo": "loading-chip",
       "description": "Compact async status surface for updates in progress.",
       "html": "<span class=\"ds-loading-chip\"><span class=\"ds-spinner\"></span>Updating</span>",
-      "css": ".ds-loading-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 7px 10px; border-radius: 8px; background: #FFFFDBCE; color: #3A0B00; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 600; box-shadow: 0 8px 16px rgba(0,0,0,0.18); } .ds-spinner { width: 14px; height: 14px; border: 2px solid rgba(58,11,0,0.28); border-top-color: #3A0B00; border-radius: 999px; }"
+      "css": ".ds-loading-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 8px 12px; border-radius: 8px; background: #FFE0D2; color: #2B1004; font-family: system-ui, sans-serif; font-size: 12px; font-weight: 500; box-shadow: 0 8px 16px rgba(0,0,0,0.18); } .ds-spinner { width: 14px; height: 14px; border: 2px solid rgba(43,16,4,0.28); border-top-color: #2B1004; border-radius: 999px; }"
     },
     {
       "name": "Content Card",
@@ -278,7 +282,7 @@
       "refersTo": "content-card",
       "description": "Poster-first browse card with low tonal lift and compact metadata.",
       "html": "<article class=\"ds-content-card\"><div class=\"ds-art\">SC</div><div class=\"ds-card-body\"><strong>Midnight Signal</strong><span>Drama · 8.2/10</span></div></article>",
-      "css": ".ds-content-card { width: 140px; overflow: hidden; border: 0; border-radius: 10px; background: #FFFFFCF2; color: #252422; font-family: system-ui, sans-serif; box-shadow: 0 2px 6px rgba(37,36,34,0.12); transition: box-shadow 180ms ease, transform 180ms ease; } .ds-content-card:hover { box-shadow: 0 6px 12px rgba(37,36,34,0.16); } .ds-content-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-art { display: grid; place-items: center; aspect-ratio: 2 / 3; background: #FFFFDBCE; color: #3A0B00; font-size: 45px; font-weight: 600; } .ds-card-body { display: grid; gap: 4px; padding: 8px 10px 10px; } .ds-card-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; } .ds-card-body span { color: #403D39; font-size: 12px; }"
+      "css": ".ds-content-card { width: 120px; color: #191C20; font-family: system-ui, sans-serif; } .ds-content-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-art { display: grid; place-items: center; overflow: hidden; aspect-ratio: 2 / 3; border-radius: 10px; background: #FFE0D2; color: #2B1004; font-size: 45px; font-weight: 600; } .ds-card-body { display: grid; gap: 4px; padding-top: 8px; } .ds-card-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; } .ds-card-body span { color: #41464D; font-size: 11px; }"
     },
     {
       "name": "TV Focused Card",
@@ -286,7 +290,7 @@
       "refersTo": "tv-content-card-focused",
       "description": "TV content card state with primary focus border and no scale jump.",
       "html": "<article class=\"ds-tv-card\"><div class=\"ds-tv-art\">7</div><div class=\"ds-tv-body\"><strong>Northline</strong><span>Thriller · 9.1/10</span></div></article>",
-      "css": ".ds-tv-card { width: 250px; overflow: hidden; border: 2px solid #EB5E28; border-radius: 12px; background: #252422; color: #E6E2D9; font-family: system-ui, sans-serif; box-shadow: 0 8px 18px rgba(0,0,0,0.28); } .ds-tv-card:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-art { display: grid; align-items: end; justify-items: start; aspect-ratio: 2 / 3; padding: 12px; background: #FFFFDBCE; color: #3A0B00; font-size: 57px; font-weight: 700; } .ds-tv-body { display: grid; gap: 6px; padding: 10px 14px 14px; } .ds-tv-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; font-weight: 600; } .ds-tv-body span { color: #CCC5B9; font-size: 14px; }"
+      "css": ".ds-tv-card { width: 250px; overflow: hidden; border: 2px solid #EB5E28; border-radius: 12px; background: #171A1D; color: #E4E7EB; font-family: system-ui, sans-serif; box-shadow: 0 8px 18px rgba(0,0,0,0.28); } .ds-tv-card:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-tv-art { display: grid; align-items: end; justify-items: start; aspect-ratio: 2 / 3; padding: 12px; background: #FFE0D2; color: #2B1004; font-size: 57px; font-weight: 700; } .ds-tv-body { display: grid; gap: 6px; padding: 10px 14px 14px; } .ds-tv-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; font-weight: 600; } .ds-tv-body span { color: #C2C8D0; font-size: 14px; }"
     },
     {
       "name": "Profile Card",
@@ -294,7 +298,7 @@
       "refersTo": "profile-card",
       "description": "Profile selection card with circular initials avatar and secondary actions.",
       "html": "<article class=\"ds-profile-card\"><div class=\"ds-avatar\">NP</div><strong>Nikos</strong><span>Adult</span><button>Edit</button></article>",
-      "css": ".ds-profile-card { display: grid; justify-items: center; gap: 10px; min-width: 180px; padding: 16px; border-radius: 8px; background: #FFFFFCF2; color: #252422; font-family: system-ui, sans-serif; box-shadow: 0 2px 6px rgba(37,36,34,0.12); } .ds-profile-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-avatar { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 999px; background: #FFFFDBCE; color: #3A0B00; font-size: 28px; font-weight: 600; } .ds-profile-card strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; } .ds-profile-card span { color: #403D39; font-size: 12px; } .ds-profile-card button { border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-weight: 600; padding: 8px 12px; } .ds-profile-card button:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; }"
+      "css": ".ds-profile-card { display: grid; justify-items: center; gap: 10px; min-width: 180px; padding: 16px; border-radius: 8px; background: #FAFAFB; color: #191C20; font-family: system-ui, sans-serif; box-shadow: 0 2px 6px rgba(37,36,34,0.12); } .ds-profile-card:focus-within { outline: 2px solid #EB5E28; outline-offset: 2px; } .ds-avatar { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 999px; background: #FFE0D2; color: #2B1004; font-size: 28px; font-weight: 600; } .ds-profile-card strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; } .ds-profile-card span { color: #41464D; font-size: 12px; } .ds-profile-card button { border: 0; border-radius: 999px; background: transparent; color: #EB5E28; font-weight: 600; padding: 8px 12px; } .ds-profile-card button:focus-visible { outline: 2px solid #EB5E28; outline-offset: 2px; }"
     }
   ],
   "narrative": {

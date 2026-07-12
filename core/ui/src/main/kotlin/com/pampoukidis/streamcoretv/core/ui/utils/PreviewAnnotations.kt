@@ -6,7 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 @Preview(
     name = "Mobile",
     widthDp = 390,
-    heightDp = 844,
+    heightDp = 2400,
     showBackground = true,
 )
 annotation class PreviewMobile

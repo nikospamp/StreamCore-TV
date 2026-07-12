@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -36,18 +35,18 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.pampoukidis.streamcoretv.core.ui.R
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
-import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.login.passwordText
 import com.pampoukidis.streamcoretv.feature.login.common.login.text
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
-import com.pampoukidis.streamcoretv.core.ui.R
+import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 
 @Composable
 fun TvLoginScreen(
@@ -74,35 +73,35 @@ fun TvLoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
-                    vertical = StreamCoreDimens.Tv.ScreenVerticalPadding,
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                shape = RoundedCornerShape(StreamCoreDimens.Tv.CornerRadius),
+                shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                tonalElevation = StreamCoreDimens.Tv.TonalElevation,
+                tonalElevation = StreamCoreDimens.Elevation.Medium,
                 modifier = Modifier
-                    .width(StreamCoreDimens.Tv.PanelWidth)
+                    .width(StreamCoreDimens.Tv.Panel.Width)
                     .fillMaxHeight(),
             ) {
                 Column(
-                    modifier = Modifier.padding(StreamCoreDimens.Tv.PanelPadding),
+                    modifier = Modifier.padding(StreamCoreDimens.Tv.Panel.Padding),
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
                         text = stringResource(R.string.login_title),
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = StreamCoreDimens.Tv.SectionSpacing),
+                        modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Small),
                     )
                     Text(
                         text = stringResource(R.string.login_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(
-                            top = StreamCoreDimens.Tv.SectionSpacing,
-                            bottom = StreamCoreDimens.Tv.SectionSpacing,
+                            top = StreamCoreDimens.Spacing.Small,
+                            bottom = StreamCoreDimens.Spacing.Small,
                         ),
                     )
                     TvLoginForm(
@@ -137,7 +136,7 @@ private fun TvLoginForm(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tv.SectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
     ) {
         OutlinedTextField(
             value = state.identifier,
@@ -225,7 +224,7 @@ private fun TvLoginForm(
                 .testTag(LoginTestTags.SubmitButton),
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tv.InlineActionSpacing),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         ) {
             StreamCoreTvButton(
                 text = stringResource(R.string.login_forgot_password),
@@ -271,7 +270,7 @@ private fun TvLoginForm(
 @PreviewTV
 @Composable
 private fun TvLoginScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         TvLoginScreen(
             state = LoginUiState(
                 identifier = "lead@streamcore.tv",

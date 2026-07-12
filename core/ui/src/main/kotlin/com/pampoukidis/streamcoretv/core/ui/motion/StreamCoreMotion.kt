@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.unit.dp
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -130,4 +130,4 @@ fun streamCoreTitleSharedKey(
 private const val SharedElementFadeMillis = 90
 private const val EntranceTransformMillis = 220
 private const val NoRowSharedKey = "no-row"
-private val EntranceOffset = 80.dp
+private val EntranceOffset = StreamCoreDimens.Motion.EntranceOffset

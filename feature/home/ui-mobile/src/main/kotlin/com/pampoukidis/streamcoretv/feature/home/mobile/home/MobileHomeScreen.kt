@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,14 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -50,13 +49,15 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonSize
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTextStyles
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeContentModel
@@ -92,7 +93,7 @@ fun MobileHomeScreen(
             StreamCoreBrowseTopBar(
                 onProfileSelected = onProfileSelected,
                 modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding,
+                    horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
                 ),
             )
             PullToRefreshBox(
@@ -132,9 +133,9 @@ private fun MobileHomeContent(
             state.isLoading && state.rows.isEmpty() -> CircularProgressIndicator()
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.Xl),
+                contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.ExtraLarge),
                 verticalArrangement = Arrangement.spacedBy(
-                    StreamCoreDimens.Browse.Mobile.SectionSpacing,
+                    StreamCoreDimens.Mobile.Browse.SectionSpacing,
                 ),
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -191,12 +192,12 @@ private fun MobileHeroPager(
     HorizontalPager(
         state = pagerState,
         contentPadding = PaddingValues(
-            horizontal = StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding,
+            horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
         ),
-        pageSpacing = StreamCoreDimens.Browse.Mobile.RowSpacing,
+        pageSpacing = StreamCoreDimens.Mobile.Browse.RowSpacing,
         modifier = Modifier
             .fillMaxWidth()
-            .height(StreamCoreDimens.Browse.Mobile.HeroHeight),
+            .height(StreamCoreDimens.Mobile.Browse.HeroHeight),
     ) { page ->
         val item = content[page]
         HomeHeroCard(
@@ -254,19 +255,19 @@ private fun HomeHeroCard(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.9f),
-                            Color.Black.copy(alpha = 0.25f),
-                            Color.Black.copy(alpha = 0.72f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
                         ),
                     ),
                 ),
         )
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Xs),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(StreamCoreDimens.Spacing.Md),
+                .padding(StreamCoreDimens.Spacing.Large),
         ) {
             Text(
                 text = "Featured movie",
@@ -276,7 +277,7 @@ private fun HomeHeroCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.displaySmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -292,14 +293,14 @@ private fun HomeHeroCard(
             Text(
                 text = content.heroMetadata(),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.82f),
+                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = content.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.8f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -324,18 +325,24 @@ private fun PagerIndicator(
     pageCount: Int,
     selectedPage: Int,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Indicator.DotSpacing)) {
         repeat(pageCount) { index ->
             Box(
                 modifier = Modifier
-                    .width(if (index == selectedPage) 18.dp else 5.dp)
-                    .height(5.dp)
+                    .width(
+                        if (index == selectedPage) {
+                            StreamCoreDimens.Indicator.SelectedDotWidth
+                        } else {
+                            StreamCoreDimens.Indicator.DotSize
+                        },
+                    )
+                    .height(StreamCoreDimens.Indicator.DotSize)
                     .clip(CircleShape)
                     .background(
                         if (index == selectedPage) {
-                            Color.White
+                            MaterialTheme.colorScheme.onArtwork
                         } else {
-                            Color.White.copy(alpha = 0.32f)
+                            MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.32f)
                         },
                     ),
             )
@@ -351,7 +358,7 @@ private fun MobileContinueWatchingRow(
     onContentSelected: (ContentModel) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Browse.Mobile.RowSpacing),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(HomeTestTags.RowPrefix + row.id),
@@ -359,15 +366,15 @@ private fun MobileContinueWatchingRow(
         HomeShelfHeader(
             title = row.title,
             modifier = Modifier.padding(
-                horizontal = StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
             ),
         )
         LazyRow(
             contentPadding = PaddingValues(
-                horizontal = StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
             ),
             horizontalArrangement = Arrangement.spacedBy(
-                StreamCoreDimens.Browse.Mobile.RowSpacing,
+                StreamCoreDimens.Mobile.Browse.RowSpacing,
             ),
         ) {
             items(
@@ -395,7 +402,7 @@ private fun MobileShelf(
     onContentSelected: (ContentModel) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Browse.Mobile.RowSpacing),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(HomeTestTags.RowPrefix + row.id),
@@ -403,22 +410,22 @@ private fun MobileShelf(
         HomeShelfHeader(
             title = row.title,
             modifier = Modifier.padding(
-                horizontal = StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
             ),
         )
         LazyRow(
             contentPadding = PaddingValues(
                 horizontal = if (row.type == RowType.TopTen) {
-                    15.dp
+                    StreamCoreDimens.Mobile.Browse.TopTenShelfPadding
                 } else {
-                    StreamCoreDimens.Browse.Mobile.ScreenHorizontalPadding
+                    StreamCoreDimens.Mobile.Screen.HorizontalPadding
                 },
             ),
             horizontalArrangement = Arrangement.spacedBy(
                 if (row.type == RowType.TopTen) {
-                    16.dp
+                    StreamCoreDimens.Mobile.Browse.TopTenRowSpacing
                 } else {
-                    StreamCoreDimens.Browse.Mobile.RowSpacing
+                    StreamCoreDimens.Mobile.Browse.RowSpacing
                 },
             ),
         ) {
@@ -466,9 +473,10 @@ private fun HomeShelfHeader(
     modifier: Modifier = Modifier,
 ) {
     Text(
+        modifier = modifier.fillMaxWidth(),
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.onBackground
     )
 }
 
@@ -486,16 +494,16 @@ private fun ContinueWatchingCard(
     val shape = MaterialTheme.shapes.medium
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
-            .width(164.dp)
+            .width(StreamCoreDimens.Mobile.Browse.ContinueWatchingWidth)
             .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(92.dp)
+                .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio)
                 .clip(shape),
         ) {
             StreamCoreContentImage(
@@ -518,27 +526,31 @@ private fun ContinueWatchingCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(start = 9.dp, end = 9.dp, bottom = 12.dp),
+                    .padding(
+                        start = StreamCoreDimens.Artwork.ContentPadding,
+                        end = StreamCoreDimens.Artwork.ContentPadding,
+                        bottom = StreamCoreDimens.Spacing.Medium,
+                    ),
             )
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .padding(horizontal = 9.dp)
+                    .height(StreamCoreDimens.Artwork.ProgressHeight)
+                    .padding(horizontal = StreamCoreDimens.Artwork.ProgressInset)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.24f)),
+                    .background(MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.24f)),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress)
-                        .height(3.dp)
+                        .height(StreamCoreDimens.Artwork.ProgressHeight)
                         .background(MaterialTheme.colorScheme.primary),
                 )
             }
@@ -562,8 +574,8 @@ private fun PosterCard(
     FlatArtworkCard(
         rowId = rowId,
         content = content,
-        width = StreamCoreDimens.Browse.Mobile.PosterWidth,
-        height = StreamCoreDimens.Browse.Mobile.PosterHeight,
+        width = StreamCoreDimens.Mobile.Browse.PosterWidth,
+        aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
         imageUrl = content.poster,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,
@@ -582,8 +594,8 @@ private fun LandscapeCard(
     FlatArtworkCard(
         rowId = rowId,
         content = content,
-        width = StreamCoreDimens.Browse.Mobile.LandscapeWidth,
-        height = StreamCoreDimens.Browse.Mobile.LandscapeHeight,
+        width = StreamCoreDimens.Mobile.Browse.LandscapeWidth,
+        aspectRatio = StreamCoreDimens.Artwork.LandscapeAspectRatio,
         imageUrl = content.backdrop ?: content.poster,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,
@@ -596,7 +608,7 @@ private fun FlatArtworkCard(
     rowId: String,
     content: ContentModel,
     width: androidx.compose.ui.unit.Dp,
-    height: androidx.compose.ui.unit.Dp,
+    aspectRatio: Float,
     imageUrl: String?,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -607,7 +619,7 @@ private fun FlatArtworkCard(
     val shape = MaterialTheme.shapes.medium
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .width(width)
             .clickable(onClick = onClick)
@@ -616,7 +628,7 @@ private fun FlatArtworkCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height)
+                .aspectRatio(aspectRatio)
                 .clip(shape),
         ) {
             StreamCoreContentImage(
@@ -639,12 +651,12 @@ private fun FlatArtworkCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(9.dp)
+                    .padding(StreamCoreDimens.Artwork.ContentPadding)
                     .streamCoreSharedBounds(
                         sharedElementScope = elementScope,
                         key = streamCoreTitleSharedKey(
@@ -680,16 +692,16 @@ private fun TopTenCard(
 
     Box(
         modifier = Modifier
-            .width(StreamCoreDimens.Browse.Mobile.TopTenWidth)
-            .height(StreamCoreDimens.Browse.Mobile.TopTenHeight)
+            .width(StreamCoreDimens.Mobile.Browse.TopTenWidth)
+            .height(StreamCoreDimens.Mobile.Browse.TopTenHeight)
             .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .width(StreamCoreDimens.Browse.Mobile.TopTenPosterWidth)
-                .height(StreamCoreDimens.Browse.Mobile.TopTenPosterHeight)
+                .width(StreamCoreDimens.Mobile.Browse.TopTenPosterWidth)
+                .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
                 .clip(posterShape),
         ) {
             StreamCoreContentImage(
@@ -712,12 +724,12 @@ private fun TopTenCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(8.dp)
+                    .padding(StreamCoreDimens.Artwork.ContentPadding)
                     .streamCoreSharedBounds(
                         sharedElementScope = elementScope,
                         key = streamCoreTitleSharedKey(
@@ -728,15 +740,31 @@ private fun TopTenCard(
                     ),
             )
         }
-        Text(
-            text = rank.toString(),
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 118.sp,
-            lineHeight = 96.sp,
-            fontWeight = FontWeight.ExtraBold,
+        TopTenRank(
+            rank = rank,
             modifier = Modifier.align(Alignment.BottomStart),
         )
+    }
+}
 
+@Composable
+private fun TopTenRank(
+    rank: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        Text(
+            text = rank.toString(),
+            color = MaterialTheme.colorScheme.background.copy(alpha = TopTenRankHaloAlpha),
+            style = StreamCoreTextStyles.MobileTopTenRank.copy(
+                drawStyle = Stroke(width = TopTenRankHaloStrokeWidth),
+            ),
+        )
+        Text(
+            text = rank.toString(),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = TopTenRankContentAlpha),
+            style = StreamCoreTextStyles.MobileTopTenRank,
+        )
     }
 }
 
@@ -748,13 +776,17 @@ private fun CardGradient() {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.76f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.76f),
                     ),
                 ),
             ),
     )
 }
+
+private const val TopTenRankContentAlpha = 0.76f
+private const val TopTenRankHaloAlpha = 0.94f
+private const val TopTenRankHaloStrokeWidth = 4.8f
 
 private fun ContentModel.sharedIdentity(): String {
     return streamCoreContentSharedIdentity(
@@ -766,7 +798,7 @@ private fun ContentModel.sharedIdentity(): String {
 @PreviewMobile
 @Composable
 private fun MobileHomeScreenPreview() {
-    StreamCoreTVTheme(darkTheme = true) {
+    StreamCoreTheme(darkTheme = true) {
         MobileHomeScreen(
             state = HomeUiState(
                 isLoading = false,
@@ -782,7 +814,7 @@ private fun MobileHomeScreenPreview() {
 @PreviewMobile
 @Composable
 private fun MobileHomeScreenLightPreview() {
-    StreamCoreTVTheme(darkTheme = false) {
+    StreamCoreTheme(darkTheme = false) {
         MobileHomeScreen(
             state = HomeUiState(
                 isLoading = false,

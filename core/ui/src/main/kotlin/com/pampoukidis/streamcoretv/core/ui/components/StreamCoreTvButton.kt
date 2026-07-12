@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonBorder
@@ -20,7 +18,7 @@ import androidx.tv.material3.ButtonScale
 import androidx.tv.material3.ButtonShape
 import androidx.tv.material3.Text
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
 fun StreamCoreTvButton(
@@ -61,27 +59,27 @@ private fun streamCoreTvButtonScale(): ButtonScale = ButtonDefaults.scale(
     pressedScale = 1f,
 )
 
-private fun streamCoreTvButtonShape(): ButtonShape = ButtonDefaults.shape(
-    shape = roundedCornerShape(),
-    focusedShape = roundedCornerShape(),
-    pressedShape = roundedCornerShape(),
-    disabledShape = roundedCornerShape(),
-    focusedDisabledShape = roundedCornerShape(),
-)
-
-private fun roundedCornerShape(): RoundedCornerShape {
-    return RoundedCornerShape(StreamCoreDimens.Tv.CornerRadius)
+@Composable
+private fun streamCoreTvButtonShape(): ButtonShape {
+    val shape = MaterialTheme.shapes.small
+    return ButtonDefaults.shape(
+        shape = shape,
+        focusedShape = shape,
+        pressedShape = shape,
+        disabledShape = shape,
+        focusedDisabledShape = shape,
+    )
 }
 
 @Composable
 private fun focusedButtonBorder(): Border {
     return Border(
         border = BorderStroke(
-            width = StreamCoreDimens.Tv.FocusBorderWidth,
+            width = StreamCoreDimens.Tv.Focus.BorderWidth,
             color = MaterialTheme.colorScheme.primary,
         ),
-        inset = StreamCoreDimens.Tv.FocusBorderPadding,
-        shape = roundedCornerShape(),
+        inset = StreamCoreDimens.Tv.Focus.BorderPadding,
+        shape = MaterialTheme.shapes.small,
     )
 }
 
@@ -89,21 +87,21 @@ private fun focusedButtonBorder(): Border {
 private fun disabledFocusedButtonBorder(): Border {
     return Border(
         border = BorderStroke(
-            width = StreamCoreDimens.Tv.FocusBorderWidth,
+            width = StreamCoreDimens.Tv.Focus.BorderWidth,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
         ),
-        inset = StreamCoreDimens.Tv.FocusBorderPadding,
-        shape = roundedCornerShape(),
+        inset = StreamCoreDimens.Tv.Focus.BorderPadding,
+        shape = MaterialTheme.shapes.small,
     )
 }
 
 @Preview
 @Composable
 private fun StreamCoreTvButtonPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp)
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+            modifier = Modifier.padding(StreamCoreDimens.Spacing.Large),
         ) {
             StreamCoreTvButton(
                 text = "Continue",

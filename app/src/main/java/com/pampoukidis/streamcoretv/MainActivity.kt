@@ -19,7 +19,7 @@ import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
 import com.pampoukidis.streamcoretv.navigation.startDestinationForAuthState
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         configureTvSoftInputMode()
         enableEdgeToEdge()
         setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 val appAuthViewModel: AppAuthViewModel = hiltViewModel()
                 val appAuthUiState by appAuthViewModel.uiState.collectAsStateWithLifecycle()
                 var activeError by remember { mutableStateOf<ErrorModel?>(null) }

@@ -5,9 +5,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
-import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
+import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import org.junit.Rule
 import org.junit.Test
 
@@ -19,7 +19,7 @@ class TvLoginScreenTest {
     @Test
     fun identifierReceivesInitialFocus() {
         composeRule.setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 TvLoginScreen(
                     state = LoginUiState(
                         identifier = "lead@streamcore.tv",

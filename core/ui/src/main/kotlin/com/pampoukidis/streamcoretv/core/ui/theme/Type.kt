@@ -83,6 +83,20 @@ val Typography = Typography(
     ),
 )
 
+object StreamCoreTextStyles {
+    val MobileTopTenRank = textStyle(
+        size = 118,
+        lineHeight = 96,
+        weight = FontWeight.ExtraBold,
+    )
+
+    val TabletTopTenRank = textStyle(
+        size = 92,
+        lineHeight = 82,
+        weight = FontWeight.ExtraBold,
+    )
+}
+
 private fun textStyle(
     size: Int,
     lineHeight: Int,

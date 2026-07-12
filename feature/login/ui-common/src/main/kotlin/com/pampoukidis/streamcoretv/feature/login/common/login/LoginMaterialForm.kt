@@ -27,11 +27,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.R
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 
@@ -45,7 +45,7 @@ fun LoginMaterialForm(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
     ) {
         OutlinedTextField(
             value = state.identifier,
@@ -125,10 +125,10 @@ fun LoginMaterialForm(
                 .testTag(LoginTestTags.SubmitButton),
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 2.dp),
+                .padding(top = StreamCoreDimens.Spacing.Tiny),
         ) {
             StreamCoreTextButton(
                 text = stringResource(R.string.login_forgot_password),
@@ -155,7 +155,7 @@ fun LoginMaterialForm(
 @PreviewMobile
 @Composable
 private fun LoginMaterialFormPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         LoginMaterialForm(
             state = LoginUiState(
                 identifier = "lead@streamcore.tv",

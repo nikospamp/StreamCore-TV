@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -42,8 +41,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -54,13 +51,15 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonSize
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTextStyles
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeContentModel
@@ -99,7 +98,7 @@ fun TabletHomeScreen(
             StreamCoreBrowseTopBar(
                 onProfileSelected = onProfileSelected,
                 modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Browse.Tablet.ScreenHorizontalPadding,
+                    horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
                 ),
             )
             PullToRefreshBox(
@@ -144,9 +143,9 @@ private fun TabletHomeContent(
             )
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.Xl),
+                contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.ExtraLarge),
                 verticalArrangement = Arrangement.spacedBy(
-                    StreamCoreDimens.Browse.Tablet.SectionSpacing,
+                    StreamCoreDimens.Tablet.Browse.SectionSpacing,
                 ),
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -188,12 +187,12 @@ private fun TabletHeroArea(
     onContentSelected: (ContentModel) -> Unit,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Md),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = Modifier
             .fillMaxWidth()
-            .height(StreamCoreDimens.Browse.Tablet.HeroHeight)
+            .height(StreamCoreDimens.Tablet.Browse.HeroHeight)
             .padding(
-                horizontal = StreamCoreDimens.Browse.Tablet.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
             ),
     ) {
         TabletHeroPager(
@@ -210,7 +209,7 @@ private fun TabletHeroArea(
                 sharedElementScope = sharedElementScope,
                 onContentSelected = onContentSelected,
                 modifier = Modifier.width(
-                    StreamCoreDimens.Browse.Tablet.BookmarkPanelWidth,
+                    StreamCoreDimens.Tablet.Browse.BookmarkPanelWidth,
                 ),
             )
         }
@@ -229,7 +228,7 @@ private fun TabletHeroPager(
 
     HorizontalPager(
         state = pagerState,
-        pageSpacing = StreamCoreDimens.Browse.Tablet.RowSpacing,
+        pageSpacing = StreamCoreDimens.Tablet.Browse.RowSpacing,
         modifier = modifier.fillMaxHeight(),
     ) { page ->
         val item = content[page]
@@ -288,19 +287,22 @@ private fun TabletHeroCard(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.9f),
-                            Color.Black.copy(alpha = 0.22f),
-                            Color.Black.copy(alpha = 0.72f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
                         ),
                     ),
                 ),
         )
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Xs),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(horizontal = StreamCoreDimens.Spacing.Xl, vertical = 22.dp),
+                .padding(
+                    horizontal = StreamCoreDimens.Spacing.ExtraLarge,
+                    vertical = StreamCoreDimens.Spacing.ExtraLarge,
+                ),
         ) {
             Text(
                 text = "Featured movie",
@@ -310,7 +312,7 @@ private fun TabletHeroCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.displayLarge,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -326,14 +328,14 @@ private fun TabletHeroCard(
             Text(
                 text = content.heroMetadata(),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.82f),
+                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = content.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.8f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -369,8 +371,8 @@ private fun ContinueWatchingPanel(
             .testTag(HomeTestTags.RowPrefix + row.id),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Sm),
-            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            modifier = Modifier.padding(StreamCoreDimens.Spacing.Large),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -391,7 +393,7 @@ private fun ContinueWatchingPanel(
                 text = "Bookmarks stay one tap away while the main area keeps browsing momentum.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Xxs),
+                modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Tiny),
             )
         }
     }
@@ -411,7 +413,7 @@ private fun ContinueWatchingItem(
     val shape = MaterialTheme.shapes.small
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Xs),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
@@ -420,8 +422,8 @@ private fun ContinueWatchingItem(
     ) {
         Box(
             modifier = Modifier
-                .width(82.dp)
-                .height(56.dp)
+                .width(StreamCoreDimens.Tablet.Browse.BookmarkThumbnailWidth)
+                .height(StreamCoreDimens.Tablet.Browse.BookmarkThumbnailHeight)
                 .clip(shape),
         ) {
             StreamCoreContentImage(
@@ -443,15 +445,15 @@ private fun ContinueWatchingItem(
             LinearProgressIndicator(
                 progress = { progress },
                 color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.White.copy(alpha = 0.24f),
+                trackColor = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.2f),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(3.dp),
+                    .height(StreamCoreDimens.Artwork.ProgressHeight),
             )
         }
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Xxs),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
             modifier = Modifier.weight(1f),
         ) {
             Text(
@@ -479,7 +481,7 @@ private fun TabletShelf(
     onContentSelected: (ContentModel) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Browse.Tablet.RowSpacing),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(HomeTestTags.RowPrefix + row.id),
@@ -487,15 +489,15 @@ private fun TabletShelf(
         ShelfHeader(
             title = row.title,
             modifier = Modifier.padding(
-                horizontal = StreamCoreDimens.Browse.Tablet.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
             ),
         )
         LazyRow(
             contentPadding = PaddingValues(
-                horizontal = StreamCoreDimens.Browse.Tablet.ScreenHorizontalPadding,
+                horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
             ),
             horizontalArrangement = Arrangement.spacedBy(
-                StreamCoreDimens.Browse.Tablet.RowSpacing,
+                StreamCoreDimens.Tablet.Browse.RowSpacing,
             ),
         ) {
             itemsIndexed(
@@ -507,8 +509,8 @@ private fun TabletShelf(
                     RowType.Poster -> TabletArtworkCard(
                         rowId = row.id,
                         content = item,
-                        width = StreamCoreDimens.Browse.Tablet.PosterWidth,
-                        height = StreamCoreDimens.Browse.Tablet.PosterHeight,
+                        width = StreamCoreDimens.Tablet.Browse.PosterWidth,
+                        height = StreamCoreDimens.Tablet.Browse.PosterHeight,
                         imageUrl = item.poster,
                         showMetadata = true,
                         selectedContentKey = selectedContentKey,
@@ -530,8 +532,8 @@ private fun TabletShelf(
                     RowType.Landscape -> TabletArtworkCard(
                         rowId = row.id,
                         content = item,
-                        width = StreamCoreDimens.Browse.Tablet.LandscapeWidth,
-                        height = StreamCoreDimens.Browse.Tablet.LandscapeHeight,
+                        width = StreamCoreDimens.Tablet.Browse.LandscapeWidth,
+                        height = StreamCoreDimens.Tablet.Browse.LandscapeHeight,
                         imageUrl = item.backdrop ?: item.poster,
                         showMetadata = false,
                         selectedContentKey = selectedContentKey,
@@ -573,7 +575,7 @@ private fun TabletArtworkCard(
     val shape = MaterialTheme.shapes.medium
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .width(width)
             .clickable(onClick = onClick)
@@ -605,12 +607,12 @@ private fun TabletArtworkCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(9.dp)
+                    .padding(StreamCoreDimens.Artwork.ContentPadding)
                     .streamCoreSharedBounds(
                         sharedElementScope = elementScope,
                         key = streamCoreTitleSharedKey(
@@ -648,27 +650,16 @@ private fun TabletTopTenCard(
 
     Box(
         modifier = Modifier
-            .width(StreamCoreDimens.Browse.Tablet.TopTenWidth)
-            .height(StreamCoreDimens.Browse.Tablet.TopTenHeight)
+            .width(StreamCoreDimens.Tablet.Browse.TopTenWidth)
+            .height(StreamCoreDimens.Tablet.Browse.TopTenHeight)
             .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
-        Text(
-            text = rank.toString(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.66f),
-            fontSize = 92.sp,
-            lineHeight = 82.sp,
-            fontWeight = FontWeight.ExtraBold,
-            style = MaterialTheme.typography.displayLarge.copy(
-                drawStyle = Stroke(width = 1.4f),
-            ),
-            modifier = Modifier.align(Alignment.BottomStart),
-        )
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .width(StreamCoreDimens.Browse.Tablet.TopTenPosterWidth)
-                .height(StreamCoreDimens.Browse.Tablet.TopTenPosterHeight)
+                .width(StreamCoreDimens.Tablet.Browse.TopTenPosterWidth)
+                .height(StreamCoreDimens.Tablet.Browse.TopTenPosterHeight)
                 .clip(posterShape),
         ) {
             StreamCoreContentImage(
@@ -691,12 +682,12 @@ private fun TabletTopTenCard(
             Text(
                 text = content.title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onArtwork,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(6.dp)
+                    .padding(StreamCoreDimens.Artwork.ContentPadding)
                     .streamCoreSharedBounds(
                         sharedElementScope = elementScope,
                         key = streamCoreTitleSharedKey(
@@ -707,6 +698,31 @@ private fun TabletTopTenCard(
                     ),
             )
         }
+        TopTenRank(
+            rank = rank,
+            modifier = Modifier.align(Alignment.BottomStart),
+        )
+    }
+}
+
+@Composable
+private fun TopTenRank(
+    rank: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        Text(
+            text = rank.toString(),
+            color = MaterialTheme.colorScheme.background.copy(alpha = TopTenRankHaloAlpha),
+            style = StreamCoreTextStyles.TabletTopTenRank.copy(
+                drawStyle = Stroke(width = TopTenRankHaloStrokeWidth),
+            ),
+        )
+        Text(
+            text = rank.toString(),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = TopTenRankContentAlpha),
+            style = StreamCoreTextStyles.TabletTopTenRank,
+        )
     }
 }
 
@@ -715,18 +731,24 @@ private fun PagerIndicator(
     pageCount: Int,
     selectedPage: Int,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Indicator.DotSpacing)) {
         repeat(pageCount) { index ->
             Box(
                 modifier = Modifier
-                    .width(if (index == selectedPage) 18.dp else 5.dp)
-                    .height(5.dp)
+                    .width(
+                        if (index == selectedPage) {
+                            StreamCoreDimens.Indicator.SelectedDotWidth
+                        } else {
+                            StreamCoreDimens.Indicator.DotSize
+                        },
+                    )
+                    .height(StreamCoreDimens.Indicator.DotSize)
                     .clip(CircleShape)
                     .background(
                         if (index == selectedPage) {
-                            Color.White
+                            MaterialTheme.colorScheme.onArtwork
                         } else {
-                            Color.White.copy(alpha = 0.32f)
+                            MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.32f)
                         },
                     ),
             )
@@ -742,8 +764,8 @@ private fun CardGradient() {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.76f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.76f),
                     ),
                 ),
             ),
@@ -756,6 +778,10 @@ private fun ContentModel.sharedIdentity(): String {
         row = row,
     )
 }
+
+private const val TopTenRankContentAlpha = 0.76f
+private const val TopTenRankHaloAlpha = 0.94f
+private const val TopTenRankHaloStrokeWidth = 4.0f
 
 private fun ContentModel.heroMetadata(): String {
     val values = buildList {
@@ -783,7 +809,7 @@ private fun releaseYear(epochMillis: Long): Int {
 @PreviewTablet
 @Composable
 private fun TabletHomeScreenPreview() {
-    StreamCoreTVTheme(darkTheme = true) {
+    StreamCoreTheme(darkTheme = true) {
         TabletHomeScreen(
             state = HomeUiState(
                 isLoading = false,

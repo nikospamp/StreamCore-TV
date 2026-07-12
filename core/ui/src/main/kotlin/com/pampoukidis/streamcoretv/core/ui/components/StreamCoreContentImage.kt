@@ -16,11 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 
 @Composable
@@ -75,13 +75,13 @@ fun StreamCoreContentImage(
 @PreviewMobile
 @Composable
 private fun StreamCoreContentImagePreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Row {
             StreamCoreContentImage(
                 imageUrl = null,
                 contentDescription = "Preview",
                 fallbackText = "S",
-                modifier = Modifier.size(160.dp),
+                modifier = Modifier.size(StreamCoreDimens.Icon.ArtworkFallback),
             )
         }
     }

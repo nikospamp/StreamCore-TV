@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 
@@ -49,7 +49,7 @@ fun ProfilesDeleteConfirmationDialog(
 @PreviewMobile
 @Composable
 private fun ProfilesDeleteConfirmationDialogPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         ProfilesDeleteConfirmationDialog(
             profile = ProfilesPreviewData.profiles.first(),
             isSaving = false,

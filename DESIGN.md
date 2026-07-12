@@ -3,24 +3,24 @@ name: StreamCoreTV
 description: Backend-agnostic Android streaming UI system for mobile, tablet, and TV.
 colors:
   primary: "#EB5E28"
-  on-primary: "#FFFFFCF2"
-  primary-container: "#FFFFDBCE"
-  on-primary-container: "#3A0B00"
-  secondary: "#635D55"
-  secondary-container: "#CCC5B9"
-  tertiary: "#403D39"
-  tertiary-container: "#E6E1D9"
-  background-light: "#FFFFFCF2"
-  on-background-light: "#252422"
-  surface-light: "#FFFFFCF2"
-  surface-variant-light: "#CCC5B9"
-  outline-light: "#7F7A72"
+  on-primary: "#2B1004"
+  primary-container: "#FFE0D2"
+  on-primary-container: "#2B1004"
+  secondary: "#5B626B"
+  secondary-container: "#D8DEE6"
+  tertiary: "#4F635D"
+  tertiary-container: "#D3E5DE"
+  background-light: "#F5F6F8"
+  on-background-light: "#191C20"
+  surface-light: "#FAFAFB"
+  surface-variant-light: "#DDE1E7"
+  outline-light: "#727982"
   error: "#BA1A1A"
-  background-dark: "#1A1918"
-  on-background-dark: "#E6E2D9"
-  surface-dark: "#252422"
-  surface-variant-dark: "#403D39"
-  outline-dark: "#968F86"
+  background-dark: "#101214"
+  on-background-dark: "#E4E7EB"
+  surface-dark: "#171A1D"
+  surface-variant-dark: "#3F454D"
+  outline-dark: "#8E969F"
 typography:
   display:
     fontFamily: "Android system default"
@@ -52,20 +52,28 @@ typography:
     fontWeight: 500
     lineHeight: "16sp"
     letterSpacing: "0.5sp"
+  label-large:
+    fontFamily: "Android system default"
+    fontSize: "14sp"
+    fontWeight: 500
+    lineHeight: "20sp"
+    letterSpacing: "0.1sp"
 rounded:
+  xs: "6dp"
   sm: "8dp"
   md: "10dp"
   lg: "12dp"
   xl: "16dp"
   full: "999dp"
 spacing:
-  xxs: "4dp"
-  xs: "8dp"
-  sm: "12dp"
-  md: "16dp"
-  lg: "20dp"
-  xl: "24dp"
-  screen-tv: "32dp"
+  tiny: "4dp"
+  small: "8dp"
+  medium: "12dp"
+  large: "16dp"
+  extra-large: "24dp"
+  mobile-screen-horizontal: "20dp"
+  tablet-screen-horizontal: "32dp"
+  tv-screen: "32dp"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -73,30 +81,27 @@ components:
     rounded: "{rounded.full}"
     height: "52dp"
     padding: "0 24dp"
-    typography: "{typography.label}"
+    typography: "{typography.label-large}"
   button-text:
     backgroundColor: "transparent"
     textColor: "{colors.primary}"
     rounded: "{rounded.full}"
     padding: "8dp 12dp"
-    typography: "{typography.label}"
+    typography: "{typography.label-large}"
   tv-button:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
     rounded: "{rounded.sm}"
     padding: "10dp 18dp"
-    typography: "{typography.title}"
   content-card:
-    backgroundColor: "{colors.surface-light}"
-    textColor: "{colors.on-background-light}"
     rounded: "{rounded.md}"
-    width: "140dp"
+    width: "120dp"
   loading-chip:
     backgroundColor: "{colors.primary-container}"
     textColor: "{colors.on-primary-container}"
     rounded: "{rounded.sm}"
-    height: "30dp"
-    padding: "7dp 10dp"
+    height: "32dp"
+    padding: "8dp 12dp"
 ---
 
 # Design System: StreamCoreTV
@@ -123,9 +128,12 @@ social-feed layouts, device mockups inside the UI, busy chrome, and provider-spe
 - Platform-fit composition: touch surfaces stay compact; TV surfaces increase spacing, type scale, and focus affordance.
 - Backend-agnostic neutrality: UI language must not expose provider DTOs, SDKs, copy, or client identities.
 
+The shared spacing scale is `4dp`, `8dp`, `12dp`, `16dp`, and `24dp`. Platform layout tokens intentionally add `20dp` mobile horizontal padding and
+`32dp` tablet/TV horizontal padding; these are screen-layout values, not additional shared spacing steps.
+
 ## 2. Colors
 
-The palette is a restrained Material 3 scheme built around ember orange and warm cinema neutrals.
+The palette is a restrained Material 3 scheme built around ember orange and smoky cinema neutrals.
 
 ### Primary
 
@@ -135,21 +143,21 @@ The palette is a restrained Material 3 scheme built around ember orange and warm
 
 ### Secondary
 
-- **Warm Control Neutral** (`secondary`): subdued supporting tone for secondary emphasis and Material roles.
-- **Muted Sand Surface** (`secondary-container`): warm neutral container used sparingly where Material components need a secondary fill.
+- **Control Neutral** (`secondary`): subdued smoky support tone for secondary emphasis and Material roles.
+- **Control Container** (`secondary-container`): neutral container used sparingly where Material components need a secondary fill.
 
 ### Tertiary
 
-- **Charcoal Tertiary** (`tertiary`): dark support color for non-primary classification.
-- **Soft Utility Tan** (`tertiary-container`): secondary profile and kid-safe avatar containers.
+- **Muted Utility Green** (`tertiary`): restrained utility support color for non-primary classification.
+- **Soft Utility Container** (`tertiary-container`): secondary profile and kid-safe avatar containers.
 
 ### Neutral
 
-- **Canvas Light** (`background-light`): existing light theme background. Do not use it as the default streaming browsing canvas.
+- **Cinematic Light Canvas** (`background-light`): smoky light theme background for mobile and tablet surfaces.
 - **Ink Light** (`on-background-light`): primary readable text in light theme.
 - **Surface Light** (`surface-light`): cards and panels in light theme.
-- **Divider Taupe** (`outline-light`): outlines and disabled structure in light theme.
-- **Cinema Black** (`background-dark`): preferred cinematic app background for mobile and tablet streaming surfaces.
+- **Divider Smoke** (`outline-light`): outlines and disabled structure in light theme.
+- **Cinema Black** (`background-dark`): preferred cinematic app background for dark mobile/tablet and all TV streaming surfaces.
 - **Soft Cinema Ink** (`on-background-dark`): readable text on dark streaming backgrounds.
 - **Panel Charcoal** (`surface-dark`): dark cards, login panels, and layered content surfaces.
 - **Raised Charcoal** (`surface-variant-dark`): secondary dark panels and artwork fallback containers.
@@ -160,8 +168,8 @@ The palette is a restrained Material 3 scheme built around ember orange and warm
 
 **The Artwork First Rule.** Primary orange must remain rare on catalogue and details screens; artwork and typography provide the cinematic weight.
 
-**The No Cream Streaming Canvas Rule.** Light theme tokens exist, but browsing, details, and TV streaming surfaces should not read as white, cream, or
-beige product pages.
+**The No Cream Streaming Canvas Rule.** Light theme exists for mobile and tablet, but it must read smoky and cinematic, not white, cream, or beige.
+TV always uses the dark scheme.
 
 ## 3. Typography
 
@@ -178,7 +186,8 @@ branded editorial layout.
 - **Headline** (regular, `28sp`, `36sp`): screen titles, TV row headers, and important section labels.
 - **Title** (semibold where needed, `22sp`, `28sp`): row titles, card titles, dialogs, and form headings.
 - **Body** (regular, `16sp`, `24sp`, `0.5sp`): descriptions, helper copy, and readable text blocks. Keep long synopsis text short and scannable.
-- **Label** (medium, `12sp`, `16sp`, `0.5sp`): metadata, chips, button labels, ratings, and compact status text.
+- **Label Large** (medium, `14sp`, `20sp`, `0.1sp`): button labels and prominent compact actions.
+- **Label Medium** (medium, `12sp`, `16sp`, `0.5sp`): metadata, chips, ratings, and compact status text.
 
 ### Named Rules
 
@@ -189,14 +198,14 @@ at distance.
 
 ## 4. Elevation
 
-StreamCoreTV uses tonal layering first and elevation second. Cards sit on `surface` with low tonal elevation (`2dp`) at rest. Loading chips and TV
-focused cards may rise to `8dp`, but heavy shadows are not part of the vocabulary.
+StreamCoreTV uses tonal layering first and elevation second. Mobile/tablet browse artwork stays flat; elevated card surfaces use low tonal elevation
+(`2dp`) at rest. Loading chips and TV focused cards may rise to `8dp`, but heavy shadows are not part of the vocabulary.
 
 ### Shadow Vocabulary
 
-- **Card Rest** (`tonalElevation = 2dp`): default content cards and profile cards.
+- **Card Rest** (`tonalElevation = 2dp`): elevated recommendation surfaces and profile cards at rest.
 - **Focused / Status Lift** (`tonalElevation = 8dp` or `shadowElevation = 8dp`): TV focus, loading chips, and temporary status surfaces.
-- **Login Panel** (`tonalElevation = 6dp` mobile/tablet, `8dp` TV): form container over cinematic background imagery.
+- **Login Panel** (`tonalElevation = 8dp`): mobile, tablet, and TV form containers over cinematic background imagery.
 
 ### Named Rules
 
@@ -217,17 +226,19 @@ artwork.
 
 ### Chips
 
-- **Style:** `StreamCoreLoadingChip` uses `primary-container` with `on-primary-container`, `8dp` radius, `30dp` minimum height, and compact spinner
-  plus label.
+- **Style:** `StreamCoreLoadingChip` uses `primary-container` with `on-primary-container`, `8dp` radius, `32dp` minimum height, `12dp` horizontal
+  padding, `8dp` vertical padding, and a compact spinner plus label.
 - **State:** use only for transient async status such as "Updating"; do not use chips as decorative badges unless the state is meaningful.
 
 ### Cards / Containers
 
 - **Corner Style:** content cards use subtle `10dp` to `12dp` radius; profile cards and TV panels use `8dp`.
 - **Background:** cards use `surface`; artwork fallback uses `primary-container`, `secondary-container`, or `surface-variant` depending on state.
-- **Shadow Strategy:** `2dp` tonal elevation at rest; `8dp` tonal elevation on TV focus.
+- **Shadow Strategy:** browse artwork cards are flat on mobile/tablet; elevated card surfaces use `2dp` at rest and `8dp` on TV focus.
 - **Border:** TV focused cards use a `2dp` primary border. Mobile cards do not use decorative borders.
-- **Internal Padding:** mobile card metadata uses `10dp`; TV card metadata uses `14dp`; profile cards use `16dp`.
+- **Internal Padding:** mobile/tablet artwork overlays use `8dp`; TV card metadata uses `16dp` horizontal and `12dp` vertical padding; profile cards
+  use
+  `16dp`.
 
 ### Inputs / Fields
 
@@ -247,7 +258,9 @@ artwork.
 
 - **Style:** `StreamCoreContentImage` fills its bounds with Coil `AsyncImage`, crops content, crossfades by default, and shows a centered text
   fallback.
-- **Shape:** shape comes from the consuming card or shared transition clip. Poster cards use `2:3`; landscape and hero artwork use `16:9`.
+- **Shape:** shape comes from the consuming card or shared transition clip. Poster cards use `StreamCoreDimens.Artwork.PosterAspectRatio` (`2:3`);
+  landscape and hero artwork use `StreamCoreDimens.Artwork.LandscapeAspectRatio` (`16:9`). Current poster sizes are `120dp x 180dp` on mobile and
+  `92dp x 138dp` on tablet; TV poster cards use a `220dp` width with the shared `2:3` ratio.
 
 ## 6. Do's and Don'ts
 

@@ -17,9 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
 fun StreamCoreButton(
@@ -38,7 +37,9 @@ fun StreamCoreButton(
     }
     val contentPadding = when (size) {
         StreamCoreButtonSize.Standard -> ButtonDefaults.ContentPadding
-        StreamCoreButtonSize.Compact -> PaddingValues(horizontal = 15.dp)
+        StreamCoreButtonSize.Compact -> PaddingValues(
+            horizontal = StreamCoreDimens.Button.CompactHorizontalPadding,
+        )
     }
     val colors = when (variant) {
         StreamCoreButtonVariant.Primary -> ButtonDefaults.buttonColors()
@@ -62,7 +63,7 @@ fun StreamCoreButton(
             )
         } else {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 leadingIcon?.invoke()
@@ -75,12 +76,12 @@ fun StreamCoreButton(
 @Preview
 @Composable
 private fun StreamCoreButtonPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(StreamCoreDimens.Spacing.Large),
         ) {
             StreamCoreButton(
                 text = "Continue",
