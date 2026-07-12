@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeUiState
 import com.pampoukidis.streamcoretv.feature.home.common.testing.HomePreviewData
@@ -27,7 +27,7 @@ class TabletHomeScreenTest {
         var profileSelected = false
 
         composeRule.setContent {
-            StreamCoreTVTheme(darkTheme = true) {
+            StreamCoreTheme(darkTheme = true) {
                 TabletHomeScreen(
                     state = HomeUiState(
                         isLoading = false,
@@ -57,7 +57,7 @@ class TabletHomeScreenTest {
         }
 
         composeRule.setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 TabletHomeScreen(
                     state = HomeUiState(
                         isLoading = false,

@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,10 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -44,12 +43,12 @@ fun ProfilesGrid(
     onAction: (ProfilesAction) -> Unit,
     onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
-    avatarSize: Dp = 72.dp,
+    avatarSize: Dp = StreamCoreDimens.Mobile.Profiles.AvatarSize,
 ) {
     LazyVerticalGrid(
         columns = columns,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = modifier,
     ) {
         items(
@@ -77,12 +76,12 @@ private fun ProfileCard(
     avatarSize: Dp,
 ) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        tonalElevation = StreamCoreDimens.Elevation.Low,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.small)
             .clickable(enabled = !isSelecting) {
                 onAction(ProfilesAction.SelectProfile(profile.id))
             }
@@ -90,8 +89,8 @@ private fun ProfileCard(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            modifier = Modifier.padding(StreamCoreDimens.Spacing.Large),
         ) {
             ProfileAvatarCircle(
                 profile = profile,
@@ -115,8 +114,8 @@ private fun ProfileCard(
             )
             if (isSelecting) {
                 CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(20.dp),
+                    strokeWidth = StreamCoreDimens.Stroke.Default,
+                    modifier = Modifier.size(StreamCoreDimens.Icon.Loading),
                 )
             } else {
                 Row(
@@ -192,7 +191,7 @@ private fun String.initials(): String {
 @PreviewMobile
 @Composable
 private fun ProfilesGridPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         ProfilesGrid(
             profiles = ProfilesPreviewData.profiles,
             columns = GridCells.Fixed(2),
@@ -201,8 +200,8 @@ private fun ProfilesGridPreview() {
             onEditProfile = {},
             modifier = Modifier
                 .fillMaxWidth()
-                .height(360.dp)
-                .padding(16.dp),
+                .height(StreamCoreDimens.Mobile.Profiles.PreviewGridHeight)
+                .padding(StreamCoreDimens.Spacing.Large),
         )
     }
 }

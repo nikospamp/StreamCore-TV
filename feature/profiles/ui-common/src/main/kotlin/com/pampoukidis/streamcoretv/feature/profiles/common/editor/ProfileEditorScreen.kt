@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -24,12 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -76,8 +76,14 @@ fun ProfileEditorScreen(
                     useTvControls = useTvControls,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = if (useTvControls) 720.dp else 520.dp)
-                        .padding(24.dp),
+                        .widthIn(
+                            max = if (useTvControls) {
+                                StreamCoreDimens.Form.WideContentMaxWidth
+                            } else {
+                                StreamCoreDimens.Form.ContentMaxWidth
+                            },
+                        )
+                        .padding(StreamCoreDimens.Spacing.ExtraLarge),
                 )
             }
         }
@@ -95,7 +101,7 @@ private fun ProfileEditorLoadedContent(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
         Text(
@@ -131,7 +137,7 @@ private fun ProfileEditorActions(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
     ) {
@@ -175,8 +181,11 @@ private fun ProfileEditorContent(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier.widthIn(min = 280.dp, max = 460.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        modifier = modifier.widthIn(
+            min = StreamCoreDimens.Form.FieldMinWidth,
+            max = StreamCoreDimens.Form.FieldMaxWidth,
+        ),
     ) {
         OutlinedTextField(
             value = editor.draft.displayName,
@@ -231,7 +240,7 @@ private fun OptionSection(
     content: @Composable RowScope.() -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
     ) {
         Text(
             text = title,
@@ -239,7 +248,7 @@ private fun OptionSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
@@ -273,7 +282,7 @@ private fun String.readableId(): String {
 @PreviewMobile
 @Composable
 private fun ProfileEditorContentPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Surface {
             ProfileEditorContent(
                 editor = ProfileEditorFormUiState(
@@ -288,7 +297,7 @@ private fun ProfileEditorContentPreview() {
                 options = ProfilesPreviewData.editorOptions,
                 isSaving = false,
                 onAction = {},
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(StreamCoreDimens.Spacing.Large),
             )
         }
     }
@@ -297,7 +306,7 @@ private fun ProfileEditorContentPreview() {
 @PreviewMobile
 @Composable
 private fun ProfileEditorScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         ProfileEditorScreen(
             state = ProfileEditorScreenUiState(
                 isLoading = false,

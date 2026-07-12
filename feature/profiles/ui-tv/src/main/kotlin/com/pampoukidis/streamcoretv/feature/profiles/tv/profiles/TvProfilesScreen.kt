@@ -15,15 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
-import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesDeleteConfirmationDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesGrid
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 
@@ -42,12 +41,12 @@ fun TvProfilesScreen(
             .testTag(ProfilesTestTags.Root),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(28.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
-                    vertical = StreamCoreDimens.Tv.ScreenVerticalPadding,
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
                 ),
         ) {
             Row(
@@ -55,7 +54,7 @@ fun TvProfilesScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
@@ -89,11 +88,11 @@ fun TvProfilesScreen(
 
                     else -> ProfilesGrid(
                         profiles = state.profiles,
-                        columns = GridCells.Adaptive(220.dp),
+                        columns = GridCells.Adaptive(StreamCoreDimens.Tv.Profiles.GridMinCellWidth),
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
                         onAction = onAction,
                         onEditProfile = onEditProfile,
-                        avatarSize = 96.dp,
+                        avatarSize = StreamCoreDimens.Tv.Profiles.AvatarSize,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -111,7 +110,7 @@ fun TvProfilesScreen(
 @PreviewTV
 @Composable
 private fun TvProfilesScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         TvProfilesScreen(
             state = ProfilesUiState(
                 isLoading = false,

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +37,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -53,7 +51,7 @@ import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdenti
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeUiState
@@ -84,23 +82,23 @@ fun TvHomeScreen(
             .testTag(HomeTestTags.Root),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = StreamCoreDimens.Tv.ScreenVerticalPadding),
+                .padding(vertical = StreamCoreDimens.Tv.Screen.VerticalPadding),
         ) {
             HomeHeader(
                 isLoading = state.isLoading,
                 onAction = onAction,
                 modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                 ),
             )
             if (state.isLoading && state.rows.isNotEmpty()) {
                 LinearProgressIndicator(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding),
+                        .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
                 )
             }
             TvHomeBody(
@@ -126,7 +124,7 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
             Text(
                 text = "Home",
                 style = MaterialTheme.typography.displaySmall,
@@ -168,8 +166,8 @@ private fun TvHomeBody(
             )
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.ScreenVerticalPadding),
-                verticalArrangement = Arrangement.spacedBy(34.dp),
+                contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.Screen.VerticalPadding),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 itemsIndexed(
@@ -204,14 +202,14 @@ private fun TvContentRow(
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = modifier
             .fillMaxWidth()
             .testTag(HomeTestTags.RowPrefix + row.id),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         ) {
             Text(
                 text = row.title,
@@ -226,10 +224,10 @@ private fun TvContentRow(
         }
         LazyRow(
             contentPadding = PaddingValues(
-                horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
-                vertical = StreamCoreDimens.Tv.FocusBorderPadding,
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Tv.Focus.BorderPadding,
             ),
-            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         ) {
             itemsIndexed(
                 items = row.content,
@@ -274,7 +272,7 @@ private fun TvContentCard(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val spec = type.tvCardSpec()
-    val imageShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    val imageShape = MaterialTheme.shapes.large
     val elementScope = if (useSharedTransition) {
         sharedElementScope
     } else {
@@ -290,12 +288,16 @@ private fun TvContentCard(
     }
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = if (isFocused) 8.dp else 2.dp,
+        tonalElevation = if (isFocused) {
+            StreamCoreDimens.Elevation.Medium
+        } else {
+            StreamCoreDimens.Elevation.Low
+        },
         border = if (isFocused) {
             BorderStroke(
-                width = StreamCoreDimens.Tv.FocusBorderWidth,
+                width = StreamCoreDimens.Tv.Focus.BorderWidth,
                 color = MaterialTheme.colorScheme.primary,
             )
         } else {
@@ -308,7 +310,7 @@ private fun TvContentCard(
             .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
             StreamCoreContentImage(
                 imageUrl = content.imageUrl(type),
                 contentDescription = content.title,
@@ -348,13 +350,16 @@ private fun TvContentCard(
                         },
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(12.dp),
+                            .padding(StreamCoreDimens.Spacing.Medium),
                     )
                 }
             }
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+                modifier = Modifier.padding(
+                    horizontal = StreamCoreDimens.Spacing.Large,
+                    vertical = StreamCoreDimens.Spacing.Medium,
+                ),
             ) {
                 Text(
                     text = content.title,
@@ -415,30 +420,30 @@ private data class TvCardSpec(
 )
 
 private val TvCarouselCardSpec = TvCardSpec(
-    width = 440.dp,
-    aspectRatio = 16f / 9f,
+    width = StreamCoreDimens.Tv.Browse.FeaturedCardWidth,
+    aspectRatio = StreamCoreDimens.Artwork.LandscapeAspectRatio,
     showDescription = true,
 )
 private val TvPosterCardSpec = TvCardSpec(
-    width = 220.dp,
-    aspectRatio = 2f / 3f,
+    width = StreamCoreDimens.Tv.Browse.PosterCardWidth,
+    aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
     showDescription = false,
 )
 private val TvLandscapeCardSpec = TvCardSpec(
-    width = 320.dp,
-    aspectRatio = 16f / 9f,
+    width = StreamCoreDimens.Tv.Browse.LandscapeCardWidth,
+    aspectRatio = StreamCoreDimens.Artwork.LandscapeAspectRatio,
     showDescription = true,
 )
 private val TvTopTenCardSpec = TvCardSpec(
-    width = 250.dp,
-    aspectRatio = 2f / 3f,
+    width = StreamCoreDimens.Tv.Browse.TopTenCardWidth,
+    aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
     showDescription = false,
 )
 
 @PreviewTV
 @Composable
 private fun TvHomeScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         TvHomeScreen(
             state = HomeUiState(
                 isLoading = false,

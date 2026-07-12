@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +36,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -49,7 +47,7 @@ import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -79,17 +77,17 @@ fun TvDetailsScreen(
             .testTag(DetailsTestTags.Root),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = StreamCoreDimens.Tv.ScreenVerticalPadding),
+                .padding(vertical = StreamCoreDimens.Tv.Screen.VerticalPadding),
         ) {
             DetailsHeader(
                 isLoading = state.isLoading,
                 backFocusRequester = backFocusRequester,
                 onAction = onAction,
                 modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                 ),
             )
             DetailsBody(
@@ -153,8 +151,8 @@ private fun DetailsBody(
             )
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.ScreenVerticalPadding),
-                verticalArrangement = Arrangement.spacedBy(36.dp),
+                contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.Screen.VerticalPadding),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item(contentType = "summary") {
@@ -162,7 +160,7 @@ private fun DetailsBody(
                         content = content,
                         sharedElementScope = sharedElementScope,
                         modifier = Modifier.padding(
-                            horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
+                            horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                         ),
                     )
                 }
@@ -184,13 +182,16 @@ private fun DetailsBody(
             StreamCoreLoadingChip(
                 text = "Updating",
                 textStyle = MaterialTheme.typography.labelLarge,
-                indicatorSize = 18.dp,
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                indicatorSize = StreamCoreDimens.Icon.Medium,
+                contentPadding = PaddingValues(
+                    horizontal = StreamCoreDimens.Spacing.Large,
+                    vertical = StreamCoreDimens.Spacing.Small,
+                ),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(
-                        top = 12.dp,
-                        end = StreamCoreDimens.Tv.ScreenHorizontalPadding,
+                        top = StreamCoreDimens.Spacing.Medium,
+                        end = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                     ),
             )
         }
@@ -204,7 +205,7 @@ private fun SummarySection(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(34.dp),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = modifier.fillMaxWidth(),
     ) {
         DetailsHero(
@@ -212,7 +213,7 @@ private fun SummarySection(
             sharedElementScope = sharedElementScope,
             modifier = Modifier
                 .weight(0.56f)
-                .aspectRatio(16f / 9f),
+                .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
         )
         DetailsMetadata(
             content = content,
@@ -228,7 +229,7 @@ private fun DetailsHero(
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
-    val heroShape = RoundedCornerShape(16.dp)
+    val heroShape = MaterialTheme.shapes.extraLarge
 
     StreamCoreContentImage(
         imageUrl = content.backdrop ?: content.poster,
@@ -267,7 +268,7 @@ private fun DetailsMetadata(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = modifier,
     ) {
         Text(
@@ -291,7 +292,7 @@ private fun DetailsMetadata(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -335,21 +336,21 @@ private fun RecommendationsRow(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = modifier.fillMaxWidth(),
     ) {
         Text(
             text = "More like this",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding),
+            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         )
         LazyRow(
             contentPadding = PaddingValues(
-                horizontal = StreamCoreDimens.Tv.ScreenHorizontalPadding,
-                vertical = StreamCoreDimens.Tv.FocusBorderPadding,
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Tv.Focus.BorderPadding,
             ),
-            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         ) {
             items(
                 items = recommendations,
@@ -376,24 +377,28 @@ private fun RecommendationCard(
     var isFocused by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = if (isFocused) 8.dp else 2.dp,
+        tonalElevation = if (isFocused) {
+            StreamCoreDimens.Elevation.Medium
+        } else {
+            StreamCoreDimens.Elevation.Low
+        },
         border = if (isFocused) {
             BorderStroke(
-                width = StreamCoreDimens.Tv.FocusBorderWidth,
+                width = StreamCoreDimens.Tv.Focus.BorderWidth,
                 color = MaterialTheme.colorScheme.primary,
             )
         } else {
             null
         },
         modifier = modifier
-            .width(320.dp)
+            .width(StreamCoreDimens.Tv.Details.RecommendationCardWidth)
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(onClick = onClick)
             .testTag(DetailsTestTags.RecommendationPrefix + content.id),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
             StreamCoreContentImage(
                 imageUrl = content.backdrop ?: content.poster,
                 contentDescription = content.title,
@@ -412,12 +417,15 @@ private fun RecommendationCard(
                 fallbackTextStyle = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio)
+                    .clip(MaterialTheme.shapes.large),
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+                modifier = Modifier.padding(
+                    horizontal = StreamCoreDimens.Spacing.Large,
+                    vertical = StreamCoreDimens.Spacing.Medium,
+                ),
             ) {
                 Text(
                     text = content.title,
@@ -448,7 +456,7 @@ private const val RecommendationsEntranceDelayMillis = 170
 @PreviewTV
 @Composable
 private fun TvDetailsScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         TvDetailsScreen(
             state = DetailsUiState(
                 isLoading = false,

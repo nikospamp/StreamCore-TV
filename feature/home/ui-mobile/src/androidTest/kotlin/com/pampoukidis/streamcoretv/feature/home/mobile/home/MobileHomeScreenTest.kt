@@ -10,7 +10,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeUiState
 import com.pampoukidis.streamcoretv.feature.home.common.testing.HomePreviewData
@@ -30,7 +30,7 @@ class MobileHomeScreenTest {
         var profileSelected = false
 
         composeRule.setContent {
-            StreamCoreTVTheme(darkTheme = true) {
+            StreamCoreTheme(darkTheme = true) {
                 MobileHomeScreen(
                     state = HomeUiState(
                         isLoading = false,
@@ -57,7 +57,7 @@ class MobileHomeScreenTest {
         }
 
         composeRule.setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 MobileHomeScreen(
                     state = HomeUiState(
                         isLoading = false,
@@ -79,7 +79,7 @@ class MobileHomeScreenTest {
         val actions = mutableListOf<HomeAction>()
 
         composeRule.setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 MobileHomeScreen(
                     state = HomeUiState(
                         isLoading = false,
@@ -102,7 +102,7 @@ class MobileHomeScreenTest {
     @Test
     fun continueWatchingAndShelvesAreRendered() {
         composeRule.setContent {
-            StreamCoreTVTheme {
+            StreamCoreTheme {
                 MobileHomeScreen(
                     state = HomeUiState(
                         isLoading = false,

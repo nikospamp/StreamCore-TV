@@ -12,8 +12,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 
 @Composable
@@ -21,8 +21,8 @@ fun StreamCoreInfoIcon(
     modifier: Modifier = Modifier,
     color: Color = LocalContentColor.current,
 ) {
-    Canvas(modifier = modifier.size(14.dp)) {
-        val strokeWidth = 1.4.dp.toPx()
+    Canvas(modifier = modifier.size(StreamCoreDimens.Icon.Small)) {
+        val strokeWidth = StreamCoreDimens.Stroke.Thin.toPx()
         drawCircle(
             color = color,
             style = Stroke(width = strokeWidth),
@@ -45,11 +45,11 @@ fun StreamCoreInfoIcon(
 @PreviewMobile
 @Composable
 private fun StreamCoreInfoIconPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Surface {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(StreamCoreDimens.Icon.TouchTarget),
             ) {
                 StreamCoreInfoIcon()
             }

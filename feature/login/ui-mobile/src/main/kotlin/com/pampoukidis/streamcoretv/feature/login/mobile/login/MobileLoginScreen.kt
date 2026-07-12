@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,16 +20,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.R
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
-import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginMaterialForm
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
-import com.pampoukidis.streamcoretv.core.ui.R
+import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 
 @Composable
 fun MobileLoginScreen(
@@ -46,14 +45,17 @@ fun MobileLoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(
+                    horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Mobile.Screen.VerticalPadding,
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentScale = ContentScale.FillWidth,
                 contentDescription = null,
-                modifier = Modifier.width(120.dp)
+                modifier = Modifier.width(StreamCoreDimens.Mobile.Login.LogoWidth),
             )
             Text(
                 text = stringResource(R.string.app_name),
@@ -61,15 +63,15 @@ fun MobileLoginScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                tonalElevation = 6.dp,
+                tonalElevation = StreamCoreDimens.Elevation.Medium,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 420.dp),
+                    .widthIn(max = StreamCoreDimens.Mobile.Login.CardMaxWidth),
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(StreamCoreDimens.Mobile.Screen.HorizontalPadding),
                 ) {
                     Text(
                         text = stringResource(R.string.login_title),
@@ -81,7 +83,7 @@ fun MobileLoginScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(StreamCoreDimens.Spacing.ExtraLarge))
                     LoginMaterialForm(
                         state = state,
                         onAction = onAction,
@@ -95,7 +97,7 @@ fun MobileLoginScreen(
 @PreviewMobile
 @Composable
 private fun MobileLoginScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         MobileLoginScreen(
             state = LoginUiState(
                 identifier = "lead@streamcore.tv",

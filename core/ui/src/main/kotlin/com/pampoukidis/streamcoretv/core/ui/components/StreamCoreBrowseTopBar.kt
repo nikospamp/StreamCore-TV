@@ -23,8 +23,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 
 @Composable
@@ -36,10 +36,10 @@ fun StreamCoreBrowseTopBar(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(StreamCoreDimens.Icon.TouchTarget),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StreamCoreBrandMark()
@@ -50,14 +50,14 @@ fun StreamCoreBrowseTopBar(
         }
         Spacer(modifier = Modifier.weight(1f))
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = {},
                 enabled = false,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(StreamCoreDimens.Icon.Large)
                     .semantics {
                         contentDescription = "Search"
                         disabled()
@@ -72,7 +72,7 @@ fun StreamCoreBrowseTopBar(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(StreamCoreDimens.Icon.Large)
                     .semantics {
                         contentDescription = "Choose profile"
                     },
@@ -90,10 +90,12 @@ private fun StreamCoreBrandMark() {
     val primary = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onSurface
 
-    Canvas(modifier = Modifier.size(18.dp)) {
+    Canvas(modifier = Modifier.size(StreamCoreDimens.Icon.Medium)) {
         drawRoundRect(
             color = foreground,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                StreamCoreDimens.Spacing.Small.toPx(),
+            ),
         )
         drawArc(
             color = primary,
@@ -106,8 +108,8 @@ private fun StreamCoreBrandMark() {
 
 @Composable
 private fun SearchGlyph(color: Color) {
-    Canvas(modifier = Modifier.size(17.dp)) {
-        val strokeWidth = 1.8.dp.toPx()
+    Canvas(modifier = Modifier.size(StreamCoreDimens.Icon.Medium)) {
+        val strokeWidth = StreamCoreDimens.Stroke.Icon.toPx()
         drawCircle(
             color = color,
             radius = size.minDimension * 0.28f,
@@ -126,8 +128,8 @@ private fun SearchGlyph(color: Color) {
 
 @Composable
 private fun ProfileGlyph(color: Color) {
-    Canvas(modifier = Modifier.size(18.dp)) {
-        val strokeWidth = 1.8.dp.toPx()
+    Canvas(modifier = Modifier.size(StreamCoreDimens.Icon.Medium)) {
+        val strokeWidth = StreamCoreDimens.Stroke.Icon.toPx()
         drawCircle(
             color = color,
             radius = size.minDimension * 0.17f,
@@ -155,9 +157,9 @@ private fun ProfileGlyph(color: Color) {
 @PreviewMobile
 @Composable
 private fun StreamCoreBrowseTopBarPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         Surface {
-            Row(modifier = Modifier.height(48.dp)) {
+            Row(modifier = Modifier.height(StreamCoreDimens.Icon.TouchTarget)) {
                 StreamCoreBrowseTopBar(onProfileSelected = {})
             }
         }

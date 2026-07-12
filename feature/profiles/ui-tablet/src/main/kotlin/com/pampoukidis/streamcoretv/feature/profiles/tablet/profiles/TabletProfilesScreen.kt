@@ -17,14 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
-import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesDeleteConfirmationDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesGrid
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 
@@ -43,15 +43,18 @@ fun TabletProfilesScreen(
             .testTag(ProfilesTestTags.Root),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(32.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Screen.HorizontalPadding),
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(32.dp),
+                .padding(
+                    horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Tablet.Screen.VerticalPadding,
+                ),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                modifier = Modifier.width(260.dp),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+                modifier = Modifier.width(StreamCoreDimens.Tablet.Profiles.PanelWidth),
             ) {
                 Text(
                     text = "Who's watching?",
@@ -83,7 +86,7 @@ fun TabletProfilesScreen(
 
                     else -> ProfilesGrid(
                         profiles = state.profiles,
-                        columns = GridCells.Adaptive(180.dp),
+                        columns = GridCells.Adaptive(StreamCoreDimens.Tablet.Profiles.GridMinCellWidth),
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
                         onAction = onAction,
                         onEditProfile = onEditProfile,
@@ -104,7 +107,7 @@ fun TabletProfilesScreen(
 @PreviewTablet
 @Composable
 private fun TabletProfilesScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         TabletProfilesScreen(
             state = ProfilesUiState(
                 isLoading = false,

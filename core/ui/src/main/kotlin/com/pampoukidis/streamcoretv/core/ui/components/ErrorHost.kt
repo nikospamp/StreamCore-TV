@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.ui.R
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
@@ -45,7 +45,7 @@ fun ErrorHost(
 @PreviewTV
 @Composable
 private fun ErrorHostPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         ErrorHost(
             presentation = ErrorModel(
                 titleRes = R.string.error_generic_title,

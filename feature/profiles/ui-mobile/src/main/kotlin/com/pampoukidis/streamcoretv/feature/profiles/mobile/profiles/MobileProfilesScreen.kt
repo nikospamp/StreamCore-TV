@@ -16,14 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTVTheme
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
-import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesDeleteConfirmationDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesGrid
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 
@@ -42,11 +42,14 @@ fun MobileProfilesScreen(
             .testTag(ProfilesTestTags.Root),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(
+                    horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Mobile.Screen.VerticalPadding,
+                ),
         ) {
             Text(
                 text = "Who's watching?",
@@ -117,7 +120,7 @@ private fun ProfilesBody(
 @PreviewMobile
 @Composable
 private fun MobileProfilesScreenPreview() {
-    StreamCoreTVTheme {
+    StreamCoreTheme {
         MobileProfilesScreen(
             state = ProfilesUiState(
                 isLoading = false,
