@@ -123,18 +123,15 @@ object StreamCoreDimens {
         object Browse {
             val SectionSpacing = Spacing.ExtraLarge
             val RowSpacing = Spacing.Medium
-            val HeroHeight = 306.dp
+            val HeroHeight = 360.dp
+            val ExpandedHeroAspectRatio = 4f
             val BookmarkPanelWidth = 206.dp
             val BookmarkThumbnailWidth = 82.dp
             val BookmarkThumbnailHeight = 56.dp
-            val PosterWidth = 92.dp
-            val PosterHeight = 138.dp
-            val LandscapeWidth = 146.dp
-            val LandscapeHeight = 82.dp
-            val TopTenWidth = 88.dp
-            val TopTenHeight = 105.dp
-            val TopTenPosterWidth = 64.dp
-            val TopTenPosterHeight = 96.dp
+            val PosterWidth = 180.dp
+            val LandscapeWidth = 320.dp
+            val TopTenWidth = 220.dp
+            val TopTenPosterWidth = 180.dp
         }
 
         object Details {
