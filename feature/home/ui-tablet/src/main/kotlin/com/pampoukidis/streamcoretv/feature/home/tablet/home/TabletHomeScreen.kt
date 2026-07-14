@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -93,7 +95,8 @@ fun TabletHomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .statusBarsPadding()
+                .navigationBarsPadding(),
         ) {
             StreamCoreBrowseTopBar(
                 onProfileSelected = onProfileSelected,
@@ -186,14 +189,20 @@ private fun TabletHeroArea(
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
 ) {
+    val heroSizeModifier = if (continueWatching == null) {
+        Modifier.aspectRatio(StreamCoreDimens.Tablet.Browse.ExpandedHeroAspectRatio)
+    } else {
+        Modifier.height(StreamCoreDimens.Tablet.Browse.HeroHeight)
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = Modifier
             .fillMaxWidth()
-            .height(StreamCoreDimens.Tablet.Browse.HeroHeight)
             .padding(
                 horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
-            ),
+            )
+            .then(heroSizeModifier),
     ) {
         TabletHeroPager(
             content = featured,
@@ -380,7 +389,7 @@ private fun ContinueWatchingPanel(
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
-            row.content.take(3).forEach { item ->
+            row.content.take(4).forEach { item ->
                 ContinueWatchingItem(
                     rowId = row.id,
                     content = item,
@@ -389,12 +398,6 @@ private fun ContinueWatchingPanel(
                     onClick = { onContentSelected(item) },
                 )
             }
-            Text(
-                text = "Bookmarks stay one tap away while the main area keeps browsing momentum.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Tiny),
-            )
         }
     }
 }
@@ -510,7 +513,7 @@ private fun TabletShelf(
                         rowId = row.id,
                         content = item,
                         width = StreamCoreDimens.Tablet.Browse.PosterWidth,
-                        height = StreamCoreDimens.Tablet.Browse.PosterHeight,
+                        aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
                         imageUrl = item.poster,
                         showMetadata = true,
                         selectedContentKey = selectedContentKey,
@@ -533,7 +536,7 @@ private fun TabletShelf(
                         rowId = row.id,
                         content = item,
                         width = StreamCoreDimens.Tablet.Browse.LandscapeWidth,
-                        height = StreamCoreDimens.Tablet.Browse.LandscapeHeight,
+                        aspectRatio = StreamCoreDimens.Artwork.LandscapeAspectRatio,
                         imageUrl = item.backdrop ?: item.poster,
                         showMetadata = false,
                         selectedContentKey = selectedContentKey,
@@ -563,7 +566,7 @@ private fun TabletArtworkCard(
     rowId: String,
     content: ContentModel,
     width: Dp,
-    height: Dp,
+    aspectRatio: Float,
     imageUrl: String?,
     showMetadata: Boolean,
     selectedContentKey: String?,
@@ -584,7 +587,7 @@ private fun TabletArtworkCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(height)
+                .aspectRatio(aspectRatio)
                 .clip(shape),
         ) {
             StreamCoreContentImage(
@@ -651,7 +654,6 @@ private fun TabletTopTenCard(
     Box(
         modifier = Modifier
             .width(StreamCoreDimens.Tablet.Browse.TopTenWidth)
-            .height(StreamCoreDimens.Tablet.Browse.TopTenHeight)
             .clickable(onClick = onClick)
             .testTag(HomeTestTags.ContentCardPrefix + rowId + ":" + content.id),
     ) {
@@ -659,7 +661,7 @@ private fun TabletTopTenCard(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .width(StreamCoreDimens.Tablet.Browse.TopTenPosterWidth)
-                .height(StreamCoreDimens.Tablet.Browse.TopTenPosterHeight)
+                .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
                 .clip(posterShape),
         ) {
             StreamCoreContentImage(

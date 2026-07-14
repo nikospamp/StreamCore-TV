@@ -14,7 +14,7 @@ annotation class PreviewMobile
 @Preview(
     name = "Tablet",
     widthDp = 1024,
-    heightDp = 768,
+    heightDp = 1400,
     showBackground = true,
 )
 annotation class PreviewTablet
