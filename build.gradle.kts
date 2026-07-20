@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
+
 // Top-level build file where you can add configuration options common to all subprojects/modules.
 
 plugins {
@@ -176,6 +178,26 @@ tasks.named("check") {
 }
 
 subprojects {
+    val isLiveEditableUiModule =
+        path == ":app" ||
+                path == ":core:ui" ||
+                ":ui-" in path
+
+    if (isLiveEditableUiModule) {
+        listOf(
+            "com.android.application",
+            "com.android.library",
+        ).forEach { pluginId ->
+            pluginManager.withPlugin(pluginId) {
+                extensions.configure<KotlinAndroidProjectExtension> {
+                    compilerOptions {
+                        freeCompilerArgs.add("-Xlambdas=class")
+                    }
+                }
+            }
+        }
+    }
+
     tasks.matching { task -> task.name == "check" }.configureEach {
         dependsOn(rootProject.tasks.named("verifyDesignTokens"))
     }
