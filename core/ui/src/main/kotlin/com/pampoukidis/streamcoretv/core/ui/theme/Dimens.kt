@@ -88,7 +88,6 @@ object StreamCoreDimens {
         object Browse {
             val SectionSpacing = Spacing.ExtraLarge
             val RowSpacing = Spacing.Medium
-            val HeroHeight = 286.dp
             val ContinueWatchingWidth = 192.dp
             val PosterWidth = 120.dp
             val LandscapeWidth = 192.dp
