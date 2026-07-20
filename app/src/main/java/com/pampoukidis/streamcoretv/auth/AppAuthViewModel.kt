@@ -22,6 +22,7 @@ class AppAuthViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val bootstrapCompleted = MutableStateFlow(false)
+    private val activeProfileId = MutableStateFlow<String?>(null)
     private val effectsChannel = Channel<AppAuthEffect>(capacity = Channel.BUFFERED)
 
     val effects: Flow<AppAuthEffect> = effectsChannel.receiveAsFlow()
@@ -29,12 +30,16 @@ class AppAuthViewModel @Inject constructor(
     val uiState: StateFlow<AppAuthUiState> = combine(
         bootstrapCompleted,
         authenticateRepository.authState,
-    ) { isBootstrapCompleted, authState ->
+        activeProfileId,
+    ) { isBootstrapCompleted, authState, activeProfileId ->
         if (!isBootstrapCompleted) {
             return@combine AppAuthUiState.Loading
         }
 
-        AppAuthUiState.Ready(authState = authState)
+        AppAuthUiState.Ready(
+            authState = authState,
+            activeProfileId = activeProfileId,
+        )
     }
         .stateIn(
             scope = viewModelScope,
@@ -44,6 +49,10 @@ class AppAuthViewModel @Inject constructor(
 
     init {
         bootstrapAuth()
+    }
+
+    fun onActiveProfileChanged(profileId: String?) {
+        activeProfileId.value = profileId
     }
 
     private fun bootstrapAuth() {
@@ -60,5 +69,4 @@ class AppAuthViewModel @Inject constructor(
             }
         }
     }
-
 }

@@ -46,6 +46,7 @@ import kotlin.reflect.typeOf
 @Composable
 internal fun StreamCoreNavHost(
     startDestination: AppRoute,
+    onActiveProfileChanged: (String?) -> Unit,
     onError: (AppError) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -100,6 +101,7 @@ internal fun StreamCoreNavHost(
                 LoginDestination(
                     onLoginSucceeded = {
                         selectedContent = null
+                        onActiveProfileChanged(null)
                         navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Login> {
                                 inclusive = true
@@ -120,6 +122,7 @@ internal fun StreamCoreNavHost(
                 ProfilesDestination(
                     onProfileSelected = { profile ->
                         selectedContent = null
+                        onActiveProfileChanged(profile.id)
                         navController.navigate(
                             AppRoute.Home(profileId = profile.id),
                         ) {
@@ -217,6 +220,7 @@ internal fun StreamCoreNavHost(
                     },
                     onProfileSelected = {
                         selectedContent = null
+                        onActiveProfileChanged(null)
                         navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Home> {
                                 inclusive = true
@@ -271,10 +275,12 @@ internal fun StreamCoreNavHost(
 
 internal fun startDestinationForAuthState(
     authState: AuthStateModel,
+    activeProfileId: String?,
 ): AppRoute {
-    return when (authState) {
-        is AuthStateModel.LoggedIn -> AppRoute.Profiles
-        AuthStateModel.LoggedOut -> AppRoute.Login
+    return when {
+        authState is AuthStateModel.LoggedOut -> AppRoute.Login
+        activeProfileId != null -> AppRoute.Home(profileId = activeProfileId)
+        else -> AppRoute.Profiles
     }
 }
 

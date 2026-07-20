@@ -54,8 +54,16 @@ class MainActivity : ComponentActivity() {
                 when (val state = appAuthUiState) {
                     AppAuthUiState.Loading -> Unit
                     is AppAuthUiState.Ready -> {
+                        val startDestination = remember(state.authState) {
+                            startDestinationForAuthState(
+                                authState = state.authState,
+                                activeProfileId = state.activeProfileId,
+                            )
+                        }
+
                         StreamCoreNavHost(
-                            startDestination = startDestinationForAuthState(state.authState),
+                            startDestination = startDestination,
+                            onActiveProfileChanged = appAuthViewModel::onActiveProfileChanged,
                             onError = { error ->
                                 activeError = errorPresentationMapper.map(error)
                             },

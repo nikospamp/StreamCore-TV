@@ -46,7 +46,13 @@ class AppAuthViewModelTest {
 
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(AppAuthUiState.Ready(authState = authState), subject.uiState.value)
+        assertEquals(
+            AppAuthUiState.Ready(
+                authState = authState,
+                activeProfileId = null,
+            ),
+            subject.uiState.value,
+        )
         assertEquals(1, repository.bootstrapCalls)
     }
 
@@ -61,11 +67,35 @@ class AppAuthViewModelTest {
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
-            AppAuthUiState.Ready(authState = AuthStateModel.LoggedOut),
+            AppAuthUiState.Ready(
+                authState = AuthStateModel.LoggedOut,
+                activeProfileId = null,
+            ),
             subject.uiState.value,
         )
         assertEquals(AppAuthEffect.ShowError(error), subject.effects.first())
         assertEquals(1, repository.bootstrapCalls)
+    }
+
+    @Test
+    fun `retains active profile in app state`() {
+        val authState = AuthStateModel.LoggedIn(account = null)
+        val repository = FakeAuthenticateRepository(
+            bootstrapResult = AppResult.Success(authState),
+        )
+        val subject = AppAuthViewModel(authenticateRepository = repository)
+
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        subject.onActiveProfileChanged("profile-1")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            AppAuthUiState.Ready(
+                authState = authState,
+                activeProfileId = "profile-1",
+            ),
+            subject.uiState.value,
+        )
     }
 
     private class FakeAuthenticateRepository(
