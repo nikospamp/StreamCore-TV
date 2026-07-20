@@ -58,7 +58,7 @@ import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTextStyles
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
+import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobileTall
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeContentModel
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeUiState
@@ -197,7 +197,7 @@ private fun MobileHeroPager(
         pageSpacing = StreamCoreDimens.Mobile.Browse.RowSpacing,
         modifier = Modifier
             .fillMaxWidth()
-            .height(StreamCoreDimens.Mobile.Browse.HeroHeight),
+            .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
     ) { page ->
         val item = content[page]
         HomeHeroCard(
@@ -795,7 +795,7 @@ private fun ContentModel.sharedIdentity(): String {
     )
 }
 
-@PreviewMobile
+@PreviewMobileTall
 @Composable
 private fun MobileHomeScreenPreview() {
     StreamCoreTheme(darkTheme = true) {
@@ -811,7 +811,7 @@ private fun MobileHomeScreenPreview() {
     }
 }
 
-@PreviewMobile
+@PreviewMobileTall
 @Composable
 private fun MobileHomeScreenLightPreview() {
     StreamCoreTheme(darkTheme = false) {

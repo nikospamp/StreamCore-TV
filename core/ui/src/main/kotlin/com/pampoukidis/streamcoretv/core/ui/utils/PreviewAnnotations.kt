@@ -6,10 +6,18 @@ import androidx.compose.ui.tooling.preview.Preview
 @Preview(
     name = "Mobile",
     widthDp = 390,
-    heightDp = 2400,
+    heightDp = 844,
     showBackground = true,
 )
 annotation class PreviewMobile
+
+@Preview(
+    name = "Mobile Tall",
+    widthDp = 390,
+    heightDp = 1200,
+    showBackground = true,
+)
+annotation class PreviewMobileTall
 
 @Preview(
     name = "Tablet",
