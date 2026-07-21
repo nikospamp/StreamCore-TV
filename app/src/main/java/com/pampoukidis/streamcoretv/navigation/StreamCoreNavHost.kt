@@ -21,8 +21,9 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.general.Platform
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreMotionDurations
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreContentSharedIdentity
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.utils.rememberLoginPlatform
 import com.pampoukidis.streamcoretv.feature.details.mobile.details.MobileDetailsRoute
 import com.pampoukidis.streamcoretv.feature.details.tablet.details.TabletDetailsRoute
@@ -61,39 +62,39 @@ internal fun StreamCoreNavHost(
             enterTransition = {
                 fadeIn(
                     animationSpec = tween(
-                        durationMillis = NavigationFadeMillis,
-                        delayMillis = NavigationFadeDelayMillis,
+                        durationMillis = StreamCoreMotionDurations.NavigationEnterMillis,
+                        delayMillis = StreamCoreMotionDurations.NavigationEnterDelayMillis,
                     ),
                 ) + slideIntoContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                     animationSpec = tween(
-                        durationMillis = NavigationSlideMillis,
+                        durationMillis = StreamCoreMotionDurations.NavigationSlideMillis,
                         easing = FastOutSlowInEasing,
                     ),
                 )
             },
             exitTransition = {
                 fadeOut(
-                    animationSpec = tween(NavigationExitFadeMillis),
+                    animationSpec = tween(StreamCoreMotionDurations.NavigationExitMillis),
                 )
             },
             popEnterTransition = {
                 fadeIn(
                     animationSpec = tween(
-                        durationMillis = NavigationFadeMillis,
-                        delayMillis = NavigationFadeDelayMillis,
+                        durationMillis = StreamCoreMotionDurations.NavigationEnterMillis,
+                        delayMillis = StreamCoreMotionDurations.NavigationEnterDelayMillis,
                     ),
                 ) + slideIntoContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.End,
                     animationSpec = tween(
-                        durationMillis = NavigationSlideMillis,
+                        durationMillis = StreamCoreMotionDurations.NavigationSlideMillis,
                         easing = FastOutSlowInEasing,
                     ),
                 )
             },
             popExitTransition = {
                 fadeOut(
-                    animationSpec = tween(NavigationExitFadeMillis),
+                    animationSpec = tween(StreamCoreMotionDurations.NavigationExitMillis),
                 )
             },
         ) {
@@ -198,7 +199,7 @@ internal fun StreamCoreNavHost(
                 HomeDestination(
                     profileId = route.profileId,
                     selectedContentKey = selectedContent?.let { content ->
-                        streamCoreContentSharedIdentity(
+                        StreamCoreSharedKey.content(
                             contentId = content.id,
                             row = content.row,
                         )
@@ -272,7 +273,6 @@ internal fun StreamCoreNavHost(
         }
     }
 }
-
 internal fun startDestinationForAuthState(
     authState: AuthStateModel,
     activeProfileId: String?,
@@ -465,8 +465,3 @@ private fun DetailsDestination(
         )
     }
 }
-
-private const val NavigationSlideMillis = 240
-private const val NavigationFadeMillis = 140
-private const val NavigationExitFadeMillis = 90
-private const val NavigationFadeDelayMillis = 20
