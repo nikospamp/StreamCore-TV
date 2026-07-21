@@ -35,9 +35,9 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreArtworkSharedKey
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreTitleSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
@@ -217,7 +217,7 @@ private fun DetailsHero(
         modifier = modifier
             .streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
-                key = streamCoreArtworkSharedKey(
+                key = StreamCoreSharedKey.artwork(
                     contentId = content.id,
                     row = content.row,
                 ),
@@ -253,11 +253,12 @@ private fun DetailsMetadata(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
-                key = streamCoreTitleSharedKey(
+                key = StreamCoreSharedKey.title(
                     contentId = content.id,
                     row = content.row,
                 ),
                 clipShape = RectangleShape,
+                zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
             ),
         )
         StreamCoreDelayedEntrance(

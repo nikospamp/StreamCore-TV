@@ -263,38 +263,23 @@ private fun ColorScheme.animateColorScheme(): ColorScheme {
         scrim = animatedColor(scrim, "theme-scrim"),
         surfaceDim = animatedColor(surfaceDim, "theme-surface-dim"),
         surfaceBright = animatedColor(surfaceBright, "theme-surface-bright"),
-        surfaceContainerLowest = animatedColor(
-            surfaceContainerLowest,
-            "theme-surface-container-lowest",
-        ),
+        surfaceContainerLowest = animatedColor(surfaceContainerLowest, "theme-surface-container-lowest"),
         surfaceContainerLow = animatedColor(surfaceContainerLow, "theme-surface-container-low"),
         surfaceContainer = animatedColor(surfaceContainer, "theme-surface-container"),
         surfaceContainerHigh = animatedColor(surfaceContainerHigh, "theme-surface-container-high"),
-        surfaceContainerHighest = animatedColor(
-            surfaceContainerHighest,
-            "theme-surface-container-highest",
-        ),
+        surfaceContainerHighest = animatedColor(surfaceContainerHighest, "theme-surface-container-highest"),
         primaryFixed = animatedColor(primaryFixed, "theme-primary-fixed"),
         primaryFixedDim = animatedColor(primaryFixedDim, "theme-primary-fixed-dim"),
         onPrimaryFixed = animatedColor(onPrimaryFixed, "theme-on-primary-fixed"),
-        onPrimaryFixedVariant = animatedColor(
-            onPrimaryFixedVariant,
-            "theme-on-primary-fixed-variant",
-        ),
+        onPrimaryFixedVariant = animatedColor(onPrimaryFixedVariant, "theme-on-primary-fixed-variant"),
         secondaryFixed = animatedColor(secondaryFixed, "theme-secondary-fixed"),
         secondaryFixedDim = animatedColor(secondaryFixedDim, "theme-secondary-fixed-dim"),
         onSecondaryFixed = animatedColor(onSecondaryFixed, "theme-on-secondary-fixed"),
-        onSecondaryFixedVariant = animatedColor(
-            onSecondaryFixedVariant,
-            "theme-on-secondary-fixed-variant",
-        ),
+        onSecondaryFixedVariant = animatedColor(onSecondaryFixedVariant, "theme-on-secondary-fixed-variant"),
         tertiaryFixed = animatedColor(tertiaryFixed, "theme-tertiary-fixed"),
         tertiaryFixedDim = animatedColor(tertiaryFixedDim, "theme-tertiary-fixed-dim"),
         onTertiaryFixed = animatedColor(onTertiaryFixed, "theme-on-tertiary-fixed"),
-        onTertiaryFixedVariant = animatedColor(
-            onTertiaryFixedVariant,
-            "theme-on-tertiary-fixed-variant",
-        ),
+        onTertiaryFixedVariant = animatedColor(onTertiaryFixedVariant, "theme-on-tertiary-fixed-variant"),
     )
 }
 
