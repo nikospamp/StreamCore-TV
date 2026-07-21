@@ -35,13 +35,12 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreRefreshIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
+import com.pampoukidis.streamcoretv.core.ui.extensions.bottomRounded
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -159,7 +158,7 @@ private fun DetailsHero(
     onRefresh: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
-    val heroShape = MaterialTheme.shapes.extraLarge
+    val heroShape = MaterialTheme.shapes.bottomRounded
 
     Box(
         modifier = Modifier
@@ -267,23 +266,20 @@ private fun DetailsTopControls(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth(),
     ) {
-        StreamCoreArtworkIconButton(
+        StreamCoreIconButton(
             contentDescription = "Back",
             onClick = onBack,
             modifier = Modifier.testTag(DetailsTestTags.BackButton),
         ) {
             StreamCoreBackIcon()
         }
-        if (isLoading) {
-            StreamCoreLoadingChip(text = "Updating")
-        } else {
-            StreamCoreArtworkIconButton(
-                contentDescription = "Refresh",
-                onClick = onRefresh,
-                modifier = Modifier.testTag(DetailsTestTags.RefreshButton),
-            ) {
-                StreamCoreRefreshIcon()
-            }
+        StreamCoreIconButton(
+            contentDescription = "Refresh",
+            onClick = onRefresh,
+            isLoading = isLoading,
+            modifier = Modifier.testTag(DetailsTestTags.RefreshButton),
+        ) {
+            StreamCoreRefreshIcon()
         }
     }
 }
@@ -466,7 +462,7 @@ private fun DetailsLoadingState(
     ) {
         item(contentType = "loading-hero") {
             Surface(
-                shape = MaterialTheme.shapes.extraLarge,
+                shape = MaterialTheme.shapes.bottomRounded,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -537,12 +533,13 @@ private fun DetailsUnavailableState(
             )
             .testTag(DetailsTestTags.Error),
     ) {
-        StreamCoreTextButton(
-            text = "Back",
+        StreamCoreIconButton(
+            contentDescription = "Back",
             onClick = { onAction(DetailsAction.BackSelected) },
-            enabled = true,
             modifier = Modifier.testTag(DetailsTestTags.BackButton),
-        )
+        ) {
+            StreamCoreBackIcon()
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier

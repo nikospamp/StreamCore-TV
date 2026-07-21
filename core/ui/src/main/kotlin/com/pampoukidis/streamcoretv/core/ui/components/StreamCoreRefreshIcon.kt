@@ -16,12 +16,12 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
-fun StreamCoreInfoIcon(
+fun StreamCoreRefreshIcon(
     modifier: Modifier = Modifier,
     color: Color = LocalContentColor.current,
 ) {
     Icon(
-        painter = painterResource(R.drawable.ic_outline_info_24),
+        painter = painterResource(R.drawable.ic_refresh_24),
         contentDescription = null,
         tint = color,
         modifier = modifier.size(StreamCoreDimens.Icon.Medium),
@@ -30,14 +30,14 @@ fun StreamCoreInfoIcon(
 
 @Preview
 @Composable
-private fun StreamCoreInfoIconPreview() {
+private fun StreamCoreRefreshIconPreview() {
     StreamCoreTheme {
         Surface {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(StreamCoreDimens.Icon.TouchTarget),
             ) {
-                StreamCoreInfoIcon()
+                StreamCoreRefreshIcon()
             }
         }
     }
