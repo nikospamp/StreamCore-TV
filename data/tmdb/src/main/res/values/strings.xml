@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="tmdb_error_authentication_title">TMDB Error Title</string>
-    <string name="tmdb_error_authentication_message">TMDB Error Message</string>
-    <string name="error_action_ok">OK</string>
-</resources>

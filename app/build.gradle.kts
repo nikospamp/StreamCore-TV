@@ -55,8 +55,10 @@ val clientBImplementation by configurations
 
 dependencies {
     // Clients
-    tmdbImplementation(projects.data.tmdb)
-    clientBImplementation(projects.data.clientB)
+    tmdbImplementation(projects.client.tmdb.data)
+    tmdbImplementation(projects.client.tmdb.ui)
+    clientBImplementation(projects.client.clientB.data)
+    clientBImplementation(projects.client.clientB.ui)
 
     // Core
     implementation(projects.core.data)
