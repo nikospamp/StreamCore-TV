@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +37,6 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
@@ -123,9 +121,6 @@ private fun AvatarPickerItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val fallbackAvatar = remember(avatar.id) {
-        StreamCoreProfileAvatar.fallbackFor(avatar.id)
-    }
     val semanticLabel = if (selected) {
         "Avatar ${avatarIndex + 1}, selected"
     } else {
@@ -158,8 +153,7 @@ private fun AvatarPickerItem(
             modifier = Modifier.size(AvatarPickerItemSize),
         ) {
             StreamCoreProfileArtwork(
-                imageUrl = avatar.imageUrl,
-                fallbackAvatar = fallbackAvatar,
+                avatar = avatar,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
             )

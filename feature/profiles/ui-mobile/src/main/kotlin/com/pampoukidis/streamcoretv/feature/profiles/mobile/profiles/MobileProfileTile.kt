@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
@@ -78,10 +77,6 @@ internal fun MobileProfileTile(
     } else {
         "${profile.displayName}, ${if (profile.isKidsProfile) "kids" else "unrestricted"} profile"
     }
-    val fallbackAvatar = remember(profile.avatar.id) {
-        StreamCoreProfileAvatar.fallbackFor(profile.avatar.id)
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
@@ -122,8 +117,7 @@ internal fun MobileProfileTile(
                     ),
             ) {
                 StreamCoreProfileArtwork(
-                    imageUrl = profile.avatar.imageUrl,
-                    fallbackAvatar = fallbackAvatar,
+                    avatar = profile.avatar,
                     contentDescription = null,
                     modifier = Modifier
                         .matchParentSize()

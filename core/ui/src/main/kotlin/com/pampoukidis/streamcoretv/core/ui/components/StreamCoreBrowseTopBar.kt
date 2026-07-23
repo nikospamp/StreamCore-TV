@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -83,12 +82,8 @@ fun StreamCoreBrowseTopBar(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (profileAvatar != null) {
-                        val fallbackAvatar = remember(profileAvatar.id) {
-                            StreamCoreProfileAvatar.fallbackFor(profileAvatar.id)
-                        }
                         StreamCoreProfileArtwork(
-                            imageUrl = profileAvatar.imageUrl,
-                            fallbackAvatar = fallbackAvatar,
+                            avatar = profileAvatar,
                             contentDescription = null,
                             modifier = Modifier
                                 .matchParentSize()

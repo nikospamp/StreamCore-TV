@@ -1,14 +1,16 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarCatalog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileParentalLevelModel
 
 object ProfilesPreviewData {
-    val avatars = ProfileAvatarCatalog.ids.map { avatarId ->
-        ProfileAvatarModel(id = avatarId, imageUrl = null)
+    val avatars = (1..20).map { index ->
+        ProfileAvatarModel(
+            id = "preview-avatar-${index.toString().padStart(2, '0')}",
+            imageUrl = null,
+        )
     }
 
     val parentalLevels = listOf(
