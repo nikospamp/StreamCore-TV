@@ -10,6 +10,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.data.EditorRequest
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.domain.CreateProfileUseCase
+import com.pampoukidis.streamcoretv.feature.profiles.domain.DeleteProfileUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOptionsUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.UpdateProfileUseCase
@@ -32,6 +33,7 @@ class ProfileEditorViewModel @Inject constructor(
     private val validateProfileDraft: ValidateProfileDraftUseCase,
     private val createProfile: CreateProfileUseCase,
     private val updateProfile: UpdateProfileUseCase,
+    private val deleteProfile: DeleteProfileUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileEditorScreenUiState())
@@ -61,6 +63,11 @@ class ProfileEditorViewModel @Inject constructor(
                 it.copy(parentalLevelId = action.parentalLevelId)
             }
 
+            is ProfileEditorAction.KidsProfileChanged -> updateKidsProfile(action.isKids)
+
+            ProfileEditorAction.RequestDeleteProfile -> requestDelete()
+            ProfileEditorAction.ConfirmDeleteProfile -> confirmDelete()
+            ProfileEditorAction.DismissDeleteConfirmation -> dismissDeleteConfirmation()
             ProfileEditorAction.Submit -> submit()
             ProfileEditorAction.Cancel -> close()
         }
@@ -87,15 +94,17 @@ class ProfileEditorViewModel @Inject constructor(
             )
 
             val options = loadOptions() ?: return@launch
-            val draft = when (mode) {
-                ProfileEditorMode.Create -> createDraft(options)
-                ProfileEditorMode.Edit -> loadEditDraft(profileId)
-            } ?: return@launch
+            val profile = when (mode) {
+                ProfileEditorMode.Create -> null
+                ProfileEditorMode.Edit -> loadEditProfile(profileId) ?: return@launch
+            }
+            val draft = profile?.toDraftModel() ?: createDraft(options)
 
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     editorOptions = options,
+                    profile = profile,
                     editor = ProfileEditorFormUiState(
                         mode = mode,
                         draft = draft,
@@ -119,11 +128,15 @@ class ProfileEditorViewModel @Inject constructor(
     private fun createDraft(options: ProfileEditorOptionsModel): ProfileDraftModel {
         return ProfileDraftModel(
             avatarId = options.avatars.firstOrNull()?.id.orEmpty(),
-            parentalLevelId = options.parentalLevels.firstOrNull()?.id.orEmpty(),
+            parentalLevelId = options.parentalLevels
+                .filterNot { it.isKids }
+                .maxByOrNull { it.rank }
+                ?.id
+                .orEmpty(),
         )
     }
 
-    private suspend fun loadEditDraft(profileId: String?): ProfileDraftModel? {
+    private suspend fun loadEditProfile(profileId: String?): ProfileModel? {
         if (profileId == null) {
             _uiState.update { it.copy(isLoading = false) }
             emitError(AppError.Unknown())
@@ -140,7 +153,7 @@ class ProfileEditorViewModel @Inject constructor(
                     emitClose()
                     null
                 } else {
-                    profile.toDraftModel()
+                    profile
                 }
             }
 
@@ -165,6 +178,21 @@ class ProfileEditorViewModel @Inject constructor(
         }
     }
 
+    private fun updateKidsProfile(isKids: Boolean) {
+        val options = _uiState.value.editorOptions ?: return
+        val parentalLevel = if (isKids) {
+            options.parentalLevels.firstOrNull { it.isKids }
+        } else {
+            options.parentalLevels
+                .filterNot { it.isKids }
+                .maxByOrNull { it.rank }
+        } ?: return
+
+        updateDraft {
+            it.copy(parentalLevelId = parentalLevel.id)
+        }
+    }
+
     private fun submit() {
         val state = _uiState.value
         if (state.isSaving) return
@@ -185,6 +213,44 @@ class ProfileEditorViewModel @Inject constructor(
                 ProfileEditorMode.Edit -> updateProfile(editor.draft)
             }
             handleSubmitResult(result)
+        }
+    }
+
+    private fun requestDelete() {
+        val state = _uiState.value
+        val profile = state.profile ?: return
+        if (!profile.canDelete || state.isSaving) return
+
+        _uiState.update { it.copy(pendingDeleteProfile = profile) }
+    }
+
+    private fun dismissDeleteConfirmation() {
+        if (_uiState.value.isSaving) return
+        _uiState.update { it.copy(pendingDeleteProfile = null) }
+    }
+
+    private fun confirmDelete() {
+        val profile = _uiState.value.pendingDeleteProfile ?: return
+        if (_uiState.value.isSaving) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            when (val result = deleteProfile(profile.id)) {
+                is AppResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            pendingDeleteProfile = null,
+                        )
+                    }
+                    effectsChannel.send(ProfileEditorEffect.ProfileDeleted)
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.update { it.copy(isSaving = false) }
+                    emitError(result.error)
+                }
+            }
         }
     }
 

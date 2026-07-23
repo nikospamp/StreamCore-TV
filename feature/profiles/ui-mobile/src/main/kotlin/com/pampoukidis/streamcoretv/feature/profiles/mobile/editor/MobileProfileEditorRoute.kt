@@ -9,10 +9,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorRouteEventEffect
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorScreen
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorViewModel
+import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 
 @Composable
 fun MobileProfileEditorRoute(
@@ -41,7 +40,7 @@ fun MobileProfileEditorRoute(
         onError = onError,
     )
 
-    ProfileEditorScreen(
+    MobileProfileEditorScreen(
         state = state,
         onAction = viewModel::onAction,
         modifier = Modifier.statusBarsPadding(),

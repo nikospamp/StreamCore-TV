@@ -1,21 +1,20 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.testing
 
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarCatalog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileParentalLevelModel
 
 object ProfilesPreviewData {
-    val avatars = listOf(
-        ProfileAvatarModel(id = "avatar-default", imageUrl = null),
-        ProfileAvatarModel(id = "avatar-action", imageUrl = null),
-        ProfileAvatarModel(id = "avatar-kids", imageUrl = null),
-    )
+    val avatars = ProfileAvatarCatalog.ids.map { avatarId ->
+        ProfileAvatarModel(id = avatarId, imageUrl = null)
+    }
 
     val parentalLevels = listOf(
-        ProfileParentalLevelModel(id = "all", label = "All maturity", rank = 100),
-        ProfileParentalLevelModel(id = "teen", label = "Teen", rank = 60),
-        ProfileParentalLevelModel(id = "kids", label = "Kids", rank = 20),
+        ProfileParentalLevelModel(id = "all", label = "All maturity", rank = 100, isKids = false),
+        ProfileParentalLevelModel(id = "teen", label = "Teen", rank = 60, isKids = false),
+        ProfileParentalLevelModel(id = "kids", label = "Kids", rank = 20, isKids = true),
     )
 
     val profiles = listOf(
@@ -30,7 +29,7 @@ object ProfilesPreviewData {
         ProfileModel(
             id = "profile-2",
             displayName = "Maria",
-            avatar = avatars[1],
+            avatar = avatars[5],
             parentalLevel = parentalLevels[1],
             canDelete = true,
             isKidsProfile = false,
@@ -38,7 +37,7 @@ object ProfilesPreviewData {
         ProfileModel(
             id = "profile-3",
             displayName = "Kids",
-            avatar = avatars[2],
+            avatar = avatars[12],
             parentalLevel = parentalLevels[2],
             canDelete = true,
             isKidsProfile = true,

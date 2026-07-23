@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.data.tmdb.profile
 
 import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
 import com.pampoukidis.streamcoretv.core.model.auth.CreateProfileModel
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarCatalog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
@@ -17,16 +18,14 @@ import javax.inject.Singleton
 @Singleton
 class TmdbProfileRepository @Inject constructor() : ProfileRepository {
 
-    private val avatars = listOf(
-        ProfileAvatarDto(id = "tmdb-default", imageUrl = null),
-        ProfileAvatarDto(id = "tmdb-cinema", imageUrl = null),
-        ProfileAvatarDto(id = "tmdb-kids", imageUrl = null),
-    )
+    private val avatars = ProfileAvatarCatalog.ids.map { avatarId ->
+        ProfileAvatarDto(id = avatarId, imageUrl = null)
+    }
 
     private val parentalLevels = listOf(
-        ProfileParentalLevelDto(id = "all", label = "All maturity", rank = 100),
-        ProfileParentalLevelDto(id = "teen", label = "Teen", rank = 60),
-        ProfileParentalLevelDto(id = "kids", label = "Kids", rank = 20),
+        ProfileParentalLevelDto(id = "all", label = "All maturity", rank = 100, isKids = false),
+        ProfileParentalLevelDto(id = "teen", label = "Teen", rank = 60, isKids = false),
+        ProfileParentalLevelDto(id = "kids", label = "Kids", rank = 20, isKids = true),
     )
 
     private val profiles = mutableListOf(

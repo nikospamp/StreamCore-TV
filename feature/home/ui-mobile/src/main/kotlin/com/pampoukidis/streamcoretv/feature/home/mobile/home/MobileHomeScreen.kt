@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -72,6 +73,7 @@ fun MobileHomeScreen(
     onAction: (HomeAction) -> Unit,
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
+    activeProfile: ProfileModel? = null,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
@@ -92,6 +94,16 @@ fun MobileHomeScreen(
         ) {
             StreamCoreBrowseTopBar(
                 onProfileSelected = onProfileSelected,
+                profileAvatar = activeProfile?.avatar,
+                profileArtworkModifier = if (activeProfile != null) {
+                    Modifier.streamCoreSharedBounds(
+                        sharedElementScope = sharedElementScope,
+                        key = StreamCoreSharedKey.profileAvatar(activeProfile.id),
+                        clipShape = CircleShape,
+                    )
+                } else {
+                    Modifier
+                },
                 modifier = Modifier.padding(
                     horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
                 ),
