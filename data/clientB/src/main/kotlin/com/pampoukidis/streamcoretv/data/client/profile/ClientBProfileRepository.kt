@@ -2,7 +2,6 @@ package com.pampoukidis.streamcoretv.data.client.profile
 
 import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
 import com.pampoukidis.streamcoretv.core.model.auth.CreateProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarCatalog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
@@ -18,9 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class ClientBProfileRepository @Inject constructor() : ProfileRepository {
 
-    private val avatars = ProfileAvatarCatalog.ids.map { avatarId ->
-        ProfileAvatarDto(id = avatarId, imageUrl = null)
-    }
+    private val avatars = ClientBProfileAvatarCatalog.avatars
 
     private val parentalLevels = listOf(
         ProfileParentalLevelDto(id = "all", label = "All maturity", rank = 100, isKids = false),

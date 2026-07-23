@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,7 +45,6 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSettingsSwitchRow
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -280,10 +278,6 @@ private fun MobileProfileEditorAvatar(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val fallbackAvatar = remember(avatar.id) {
-        StreamCoreProfileAvatar.fallbackFor(avatar.id)
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
@@ -308,8 +302,7 @@ private fun MobileProfileEditorAvatar(
                     .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
                 StreamCoreProfileArtwork(
-                    imageUrl = avatar.imageUrl,
-                    fallbackAvatar = fallbackAvatar,
+                    avatar = avatar,
                     contentDescription = "Selected profile avatar",
                     modifier = Modifier.fillMaxSize(),
                 )
