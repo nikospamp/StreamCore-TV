@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -19,6 +20,7 @@ fun MobileHomeRoute(
     onContentSelected: (ContentModel) -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
+    activeProfile: ProfileModel? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -38,6 +40,7 @@ fun MobileHomeRoute(
         state = state,
         onAction = viewModel::onAction,
         onProfileSelected = onProfileSelected,
+        activeProfile = activeProfile,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,
     )

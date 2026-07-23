@@ -52,6 +52,7 @@ internal fun StreamCoreNavHost(
 ) {
     val navController = rememberNavController()
     var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
+    var selectedProfile by remember { mutableStateOf<ProfileModel?>(null) }
 
     SharedTransitionLayout {
         val sharedTransitionScope = this
@@ -121,8 +122,13 @@ internal fun StreamCoreNavHost(
 
             composable<AppRoute.Profiles> {
                 ProfilesDestination(
+                    sharedElementScope = StreamCoreSharedElementScope(
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = this,
+                    ),
                     onProfileSelected = { profile ->
                         selectedContent = null
+                        selectedProfile = profile
                         onActiveProfileChanged(profile.id)
                         navController.navigate(
                             AppRoute.Home(profileId = profile.id),
@@ -198,6 +204,9 @@ internal fun StreamCoreNavHost(
 
                 HomeDestination(
                     profileId = route.profileId,
+                    activeProfile = selectedProfile?.takeIf { profile ->
+                        profile.id == route.profileId
+                    },
                     selectedContentKey = selectedContent?.let { content ->
                         StreamCoreSharedKey.content(
                             contentId = content.id,
@@ -325,6 +334,7 @@ private fun ProfilesDestination(
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
     onError: (AppError) -> Unit,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileProfilesRoute(
@@ -332,6 +342,7 @@ private fun ProfilesDestination(
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
             onError = onError,
+            sharedElementScope = sharedElementScope,
         )
 
         Platform.Tablet -> TabletProfilesRoute(
@@ -388,6 +399,7 @@ private fun ProfileEditorDestination(
 @Composable
 private fun HomeDestination(
     profileId: String,
+    activeProfile: ProfileModel?,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
@@ -397,6 +409,7 @@ private fun HomeDestination(
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileHomeRoute(
             profileId = profileId,
+            activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onProfileSelected = onProfileSelected,

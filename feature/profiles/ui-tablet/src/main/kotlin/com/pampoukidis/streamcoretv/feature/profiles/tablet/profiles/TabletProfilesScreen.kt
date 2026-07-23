@@ -100,7 +100,8 @@ fun TabletProfilesScreen(
     ProfilesDeleteConfirmationDialog(
         profile = state.pendingDeleteProfile,
         isSaving = state.isSaving,
-        onAction = onAction,
+        onConfirmDelete = { onAction(ProfilesAction.ConfirmDeleteProfile) },
+        onDismiss = { onAction(ProfilesAction.DismissDeleteConfirmation) },
     )
 }
 
@@ -119,4 +120,3 @@ private fun TabletProfilesScreenPreview() {
         )
     }
 }
-

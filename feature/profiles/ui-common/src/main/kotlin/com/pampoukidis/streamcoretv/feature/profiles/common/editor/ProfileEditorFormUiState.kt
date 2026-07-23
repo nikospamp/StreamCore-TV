@@ -7,5 +7,9 @@ import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileValidationResul
 data class ProfileEditorFormUiState(
     val mode: ProfileEditorMode,
     val draft: ProfileDraftModel,
+    val initialDraft: ProfileDraftModel = draft,
     val validation: ProfileValidationResult = ProfileValidationResult(),
-)
+) {
+    val hasChanges: Boolean
+        get() = draft != initialDraft
+}

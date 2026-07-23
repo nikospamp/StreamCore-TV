@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
@@ -31,6 +33,8 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 fun StreamCoreBrowseTopBar(
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
+    profileAvatar: ProfileAvatarModel? = null,
+    profileArtworkModifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -78,7 +82,21 @@ fun StreamCoreBrowseTopBar(
                     },
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    ProfileGlyph(color = MaterialTheme.colorScheme.onSurface)
+                    if (profileAvatar != null) {
+                        val fallbackAvatar = remember(profileAvatar.id) {
+                            StreamCoreProfileAvatar.fallbackFor(profileAvatar.id)
+                        }
+                        StreamCoreProfileArtwork(
+                            imageUrl = profileAvatar.imageUrl,
+                            fallbackAvatar = fallbackAvatar,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .then(profileArtworkModifier),
+                        )
+                    } else {
+                        ProfileGlyph(color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }

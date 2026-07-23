@@ -189,6 +189,11 @@ fun StreamCoreDelayedEntrance(
 
 /** Creates stable, matching keys for content participating in shared transitions. */
 object StreamCoreSharedKey {
+    /** Returns the shared-transition key for a profile avatar. */
+    fun profileAvatar(profileId: String): String {
+        return "profile:$profileId:avatar"
+    }
+
     /**
      * Identifies a content item and its source row independently of a visual element.
      *

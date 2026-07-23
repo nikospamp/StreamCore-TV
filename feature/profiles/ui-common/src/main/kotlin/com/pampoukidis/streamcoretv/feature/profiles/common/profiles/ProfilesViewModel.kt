@@ -38,6 +38,8 @@ class ProfilesViewModel @Inject constructor(
     fun onAction(action: ProfilesAction) {
         when (action) {
             ProfilesAction.Refresh -> refresh()
+            ProfilesAction.ManageProfiles -> enterManageMode()
+            ProfilesAction.DoneManaging -> exitManageMode()
             is ProfilesAction.SelectProfile -> select(action.profileId)
             is ProfilesAction.RequestDeleteProfile -> requestDelete(action.profileId)
             ProfilesAction.ConfirmDeleteProfile -> confirmDelete()
@@ -47,25 +49,49 @@ class ProfilesViewModel @Inject constructor(
 
     private fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    loadError = null,
+                )
+            }
             when (val result = loadProfiles()) {
                 is AppResult.Success -> _uiState.update {
                     it.copy(
                         isLoading = false,
                         profiles = result.value,
+                        loadError = null,
                     )
                 }
 
                 is AppResult.Failure -> {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            loadError = result.error,
+                        )
+                    }
                     emitError(result.error)
                 }
             }
         }
     }
 
+    private fun enterManageMode() {
+        val state = _uiState.value
+        if (state.isLoading || state.isSaving || state.pendingSelectionProfileId != null) return
+        if (state.profiles.isEmpty()) return
+        _uiState.update { it.copy(mode = ProfilesMode.Manage) }
+    }
+
+    private fun exitManageMode() {
+        _uiState.update { it.copy(mode = ProfilesMode.Selection) }
+    }
+
     private fun select(profileId: String) {
-        if (_uiState.value.pendingSelectionProfileId != null) return
+        val state = _uiState.value
+        if (state.mode != ProfilesMode.Selection) return
+        if (state.isLoading || state.isSaving || state.pendingSelectionProfileId != null) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(pendingSelectionProfileId = profileId) }
@@ -115,4 +141,3 @@ class ProfilesViewModel @Inject constructor(
         effectsChannel.send(ProfilesEffect.ShowError(error))
     }
 }
-

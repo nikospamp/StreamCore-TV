@@ -23,6 +23,7 @@ internal fun ProfileDto.toModel(): ProfileModel {
             id = parentalLevelId,
             label = parentalLevelLabel,
             rank = parentalLevelRank,
+            isKids = isKidsProfile,
         ),
         canDelete = canDelete,
         isKidsProfile = isKidsProfile,
@@ -41,6 +42,7 @@ internal fun ProfileParentalLevelDto.toModel(): ProfileParentalLevelModel {
         id = id,
         label = label,
         rank = rank,
+        isKids = isKids,
     )
 }
 

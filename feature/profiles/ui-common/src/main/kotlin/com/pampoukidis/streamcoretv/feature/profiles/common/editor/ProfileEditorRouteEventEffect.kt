@@ -26,6 +26,7 @@ fun ProfileEditorRouteEventEffect(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     ProfileEditorEffect.ProfileSaved -> currentProfileSaved()
+                    ProfileEditorEffect.ProfileDeleted -> currentProfileSaved()
                     ProfileEditorEffect.Close -> currentClose()
                     is ProfileEditorEffect.ShowError -> currentError(effect.error)
                 }

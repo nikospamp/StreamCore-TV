@@ -103,7 +103,7 @@ object StreamCoreDimens {
         }
 
         object Profiles {
-            val AvatarSize = 72.dp
+            val AvatarSize = 104.dp
             val PreviewGridHeight = 360.dp
         }
     }
