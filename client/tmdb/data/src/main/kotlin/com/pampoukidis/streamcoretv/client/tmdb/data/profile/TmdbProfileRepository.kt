@@ -1,0 +1,169 @@
+package com.pampoukidis.streamcoretv.client.tmdb.data.profile
+
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.ProfileAvatarDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.ProfileDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.ProfileParentalLevelDto
+import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
+import com.pampoukidis.streamcoretv.core.model.auth.CreateProfileModel
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
+import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class TmdbProfileRepository @Inject constructor() : ProfileRepository {
+
+    private val avatars = TmdbProfileAvatarCatalog.avatars
+
+    private val parentalLevels = listOf(
+        ProfileParentalLevelDto(id = "all", label = "All maturity", rank = 100, isKids = false),
+        ProfileParentalLevelDto(id = "teen", label = "Teen", rank = 60, isKids = false),
+        ProfileParentalLevelDto(id = "kids", label = "Kids", rank = 20, isKids = true),
+    )
+
+    private val profiles = mutableListOf(
+        ProfileDto(
+            id = "tmdb-profile-owner",
+            displayName = "Nikos",
+            avatarId = avatars[0].id,
+            avatarUrl = avatars[0].imageUrl,
+            parentalLevelId = parentalLevels[0].id,
+            parentalLevelLabel = parentalLevels[0].label,
+            parentalLevelRank = parentalLevels[0].rank,
+            canDelete = false,
+            isKidsProfile = false,
+        ),
+        ProfileDto(
+            id = "tmdb-profile-kids",
+            displayName = "Kids",
+            avatarId = avatars[2].id,
+            avatarUrl = avatars[2].imageUrl,
+            parentalLevelId = parentalLevels[2].id,
+            parentalLevelLabel = parentalLevels[2].label,
+            parentalLevelRank = parentalLevels[2].rank,
+            canDelete = true,
+            isKidsProfile = true,
+        ),
+    )
+
+    private var nextProfileNumber = 1
+    private var activeProfileId: String? = null
+
+    override suspend fun getProfiles(): AppResult<List<ProfileModel>> {
+        return AppResult.Success(profiles.map { it.toModel() })
+    }
+
+    override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> {
+        return AppResult.Success(
+            ProfileEditorOptionsModel(
+                avatars = avatars.map { it.toModel() },
+                parentalLevels = parentalLevels.map { it.toModel() },
+            ),
+        )
+    }
+
+    override suspend fun createProfile(profile: CreateProfileModel): AppResult<ProfileModel> {
+        val avatar = findAvatar(profile.avatarId)
+            ?: return profileFailure(CREATE_PROFILE_OPERATION, "AVATAR_NOT_FOUND")
+        val parentalLevel = findParentalLevel(profile.parentalLevelId)
+            ?: return profileFailure(CREATE_PROFILE_OPERATION, "PARENTAL_LEVEL_NOT_FOUND")
+
+        val dto = ProfileDto(
+            id = "tmdb-profile-created-${nextProfileNumber++}",
+            displayName = profile.toDto().displayName,
+            avatarId = avatar.id,
+            avatarUrl = avatar.imageUrl,
+            parentalLevelId = parentalLevel.id,
+            parentalLevelLabel = parentalLevel.label,
+            parentalLevelRank = parentalLevel.rank,
+            canDelete = true,
+            isKidsProfile = parentalLevel.id == KIDS_PARENTAL_LEVEL_ID,
+        )
+        profiles += dto
+        return AppResult.Success(dto.toModel())
+    }
+
+    override suspend fun updateProfile(profile: UpdateProfileModel): AppResult<ProfileModel> {
+        val index = profiles.indexOfFirst { it.id == profile.profileId }
+        if (index == -1) {
+            return profileFailure(UPDATE_PROFILE_OPERATION, "PROFILE_NOT_FOUND")
+        }
+
+        val avatar = findAvatar(profile.avatarId)
+            ?: return profileFailure(UPDATE_PROFILE_OPERATION, "AVATAR_NOT_FOUND")
+        val parentalLevel = findParentalLevel(profile.parentalLevelId)
+            ?: return profileFailure(UPDATE_PROFILE_OPERATION, "PARENTAL_LEVEL_NOT_FOUND")
+
+        val request = profile.toDto()
+        val updated = profiles[index].copy(
+            displayName = request.displayName,
+            avatarId = avatar.id,
+            avatarUrl = avatar.imageUrl,
+            parentalLevelId = parentalLevel.id,
+            parentalLevelLabel = parentalLevel.label,
+            parentalLevelRank = parentalLevel.rank,
+            isKidsProfile = parentalLevel.id == KIDS_PARENTAL_LEVEL_ID,
+        )
+        profiles[index] = updated
+        return AppResult.Success(updated.toModel())
+    }
+
+    override suspend fun deleteProfile(profileId: String): AppResult<Unit> {
+        val profile = profiles.firstOrNull { it.id == profileId }
+            ?: return profileFailure(DELETE_PROFILE_OPERATION, "PROFILE_NOT_FOUND")
+
+        if (!profile.canDelete) {
+            return profileFailure(DELETE_PROFILE_OPERATION, "PROFILE_LOCKED")
+        }
+
+        profiles.remove(profile)
+        if (activeProfileId == profileId) {
+            activeProfileId = null
+        }
+        return AppResult.Success(Unit)
+    }
+
+    override suspend fun selectProfile(profileId: String): AppResult<ProfileModel> {
+        val profile = profiles.firstOrNull { it.id == profileId }
+            ?: return profileFailure(SELECT_PROFILE_OPERATION, "PROFILE_NOT_FOUND")
+
+        activeProfileId = profile.id
+        return AppResult.Success(profile.toModel())
+    }
+
+    private fun findAvatar(id: String): ProfileAvatarDto? {
+        return avatars.firstOrNull { it.id == id }
+    }
+
+    private fun findParentalLevel(id: String): ProfileParentalLevelDto? {
+        return parentalLevels.firstOrNull { it.id == id }
+    }
+
+    private fun <T> profileFailure(
+        operation: String,
+        backendCode: String,
+    ): AppResult<T> {
+        return AppResult.Failure(
+            AppError.Unknown(
+                source = ErrorSource(
+                    client = CLIENT,
+                    operation = operation,
+                    backendCode = backendCode,
+                ),
+            ),
+        )
+    }
+
+    private companion object {
+        const val CLIENT = "tmdb"
+        const val CREATE_PROFILE_OPERATION = "createProfile"
+        const val UPDATE_PROFILE_OPERATION = "updateProfile"
+        const val DELETE_PROFILE_OPERATION = "deleteProfile"
+        const val SELECT_PROFILE_OPERATION = "selectProfile"
+        const val KIDS_PARENTAL_LEVEL_ID = "kids"
+    }
+}

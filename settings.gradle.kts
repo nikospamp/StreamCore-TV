@@ -35,8 +35,10 @@ include(":core:domain")
 include(":core:ui")
 
 // Clients
-include(":data:tmdb")
-include(":data:clientB")
+include(":client:tmdb:data")
+include(":client:tmdb:ui")
+include(":client:clientB:data")
+include(":client:clientB:ui")
 
 // Login
 include(":feature:login:data")

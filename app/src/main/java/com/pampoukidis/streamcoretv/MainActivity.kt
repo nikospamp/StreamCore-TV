@@ -17,10 +17,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.auth.AppAuthEffect
 import com.pampoukidis.streamcoretv.auth.AppAuthUiState
 import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
-import com.pampoukidis.streamcoretv.avatar.ClientProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
+import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
@@ -34,13 +34,16 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var errorPresentationMapper: ErrorPresentationMapper
 
+    @Inject
+    lateinit var profileAvatarArtworkResolver: ProfileAvatarArtworkResolver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         configureTvSoftInputMode()
         enableEdgeToEdge()
         setContent {
             CompositionLocalProvider(
-                LocalProfileAvatarArtworkResolver provides ClientProfileAvatarArtworkResolver,
+                LocalProfileAvatarArtworkResolver provides profileAvatarArtworkResolver,
             ) {
                 StreamCoreTheme {
                     val appAuthViewModel: AppAuthViewModel = hiltViewModel()
