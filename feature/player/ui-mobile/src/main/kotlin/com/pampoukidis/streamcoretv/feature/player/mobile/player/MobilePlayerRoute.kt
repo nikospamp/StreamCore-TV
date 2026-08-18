@@ -102,8 +102,13 @@ fun MobilePlayerRoute(
                     ),
                 ),
             )
+
+            onDispose {
+                activity.setPictureInPictureParams(pipParams(autoEnter = false))
+            }
+        } else {
+            onDispose {}
         }
-        onDispose {}
     }
 
     DisposableEffect(activity, viewModel) {
