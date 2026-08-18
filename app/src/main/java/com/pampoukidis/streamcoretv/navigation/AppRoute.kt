@@ -32,4 +32,11 @@ internal sealed interface AppRoute {
         val contentId: String,
         val initialContent: ContentModel? = null
     ) : AppRoute
+
+    @Serializable
+    data class Player(
+        val profileId: String,
+        val contentId: String,
+        val contentSnapshot: ContentModel,
+    ) : AppRoute
 }

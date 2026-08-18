@@ -4,6 +4,7 @@ object DetailsTestTags {
     const val Root = "details:root"
     const val Content = "details:content"
     const val Hero = "details:hero"
+    const val PlayButton = "details:play"
     const val Overview = "details:overview"
     const val Recommendations = "details:recommendations"
     const val Loading = "details:loading"

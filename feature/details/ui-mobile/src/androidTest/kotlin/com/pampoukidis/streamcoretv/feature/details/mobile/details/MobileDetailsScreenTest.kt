@@ -1,5 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.details.mobile.details
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -53,6 +56,28 @@ class MobileDetailsScreenTest {
 
         assertTrue(actions.contains(DetailsAction.BackSelected))
         assertTrue(actions.contains(DetailsAction.Refresh))
+    }
+
+    @Test
+    fun playAndResumeCtaDispatchPlaySelection() {
+        val actions = mutableListOf<DetailsAction>()
+        var state by mutableStateOf(contentState())
+
+        composeRule.setContent {
+            StreamCoreTheme(darkTheme = true) {
+                MobileDetailsScreen(
+                    state = state,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Play").assertExists()
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).performClick()
+        assertTrue(actions.contains(DetailsAction.PlaySelected))
+
+        state = state.copy(hasResumableProgress = true)
+        composeRule.onNodeWithText("Resume").assertExists()
     }
 
     @Test

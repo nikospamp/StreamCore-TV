@@ -7,6 +7,9 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
 import com.pampoukidis.streamcoretv.feature.details.domain.LoadDetailsUseCase
+import com.pampoukidis.streamcoretv.feature.player.domain.PlaybackProgressPolicy
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -22,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DetailsViewModel @Inject constructor(
     private val loadDetails: LoadDetailsUseCase,
+    private val progressRepository: PlaybackProgressRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailsUiState())
@@ -32,29 +36,43 @@ class DetailsViewModel @Inject constructor(
 
     private var activeRequest: DetailsRequest? = null
     private var loadJob: Job? = null
+    private var progressJob: Job? = null
 
     fun onAction(action: DetailsAction) {
         when (action) {
-            is DetailsAction.Load -> load(action.request)
+            is DetailsAction.Load -> load(
+                request = action.request,
+                initialContent = action.initialContent,
+            )
             DetailsAction.Refresh -> refresh()
             is DetailsAction.RecommendationSelected -> selectRecommendation(action.content)
+            DetailsAction.PlaySelected -> selectPlay()
             DetailsAction.BackSelected -> navigateBack()
         }
     }
 
     private fun load(
         request: DetailsRequest,
+        initialContent: ContentModel? = null,
         force: Boolean = false,
     ) {
-        if (!force && activeRequest == request) {
+        val requestChanged = activeRequest != request
+        if (!force && !requestChanged) {
             return
         }
 
-        activeRequest = request
         loadJob?.cancel()
+        if (requestChanged) {
+            activeRequest = request
+            observeProgress(request)
+            _uiState.value = DetailsUiState(
+                isLoading = true,
+                content = initialContent?.takeIf { content -> content.id == request.contentId },
+            )
+        } else {
+            _uiState.update { state -> state.copy(isLoading = true) }
+        }
         loadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
             when (val result = loadDetails(request)) {
                 is AppResult.Success -> {
                     if (activeRequest != request) {
@@ -90,6 +108,41 @@ class DetailsViewModel @Inject constructor(
     private fun selectRecommendation(content: ContentModel) {
         viewModelScope.launch {
             effectsChannel.send(DetailsEffect.RecommendationSelected(content))
+        }
+    }
+
+    private fun selectPlay() {
+        val request = activeRequest ?: return
+        val content = _uiState.value.content ?: return
+        viewModelScope.launch {
+            effectsChannel.send(
+                DetailsEffect.PlaySelected(
+                    PlaybackRequestModel(
+                        profileId = request.profileId,
+                        contentId = request.contentId,
+                        contentSnapshot = content,
+                    ),
+                ),
+            )
+        }
+    }
+
+    private fun observeProgress(request: DetailsRequest) {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            progressRepository.observe(request.profileId).collect { entries ->
+                val progress = entries.firstOrNull { entry -> entry.contentId == request.contentId }
+                _uiState.update { state ->
+                    state.copy(
+                        hasResumableProgress = progress?.let { entry ->
+                            PlaybackProgressPolicy.isResumable(
+                                positionMillis = entry.positionMillis,
+                                durationMillis = entry.durationMillis,
+                            )
+                        } == true,
+                    )
+                }
+            }
         }
     }
 

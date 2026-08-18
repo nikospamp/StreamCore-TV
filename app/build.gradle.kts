@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.pampoukidis.streamcoretv"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -57,8 +57,10 @@ dependencies {
     // Clients
     tmdbImplementation(projects.client.tmdb.data)
     tmdbImplementation(projects.client.tmdb.ui)
+    tmdbImplementation(projects.client.tmdb.player)
     clientBImplementation(projects.client.clientB.data)
     clientBImplementation(projects.client.clientB.ui)
+    clientBImplementation(projects.client.clientB.player)
 
     // Core
     implementation(projects.core.data)
@@ -78,6 +80,9 @@ dependencies {
     implementation(projects.feature.details.uiMobile)
     implementation(projects.feature.details.uiTablet)
     implementation(projects.feature.details.uiTv)
+    implementation(projects.feature.player.data)
+    implementation(projects.feature.player.uiMobile)
+    implementation(projects.playback.api)
 
     // Libraries
     implementation(libs.androidx.core.ktx)

@@ -3,9 +3,14 @@ package com.pampoukidis.streamcoretv.feature.home.common.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcoretv.core.model.content.RowModel
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -21,6 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val loadHomeRows: LoadHomeRowsUseCase,
+    private val progressRepository: PlaybackProgressRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -31,6 +37,9 @@ class HomeViewModel @Inject constructor(
 
     private var activeProfileId: String? = null
     private var loadJob: Job? = null
+    private var progressJob: Job? = null
+    private var backendRows: List<RowModel> = emptyList()
+    private var progressEntries: List<PlaybackProgressEntryModel> = emptyList()
 
     fun onAction(action: HomeAction) {
         when (action) {
@@ -49,6 +58,7 @@ class HomeViewModel @Inject constructor(
         }
 
         activeProfileId = profileId
+        observeProgress(profileId)
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -59,10 +69,11 @@ class HomeViewModel @Inject constructor(
                         return@launch
                     }
 
+                    backendRows = result.value
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            rows = result.value,
+                            rows = mergedRows(),
                         )
                     }
                 }
@@ -90,7 +101,47 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun observeProgress(profileId: String) {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            progressRepository.observe(profileId).collect { entries ->
+                if (activeProfileId != profileId) {
+                    return@collect
+                }
+                progressEntries = entries
+                _uiState.update { state -> state.copy(rows = mergedRows()) }
+            }
+        }
+    }
+
+    private fun mergedRows(): List<RowModel> {
+        val providerRows = backendRows.filterNot { row -> row.type == RowType.ContinueWatching }
+        if (progressEntries.isEmpty()) {
+            return providerRows
+        }
+        val continueWatching = RowModel(
+            id = ContinueWatchingRowId,
+            title = "Continue Watching",
+            subtitle = "Pick up where you left off",
+            type = RowType.ContinueWatching,
+            content = progressEntries.map { entry ->
+                entry.contentSnapshot.copy(
+                    row = ContinueWatchingRowId,
+                    playbackProgress = PlaybackProgressModel(
+                        positionMillis = entry.positionMillis,
+                        durationMillis = entry.durationMillis,
+                    ),
+                )
+            },
+        )
+        return listOf(continueWatching) + providerRows
+    }
+
     private suspend fun emitError(error: AppError) {
         effectsChannel.send(HomeEffect.ShowError(error))
+    }
+
+    private companion object {
+        const val ContinueWatchingRowId = "continue-watching"
     }
 }
