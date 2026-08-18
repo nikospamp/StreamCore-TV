@@ -70,3 +70,13 @@ include(":feature:details:ui-common")
 include(":feature:details:ui-mobile")
 include(":feature:details:ui-tablet")
 include(":feature:details:ui-tv")
+
+// Playback
+include(":playback:api")
+include(":playback:media3")
+include(":feature:player:data")
+include(":feature:player:domain")
+include(":feature:player:ui-common")
+include(":feature:player:ui-mobile")
+include(":client:tmdb:player")
+include(":client:clientB:player")

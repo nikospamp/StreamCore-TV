@@ -35,6 +35,7 @@ dependencies {
 
     // Features
     api(projects.feature.home.domain)
+    implementation(projects.playback.api)
 
     // Libraries
     implementation(platform(libs.androidx.compose.bom))

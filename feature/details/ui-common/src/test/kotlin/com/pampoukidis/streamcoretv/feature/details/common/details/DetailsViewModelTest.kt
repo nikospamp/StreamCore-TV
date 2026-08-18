@@ -6,13 +6,19 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
 import com.pampoukidis.streamcoretv.feature.details.domain.LoadDetailsUseCase
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -107,14 +113,81 @@ class DetailsViewModelTest {
         }
     }
 
+    @Test
+    fun `play selection uses initial content before backend load completes`() {
+        runTest {
+            val content = contentModel("content-1")
+            val subject = detailsViewModel(
+                repository = FakeDetailsRepository(
+                    detailsResult = AppResult.Success(content),
+                    recommendationsResult = AppResult.Success(emptyList()),
+                ),
+            )
+            subject.onAction(
+                DetailsAction.Load(
+                    request = DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    initialContent = content,
+                ),
+            )
+            assertEquals(content, subject.uiState.value.content)
+
+            subject.onAction(DetailsAction.PlaySelected)
+            runCurrent()
+
+            assertEquals(
+                DetailsEffect.PlaySelected(
+                    com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel(
+                        profileId = "profile-1",
+                        contentId = content.id,
+                        contentSnapshot = content,
+                    ),
+                ),
+                subject.effects.first(),
+            )
+        }
+    }
+
+    @Test
+    fun `resumable progress changes details CTA state`() {
+        runTest {
+            val content = contentModel("content-1")
+            val progress = MutableStateFlow(emptyList<PlaybackProgressEntryModel>())
+            val subject = detailsViewModel(
+                progressRepository = FlowPlaybackProgressRepository(progress),
+            )
+
+            subject.onAction(
+                DetailsAction.Load(
+                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                ),
+            )
+            runCurrent()
+            progress.value = listOf(
+                PlaybackProgressEntryModel(
+                    profileId = "profile-1",
+                    contentId = content.id,
+                    contentSnapshot = content,
+                    positionMillis = 31_000L,
+                    durationMillis = 120_000L,
+                    updatedAtMillis = 1L,
+                ),
+            )
+            runCurrent()
+
+            assertTrue(subject.uiState.value.hasResumableProgress)
+        }
+    }
+
     private fun detailsViewModel(
         repository: DetailsRepository = FakeDetailsRepository(
             detailsResult = AppResult.Success(contentModel("content-1")),
             recommendationsResult = AppResult.Success(emptyList()),
         ),
+        progressRepository: PlaybackProgressRepository = EmptyPlaybackProgressRepository,
     ): DetailsViewModel {
         return DetailsViewModel(
             loadDetails = LoadDetailsUseCase(repository),
+            progressRepository = progressRepository,
         )
     }
 
@@ -156,5 +229,33 @@ class DetailsViewModelTest {
         ): AppResult<List<ContentModel>> {
             return recommendationsResult
         }
+    }
+
+    private object EmptyPlaybackProgressRepository : PlaybackProgressRepository {
+        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
+            return flowOf(emptyList())
+        }
+
+        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
+            return null
+        }
+
+        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
+        override suspend fun remove(profileId: String, contentId: String) = Unit
+    }
+
+    private class FlowPlaybackProgressRepository(
+        private val entries: Flow<List<PlaybackProgressEntryModel>>,
+    ) : PlaybackProgressRepository {
+        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
+            return entries
+        }
+
+        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
+            return null
+        }
+
+        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
+        override suspend fun remove(profileId: String, contentId: String) = Unit
     }
 }

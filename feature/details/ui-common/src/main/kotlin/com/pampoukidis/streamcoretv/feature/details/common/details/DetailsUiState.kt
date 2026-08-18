@@ -6,6 +6,7 @@ data class DetailsUiState(
     val isLoading: Boolean = true,
     val content: ContentModel? = null,
     val recommendations: List<ContentModel> = emptyList(),
+    val hasResumableProgress: Boolean = false,
 )
 
 /**

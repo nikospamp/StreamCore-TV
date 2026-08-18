@@ -13,14 +13,14 @@ import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRouteE
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 
 @Composable
 fun MobileDetailsRoute(
     profileId: String,
     contentId: String,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
@@ -34,16 +34,13 @@ fun MobileDetailsRoute(
     )
 
     LaunchedEffect(profileId, contentId, viewModel) {
-        if (initialContent?.id == contentId) {
-            delay(InitialContentLoadDelayMillis.milliseconds)
-        }
-
         viewModel.onAction(
             DetailsAction.Load(
-                DetailsRequest(
+                request = DetailsRequest(
                     profileId = profileId,
                     contentId = contentId,
                 ),
+                initialContent = initialContent,
             ),
         )
     }
@@ -51,6 +48,7 @@ fun MobileDetailsRoute(
     DetailsRouteEventEffect(
         viewModel = viewModel,
         onRecommendationSelected = onRecommendationSelected,
+        onPlaySelected = onPlaySelected,
         onBack = onBack,
         onError = onError,
     )
@@ -61,5 +59,3 @@ fun MobileDetailsRoute(
         sharedElementScope = sharedElementScope,
     )
 }
-
-private const val InitialContentLoadDelayMillis = 250L

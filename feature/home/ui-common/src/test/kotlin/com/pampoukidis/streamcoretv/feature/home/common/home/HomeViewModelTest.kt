@@ -7,9 +7,14 @@ import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
+import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -84,11 +89,48 @@ class HomeViewModelTest {
         }
     }
 
+    @Test
+    fun `progress prepends reactive continue watching row`() {
+        runTest {
+            val content = contentModel()
+            val progress = MutableStateFlow(emptyList<PlaybackProgressEntryModel>())
+            val subject = homeViewModel(
+                repository = FakeHomeRepository(AppResult.Success(listOf(rowModel()))),
+                progressRepository = FlowPlaybackProgressRepository(progress),
+            )
+
+            subject.onAction(HomeAction.Load("profile-1"))
+            runCurrent()
+            progress.value = listOf(
+                PlaybackProgressEntryModel(
+                    profileId = "profile-1",
+                    contentId = content.id,
+                    contentSnapshot = content,
+                    positionMillis = 40_000L,
+                    durationMillis = 100_000L,
+                    updatedAtMillis = 1L,
+                ),
+            )
+            runCurrent()
+
+            val continueWatching = subject.uiState.value.rows.first()
+            assertEquals(RowType.ContinueWatching, continueWatching.type)
+            assertEquals(40_000L, continueWatching.content.single().playbackProgress?.positionMillis)
+
+            progress.value = emptyList()
+            runCurrent()
+
+            assertEquals(listOf(rowModel()), subject.uiState.value.rows)
+        }
+    }
+
     private fun homeViewModel(
         repository: HomeRepository = FakeHomeRepository(AppResult.Success(emptyList())),
+        progressRepository: PlaybackProgressRepository = EmptyPlaybackProgressRepository,
     ): HomeViewModel {
         return HomeViewModel(
             loadHomeRows = LoadHomeRowsUseCase(repository),
+            progressRepository = progressRepository,
         )
     }
 
@@ -133,5 +175,33 @@ class HomeViewModelTest {
             requestedProfileId = profileId
             return result
         }
+    }
+
+    private object EmptyPlaybackProgressRepository : PlaybackProgressRepository {
+        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
+            return flowOf(emptyList())
+        }
+
+        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
+            return null
+        }
+
+        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
+        override suspend fun remove(profileId: String, contentId: String) = Unit
+    }
+
+    private class FlowPlaybackProgressRepository(
+        private val entries: Flow<List<PlaybackProgressEntryModel>>,
+    ) : PlaybackProgressRepository {
+        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
+            return entries
+        }
+
+        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
+            return null
+        }
+
+        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
+        override suspend fun remove(profileId: String, contentId: String) = Unit
     }
 }

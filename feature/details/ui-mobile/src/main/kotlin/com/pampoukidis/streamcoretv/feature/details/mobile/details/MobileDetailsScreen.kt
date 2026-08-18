@@ -39,6 +39,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreRefreshIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.bottomRounded
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
@@ -75,6 +76,7 @@ fun MobileDetailsScreen(
                 content = content,
                 recommendations = state.recommendations,
                 isLoading = state.isLoading,
+                hasResumableProgress = state.hasResumableProgress,
                 onAction = onAction,
                 sharedElementScope = sharedElementScope,
             )
@@ -93,6 +95,7 @@ private fun DetailsContent(
     content: ContentModel,
     recommendations: List<ContentModel>,
     isLoading: Boolean,
+    hasResumableProgress: Boolean,
     onAction: (DetailsAction) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -113,6 +116,21 @@ private fun DetailsContent(
                 onBack = { onAction(DetailsAction.BackSelected) },
                 onRefresh = { onAction(DetailsAction.Refresh) },
                 sharedElementScope = sharedElementScope,
+            )
+        }
+        item(
+            key = "${content.id}:play",
+            contentType = "play",
+        ) {
+            StreamCoreButton(
+                text = if (hasResumableProgress) "Resume" else "Play",
+                onClick = { onAction(DetailsAction.PlaySelected) },
+                enabled = true,
+                leadingIcon = { StreamCorePlayIcon() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding)
+                    .testTag(DetailsTestTags.PlayButton),
             )
         }
         item(

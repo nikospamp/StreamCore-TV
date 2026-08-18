@@ -34,6 +34,7 @@ import com.pampoukidis.streamcoretv.feature.home.tv.home.TvHomeRoute
 import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
+import com.pampoukidis.streamcoretv.feature.player.mobile.player.MobilePlayerRoute
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.editor.MobileProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles.MobileProfilesRoute
@@ -41,6 +42,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfile
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfilesRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -273,10 +275,35 @@ internal fun StreamCoreNavHost(
                             launchSingleTop = true
                         }
                     },
+                    onPlaySelected = { request ->
+                        navController.navigate(
+                            AppRoute.Player(
+                                profileId = request.profileId,
+                                contentId = request.contentId,
+                                contentSnapshot = request.contentSnapshot,
+                            ),
+                        ) {
+                            launchSingleTop = true
+                        }
+                    },
                     onBack = {
                         navController.popBackStack()
                     },
                     onError = onError,
+                )
+            }
+
+            composable<AppRoute.Player>(
+                typeMap = mapOf(typeOf<ContentModel>() to ContentModelNavType),
+            ) { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.Player>()
+                MobilePlayerRoute(
+                    request = PlaybackRequestModel(
+                        profileId = route.profileId,
+                        contentId = route.contentId,
+                        contentSnapshot = route.contentSnapshot,
+                    ),
+                    onBack = { navController.popBackStack() },
                 )
             }
         }
@@ -443,6 +470,7 @@ private fun DetailsDestination(
     initialContent: ContentModel?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
@@ -451,6 +479,7 @@ private fun DetailsDestination(
             profileId = profileId,
             contentId = contentId,
             onRecommendationSelected = onRecommendationSelected,
+            onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,

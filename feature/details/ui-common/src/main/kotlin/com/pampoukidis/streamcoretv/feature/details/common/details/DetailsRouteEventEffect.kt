@@ -9,16 +9,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 
 @Composable
 fun DetailsRouteEventEffect(
     viewModel: DetailsViewModel,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentRecommendationSelected by rememberUpdatedState(onRecommendationSelected)
+    val currentPlaySelected by rememberUpdatedState(onPlaySelected)
     val currentBack by rememberUpdatedState(onBack)
     val currentError by rememberUpdatedState(onError)
 
@@ -29,6 +32,7 @@ fun DetailsRouteEventEffect(
                     is DetailsEffect.RecommendationSelected -> {
                         currentRecommendationSelected(effect.content)
                     }
+                    is DetailsEffect.PlaySelected -> currentPlaySelected(effect.request)
                     DetailsEffect.NavigateBack -> currentBack()
                     is DetailsEffect.ShowError -> currentError(effect.error)
                 }
