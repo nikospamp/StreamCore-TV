@@ -63,6 +63,12 @@ include(":feature:home:ui-mobile")
 include(":feature:home:ui-tablet")
 include(":feature:home:ui-tv")
 
+// Search
+include(":feature:search:data")
+include(":feature:search:domain")
+include(":feature:search:ui-common")
+include(":feature:search:ui-mobile")
+
 // Details
 include(":feature:details:data")
 include(":feature:details:domain")

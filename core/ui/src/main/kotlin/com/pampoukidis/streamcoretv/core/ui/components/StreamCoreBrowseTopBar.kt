@@ -34,6 +34,7 @@ fun StreamCoreBrowseTopBar(
     modifier: Modifier = Modifier,
     profileAvatar: ProfileAvatarModel? = null,
     profileArtworkModifier: Modifier = Modifier,
+    onSearchSelected: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -57,17 +58,23 @@ fun StreamCoreBrowseTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
-                onClick = {},
-                enabled = false,
+                onClick = { onSearchSelected?.invoke() },
+                enabled = onSearchSelected != null,
                 modifier = Modifier
-                    .size(StreamCoreDimens.Icon.Large)
+                    .size(StreamCoreDimens.Icon.TouchTarget)
                     .semantics {
                         contentDescription = "Search"
-                        disabled()
+                        if (onSearchSelected == null) {
+                            disabled()
+                        }
                     },
             ) {
-                SearchGlyph(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                StreamCoreSearchIcon(
+                    color = if (onSearchSelected == null) {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 )
             }
             Surface(
@@ -115,26 +122,6 @@ private fun StreamCoreBrandMark() {
             startAngle = 0f,
             sweepAngle = 180f,
             useCenter = true,
-        )
-    }
-}
-
-@Composable
-private fun SearchGlyph(color: Color) {
-    Canvas(modifier = Modifier.size(StreamCoreDimens.Icon.Medium)) {
-        val strokeWidth = StreamCoreDimens.Stroke.Icon.toPx()
-        drawCircle(
-            color = color,
-            radius = size.minDimension * 0.28f,
-            center = Offset(size.width * 0.43f, size.height * 0.43f),
-            style = Stroke(width = strokeWidth),
-        )
-        drawLine(
-            color = color,
-            start = Offset(size.width * 0.62f, size.height * 0.62f),
-            end = Offset(size.width * 0.84f, size.height * 0.84f),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round,
         )
     }
 }

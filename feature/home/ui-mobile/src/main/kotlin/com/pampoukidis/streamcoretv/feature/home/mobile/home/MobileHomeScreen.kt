@@ -71,6 +71,7 @@ import com.pampoukidis.streamcoretv.feature.home.common.testing.HomeTestTags
 fun MobileHomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
+    onSearchSelected: () -> Unit,
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
     activeProfile: ProfileModel? = null,
@@ -94,6 +95,7 @@ fun MobileHomeScreen(
         ) {
             StreamCoreBrowseTopBar(
                 onProfileSelected = onProfileSelected,
+                onSearchSelected = onSearchSelected,
                 profileAvatar = activeProfile?.avatar,
                 profileArtworkModifier = if (activeProfile != null) {
                     Modifier.streamCoreSharedBounds(
@@ -860,6 +862,7 @@ private fun MobileHomeScreenPreview() {
                 rows = HomePreviewData.rows,
             ),
             onAction = {},
+            onSearchSelected = {},
             onProfileSelected = {},
             selectedContentKey = null,
         )
@@ -876,6 +879,7 @@ private fun MobileHomeScreenLightPreview() {
                 rows = HomePreviewData.rows,
             ),
             onAction = {},
+            onSearchSelected = {},
             onProfileSelected = {},
             selectedContentKey = null,
         )

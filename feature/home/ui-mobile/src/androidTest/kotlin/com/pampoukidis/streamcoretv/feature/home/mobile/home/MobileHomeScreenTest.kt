@@ -1,6 +1,5 @@
 package com.pampoukidis.streamcoretv.feature.home.mobile.home
 
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -28,6 +27,7 @@ class MobileHomeScreenTest {
     fun chromeAndHeroActionsExposeExpectedBehavior() {
         val actions = mutableListOf<HomeAction>()
         var profileSelected = false
+        var searchSelected = false
 
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -37,16 +37,18 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = actions::add,
+                    onSearchSelected = { searchSelected = true },
                     onProfileSelected = { profileSelected = true },
                 )
             }
         }
 
-        composeRule.onNodeWithContentDescription("Search").assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription("Search").performClick()
         composeRule.onNodeWithContentDescription("Choose profile").performClick()
         composeRule.onAllNodesWithTag(HomeTestTags.HeroDetails)[0].performClick()
 
         assertTrue(profileSelected)
+        assertTrue(searchSelected)
         assertTrue(actions.last() is HomeAction.ContentSelected)
     }
 
@@ -64,6 +66,7 @@ class MobileHomeScreenTest {
                         rows = rows,
                     ),
                     onAction = {},
+                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }
@@ -86,6 +89,7 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = actions::add,
+                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }
@@ -109,6 +113,7 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = {},
+                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }

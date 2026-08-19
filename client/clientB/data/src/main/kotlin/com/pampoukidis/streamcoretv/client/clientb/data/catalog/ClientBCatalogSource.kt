@@ -61,7 +61,13 @@ class ClientBCatalogSource @Inject constructor() {
     )
 
     internal fun contentForProfile(profileId: String): List<ClientBContentDto> {
-        if (profileId.contains("kids", ignoreCase = true)) {
+        return contentForProfile(
+            isKidsProfile = profileId.contains("kids", ignoreCase = true),
+        )
+    }
+
+    internal fun contentForProfile(isKidsProfile: Boolean): List<ClientBContentDto> {
+        if (isKidsProfile) {
             return catalog.filter { it.parentalLevel <= KIDS_MATURITY_LEVEL }
         }
 

@@ -39,6 +39,8 @@ internal class FakeTmdbApi : TmdbApi {
         private set
     var movieAccountStatesCalls = 0
         private set
+    var searchMoviesCalls = 0
+        private set
 
     var lastLoginIdentifier: String? = null
         private set
@@ -57,6 +59,10 @@ internal class FakeTmdbApi : TmdbApi {
     var lastMovieAccountStatesMovieId: Int? = null
         private set
     var lastMovieAccountStatesSessionId: String? = null
+        private set
+    var lastSearchQuery: String? = null
+        private set
+    var lastSearchIncludeAdult: Boolean? = null
         private set
 
     var requestTokenResponse = TmdbRequestTokenResponseDto(
@@ -144,6 +150,19 @@ internal class FakeTmdbApi : TmdbApi {
         voteAverage = 6.1,
     )
 
+    var searchMoviesResults: List<TmdbMovieSummaryDto> = listOf(
+        orbitFall,
+        afterHours,
+        northernLine,
+        littleComets,
+    )
+
+    var trendingWeekResults: List<TmdbMovieSummaryDto> = listOf(
+        orbitFall,
+        afterHours,
+        northernLine,
+    )
+
     override suspend fun createRequestToken(): TmdbRequestTokenResponseDto {
         throwIfNeeded()
         createRequestTokenCalls += 1
@@ -219,7 +238,7 @@ internal class FakeTmdbApi : TmdbApi {
         throwIfNeeded()
         val results = when (timeWindow) {
             TmdbTrendingTimeWindow.Day -> listOf(northernLine, orbitFall, littleComets)
-            TmdbTrendingTimeWindow.Week -> listOf(orbitFall, afterHours, northernLine)
+            TmdbTrendingTimeWindow.Week -> trendingWeekResults
         }
         return movieList(results = results)
     }
@@ -240,6 +259,19 @@ internal class FakeTmdbApi : TmdbApi {
     ): TmdbMovieListResponseDto {
         throwIfNeeded()
         return movieList(results = listOf(littleComets, orbitFall))
+    }
+
+    override suspend fun searchMovies(
+        query: String,
+        includeAdult: Boolean,
+        language: String,
+        page: Int,
+    ): TmdbMovieListResponseDto {
+        throwIfNeeded()
+        searchMoviesCalls += 1
+        lastSearchQuery = query
+        lastSearchIncludeAdult = includeAdult
+        return movieList(results = searchMoviesResults)
     }
 
     override suspend fun getMovieDetails(

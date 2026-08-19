@@ -18,6 +18,7 @@ fun MobileHomeRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onSearchSelected: () -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     activeProfile: ProfileModel? = null,
@@ -39,6 +40,7 @@ fun MobileHomeRoute(
     MobileHomeScreen(
         state = state,
         onAction = viewModel::onAction,
+        onSearchSelected = onSearchSelected,
         onProfileSelected = onProfileSelected,
         activeProfile = activeProfile,
         selectedContentKey = selectedContentKey,

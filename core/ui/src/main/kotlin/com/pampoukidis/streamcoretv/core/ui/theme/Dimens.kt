@@ -102,6 +102,11 @@ object StreamCoreDimens {
             val RecommendationCardWidth = 142.dp
         }
 
+        object Search {
+            val FieldHeight = Button.MinHeight
+            val TrendingArtworkWidth = 112.dp
+        }
+
         object Profiles {
             val AvatarSize = 104.dp
             val PreviewGridHeight = 360.dp

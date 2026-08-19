@@ -27,6 +27,7 @@ dependencies {
     // Core
     implementation(projects.core.domain)
     implementation(projects.core.data)
+    implementation(projects.feature.search.domain)
 
     // Libraries
     implementation(libs.dagger.hilt.android)
