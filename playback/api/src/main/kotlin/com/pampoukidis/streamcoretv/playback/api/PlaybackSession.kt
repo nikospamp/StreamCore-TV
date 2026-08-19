@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.playback.api
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface PlaybackSession : AutoCloseable {
@@ -16,5 +17,5 @@ interface PlaybackSession : AutoCloseable {
     fun selectTextTrack(trackId: String?)
     fun setResizeMode(mode: PlaybackResizeMode)
     fun retry()
-    suspend fun requestFilmstrip(positionsMillis: List<Long>): List<PlaybackFilmstripFrameModel>
+    fun requestFilmstrip(positionsMillis: List<Long>): Flow<PlaybackFilmstripFrameModel>
 }

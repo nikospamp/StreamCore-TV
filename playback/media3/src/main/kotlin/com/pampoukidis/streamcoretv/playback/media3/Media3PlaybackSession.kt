@@ -1,8 +1,10 @@
 package com.pampoukidis.streamcoretv.playback.media3
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import android.util.LruCache
 import androidx.annotation.OptIn
 import androidx.compose.ui.graphics.asImageBitmap
@@ -14,8 +16,16 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.effect.Presentation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.image.ImageOutput
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.inspector.frame.FrameExtractor
 import androidx.media3.session.MediaSession
 import com.google.common.util.concurrent.ListenableFuture
@@ -30,22 +40,30 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.abs
 
 @OptIn(UnstableApi::class)
 internal class Media3PlaybackSession(
@@ -78,8 +96,11 @@ internal class Media3PlaybackSession(
         }
     }
     private var frameExtractor: FrameExtractor? = null
+    private var thumbnailExtractor: DashThumbnailExtractor? = null
     private var currentMediaItem: MediaItem? = null
     private var tickerJob: Job? = null
+    private var filmstripPrewarmJob: Job? = null
+    private var lastFilmstripPrewarmCenterMillis: Long? = null
     private var resizeMode = PlaybackResizeMode.Fit
     private var selectedVideoTrackOverrideId: String? = null
     private var closed = false
@@ -105,6 +126,10 @@ internal class Media3PlaybackSession(
             .build()
         selectedVideoTrackOverrideId = null
         currentMediaItem = item
+        filmstripPrewarmJob?.cancel()
+        thumbnailExtractor?.close()
+        thumbnailExtractor = null
+        lastFilmstripPrewarmCenterMillis = null
         replaceFrameExtractor(item)
         _state.value = _state.value.copy(phase = PlaybackPhase.Preparing, error = null)
         player.setMediaItem(item, startPositionMillis.coerceAtLeast(0L))
@@ -163,29 +188,28 @@ internal class Media3PlaybackSession(
         player.playWhenReady = true
     }
 
-    override suspend fun requestFilmstrip(
+    override fun requestFilmstrip(
         positionsMillis: List<Long>,
-    ): List<PlaybackFilmstripFrameModel> {
-        return frameMutex.withLock {
-            val extractor = frameExtractor
-            positionsMillis.map { requestedPosition ->
-                val key = requestedPosition.coerceAtLeast(0L)
-                val cached = frameCache.get(key)
-                val bitmap = cached ?: extractor?.let { activeExtractor ->
-                    runCatching {
-                        val frame = activeExtractor.getFrame(key).await()
-                        scaleFrame(frame.bitmap).also { scaled -> frameCache.put(key, scaled) }
-                    }.getOrNull()
+    ): Flow<PlaybackFilmstripFrameModel> {
+        return flow {
+            filmstripPrewarmJob?.cancel()
+            frameMutex.withLock {
+                positionsMillis.forEach { requestedPosition ->
+                    val key = requestedPosition.coerceAtLeast(0L)
+                    val bitmap = getOrExtractFilmstripFrame(key)
+                    emit(
+                        PlaybackFilmstripFrameModel(
+                            positionMillis = key,
+                            image = bitmap?.asImageBitmap(),
+                        ),
+                    )
                 }
-                PlaybackFilmstripFrameModel(
-                    positionMillis = key,
-                    image = bitmap?.asImageBitmap(),
-                )
             }
         }
     }
 
     override fun onEvents(player: Player, events: Player.Events) {
+        prepareThumbnailExtractorIfAvailable()
         publishState()
     }
 
@@ -199,7 +223,10 @@ internal class Media3PlaybackSession(
         }
         closed = true
         tickerJob?.cancel()
+        filmstripPrewarmJob?.cancel()
         scope.cancel()
+        thumbnailExtractor?.close()
+        thumbnailExtractor = null
         frameExtractor?.close()
         frameExtractor = null
         frameCache.evictAll()
@@ -281,6 +308,7 @@ internal class Media3PlaybackSession(
                 )
             },
         )
+        scheduleFilmstripPrewarmIfNeeded()
     }
 
     private fun Tracks.toModels(
@@ -332,17 +360,91 @@ internal class Media3PlaybackSession(
         frameCache.evictAll()
         frameExtractor = FrameExtractor.Builder(applicationContext, mediaItem)
             .setSeekParameters(SeekParameters.CLOSEST_SYNC)
+            .setEffects(listOf(Presentation.createForHeight(FilmstripHeightPx)))
             .build()
     }
 
-    private fun scaleFrame(bitmap: Bitmap): Bitmap {
-        if (bitmap.height <= FilmstripHeightPx) {
-            return bitmap
+    private fun prepareThumbnailExtractorIfAvailable() {
+        if (thumbnailExtractor != null || !player.currentTracks.hasImageTrack()) {
+            return
         }
-        val width = (bitmap.width.toFloat() * FilmstripHeightPx / bitmap.height)
-            .toInt()
-            .coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, width, FilmstripHeightPx, true)
+        val mediaItem = currentMediaItem ?: return
+        val extractor = DashThumbnailExtractor(applicationContext)
+        thumbnailExtractor = extractor
+        extractor.prepare(mediaItem)
+        scheduleFilmstripPrewarmIfNeeded()
+    }
+
+    private fun scheduleFilmstripPrewarmIfNeeded() {
+        if (player.playbackState != Player.STATE_READY ||
+            player.currentTracks.hasImageTrack() && thumbnailExtractor == null ||
+            filmstripPrewarmJob?.isActive == true
+        ) {
+            return
+        }
+        val durationMillis = player.duration.validTime()
+        if (durationMillis <= 0L) {
+            return
+        }
+        val centerMillis = quantizeFilmstripPosition(player.currentPosition, durationMillis)
+        val lastCenterMillis = lastFilmstripPrewarmCenterMillis
+        if (lastCenterMillis != null &&
+            abs(centerMillis - lastCenterMillis) < FilmstripPrewarmRefreshMillis
+        ) {
+            return
+        }
+        filmstripPrewarmJob = scope.launch {
+            val completed = frameMutex.withLock {
+                for (positionMillis in filmstripPrewarmPositions(centerMillis, durationMillis)) {
+                    getOrExtractFilmstripFrame(positionMillis) ?: return@withLock false
+                }
+                true
+            }
+            if (completed) {
+                lastFilmstripPrewarmCenterMillis = centerMillis
+            }
+        }
+    }
+
+    private suspend fun getOrExtractFilmstripFrame(positionMillis: Long): Bitmap? {
+        frameCache.get(positionMillis)?.let { cached -> return cached }
+        val activeThumbnailExtractor = thumbnailExtractor
+        val bitmap = if (activeThumbnailExtractor != null) {
+            activeThumbnailExtractor.getFrame(positionMillis)
+        } else {
+            val activeFrameExtractor = frameExtractor ?: return null
+            try {
+                activeFrameExtractor.getFrame(positionMillis).await().bitmap
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                Log.w(LogTag, "Filmstrip extraction failed at ${positionMillis}ms", exception)
+                null
+            }
+        }
+        bitmap?.let { extracted -> frameCache.put(positionMillis, extracted) }
+        return bitmap
+    }
+
+    private fun Tracks.hasImageTrack(): Boolean {
+        return groups.any { group ->
+            group.type == C.TRACK_TYPE_IMAGE && (0 until group.length).any(group::isTrackSupported)
+        }
+    }
+
+    private fun quantizeFilmstripPosition(positionMillis: Long, durationMillis: Long): Long {
+        val bucket = (positionMillis + FilmstripSpacingMillis / 2L) / FilmstripSpacingMillis
+        return (bucket * FilmstripSpacingMillis).coerceIn(0L, durationMillis)
+    }
+
+    private fun filmstripPrewarmPositions(centerMillis: Long, durationMillis: Long): List<Long> {
+        return buildList {
+            add(centerMillis)
+            for (offset in 1L..FilmstripPrewarmRadiusBuckets) {
+                add((centerMillis - offset * FilmstripSpacingMillis).coerceAtLeast(0L))
+                add((centerMillis + offset * FilmstripSpacingMillis).coerceAtMost(durationMillis))
+            }
+        }.distinct()
     }
 
     private fun publishSourceError() {
@@ -370,8 +472,107 @@ internal class Media3PlaybackSession(
         const val MinSpeed = 0.5f
         const val MaxSpeed = 2f
         const val FilmstripHeightPx = 180
+        const val FilmstripSpacingMillis = 5_000L
+        const val FilmstripPrewarmRadiusBuckets = 6L
+        const val FilmstripPrewarmRefreshMillis = 30_000L
         const val FrameCacheBytes = 8 * 1024 * 1024
+        const val LogTag = "Media3PlaybackSession"
     }
+}
+
+@OptIn(UnstableApi::class)
+private class DashThumbnailExtractor(
+    context: Context,
+) : Player.Listener, ImageOutput {
+
+    private val applicationContext = context.applicationContext
+    private val trackAvailability = MutableStateFlow(false)
+    private val images = Channel<Bitmap>(Channel.CONFLATED)
+    private val cacheDataSourceFactory = CacheDataSource.Factory()
+        .setCache(FilmstripMediaCache.get(applicationContext))
+        .setUpstreamDataSourceFactory(DefaultDataSource.Factory(applicationContext))
+        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+    private val player = ExoPlayer.Builder(applicationContext)
+        .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
+        .setSeekParameters(SeekParameters.CLOSEST_SYNC)
+        .build()
+        .apply {
+            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                .setPrioritizeImageOverVideoEnabled(true)
+                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
+                .build()
+            setImageOutput(this@DashThumbnailExtractor)
+            setScrubbingModeEnabled(true)
+            addListener(this@DashThumbnailExtractor)
+        }
+
+    fun prepare(mediaItem: MediaItem) {
+        player.setMediaItem(mediaItem)
+        player.prepare()
+    }
+
+    suspend fun getFrame(positionMillis: Long): Bitmap? {
+        val hasImageTrack = withTimeoutOrNull(PrepareTimeoutMillis) {
+            trackAvailability.filter { available -> available }.first()
+        } != null
+        if (!hasImageTrack) {
+            return null
+        }
+        while (images.tryReceive().isSuccess) {
+            // Discard output from the previous seek before awaiting this position.
+        }
+        player.seekTo(positionMillis.coerceAtLeast(0L))
+        return withTimeoutOrNull(FrameTimeoutMillis) { images.receive() }
+    }
+
+    override fun onTracksChanged(tracks: Tracks) {
+        trackAvailability.value = tracks.groups.any { group ->
+            group.type == C.TRACK_TYPE_IMAGE && (0 until group.length).any(group::isTrackSupported)
+        }
+    }
+
+    override fun onImageAvailable(presentationTimeUs: Long, bitmap: Bitmap) {
+        images.trySend(bitmap)
+    }
+
+    override fun onDisabled() {
+        // No renderer-owned resources.
+    }
+
+    fun close() {
+        images.close()
+        player.removeListener(this)
+        player.release()
+    }
+
+    private companion object {
+        const val PrepareTimeoutMillis = 2_000L
+        const val FrameTimeoutMillis = 1_000L
+    }
+}
+
+@SuppressLint("UnsafeOptInUsageError")
+private object FilmstripMediaCache {
+    @Volatile
+    private var instance: SimpleCache? = null
+
+    private val lock = Any()
+
+    fun get(context: Context): SimpleCache {
+        instance?.let { cache -> return cache }
+        return synchronized(lock) {
+            instance ?: SimpleCache(
+                context.cacheDir.resolve(CacheDirectoryName),
+                LeastRecentlyUsedCacheEvictor(CacheBytes),
+                StandaloneDatabaseProvider(context),
+            ).also { cache -> instance = cache }
+        }
+    }
+
+    private const val CacheDirectoryName = "media3-filmstrip"
+    private const val CacheBytes = 16L * 1024L * 1024L
 }
 
 private suspend fun <T> ListenableFuture<T>.await(): T {
