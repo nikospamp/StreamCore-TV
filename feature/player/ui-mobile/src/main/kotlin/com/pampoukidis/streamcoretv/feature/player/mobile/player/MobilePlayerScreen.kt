@@ -433,7 +433,11 @@ private fun PlayerTimelineTrack(
 @Composable
 private fun Filmstrip(state: PlayerUiState) {
     val frameCount = if (LocalConfiguration.current.screenWidthDp < ConstrainedWidthDp) 3 else 5
-    val frames = state.filmstripFrames.take(frameCount)
+    val frames = if (frameCount == 3) {
+        state.filmstripFrames.drop(1).take(3)
+    } else {
+        state.filmstripFrames.take(frameCount)
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier

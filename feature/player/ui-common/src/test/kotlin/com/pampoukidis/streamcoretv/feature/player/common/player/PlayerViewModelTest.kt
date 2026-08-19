@@ -2,6 +2,10 @@ package com.pampoukidis.streamcoretv.feature.player.common.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageBitmapConfig
+import androidx.compose.ui.graphics.colorspace.ColorSpace
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
@@ -21,12 +25,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -79,7 +85,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `stale filmstrip debounce is cancelled`() = runTest {
+    fun `rapid scrubbing conflates pending filmstrip targets`() = runTest {
         val factory = FakeSessionFactory()
         val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
@@ -89,14 +95,61 @@ class PlayerViewModelTest {
         runCurrent()
 
         subject.onAction(PlayerAction.ScrubStarted)
+        runCurrent()
         subject.onAction(PlayerAction.ScrubChanged(50_000L))
-        advanceTimeBy(100L)
         subject.onAction(PlayerAction.ScrubChanged(70_000L))
-        advanceTimeBy(151L)
+        advanceTimeBy(1L)
         runCurrent()
 
-        assertEquals(1, session.filmstripRequests.size)
-        assertEquals(70_000L, session.filmstripRequests.single()[2])
+        assertEquals(
+            listOf(
+                listOf(40_000L, 35_000L, 45_000L, 30_000L, 50_000L),
+                listOf(70_000L, 65_000L, 75_000L, 60_000L, 80_000L),
+            ),
+            session.filmstripRequests,
+        )
+        assertEquals(listOf(40_000L), session.filmstripEmissions)
+
+        advanceTimeBy(1L)
+        runCurrent()
+
+        assertNotNull(subject.uiState.value.filmstripFrames[2].image)
+        assertEquals(70_000L, subject.uiState.value.scrubPositionMillis)
+    }
+
+    @Test
+    fun `filmstrip frames are rendered progressively`() = runTest {
+        val factory = FakeSessionFactory()
+        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+        val session = factory.sessions.single()
+        session.emit(PlaybackEngineState(phase = PlaybackPhase.Ready, durationMillis = 120_000L, positionMillis = 40_000L))
+        runCurrent()
+
+        subject.onAction(PlayerAction.ScrubStarted)
+        val placeholders = subject.uiState.value.filmstripFrames
+        runCurrent()
+        advanceTimeBy(1L)
+        runCurrent()
+        val centerLoaded = subject.uiState.value.filmstripFrames
+
+        assertNotSame(placeholders, centerLoaded)
+        assertEquals(1, centerLoaded.count { frame -> frame.image != null })
+        assertEquals(listOf(40_000L), session.filmstripEmissions)
+
+        advanceTimeBy(1L)
+        runCurrent()
+        val secondFrameLoaded = subject.uiState.value.filmstripFrames
+
+        assertNotSame(centerLoaded, secondFrameLoaded)
+        assertEquals(2, secondFrameLoaded.count { frame -> frame.image != null })
+        assertEquals(listOf(40_000L, 35_000L), session.filmstripEmissions)
+
+        advanceTimeBy(3L)
+        runCurrent()
+
+        assertEquals(5, subject.uiState.value.filmstripFrames.count { frame -> frame.image != null })
     }
 
     @Test
@@ -276,6 +329,7 @@ class PlayerViewModelTest {
         var selectedSpeed = 1f
         var selectedResizeMode = PlaybackResizeMode.Fit
         val filmstripRequests = mutableListOf<List<Long>>()
+        val filmstripEmissions = mutableListOf<Long>()
         fun emit(value: PlaybackEngineState) {
             mutableState.value = value
         }
@@ -308,10 +362,15 @@ class PlayerViewModelTest {
         }
 
         override fun retry() = Unit
-        override suspend fun requestFilmstrip(positionsMillis: List<Long>): List<PlaybackFilmstripFrameModel> {
+        override fun requestFilmstrip(positionsMillis: List<Long>): Flow<PlaybackFilmstripFrameModel> {
             filmstripRequests += positionsMillis
-            delay(1L)
-            return positionsMillis.map { PlaybackFilmstripFrameModel(it, null) }
+            return flow {
+                positionsMillis.forEach { positionMillis ->
+                    delay(1L)
+                    filmstripEmissions += positionMillis
+                    emit(PlaybackFilmstripFrameModel(positionMillis, FakeImageBitmap))
+                }
+            }
         }
 
         override fun close() = Unit
@@ -320,5 +379,29 @@ class PlayerViewModelTest {
     private object FakeSurface : PlaybackVideoSurface {
         @Composable
         override fun Render(modifier: Modifier) = Unit
+    }
+
+    private object FakeImageBitmap : ImageBitmap {
+        override val width = 1
+        override val height = 1
+        override val colorSpace: ColorSpace = ColorSpaces.Srgb
+        override val hasAlpha = false
+        override val config: ImageBitmapConfig = ImageBitmapConfig.Argb8888
+
+        override fun readPixels(
+            buffer: IntArray,
+            startX: Int,
+            startY: Int,
+            width: Int,
+            height: Int,
+            bufferOffset: Int,
+            stride: Int,
+        ) {
+            return
+        }
+
+        override fun prepareToDraw() {
+            return
+        }
     }
 }

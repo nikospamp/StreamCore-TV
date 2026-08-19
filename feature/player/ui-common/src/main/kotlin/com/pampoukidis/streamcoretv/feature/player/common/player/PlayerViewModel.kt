@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -49,6 +50,8 @@ class PlayerViewModel @Inject constructor(
     private var sessionStateJob: Job? = null
     private var controlsJob: Job? = null
     private var filmstripJob: Job? = null
+    private var activeFilmstripPositions: List<Long> = emptyList()
+    private var pendingFilmstripPositions: List<Long>? = null
     private var feedbackJob: Job? = null
     private var resumeAfterScrub = false
     private var lastValidPositionMillis = 0L
@@ -94,6 +97,9 @@ class PlayerViewModel @Inject constructor(
         if (request == newRequest && session != null) {
             return
         }
+        filmstripJob?.cancel()
+        activeFilmstripPositions = emptyList()
+        pendingFilmstripPositions = null
         request = newRequest
         _uiState.value = PlayerUiState(
             title = newRequest.contentSnapshot.title,
@@ -244,6 +250,8 @@ class PlayerViewModel @Inject constructor(
             return
         }
         filmstripJob?.cancel()
+        activeFilmstripPositions = emptyList()
+        pendingFilmstripPositions = null
         session?.seekTo(state.scrubPositionMillis)
         if (resumeAfterScrub) {
             session?.play()
@@ -260,23 +268,75 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun requestFilmstrip(centerMillis: Long) {
-        filmstripJob?.cancel()
-        val positions = (-2L..2L).map { offset ->
-            (centerMillis + offset * FilmstripSpacingMillis).coerceAtLeast(0L)
+        val durationMillis = _uiState.value.durationMillis
+        val positions = filmstripPositions(centerMillis, durationMillis)
+        if (positions == activeFilmstripPositions) {
+            return
         }
+        activeFilmstripPositions = positions
+        pendingFilmstripPositions = positions
         _uiState.update { state ->
             state.copy(
-                filmstripFrames = positions.map { position ->
-                    PlaybackFilmstripFrameModel(position, null)
+                filmstripFrames = positions.mapIndexed { index, position ->
+                    PlaybackFilmstripFrameModel(
+                        positionMillis = position,
+                        image = state.filmstripFrames.getOrNull(index)?.image,
+                    )
                 },
             )
         }
-        filmstripJob = viewModelScope.launch {
-            delay(FilmstripDebounceMillis)
-            val frames = session?.requestFilmstrip(positions).orEmpty()
-            if (_uiState.value.isScrubbing) {
-                _uiState.update { it.copy(filmstripFrames = frames) }
+        if (filmstripJob?.isActive == true) {
+            return
+        }
+        filmstripJob = viewModelScope.launch { processFilmstripRequests() }
+    }
+
+    private suspend fun processFilmstripRequests() {
+        val activeSession = session ?: return
+        while (true) {
+            val positions = pendingFilmstripPositions ?: return
+            pendingFilmstripPositions = null
+            activeSession.requestFilmstrip(positions.inFilmstripExtractionOrder())
+                .takeWhile { pendingFilmstripPositions == null }
+                .collect { frame -> updateFilmstripFrame(positions, frame) }
+        }
+    }
+
+    private fun filmstripPositions(centerMillis: Long, durationMillis: Long): List<Long> {
+        val quantizedCenterMillis = (
+                (centerMillis + FilmstripSpacingMillis / 2L) /
+                        FilmstripSpacingMillis * FilmstripSpacingMillis
+                ).coerceIn(0L, durationMillis)
+        return (-2L..2L).map { offset ->
+            (quantizedCenterMillis + offset * FilmstripSpacingMillis).coerceIn(0L, durationMillis)
+        }
+    }
+
+    private fun List<Long>.inFilmstripExtractionOrder(): List<Long> {
+        return FilmstripFrameIndicesByPriority
+            .mapNotNull { index -> getOrNull(index) }
+            .distinct()
+    }
+
+    private fun updateFilmstripFrame(
+        positions: List<Long>,
+        loadedFrame: PlaybackFilmstripFrameModel,
+    ) {
+        _uiState.update { state ->
+            if (!state.isScrubbing || positions != activeFilmstripPositions) {
+                return@update state
             }
+            state.copy(
+                filmstripFrames = positions.mapIndexed { index, position ->
+                    val loadedImage = loadedFrame.image.takeIf {
+                        loadedFrame.positionMillis == position
+                    }
+                    PlaybackFilmstripFrameModel(
+                        positionMillis = position,
+                        image = loadedImage ?: state.filmstripFrames.getOrNull(index)?.image,
+                    )
+                },
+            )
         }
     }
 
@@ -406,8 +466,8 @@ class PlayerViewModel @Inject constructor(
     private companion object {
         const val ControlsAutoHideMillis = 10_000L
         const val ProgressSaveIntervalMillis = 10_000L
-        const val FilmstripDebounceMillis = 150L
         const val FilmstripSpacingMillis = 5_000L
         const val SeekFeedbackMillis = 800L
+        val FilmstripFrameIndicesByPriority = listOf(2, 1, 3, 0, 4)
     }
 }
