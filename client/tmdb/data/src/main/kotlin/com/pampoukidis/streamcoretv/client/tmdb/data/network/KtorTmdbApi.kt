@@ -168,6 +168,23 @@ internal class KtorTmdbApi @Inject constructor(
         }.body()
     }
 
+    override suspend fun searchMovies(
+        query: String,
+        includeAdult: Boolean,
+        language: String,
+        page: Int,
+    ): TmdbMovieListResponseDto {
+        return httpClient.get {
+            url {
+                path(API_VERSION, "search", "movie")
+            }
+            parameter("query", query)
+            parameter("include_adult", includeAdult)
+            parameter("language", language)
+            parameter("page", page)
+        }.body()
+    }
+
     override suspend fun getMovieDetails(
         movieId: Int,
         language: String,

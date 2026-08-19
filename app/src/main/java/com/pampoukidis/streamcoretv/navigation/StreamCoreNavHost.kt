@@ -42,6 +42,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfile
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfilesRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
+import com.pampoukidis.streamcoretv.feature.search.mobile.search.MobileSearchRoute
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import kotlin.reflect.typeOf
 
@@ -230,6 +231,12 @@ internal fun StreamCoreNavHost(
                             launchSingleTop = true
                         }
                     },
+                    onSearchSelected = {
+                        selectedContent = null
+                        navController.navigate(AppRoute.Search(profileId = route.profileId)) {
+                            launchSingleTop = true
+                        }
+                    },
                     onProfileSelected = {
                         selectedContent = null
                         onActiveProfileChanged(null)
@@ -241,6 +248,39 @@ internal fun StreamCoreNavHost(
                         }
                     },
                     onError = onError,
+                )
+            }
+
+            composable<AppRoute.Search> { backStackEntry ->
+                val route = backStackEntry.toRoute<AppRoute.Search>()
+
+                MobileSearchRoute(
+                    profileId = route.profileId,
+                    selectedContentKey = selectedContent?.let { content ->
+                        StreamCoreSharedKey.content(
+                            contentId = content.id,
+                            row = content.row,
+                        )
+                    },
+                    onContentSelected = { content ->
+                        selectedContent = content
+                        navController.navigate(
+                            AppRoute.AssetDetails(
+                                profileId = route.profileId,
+                                contentId = content.id,
+                            ),
+                        ) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onBack = {
+                        selectedContent = null
+                        navController.popBackStack()
+                    },
+                    sharedElementScope = StreamCoreSharedElementScope(
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = this,
+                    ),
                 )
             }
 
@@ -262,6 +302,7 @@ internal fun StreamCoreNavHost(
                         animatedVisibilityScope = this,
                     ),
                     onRecommendationSelected = { content ->
+                        selectedContent = content
                         navController.navigate(
                             AppRoute.AssetDetails(
                                 profileId = route.profileId,
@@ -269,8 +310,8 @@ internal fun StreamCoreNavHost(
                                 initialContent = content
                             ),
                         ) {
-                            popUpTo<AppRoute.Home> {
-                                inclusive = false
+                            popUpTo(backStackEntry.destination.id) {
+                                inclusive = true
                             }
                             launchSingleTop = true
                         }
@@ -430,6 +471,7 @@ private fun HomeDestination(
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
+    onSearchSelected: () -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
@@ -439,6 +481,7 @@ private fun HomeDestination(
             activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
+            onSearchSelected = onSearchSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,

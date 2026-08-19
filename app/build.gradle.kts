@@ -77,6 +77,8 @@ dependencies {
     implementation(projects.feature.home.uiMobile)
     implementation(projects.feature.home.uiTablet)
     implementation(projects.feature.home.uiTv)
+    implementation(projects.feature.search.data)
+    implementation(projects.feature.search.uiMobile)
     implementation(projects.feature.details.uiMobile)
     implementation(projects.feature.details.uiTablet)
     implementation(projects.feature.details.uiTv)

@@ -89,6 +89,16 @@ internal interface TmdbApi {
     ): TmdbMovieListResponseDto
 
     /**
+     * Searches movies through `/3/search/movie`, preserving TMDB relevance order.
+     */
+    suspend fun searchMovies(
+        query: String,
+        includeAdult: Boolean,
+        language: String = DEFAULT_LANGUAGE,
+        page: Int = DEFAULT_PAGE,
+    ): TmdbMovieListResponseDto
+
+    /**
      * Loads a movie details payload. Credits and release dates are appended by default
      * because the details screen needs cast and certification data.
      */
