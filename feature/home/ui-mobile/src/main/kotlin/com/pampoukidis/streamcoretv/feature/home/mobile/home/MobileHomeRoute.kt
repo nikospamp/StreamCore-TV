@@ -3,6 +3,7 @@ package com.pampoukidis.streamcoretv.feature.home.mobile.home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
@@ -18,9 +19,9 @@ fun MobileHomeRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
-    onSearchSelected: () -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
+    bottomContentPadding: Dp,
     activeProfile: ProfileModel? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -40,8 +41,8 @@ fun MobileHomeRoute(
     MobileHomeScreen(
         state = state,
         onAction = viewModel::onAction,
-        onSearchSelected = onSearchSelected,
         onProfileSelected = onProfileSelected,
+        bottomContentPadding = bottomContentPadding,
         activeProfile = activeProfile,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,

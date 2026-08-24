@@ -82,6 +82,8 @@ dependencies {
     implementation(projects.feature.details.uiMobile)
     implementation(projects.feature.details.uiTablet)
     implementation(projects.feature.details.uiTv)
+    implementation(projects.feature.library.data)
+    implementation(projects.feature.library.uiMobile)
     implementation(projects.feature.player.data)
     implementation(projects.feature.player.uiMobile)
     implementation(projects.playback.api)

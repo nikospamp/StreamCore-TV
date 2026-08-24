@@ -32,10 +32,16 @@ internal sealed interface AppRoute {
     ) : AppRoute
 
     @Serializable
+    data class Library(
+        val profileId: String,
+    ) : AppRoute
+
+    @Serializable
     data class AssetDetails(
         val profileId: String,
         val contentId: String,
-        val initialContent: ContentModel? = null
+        val sourceRow: String? = null,
+        val initialContent: ContentModel? = null,
     ) : AppRoute
 
     @Serializable

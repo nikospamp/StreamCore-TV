@@ -107,7 +107,6 @@ class MobileSearchScreenTest {
                 MobileSearchScreen(
                     state = state,
                     onAction = onAction,
-                    onBack = {},
                     gridState = rememberLazyGridState(),
                 )
             }

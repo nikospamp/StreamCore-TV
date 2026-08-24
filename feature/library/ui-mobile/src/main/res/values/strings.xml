@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_continue_watching">Continue Watching</string>
+    <string name="library_liked">Liked</string>
+    <string name="library_my_list">My List</string>
+    <string name="library_continue_watching_empty">Start watching a title and it will appear here.</string>
+    <string name="library_liked_empty">Like titles from Details to keep them here.</string>
+    <string name="library_my_list_empty">Add titles you plan to watch.</string>
+    <string name="library_load_failed">Library could not be loaded.</string>
+    <string name="library_retry">Try again</string>
+    <string name="library_choose_profile">Choose profile</string>
+</resources>

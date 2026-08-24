@@ -22,6 +22,7 @@ object StreamCoreDimens {
     object Icon {
         val Small = 14.dp
         val Medium = 18.dp
+        val Standard = 24.dp
         val Large = 32.dp
         val TouchTarget = 48.dp
         val Loading = 20.dp
@@ -75,6 +76,12 @@ object StreamCoreDimens {
     }
 
     object Mobile {
+        object Navigation {
+            val MaxWidth = 360.dp
+            val Height = 68.dp
+            val InnerPadding = Spacing.Tiny
+        }
+
         object Screen {
             val HorizontalPadding = 20.dp
             val VerticalPadding = Spacing.Medium

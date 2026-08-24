@@ -24,7 +24,7 @@ fun StreamCoreSearchIcon(
         painter = painterResource(R.drawable.ic_search_24),
         contentDescription = null,
         tint = color,
-        modifier = modifier.size(StreamCoreDimens.Icon.Medium),
+        modifier = modifier.size(StreamCoreDimens.Icon.Standard),
     )
 }
 

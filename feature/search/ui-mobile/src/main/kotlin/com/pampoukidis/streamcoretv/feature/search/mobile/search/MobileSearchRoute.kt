@@ -15,6 +15,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
@@ -29,6 +30,7 @@ fun MobileSearchRoute(
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
+    bottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -83,8 +85,8 @@ fun MobileSearchRoute(
                 keyboardController?.hide()
             }
         },
-        onBack = onBack,
         gridState = gridState,
+        bottomContentPadding = bottomContentPadding,
         focusRequester = focusRequester,
         selectedContentKey = selectedContentKey,
         sharedElementScope = sharedElementScope,

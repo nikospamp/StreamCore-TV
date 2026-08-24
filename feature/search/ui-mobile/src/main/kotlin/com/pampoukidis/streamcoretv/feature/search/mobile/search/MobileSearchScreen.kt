@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,11 +35,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -61,9 +60,9 @@ import com.pampoukidis.streamcoretv.feature.search.mobile.R
 fun MobileSearchScreen(
     state: SearchUiState,
     onAction: (SearchAction) -> Unit,
-    onBack: () -> Unit,
     gridState: LazyGridState,
     modifier: Modifier = Modifier,
+    bottomContentPadding: Dp = StreamCoreDimens.Spacing.ExtraLarge,
     focusRequester: FocusRequester? = null,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
@@ -84,14 +83,15 @@ fun MobileSearchScreen(
                 onQueryChanged = { query -> onAction(SearchAction.QueryChanged(query)) },
                 onClear = { onAction(SearchAction.ClearQuery) },
                 onSubmit = { onAction(SearchAction.SubmitQuery) },
-                onBack = onBack,
                 focusRequester = focusRequester,
             )
             Crossfade(
                 targetState = state.content,
                 animationSpec = tween(ContentCrossfadeMillis),
                 label = "SearchContentState",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = bottomContentPadding),
             ) { contentState ->
                 when (contentState) {
                     SearchContentState.Discovery -> SearchDiscoveryContent(
@@ -138,7 +138,6 @@ private fun SearchHeader(
     onQueryChanged: (String) -> Unit,
     onClear: () -> Unit,
     onSubmit: () -> Unit,
-    onBack: () -> Unit,
     focusRequester: FocusRequester?,
 ) {
     Row(
@@ -146,22 +145,12 @@ private fun SearchHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                start = StreamCoreDimens.Spacing.Tiny,
+                start = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
                 top = StreamCoreDimens.Spacing.Small,
                 end = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
                 bottom = StreamCoreDimens.Spacing.Small,
             ),
     ) {
-        val backDescription = stringResource(R.string.search_back)
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .size(StreamCoreDimens.Icon.TouchTarget)
-                .semantics { contentDescription = backDescription },
-        ) {
-            StreamCoreBackIcon()
-        }
-        Spacer(modifier = Modifier.width(StreamCoreDimens.Spacing.Tiny))
         MobileSearchField(
             query = query,
             onQueryChanged = onQueryChanged,
@@ -499,7 +488,6 @@ private fun MobileSearchScreenPreview(state: SearchUiState) {
     MobileSearchScreen(
         state = state,
         onAction = {},
-        onBack = {},
         gridState = rememberLazyGridState(),
     )
 }

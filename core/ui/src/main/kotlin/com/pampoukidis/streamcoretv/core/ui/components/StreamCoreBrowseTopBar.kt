@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -57,25 +56,15 @@ fun StreamCoreBrowseTopBar(
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(
-                onClick = { onSearchSelected?.invoke() },
-                enabled = onSearchSelected != null,
-                modifier = Modifier
-                    .size(StreamCoreDimens.Icon.TouchTarget)
-                    .semantics {
-                        contentDescription = "Search"
-                        if (onSearchSelected == null) {
-                            disabled()
-                        }
-                    },
-            ) {
-                StreamCoreSearchIcon(
-                    color = if (onSearchSelected == null) {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
+            if (onSearchSelected != null) {
+                IconButton(
+                    onClick = onSearchSelected,
+                    modifier = Modifier
+                        .size(StreamCoreDimens.Icon.TouchTarget)
+                        .semantics { contentDescription = "Search" },
+                ) {
+                    StreamCoreSearchIcon(color = MaterialTheme.colorScheme.onSurface)
+                }
             }
             Surface(
                 onClick = onProfileSelected,

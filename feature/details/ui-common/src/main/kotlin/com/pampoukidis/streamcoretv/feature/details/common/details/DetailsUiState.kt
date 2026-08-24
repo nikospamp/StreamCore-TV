@@ -7,6 +7,11 @@ data class DetailsUiState(
     val content: ContentModel? = null,
     val recommendations: List<ContentModel> = emptyList(),
     val hasResumableProgress: Boolean = false,
+    val isLibraryAvailable: Boolean = false,
+    val isLiked: Boolean = false,
+    val isInMyList: Boolean = false,
+    val isLikeMutationPending: Boolean = false,
+    val isMyListMutationPending: Boolean = false,
 )
 
 /**
