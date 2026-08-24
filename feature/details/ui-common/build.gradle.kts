@@ -36,6 +36,7 @@ dependencies {
     // Features
     api(projects.feature.details.data)
     api(projects.feature.details.domain)
+    implementation(projects.feature.library.domain)
     api(projects.playback.api)
     implementation(projects.feature.player.domain)
 

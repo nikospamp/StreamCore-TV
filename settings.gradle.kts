@@ -77,6 +77,12 @@ include(":feature:details:ui-mobile")
 include(":feature:details:ui-tablet")
 include(":feature:details:ui-tv")
 
+// Library
+include(":feature:library:data")
+include(":feature:library:domain")
+include(":feature:library:ui-common")
+include(":feature:library:ui-mobile")
+
 // Playback
 include(":playback:api")
 include(":playback:media3")

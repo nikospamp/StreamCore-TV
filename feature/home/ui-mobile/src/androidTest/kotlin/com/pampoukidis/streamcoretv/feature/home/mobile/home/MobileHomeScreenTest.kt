@@ -27,7 +27,6 @@ class MobileHomeScreenTest {
     fun chromeAndHeroActionsExposeExpectedBehavior() {
         val actions = mutableListOf<HomeAction>()
         var profileSelected = false
-        var searchSelected = false
 
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -37,18 +36,16 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = actions::add,
-                    onSearchSelected = { searchSelected = true },
                     onProfileSelected = { profileSelected = true },
                 )
             }
         }
 
-        composeRule.onNodeWithContentDescription("Search").performClick()
+        composeRule.onNodeWithContentDescription("Search").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Choose profile").performClick()
         composeRule.onAllNodesWithTag(HomeTestTags.HeroDetails)[0].performClick()
 
         assertTrue(profileSelected)
-        assertTrue(searchSelected)
         assertTrue(actions.last() is HomeAction.ContentSelected)
     }
 
@@ -66,7 +63,6 @@ class MobileHomeScreenTest {
                         rows = rows,
                     ),
                     onAction = {},
-                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }
@@ -89,7 +85,6 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = actions::add,
-                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }
@@ -113,7 +108,6 @@ class MobileHomeScreenTest {
                         rows = testRows(),
                     ),
                     onAction = {},
-                    onSearchSelected = {},
                     onProfileSelected = {},
                 )
             }

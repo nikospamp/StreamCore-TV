@@ -1,13 +1,19 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
 import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
+import com.pampoukidis.streamcoretv.core.domain.LibraryRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.library.LibraryEntryModel
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
 import com.pampoukidis.streamcoretv.feature.details.domain.LoadDetailsUseCase
+import com.pampoukidis.streamcoretv.feature.library.domain.ObserveContentLibraryStateUseCase
+import com.pampoukidis.streamcoretv.feature.library.domain.SetContentInMyListUseCase
+import com.pampoukidis.streamcoretv.feature.library.domain.SetContentLikedUseCase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -178,16 +184,104 @@ class DetailsViewModelTest {
         }
     }
 
+    @Test
+    fun `library membership is observed for active content`() {
+        runTest {
+            val content = contentModel("content-1")
+            val libraryRepository = FakeLibraryRepository(
+                initialEntries = listOf(
+                    LibraryEntryModel(
+                        content = content,
+                        likedAtMillis = 1L,
+                        addedToMyListAtMillis = 2L,
+                    ),
+                ),
+            )
+            val subject = detailsViewModel(libraryRepository = libraryRepository)
+
+            subject.onAction(
+                DetailsAction.Load(
+                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                ),
+            )
+            runCurrent()
+
+            assertTrue(subject.uiState.value.isLibraryAvailable)
+            assertTrue(subject.uiState.value.isLiked)
+            assertTrue(subject.uiState.value.isInMyList)
+        }
+    }
+
+    @Test
+    fun `like toggle updates optimistically and completes`() {
+        runTest {
+            val content = contentModel("content-1")
+            val mutationGate = CompletableDeferred<Unit>()
+            val libraryRepository = FakeLibraryRepository(likeGate = mutationGate)
+            val subject = detailsViewModel(libraryRepository = libraryRepository)
+            subject.onAction(
+                DetailsAction.Load(
+                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                ),
+            )
+            runCurrent()
+
+            subject.onAction(DetailsAction.LikeToggled)
+
+            assertTrue(subject.uiState.value.isLiked)
+            assertTrue(subject.uiState.value.isLikeMutationPending)
+            mutationGate.complete(Unit)
+            runCurrent()
+            assertTrue(subject.uiState.value.isLiked)
+            assertFalse(subject.uiState.value.isLikeMutationPending)
+            assertEquals(1, libraryRepository.likeMutationCount)
+        }
+    }
+
+    @Test
+    fun `failed like toggle rolls back and emits error`() {
+        runTest {
+            val error = AppError.Unknown()
+            val content = contentModel("content-1")
+            val libraryRepository = FakeLibraryRepository(
+                likeResult = AppResult.Failure(error),
+                likeGate = CompletableDeferred(),
+            )
+            val subject = detailsViewModel(libraryRepository = libraryRepository)
+            subject.onAction(
+                DetailsAction.Load(
+                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                ),
+            )
+            runCurrent()
+            val effect = async { subject.effects.first() }
+            runCurrent()
+
+            subject.onAction(DetailsAction.LikeToggled)
+            assertTrue(subject.uiState.value.isLiked)
+            libraryRepository.completeLikeMutation()
+            runCurrent()
+
+            assertFalse(subject.uiState.value.isLiked)
+            assertFalse(subject.uiState.value.isLikeMutationPending)
+            assertEquals(DetailsEffect.ShowError(error), effect.await())
+        }
+    }
+
     private fun detailsViewModel(
         repository: DetailsRepository = FakeDetailsRepository(
             detailsResult = AppResult.Success(contentModel("content-1")),
             recommendationsResult = AppResult.Success(emptyList()),
         ),
         progressRepository: PlaybackProgressRepository = EmptyPlaybackProgressRepository,
+        libraryRepository: LibraryRepository = FakeLibraryRepository(),
     ): DetailsViewModel {
         return DetailsViewModel(
             loadDetails = LoadDetailsUseCase(repository),
             progressRepository = progressRepository,
+            observeContentLibraryState = ObserveContentLibraryStateUseCase(libraryRepository),
+            setContentLiked = SetContentLikedUseCase(libraryRepository),
+            setContentInMyList = SetContentInMyListUseCase(libraryRepository),
         )
     }
 
@@ -257,5 +351,75 @@ class DetailsViewModelTest {
 
         override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
         override suspend fun remove(profileId: String, contentId: String) = Unit
+    }
+
+    private class FakeLibraryRepository(
+        initialEntries: List<LibraryEntryModel> = emptyList(),
+        private val likeResult: AppResult<Unit> = AppResult.Success(Unit),
+        private val myListResult: AppResult<Unit> = AppResult.Success(Unit),
+        private val likeGate: CompletableDeferred<Unit>? = null,
+    ) : LibraryRepository {
+        private val entries = MutableStateFlow<AppResult<List<LibraryEntryModel>>>(
+            AppResult.Success(initialEntries),
+        )
+
+        var likeMutationCount: Int = 0
+            private set
+
+        override fun observe(profileId: String): Flow<AppResult<List<LibraryEntryModel>>> {
+            return entries
+        }
+
+        override suspend fun setLiked(
+            profileId: String,
+            content: ContentModel,
+            isLiked: Boolean,
+            changedAtMillis: Long,
+        ): AppResult<Unit> {
+            likeMutationCount += 1
+            likeGate?.await()
+            if (likeResult is AppResult.Success) {
+                updateEntry(content) { entry ->
+                    entry.copy(likedAtMillis = changedAtMillis.takeIf { isLiked })
+                }
+            }
+            return likeResult
+        }
+
+        override suspend fun setInMyList(
+            profileId: String,
+            content: ContentModel,
+            isInMyList: Boolean,
+            changedAtMillis: Long,
+        ): AppResult<Unit> {
+            if (myListResult is AppResult.Success) {
+                updateEntry(content) { entry ->
+                    entry.copy(addedToMyListAtMillis = changedAtMillis.takeIf { isInMyList })
+                }
+            }
+            return myListResult
+        }
+
+        fun completeLikeMutation() {
+            likeGate?.complete(Unit)
+        }
+
+        private fun updateEntry(
+            content: ContentModel,
+            transform: (LibraryEntryModel) -> LibraryEntryModel,
+        ) {
+            val current = (entries.value as? AppResult.Success)?.value.orEmpty()
+            val existing = current.firstOrNull { entry -> entry.content.id == content.id }
+                ?: LibraryEntryModel(content = content)
+            val updated = transform(existing)
+            val retained = current.filterNot { entry -> entry.content.id == content.id }
+            entries.value = AppResult.Success(
+                if (updated.likedAtMillis == null && updated.addedToMyListAtMillis == null) {
+                    retained
+                } else {
+                    retained + updated
+                },
+            )
+        }
     }
 }

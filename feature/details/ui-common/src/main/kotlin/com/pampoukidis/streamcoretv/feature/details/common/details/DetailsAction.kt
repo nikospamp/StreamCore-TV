@@ -11,5 +11,7 @@ sealed interface DetailsAction {
     data object Refresh : DetailsAction
     data class RecommendationSelected(val content: ContentModel) : DetailsAction
     data object PlaySelected : DetailsAction
+    data object LikeToggled : DetailsAction
+    data object MyListToggled : DetailsAction
     data object BackSelected : DetailsAction
 }

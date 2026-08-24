@@ -462,7 +462,11 @@ artwork.
 
 ### Navigation
 
-- **Style:** navigation is route-driven with platform-specific destinations for login, profiles, home, editor, and details.
+- **Style:** navigation is route-driven with platform-specific destinations for login, profiles, home, editor, details, and playback. Authenticated
+  mobile uses Home, Search, and Library as state-restoring top-level destinations.
+- **Mobile top level:** one app-shell-owned floating pill remains outside the navigation host. It uses a solid tonal container, three equal tab
+  targets, and one moving neutral selection capsule; the selected icon alone uses `primary`. The pill is hidden on login, profiles/editor, details,
+  and player surfaces.
 - **Motion:** route transitions use `240ms` slide, `140ms` fade, `90ms` exit fade, and `FastOutSlowInEasing`.
 - **Content continuity:** home-to-details navigation shares the selected artwork and title using the stable `contentId + row` identity. Shared bounds
   use a `90ms` fade, `scaleToBounds(ContentScale.Crop)`, and shape clipping in the transition overlay. Only the selected content key participates.
@@ -495,9 +499,20 @@ identity and clip shape; never attach the transition to every duplicate content 
 - **Top 10 shelf:** each composition is `160dp x 180dp`; its poster is `120dp x 180dp`; shelf padding and item spacing are both `16dp`. Ranking
   numerals use `Mobile Top Ten Rank` and must remain secondary to the poster artwork.
 - **Refresh:** pull-to-refresh is the mobile browse refresh affordance. Keep loading state in the existing content when rows are already available.
+- **Top-level clearance:** Home, Search, and Library reserve the floating pill height plus navigation-bar inset so the last lazy item is never
+  obscured. Search keeps the pill above the IME and uses system Back to dismiss the IME before returning Home.
 
 **The Browse Density Rule.** Preserve the exact card dimensions and aspect ratios above across new mobile browse-like surfaces. Change density through
 platform-specific components, never by adding boolean tablet/TV flags to the mobile card.
+
+### Mobile Library
+
+- **Structure:** one vertical surface with Continue Watching, Liked, and My List in that order. Empty shelves remain visible with compact guidance.
+- **Cards:** Continue Watching reuses the `192dp` landscape/progress treatment; Liked and My List reuse the `120dp` poster treatment.
+- **Saved state:** Like and My List are independent profile-scoped memberships. Feature UI observes backend-agnostic app models and never exposes a
+  provider's remote favorite/watchlist terminology.
+- **Details actions:** Play/Resume is followed by Like, My List, Trailer, and Share. Like/My List are toggles; Trailer/Share remain visibly disabled
+  until their behaviors exist.
 
 ## 6. Do's and Don'ts
 

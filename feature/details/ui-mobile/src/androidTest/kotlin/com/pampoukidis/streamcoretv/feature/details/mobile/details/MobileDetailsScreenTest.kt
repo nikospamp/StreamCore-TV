@@ -3,10 +3,12 @@ package com.pampoukidis.streamcoretv.feature.details.mobile.details
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -99,6 +101,28 @@ class MobileDetailsScreenTest {
 
         assertTrue(actions.contains(DetailsAction.BackSelected))
         assertTrue(actions.contains(DetailsAction.Refresh))
+    }
+
+    @Test
+    fun savedActionsDispatchWhileStagedActionsStayDisabled() {
+        val actions = mutableListOf<DetailsAction>()
+
+        composeRule.setContent {
+            StreamCoreTheme(darkTheme = true) {
+                MobileDetailsScreen(
+                    state = contentState().copy(isLibraryAvailable = true),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).performScrollTo().performClick()
+        composeRule.onNodeWithTag(DetailsTestTags.MyListAction).performClick()
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).assertIsNotEnabled()
+        composeRule.onNodeWithTag(DetailsTestTags.ShareAction).assertIsNotEnabled()
+
+        assertTrue(actions.contains(DetailsAction.LikeToggled))
+        assertTrue(actions.contains(DetailsAction.MyListToggled))
     }
 
     private fun contentState(): DetailsUiState {
