@@ -183,8 +183,8 @@ object StreamCoreDimens {
         }
 
         object Profiles {
-            val GridMinCellWidth = 220.dp
-            val AvatarSize = 96.dp
+            val AvatarSize = 128.dp
+            val TileWidth = 168.dp
         }
     }
 }

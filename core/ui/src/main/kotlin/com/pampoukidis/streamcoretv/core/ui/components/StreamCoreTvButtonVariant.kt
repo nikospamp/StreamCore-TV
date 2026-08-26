@@ -4,4 +4,5 @@ enum class StreamCoreTvButtonVariant {
     Standard,
     Primary,
     Secondary,
+    Tertiary,
 }
