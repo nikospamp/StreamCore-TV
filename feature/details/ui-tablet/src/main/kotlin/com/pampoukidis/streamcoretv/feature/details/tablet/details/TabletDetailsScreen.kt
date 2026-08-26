@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.details.tablet.details
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,12 +30,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -45,6 +63,7 @@ import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTags
+import com.pampoukidis.streamcoretv.feature.details.tablet.R
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -133,11 +152,14 @@ private fun DetailsBody(
             else -> LazyColumn(
                 contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.ExtraLarge),
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(DetailsTestTags.Content),
             ) {
                 item(contentType = "summary") {
                     SummarySection(
-                        content = content,
+                        state = state,
+                        onAction = onAction,
                         sharedElementScope = sharedElementScope,
                         modifier = Modifier.padding(
                             horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
@@ -174,10 +196,13 @@ private fun DetailsBody(
 
 @Composable
 private fun SummarySection(
-    content: ContentModel,
+    state: DetailsUiState,
+    onAction: (DetailsAction) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
+    val content = requireNotNull(state.content)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = modifier.fillMaxWidth(),
@@ -190,7 +215,8 @@ private fun SummarySection(
                 .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
         )
         DetailsMetadata(
-            content = content,
+            state = state,
+            onAction = onAction,
             sharedElementScope = sharedElementScope,
             modifier = Modifier.weight(0.56f),
         )
@@ -215,6 +241,7 @@ private fun DetailsHero(
         fallbackTextStyle = MaterialTheme.typography.displayLarge,
         crossfade = true,
         modifier = modifier
+            .testTag(DetailsTestTags.Hero)
             .streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
                 key = StreamCoreSharedKey.artwork(
@@ -228,10 +255,12 @@ private fun DetailsHero(
 
 @Composable
 private fun DetailsMetadata(
-    content: ContentModel,
+    state: DetailsUiState,
+    onAction: (DetailsAction) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
+    val content = requireNotNull(state.content)
     val genreText = remember(content.genres) {
         content.genres.joinToString(separator = " · ") { it.name }
     }
@@ -280,6 +309,17 @@ private fun DetailsMetadata(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                DetailsActions(
+                    hasResumableProgress = state.hasResumableProgress,
+                    isLibraryAvailable = state.isLibraryAvailable,
+                    isLiked = state.isLiked,
+                    isInMyList = state.isInMyList,
+                    isLikeMutationPending = state.isLikeMutationPending,
+                    isMyListMutationPending = state.isMyListMutationPending,
+                    onPlayClick = { onAction(DetailsAction.PlaySelected) },
+                    onLikeClick = { onAction(DetailsAction.LikeToggled) },
+                    onMyListClick = { onAction(DetailsAction.MyListToggled) },
+                )
                 Text(
                     text = content.description,
                     style = MaterialTheme.typography.bodyLarge,
@@ -297,6 +337,129 @@ private fun DetailsMetadata(
 }
 
 @Composable
+private fun DetailsActions(
+    hasResumableProgress: Boolean,
+    isLibraryAvailable: Boolean,
+    isLiked: Boolean,
+    isInMyList: Boolean,
+    isLikeMutationPending: Boolean,
+    isMyListMutationPending: Boolean,
+    onPlayClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    onMyListClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        modifier = modifier
+            .fillMaxWidth()
+            .widthIn(max = DetailsActionsMaxWidth),
+    ) {
+        StreamCoreButton(
+            text = stringResource(
+                if (hasResumableProgress) R.string.details_action_resume else R.string.details_action_play,
+            ),
+            onClick = onPlayClick,
+            enabled = true,
+            leadingIcon = { StreamCorePlayIcon() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(DetailsTestTags.PlayButton),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            DetailsLibraryButton(
+                label = stringResource(
+                    if (isLiked) R.string.details_action_liked else R.string.details_action_like,
+                ),
+                selectedStateDescription = stringResource(
+                    if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
+                ),
+                selected = isLiked,
+                isAvailable = isLibraryAvailable,
+                isLoading = isLikeMutationPending,
+                onClick = onLikeClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(DetailsTestTags.LikeAction),
+            ) {
+                StreamCoreHeartIcon(filled = isLiked)
+            }
+            DetailsLibraryButton(
+                label = stringResource(R.string.details_action_my_list),
+                selectedStateDescription = stringResource(
+                    if (isInMyList) {
+                        R.string.details_my_list_selected
+                    } else {
+                        R.string.details_my_list_unselected
+                    },
+                ),
+                selected = isInMyList,
+                isAvailable = isLibraryAvailable,
+                isLoading = isMyListMutationPending,
+                onClick = onMyListClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(DetailsTestTags.MyListAction),
+            ) {
+                StreamCoreBookmarkIcon(filled = isInMyList)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsLibraryButton(
+    label: String,
+    selectedStateDescription: String,
+    selected: Boolean,
+    isAvailable: Boolean,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+) {
+    val stateDescription = when {
+        !isAvailable -> stringResource(R.string.details_action_not_available)
+        isLoading -> stringResource(R.string.details_action_updating)
+        else -> selectedStateDescription
+    }
+    val iconColor = animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        animationSpec = tween(durationMillis = ActionStateAnimationMillis),
+        label = "detailsLibraryActionColor",
+    )
+
+    StreamCoreButton(
+        text = label,
+        onClick = onClick,
+        enabled = isAvailable && !isLoading,
+        loading = isLoading,
+        variant = StreamCoreButtonVariant.Secondary,
+        leadingIcon = {
+            CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides iconColor.value) {
+                icon()
+            }
+        },
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = label
+            this.stateDescription = stateDescription
+            this.selected = selected
+            role = Role.Checkbox
+            if (!isAvailable || isLoading) {
+                disabled()
+            }
+        },
+    )
+}
+
+@Composable
 private fun RecommendationsRow(
     recommendations: List<ContentModel>,
     onAction: (DetailsAction) -> Unit,
@@ -308,7 +471,9 @@ private fun RecommendationsRow(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(DetailsTestTags.Recommendations),
     ) {
         Text(
             text = "More like this",
@@ -399,16 +564,71 @@ private fun releaseYear(epochMillis: Long): Int {
 
 private const val MetadataEntranceDelayMillis = 80
 private const val RecommendationsEntranceDelayMillis = 150
+private const val ActionStateAnimationMillis = 180
+private val DetailsActionsMaxWidth = 420.dp
 
 @PreviewTablet
 @Composable
-private fun TabletDetailsScreenPreview() {
-    StreamCoreTheme {
+private fun TabletDetailsScreenDarkPreview() {
+    StreamCoreTheme(darkTheme = true) {
         TabletDetailsScreen(
             state = DetailsUiState(
                 isLoading = false,
                 content = DetailsPreviewData.content,
                 recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTablet
+@Composable
+private fun TabletDetailsScreenResumeSelectedLightPreview() {
+    StreamCoreTheme(darkTheme = false) {
+        TabletDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                hasResumableProgress = true,
+                isLibraryAvailable = true,
+                isLiked = true,
+                isInMyList = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTablet
+@Composable
+private fun TabletDetailsScreenRetainedLoadingPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TabletDetailsScreen(
+            state = DetailsUiState(
+                isLoading = true,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
+                isLikeMutationPending = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTablet
+@Composable
+private fun TabletDetailsScreenUnavailableActionsPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TabletDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = false,
             ),
             onAction = {},
         )

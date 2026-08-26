@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.details.tv.details
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,18 +31,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component1
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component2
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component3
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component4
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component5
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component6
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
@@ -53,6 +75,7 @@ import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTags
+import com.pampoukidis.streamcoretv.feature.details.tv.R
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -63,11 +86,20 @@ fun TvDetailsScreen(
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
-    val backFocusRequester = remember { FocusRequester() }
+    val (
+        backFocusRequester,
+        refreshFocusRequester,
+        playFocusRequester,
+        likeFocusRequester,
+        myListFocusRequester,
+        firstRecommendationFocusRequester,
+    ) = remember { FocusRequester.createRefs() }
     val contentId = state.content?.id
 
     LaunchedEffect(contentId) {
-        backFocusRequester.requestFocus()
+        if (contentId == null) {
+            backFocusRequester.requestFocus()
+        }
     }
 
     Surface(
@@ -84,7 +116,10 @@ fun TvDetailsScreen(
         ) {
             DetailsHeader(
                 isLoading = state.isLoading,
+                hasContent = state.content != null,
                 backFocusRequester = backFocusRequester,
+                refreshFocusRequester = refreshFocusRequester,
+                playFocusRequester = playFocusRequester,
                 onAction = onAction,
                 modifier = Modifier.padding(
                     horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
@@ -93,6 +128,11 @@ fun TvDetailsScreen(
             DetailsBody(
                 state = state,
                 onAction = onAction,
+                backFocusRequester = backFocusRequester,
+                playFocusRequester = playFocusRequester,
+                likeFocusRequester = likeFocusRequester,
+                myListFocusRequester = myListFocusRequester,
+                firstRecommendationFocusRequester = firstRecommendationFocusRequester,
                 sharedElementScope = sharedElementScope,
                 modifier = Modifier.weight(1f),
             )
@@ -103,7 +143,10 @@ fun TvDetailsScreen(
 @Composable
 private fun DetailsHeader(
     isLoading: Boolean,
+    hasContent: Boolean,
     backFocusRequester: FocusRequester,
+    refreshFocusRequester: FocusRequester,
+    playFocusRequester: FocusRequester,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,13 +161,23 @@ private fun DetailsHeader(
             enabled = true,
             modifier = Modifier
                 .focusRequester(backFocusRequester)
+                .focusProperties {
+                    right = refreshFocusRequester
+                    down = if (hasContent) playFocusRequester else FocusRequester.Default
+                }
                 .testTag(DetailsTestTags.BackButton),
         )
         StreamCoreTvButton(
             text = "Refresh",
             onClick = { onAction(DetailsAction.Refresh) },
             enabled = !isLoading,
-            modifier = Modifier.testTag(DetailsTestTags.RefreshButton),
+            modifier = Modifier
+                .focusRequester(refreshFocusRequester)
+                .focusProperties {
+                    left = backFocusRequester
+                    down = if (hasContent) playFocusRequester else FocusRequester.Default
+                }
+                .testTag(DetailsTestTags.RefreshButton),
         )
     }
 }
@@ -133,6 +186,11 @@ private fun DetailsHeader(
 private fun DetailsBody(
     state: DetailsUiState,
     onAction: (DetailsAction) -> Unit,
+    backFocusRequester: FocusRequester,
+    playFocusRequester: FocusRequester,
+    likeFocusRequester: FocusRequester,
+    myListFocusRequester: FocusRequester,
+    firstRecommendationFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -153,11 +211,19 @@ private fun DetailsBody(
             else -> LazyColumn(
                 contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.Screen.VerticalPadding),
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(DetailsTestTags.Content),
             ) {
                 item(contentType = "summary") {
                     SummarySection(
-                        content = content,
+                        state = state,
+                        onAction = onAction,
+                        backFocusRequester = backFocusRequester,
+                        playFocusRequester = playFocusRequester,
+                        likeFocusRequester = likeFocusRequester,
+                        myListFocusRequester = myListFocusRequester,
+                        firstRecommendationFocusRequester = firstRecommendationFocusRequester,
                         sharedElementScope = sharedElementScope,
                         modifier = Modifier.padding(
                             horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
@@ -172,6 +238,12 @@ private fun DetailsBody(
                         RecommendationsRow(
                             recommendations = state.recommendations,
                             onAction = onAction,
+                            firstRecommendationFocusRequester = firstRecommendationFocusRequester,
+                            actionsUpFocusRequester = if (state.isLibraryAvailable) {
+                                likeFocusRequester
+                            } else {
+                                playFocusRequester
+                            },
                         )
                     }
                 }
@@ -200,10 +272,18 @@ private fun DetailsBody(
 
 @Composable
 private fun SummarySection(
-    content: ContentModel,
+    state: DetailsUiState,
+    onAction: (DetailsAction) -> Unit,
+    backFocusRequester: FocusRequester,
+    playFocusRequester: FocusRequester,
+    likeFocusRequester: FocusRequester,
+    myListFocusRequester: FocusRequester,
+    firstRecommendationFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
+    val content = requireNotNull(state.content)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = modifier.fillMaxWidth(),
@@ -216,7 +296,13 @@ private fun SummarySection(
                 .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
         )
         DetailsMetadata(
-            content = content,
+            state = state,
+            onAction = onAction,
+            backFocusRequester = backFocusRequester,
+            playFocusRequester = playFocusRequester,
+            likeFocusRequester = likeFocusRequester,
+            myListFocusRequester = myListFocusRequester,
+            firstRecommendationFocusRequester = firstRecommendationFocusRequester,
             sharedElementScope = sharedElementScope,
             modifier = Modifier.weight(0.44f),
         )
@@ -241,6 +327,7 @@ private fun DetailsHero(
         fallbackTextStyle = MaterialTheme.typography.displayLarge,
         crossfade = true,
         modifier = modifier
+            .testTag(DetailsTestTags.Hero)
             .streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
                 key = StreamCoreSharedKey.artwork(
@@ -254,10 +341,17 @@ private fun DetailsHero(
 
 @Composable
 private fun DetailsMetadata(
-    content: ContentModel,
+    state: DetailsUiState,
+    onAction: (DetailsAction) -> Unit,
+    backFocusRequester: FocusRequester,
+    playFocusRequester: FocusRequester,
+    likeFocusRequester: FocusRequester,
+    myListFocusRequester: FocusRequester,
+    firstRecommendationFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
+    val content = requireNotNull(state.content)
     val genreText = remember(content.genres) {
         content.genres.joinToString(separator = " · ") { it.name }
     }
@@ -306,6 +400,24 @@ private fun DetailsMetadata(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                DetailsActions(
+                    contentId = content.id,
+                    hasResumableProgress = state.hasResumableProgress,
+                    isLibraryAvailable = state.isLibraryAvailable,
+                    isLiked = state.isLiked,
+                    isInMyList = state.isInMyList,
+                    isLikeMutationPending = state.isLikeMutationPending,
+                    isMyListMutationPending = state.isMyListMutationPending,
+                    hasRecommendations = state.recommendations.isNotEmpty(),
+                    backFocusRequester = backFocusRequester,
+                    playFocusRequester = playFocusRequester,
+                    likeFocusRequester = likeFocusRequester,
+                    myListFocusRequester = myListFocusRequester,
+                    firstRecommendationFocusRequester = firstRecommendationFocusRequester,
+                    onPlayClick = { onAction(DetailsAction.PlaySelected) },
+                    onLikeClick = { onAction(DetailsAction.LikeToggled) },
+                    onMyListClick = { onAction(DetailsAction.MyListToggled) },
+                )
                 Text(
                     text = content.description,
                     style = MaterialTheme.typography.titleMedium,
@@ -327,9 +439,166 @@ private fun DetailsMetadata(
 }
 
 @Composable
+private fun DetailsActions(
+    contentId: String,
+    hasResumableProgress: Boolean,
+    isLibraryAvailable: Boolean,
+    isLiked: Boolean,
+    isInMyList: Boolean,
+    isLikeMutationPending: Boolean,
+    isMyListMutationPending: Boolean,
+    hasRecommendations: Boolean,
+    backFocusRequester: FocusRequester,
+    playFocusRequester: FocusRequester,
+    likeFocusRequester: FocusRequester,
+    myListFocusRequester: FocusRequester,
+    firstRecommendationFocusRequester: FocusRequester,
+    onPlayClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    onMyListClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LaunchedEffect(contentId) {
+        playFocusRequester.requestFocus()
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        modifier = modifier
+            .fillMaxWidth()
+            .widthIn(max = TvActionsMaxWidth)
+            .focusGroup(),
+    ) {
+        StreamCoreTvButton(
+            text = stringResource(
+                if (hasResumableProgress) R.string.details_action_resume else R.string.details_action_play,
+            ),
+            onClick = onPlayClick,
+            enabled = true,
+            variant = StreamCoreTvButtonVariant.Primary,
+            leadingIcon = { StreamCorePlayIcon() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(playFocusRequester)
+                .focusProperties {
+                    up = backFocusRequester
+                    down = when {
+                        isLibraryAvailable -> likeFocusRequester
+                        hasRecommendations -> firstRecommendationFocusRequester
+                        else -> FocusRequester.Cancel
+                    }
+                }
+                .testTag(DetailsTestTags.PlayButton),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            DetailsLibraryButton(
+                label = stringResource(
+                    if (isLiked) R.string.details_action_liked else R.string.details_action_like,
+                ),
+                selectedStateDescription = stringResource(
+                    if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
+                ),
+                selected = isLiked,
+                isAvailable = isLibraryAvailable,
+                isLoading = isLikeMutationPending,
+                onClick = onLikeClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(likeFocusRequester)
+                    .focusProperties {
+                        canFocus = isLibraryAvailable
+                        up = playFocusRequester
+                        right = myListFocusRequester
+                        down = if (hasRecommendations) {
+                            firstRecommendationFocusRequester
+                        } else {
+                            FocusRequester.Cancel
+                        }
+                    }
+                    .testTag(DetailsTestTags.LikeAction),
+            ) {
+                StreamCoreHeartIcon(filled = isLiked)
+            }
+            DetailsLibraryButton(
+                label = stringResource(R.string.details_action_my_list),
+                selectedStateDescription = stringResource(
+                    if (isInMyList) {
+                        R.string.details_my_list_selected
+                    } else {
+                        R.string.details_my_list_unselected
+                    },
+                ),
+                selected = isInMyList,
+                isAvailable = isLibraryAvailable,
+                isLoading = isMyListMutationPending,
+                onClick = onMyListClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(myListFocusRequester)
+                    .focusProperties {
+                        canFocus = isLibraryAvailable
+                        up = playFocusRequester
+                        left = likeFocusRequester
+                        down = if (hasRecommendations) {
+                            firstRecommendationFocusRequester
+                        } else {
+                            FocusRequester.Cancel
+                        }
+                    }
+                    .testTag(DetailsTestTags.MyListAction),
+            ) {
+                StreamCoreBookmarkIcon(filled = isInMyList)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsLibraryButton(
+    label: String,
+    selectedStateDescription: String,
+    selected: Boolean,
+    isAvailable: Boolean,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+) {
+    val stateDescription = when {
+        !isAvailable -> stringResource(R.string.details_action_not_available)
+        isLoading -> stringResource(R.string.details_action_updating)
+        else -> selectedStateDescription
+    }
+
+    StreamCoreTvButton(
+        text = label,
+        onClick = onClick,
+        enabled = isAvailable && !isLoading,
+        loading = isLoading,
+        variant = StreamCoreTvButtonVariant.Secondary,
+        selected = selected,
+        leadingIcon = icon,
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = label
+            this.stateDescription = stateDescription
+            this.selected = selected
+            role = Role.Checkbox
+            if (!isAvailable || isLoading) {
+                disabled()
+            }
+        },
+    )
+}
+
+@Composable
 private fun RecommendationsRow(
     recommendations: List<ContentModel>,
     onAction: (DetailsAction) -> Unit,
+    firstRecommendationFocusRequester: FocusRequester,
+    actionsUpFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     if (recommendations.isEmpty()) {
@@ -338,7 +607,9 @@ private fun RecommendationsRow(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(DetailsTestTags.Recommendations),
     ) {
         Text(
             text = "More like this",
@@ -353,15 +624,22 @@ private fun RecommendationsRow(
             ),
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         ) {
-            items(
+            itemsIndexed(
                 items = recommendations,
-                key = { it.id },
-                contentType = { "recommendation" },
-            ) { content ->
+                key = { _, content -> content.id },
+                contentType = { _, _ -> "recommendation" },
+            ) { index, content ->
                 RecommendationCard(
                     content = content,
                     onClick = {
                         onAction(DetailsAction.RecommendationSelected(content))
+                    },
+                    modifier = if (index == 0) {
+                        Modifier
+                            .focusRequester(firstRecommendationFocusRequester)
+                            .focusProperties { up = actionsUpFocusRequester }
+                    } else {
+                        Modifier
                     },
                 )
             }
@@ -453,16 +731,70 @@ private fun releaseYear(epochMillis: Long): Int {
 
 private const val MetadataEntranceDelayMillis = 90
 private const val RecommendationsEntranceDelayMillis = 170
+private val TvActionsMaxWidth = 420.dp
 
 @PreviewTV
 @Composable
-private fun TvDetailsScreenPreview() {
-    StreamCoreTheme {
+private fun TvDetailsScreenDefaultPreview() {
+    StreamCoreTheme(darkTheme = true) {
         TvDetailsScreen(
             state = DetailsUiState(
                 isLoading = false,
                 content = DetailsPreviewData.content,
                 recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTV
+@Composable
+private fun TvDetailsScreenResumeSelectedPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TvDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                hasResumableProgress = true,
+                isLibraryAvailable = true,
+                isLiked = true,
+                isInMyList = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTV
+@Composable
+private fun TvDetailsScreenRetainedLoadingPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TvDetailsScreen(
+            state = DetailsUiState(
+                isLoading = true,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
+                isMyListMutationPending = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTV
+@Composable
+private fun TvDetailsScreenUnavailableActionsPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TvDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content,
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = false,
             ),
             onAction = {},
         )
