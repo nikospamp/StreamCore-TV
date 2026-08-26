@@ -125,6 +125,17 @@ private fun streamCoreTvButtonColors(
         disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
     )
+
+    StreamCoreTvButtonVariant.Tertiary -> ButtonDefaults.colors(
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        focusedContentColor = MaterialTheme.colorScheme.onSurface,
+        pressedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        pressedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+    )
 }
 
 @Composable
@@ -205,6 +216,12 @@ private fun StreamCoreTvButtonPreview() {
                 text = "Disabled",
                 onClick = {},
                 enabled = false,
+            )
+            StreamCoreTvButton(
+                text = "Manage",
+                onClick = {},
+                enabled = true,
+                variant = StreamCoreTvButtonVariant.Tertiary,
             )
         }
     }
