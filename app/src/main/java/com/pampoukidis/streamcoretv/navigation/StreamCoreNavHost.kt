@@ -58,6 +58,7 @@ import com.pampoukidis.streamcoretv.feature.home.mobile.home.MobileHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tablet.home.TabletHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tv.home.TvHomeRoute
 import com.pampoukidis.streamcoretv.feature.library.mobile.library.MobileLibraryRoute
+import com.pampoukidis.streamcoretv.feature.library.tv.library.TvLibraryRoute
 import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
@@ -70,6 +71,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfi
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
 import com.pampoukidis.streamcoretv.feature.search.mobile.search.MobileSearchRoute
+import com.pampoukidis.streamcoretv.feature.search.tv.search.TvSearchRoute
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import kotlin.reflect.typeOf
 
@@ -85,7 +87,7 @@ internal fun StreamCoreNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentTopLevelDestination = currentBackStackEntry
         ?.destination
-        ?.mobileTopLevelDestination()
+        ?.topLevelDestination()
     val currentTopLevelProfileId = currentBackStackEntry?.topLevelProfileId()
     val mobileBottomContentPadding = WindowInsets.navigationBars
         .asPaddingValues()
@@ -94,7 +96,7 @@ internal fun StreamCoreNavHost(
     var selectedContentKey by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedProfile by remember { mutableStateOf<ProfileModel?>(null) }
     var displayedTopLevelDestination by remember {
-        mutableStateOf(MobileTopLevelDestination.Home)
+        mutableStateOf(TopLevelDestination.Home)
     }
     var displayedTopLevelProfileId by remember { mutableStateOf<String?>(null) }
 
@@ -112,15 +114,47 @@ internal fun StreamCoreNavHost(
             .background(MaterialTheme.colorScheme.background),
     ) {
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
-            val sharedTransitionScope = this
+        val sharedTransitionScope = this
 
+        TvNavigationDrawer(
+            enabled = platform == Platform.Tv && currentTopLevelDestination != null,
+            selectedDestination = displayedTopLevelDestination,
+            activeProfile = selectedProfile,
+            sharedTransitionScope = sharedTransitionScope,
+            onDestinationSelected = { destination ->
+                val profileId = displayedTopLevelProfileId
+                if (profileId != null && destination != currentTopLevelDestination) {
+                    selectedContent = null
+                    selectedContentKey = null
+                    navController.navigateToTopLevel(
+                        destination = destination,
+                        profileId = profileId,
+                    )
+                }
+            },
+            onProfileSelected = {
+                val profileId = displayedTopLevelProfileId
+                if (profileId != null) {
+                    selectedContent = null
+                    selectedContentKey = null
+                    navController.clearTopLevelState(profileId = profileId)
+                    onActiveProfileChanged(null)
+                    navController.navigate(AppRoute.Profiles) {
+                        popUpTo<AppRoute.Home> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            },
+        ) {
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
                 modifier = Modifier.fillMaxSize(),
                 enterTransition = {
-                    if (isMobileTopLevelSwitch()) {
-                        fadeIn(animationSpec = tween(MobileTabTransitionMillis))
+                    if (isTopLevelSwitch()) {
+                        fadeIn(animationSpec = tween(TopLevelTransitionMillis))
                     } else {
                         fadeIn(
                             animationSpec = tween(
@@ -139,8 +173,8 @@ internal fun StreamCoreNavHost(
                 exitTransition = {
                     fadeOut(
                         animationSpec = tween(
-                            if (isMobileTopLevelSwitch()) {
-                                MobileTabTransitionMillis
+                            if (isTopLevelSwitch()) {
+                                TopLevelTransitionMillis
                             } else {
                                 StreamCoreMotionDurations.NavigationExitMillis
                             },
@@ -148,8 +182,8 @@ internal fun StreamCoreNavHost(
                     )
                 },
                 popEnterTransition = {
-                    if (isMobileTopLevelSwitch()) {
-                        fadeIn(animationSpec = tween(MobileTabTransitionMillis))
+                    if (isTopLevelSwitch()) {
+                        fadeIn(animationSpec = tween(TopLevelTransitionMillis))
                     } else {
                         fadeIn(
                             animationSpec = tween(
@@ -168,8 +202,8 @@ internal fun StreamCoreNavHost(
                 popExitTransition = {
                     fadeOut(
                         animationSpec = tween(
-                            if (isMobileTopLevelSwitch()) {
-                                MobileTabTransitionMillis
+                            if (isTopLevelSwitch()) {
+                                TopLevelTransitionMillis
                             } else {
                                 StreamCoreMotionDurations.NavigationExitMillis
                             },
@@ -311,7 +345,7 @@ internal fun StreamCoreNavHost(
                     onProfileSelected = {
                         selectedContent = null
                         selectedContentKey = null
-                        navController.clearMobileTopLevelState(profileId = route.profileId)
+                        navController.clearTopLevelState(profileId = route.profileId)
                         onActiveProfileChanged(null)
                         navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Home> {
@@ -327,10 +361,11 @@ internal fun StreamCoreNavHost(
             composable<AppRoute.Search> { backStackEntry ->
                 val route = backStackEntry.toRoute<AppRoute.Search>()
 
-                MobileSearchRoute(
+                SearchDestination(
+                    platform = platform,
                     profileId = route.profileId,
                     selectedContentKey = selectedContentKey,
-                    bottomContentPadding = mobileBottomContentPadding,
+                    mobileBottomContentPadding = mobileBottomContentPadding,
                     onContentSelected = { content ->
                         selectedContent = content
                         selectedContentKey = content.sharedContentKey()
@@ -359,7 +394,8 @@ internal fun StreamCoreNavHost(
                 composable<AppRoute.Library> { backStackEntry ->
                     val route = backStackEntry.toRoute<AppRoute.Library>()
 
-                    MobileLibraryRoute(
+                    LibraryDestination(
+                        platform = platform,
                         profileId = route.profileId,
                         activeProfile = selectedProfile?.takeIf { profile ->
                             profile.id == route.profileId
@@ -381,7 +417,7 @@ internal fun StreamCoreNavHost(
                         onProfileSelected = {
                             selectedContent = null
                             selectedContentKey = null
-                            navController.clearMobileTopLevelState(profileId = route.profileId)
+                            navController.clearTopLevelState(profileId = route.profileId)
                             onActiveProfileChanged(null)
                             navController.navigate(AppRoute.Profiles) {
                                 popUpTo<AppRoute.Home> {
@@ -465,6 +501,7 @@ internal fun StreamCoreNavHost(
                     onBack = { navController.popBackStack() },
                 )
             }
+            }
         }
         }
 
@@ -490,7 +527,7 @@ internal fun StreamCoreNavHost(
                         if (destination != currentTopLevelDestination) {
                             selectedContent = null
                             selectedContentKey = null
-                            navController.navigateToMobileTopLevel(
+                            navController.navigateToTopLevel(
                                 destination = destination,
                                 profileId = profileId,
                             )
@@ -510,22 +547,22 @@ internal fun StreamCoreNavHost(
     }
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.isMobileTopLevelSwitch(): Boolean {
-    return initialState.destination.mobileTopLevelDestination() != null &&
-            targetState.destination.mobileTopLevelDestination() != null
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTopLevelSwitch(): Boolean {
+    return initialState.destination.topLevelDestination() != null &&
+            targetState.destination.topLevelDestination() != null
 }
 
 private fun NavBackStackEntry.topLevelProfileId(): String? {
-    return when (destination.mobileTopLevelDestination()) {
-        MobileTopLevelDestination.Home -> toRoute<AppRoute.Home>().profileId
-        MobileTopLevelDestination.Search -> toRoute<AppRoute.Search>().profileId
-        MobileTopLevelDestination.Library -> toRoute<AppRoute.Library>().profileId
+    return when (destination.topLevelDestination()) {
+        TopLevelDestination.Home -> toRoute<AppRoute.Home>().profileId
+        TopLevelDestination.Search -> toRoute<AppRoute.Search>().profileId
+        TopLevelDestination.Library -> toRoute<AppRoute.Library>().profileId
         null -> null
     }
 }
 
-private fun NavHostController.navigateToMobileTopLevel(
-    destination: MobileTopLevelDestination,
+private fun NavHostController.navigateToTopLevel(
+    destination: TopLevelDestination,
     profileId: String,
 ) {
     navigate(destination.route(profileId)) {
@@ -537,7 +574,7 @@ private fun NavHostController.navigateToMobileTopLevel(
     }
 }
 
-private fun NavHostController.clearMobileTopLevelState(profileId: String) {
+private fun NavHostController.clearTopLevelState(profileId: String) {
     clearBackStack(AppRoute.Search(profileId = profileId))
     clearBackStack(AppRoute.Library(profileId = profileId))
 }
@@ -557,7 +594,7 @@ private fun ContentModel.withSourceRow(sourceRow: String?): ContentModel {
     }
 }
 
-private const val MobileTabTransitionMillis = 180
+private const val TopLevelTransitionMillis = 180
 private const val MobileBarVisibilityMillis = 160
 private val MobileBottomContentClearance = 108.dp
 
@@ -636,6 +673,7 @@ private fun ProfilesDestination(
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
             onError = onError,
+            sharedElementScope = sharedElementScope,
         )
     }
 }
@@ -711,6 +749,70 @@ private fun HomeDestination(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
+            onError = onError,
+            sharedElementScope = sharedElementScope,
+        )
+    }
+}
+
+@Composable
+private fun SearchDestination(
+    platform: Platform,
+    profileId: String,
+    selectedContentKey: String?,
+    mobileBottomContentPadding: Dp,
+    onContentSelected: (ContentModel) -> Unit,
+    onBack: () -> Unit,
+    sharedElementScope: StreamCoreSharedElementScope?,
+) {
+    when (platform) {
+        Platform.Tv -> TvSearchRoute(
+            profileId = profileId,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onBack = onBack,
+            sharedElementScope = sharedElementScope,
+        )
+
+        Platform.Mobile,
+        Platform.Tablet -> MobileSearchRoute(
+            profileId = profileId,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onBack = onBack,
+            bottomContentPadding = mobileBottomContentPadding,
+            sharedElementScope = sharedElementScope,
+        )
+    }
+}
+
+@Composable
+private fun LibraryDestination(
+    platform: Platform,
+    profileId: String,
+    activeProfile: ProfileModel?,
+    selectedContentKey: String?,
+    onContentSelected: (ContentModel) -> Unit,
+    onProfileSelected: () -> Unit,
+    onError: (AppError) -> Unit,
+    sharedElementScope: StreamCoreSharedElementScope?,
+) {
+    when (platform) {
+        Platform.Tv -> TvLibraryRoute(
+            profileId = profileId,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onError = onError,
+            sharedElementScope = sharedElementScope,
+        )
+
+        Platform.Mobile,
+        Platform.Tablet -> MobileLibraryRoute(
+            profileId = profileId,
+            activeProfile = activeProfile,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onProfileSelected = onProfileSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )

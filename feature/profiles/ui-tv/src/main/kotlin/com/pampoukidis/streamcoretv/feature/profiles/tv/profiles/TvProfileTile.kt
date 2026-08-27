@@ -10,6 +10,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -44,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -58,8 +62,10 @@ internal fun TvProfileTile(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
     val scale by animateFloatAsState(
         targetValue = if (isFocused && enabled) 1.06f else 1f,
         animationSpec = tween(durationMillis = 160),
@@ -87,6 +93,8 @@ internal fun TvProfileTile(
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
             )
             .testTag(ProfilesTestTags.ProfileCardPrefix + profile.id),
@@ -123,7 +131,13 @@ internal fun TvProfileTile(
                     StreamCoreProfileArtwork(
                         avatar = profile.avatar,
                         contentDescription = null,
-                        modifier = Modifier.matchParentSize(),
+                        modifier = Modifier
+                            .matchParentSize()
+                            .streamCoreSharedBounds(
+                                sharedElementScope = sharedElementScope,
+                                key = StreamCoreSharedKey.profileAvatar(profile.id),
+                                clipShape = CircleShape,
+                            ),
                     )
                     if (isSelecting) {
                         Box(

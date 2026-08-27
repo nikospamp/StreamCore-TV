@@ -1,11 +1,14 @@
 package com.pampoukidis.streamcoretv.feature.profiles.tv.profiles
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -58,8 +61,12 @@ class TvProfilesScreenTest {
         setScreen(onAction = actions::add)
 
         composeRule
+            .onNodeWithTag(ProfilesTestTags.ProfileCardPrefix + ProfilesPreviewData.profiles.first().id)
+            .performKeyInput { pressKey(Key.DirectionUp) }
+        composeRule
             .onNodeWithTag(ProfilesTestTags.ManageProfilesButton)
-            .performClick()
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
 
         assertEquals(listOf(ProfilesAction.ManageProfiles), actions)
     }

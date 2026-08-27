@@ -12,25 +12,25 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
 
 @Composable
 internal fun MobileNavigationBar(
-    selectedDestination: MobileTopLevelDestination,
-    onDestinationSelected: (MobileTopLevelDestination) -> Unit,
+    selectedDestination: TopLevelDestination,
+    onDestinationSelected: (TopLevelDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     StreamCoreFloatingBottomNavigation(
         selectedIndex = selectedDestination.ordinal,
-        itemCount = MobileTopLevelDestination.entries.size,
+        itemCount = TopLevelDestination.entries.size,
         modifier = modifier,
     ) {
-        MobileTopLevelDestination.entries.forEach { destination ->
+        TopLevelDestination.entries.forEach { destination ->
             StreamCoreFloatingBottomNavigationItem(
                 selected = destination == selectedDestination,
                 label = stringResource(destination.labelRes),
                 onClick = { onDestinationSelected(destination) },
                 icon = {
                     when (destination) {
-                        MobileTopLevelDestination.Home -> StreamCoreHomeIcon()
-                        MobileTopLevelDestination.Search -> StreamCoreSearchIcon()
-                        MobileTopLevelDestination.Library -> StreamCoreLibraryIcon()
+                        TopLevelDestination.Home -> StreamCoreHomeIcon()
+                        TopLevelDestination.Search -> StreamCoreSearchIcon()
+                        TopLevelDestination.Library -> StreamCoreLibraryIcon()
                     }
                 },
             )
@@ -38,11 +38,11 @@ internal fun MobileNavigationBar(
     }
 }
 
-private val MobileTopLevelDestination.labelRes: Int
+internal val TopLevelDestination.labelRes: Int
     get() {
         return when (this) {
-            MobileTopLevelDestination.Home -> R.string.navigation_home
-            MobileTopLevelDestination.Search -> R.string.navigation_search
-            MobileTopLevelDestination.Library -> R.string.navigation_library
+            TopLevelDestination.Home -> R.string.navigation_home
+            TopLevelDestination.Search -> R.string.navigation_search
+            TopLevelDestination.Library -> R.string.navigation_library
         }
     }

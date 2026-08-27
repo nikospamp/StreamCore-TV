@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
@@ -42,6 +43,7 @@ fun TvProfilesScreen(
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val interactionsEnabled = !state.isLoading &&
             !state.isSaving &&
@@ -91,6 +93,7 @@ fun TvProfilesScreen(
                         },
                         onCreateProfile = onCreateProfile,
                         onEditProfile = onEditProfile,
+                        sharedElementScope = sharedElementScope,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

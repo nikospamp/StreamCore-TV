@@ -1,0 +1,16 @@
+<resources>
+    <string name="search_title">Search</string>
+    <string name="search_hint">Search movies and series</string>
+    <string name="search_recent_heading">Recent searches</string>
+    <string name="search_clear_recent">Clear recent</string>
+    <string name="search_trending_heading">Trending now</string>
+    <string name="search_searching">Searching…</string>
+    <string name="search_results_heading">Results</string>
+    <string name="search_offline_notice">Showing saved results while offline</string>
+    <string name="search_empty_title">No results for “%1$s”</string>
+    <string name="search_empty_body">Try another title, actor, or genre.</string>
+    <string name="search_failure_title">Search is unavailable</string>
+    <string name="search_failure_body">Check your connection and try again.</string>
+    <string name="search_clear_query">Clear query</string>
+    <string name="search_try_again">Try again</string>
+</resources>

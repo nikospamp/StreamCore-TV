@@ -68,6 +68,7 @@ include(":feature:search:data")
 include(":feature:search:domain")
 include(":feature:search:ui-common")
 include(":feature:search:ui-mobile")
+include(":feature:search:ui-tv")
 
 // Details
 include(":feature:details:data")
@@ -82,6 +83,7 @@ include(":feature:library:data")
 include(":feature:library:domain")
 include(":feature:library:ui-common")
 include(":feature:library:ui-mobile")
+include(":feature:library:ui-tv")
 
 // Playback
 include(":playback:api")

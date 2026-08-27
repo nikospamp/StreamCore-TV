@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.navigation
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class MobileTopLevelDestinationTest {
+class TopLevelDestinationTest {
 
     @Test
     fun `top level destinations create profile scoped routes`() {
@@ -11,15 +11,15 @@ class MobileTopLevelDestinationTest {
 
         assertEquals(
             AppRoute.Home(profileId = profileId),
-            MobileTopLevelDestination.Home.route(profileId),
+            TopLevelDestination.Home.route(profileId),
         )
         assertEquals(
             AppRoute.Search(profileId = profileId),
-            MobileTopLevelDestination.Search.route(profileId),
+            TopLevelDestination.Search.route(profileId),
         )
         assertEquals(
             AppRoute.Library(profileId = profileId),
-            MobileTopLevelDestination.Library.route(profileId),
+            TopLevelDestination.Library.route(profileId),
         )
     }
 
@@ -27,11 +27,11 @@ class MobileTopLevelDestinationTest {
     fun `top level order keeps home as the back stack anchor`() {
         assertEquals(
             listOf(
-                MobileTopLevelDestination.Home,
-                MobileTopLevelDestination.Search,
-                MobileTopLevelDestination.Library,
+                TopLevelDestination.Home,
+                TopLevelDestination.Search,
+                TopLevelDestination.Library,
             ),
-            MobileTopLevelDestination.entries,
+            TopLevelDestination.entries,
         )
     }
 }
