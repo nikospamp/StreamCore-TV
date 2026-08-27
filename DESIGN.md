@@ -489,9 +489,13 @@ identity and clip shape; never attach the transition to every duplicate content 
 - **Screen rhythm:** `20dp` horizontal screen padding, `24dp` between major sections, and `12dp` between a shelf title and its row.
 - **Top bar:** `StreamCoreBrowseTopBar` occupies a `48dp`-high row. Brand and actions stay visually compact; interactive actions must retain a
   `48dp` touch target even when the visible icon or avatar is `32dp`.
-- **Hero pager:** fills the available width inside `20dp` horizontal pager padding, derives height from the shared `16:9` ratio, uses `12dp` page
-  spacing, a `16dp` corner radius, and `16dp` internal overlay padding. The description is capped at two lines.
-- **Pager indicator:** inactive dots are `5dp`; the selected indicator is `18dp x 5dp`; spacing is `5dp`.
+- **Hero pager:** fills the available width inside `20dp` horizontal pager padding, derives height from the shared `16:9` ratio with a `280dp`
+  minimum for two-line titles, uses `12dp` page spacing, a `16dp` corner radius, and `16dp` internal overlay padding. The description is capped at
+  two lines. Content reserves an additional `13dp` at the bottom for the fixed indicator.
+- **Pager indicator:** a single overlay outside the page content, synchronized to the carousel state on mobile, tablet, and TV. Inactive dots are
+  `5dp`; the selected indicator is `18dp x 5dp`; spacing is `5dp`. Selection width and color animate over `220ms`.
+- **Carousel timing:** advance after `5s` and wrap to the first item. Touch interaction pauses mobile/tablet rotation and restarts the interval
+  after settling. TV retains native focus/accessibility pauses. All platforms pause outside the resumed lifecycle and in previews.
 - **Continue Watching:** each item is `192dp` wide with `16:9` artwork (`192dp x 108dp`), `10dp` corners, and `8dp` between artwork and metadata.
   Playback progress is a `3dp` bar inset `8dp` horizontally and uses `primary` only for the completed fraction.
 - **Poster shelf:** cards are `120dp x 180dp` (`2:3`) with `10dp` corners and an `8dp` artwork overlay inset.

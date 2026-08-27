@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +27,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +53,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonSize
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePagerCarousel
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
@@ -203,35 +206,48 @@ private fun MobileHeroPager(
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
 ) {
-    val pagerState = rememberPagerState(pageCount = { content.size })
+    // The pager count updates before BoxWithConstraints subcomposes. Retained key/content
+    // callbacks must read the same snapshot-backed list instead of capturing the old one.
+    val carouselItems by rememberUpdatedState(content)
+    val pagerState = rememberPagerState(pageCount = { carouselItems.size })
 
-    HorizontalPager(
-        state = pagerState,
-        contentPadding = PaddingValues(
-            horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
-        ),
-        pageSpacing = StreamCoreDimens.Mobile.Browse.RowSpacing,
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
-    ) { page ->
-        val item = content[page]
-        HomeHeroCard(
-            content = item,
-            pageCount = content.size,
-            selectedPage = pagerState.currentPage,
-            selectedContentKey = selectedContentKey,
-            sharedElementScope = sharedElementScope,
-            onClick = { onContentSelected(item) },
-        )
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        StreamCorePagerCarousel(
+            state = pagerState,
+            key = { page -> carouselItems[page].sharedIdentity() },
+            contentPadding = PaddingValues(
+                horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
+            ),
+            indicatorPadding = PaddingValues(
+                start = StreamCoreDimens.Mobile.Screen.HorizontalPadding + StreamCoreDimens.Spacing.Large,
+                end = StreamCoreDimens.Mobile.Screen.HorizontalPadding + StreamCoreDimens.Spacing.Large,
+                bottom = StreamCoreDimens.Spacing.Large,
+            ),
+            pageSpacing = StreamCoreDimens.Mobile.Browse.RowSpacing,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(
+                    maxOf(
+                        StreamCoreDimens.Mobile.Browse.HeroMinHeight,
+                        maxWidth / StreamCoreDimens.Artwork.LandscapeAspectRatio,
+                    ),
+                )
+                .testTag(HomeTestTags.Hero),
+        ) { page ->
+            val item = carouselItems[page]
+            HomeHeroCard(
+                content = item,
+                selectedContentKey = selectedContentKey,
+                sharedElementScope = sharedElementScope,
+                onClick = { onContentSelected(item) },
+            )
+        }
     }
 }
 
 @Composable
 private fun HomeHeroCard(
     content: ContentModel,
-    pageCount: Int,
-    selectedPage: Int,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -292,7 +308,13 @@ private fun HomeHeroCard(
                     sharedElementScope = elementScope,
                     zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                 )
-                .padding(StreamCoreDimens.Spacing.Large),
+                .padding(
+                    start = StreamCoreDimens.Spacing.Large,
+                    end = StreamCoreDimens.Spacing.Large,
+                    top = StreamCoreDimens.Spacing.Large,
+                    bottom = StreamCoreDimens.Spacing.Large + StreamCoreDimens.Indicator.DotSize +
+                        StreamCoreDimens.Spacing.Small,
+                ),
         ) {
             Text(
                 text = "Featured movie",
@@ -337,40 +359,6 @@ private fun HomeHeroCard(
                 size = StreamCoreButtonSize.Compact,
                 leadingIcon = { StreamCoreInfoIcon() },
                 modifier = Modifier.testTag(HomeTestTags.HeroDetails),
-            )
-            PagerIndicator(
-                pageCount = pageCount,
-                selectedPage = selectedPage,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PagerIndicator(
-    pageCount: Int,
-    selectedPage: Int,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Indicator.DotSpacing)) {
-        repeat(pageCount) { index ->
-            Box(
-                modifier = Modifier
-                    .width(
-                        if (index == selectedPage) {
-                            StreamCoreDimens.Indicator.SelectedDotWidth
-                        } else {
-                            StreamCoreDimens.Indicator.DotSize
-                        },
-                    )
-                    .height(StreamCoreDimens.Indicator.DotSize)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == selectedPage) {
-                            MaterialTheme.colorScheme.onArtwork
-                        } else {
-                            MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.32f)
-                        },
-                    ),
             )
         }
     }

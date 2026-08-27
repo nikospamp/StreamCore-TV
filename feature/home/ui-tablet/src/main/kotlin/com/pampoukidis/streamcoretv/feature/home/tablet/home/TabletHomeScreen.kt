@@ -20,9 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -31,7 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +53,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonSize
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePagerCarousel
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
@@ -233,18 +234,20 @@ private fun TabletHeroPager(
     onContentSelected: (ContentModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pagerState = rememberPagerState(pageCount = { content.size })
+    // Count and retained pager callbacks share one list snapshot during catalogue updates.
+    val carouselItems by rememberUpdatedState(content)
+    val pagerState = rememberPagerState(pageCount = { carouselItems.size })
 
-    HorizontalPager(
+    StreamCorePagerCarousel(
         state = pagerState,
+        key = { page -> carouselItems[page].sharedIdentity() },
+        indicatorPadding = PaddingValues(StreamCoreDimens.Spacing.ExtraLarge),
         pageSpacing = StreamCoreDimens.Tablet.Browse.RowSpacing,
-        modifier = modifier.fillMaxHeight(),
+        modifier = modifier.fillMaxHeight().testTag(HomeTestTags.Hero),
     ) { page ->
-        val item = content[page]
+        val item = carouselItems[page]
         TabletHeroCard(
             content = item,
-            pageCount = content.size,
-            selectedPage = pagerState.currentPage,
             selectedContentKey = selectedContentKey,
             sharedElementScope = sharedElementScope,
             onClick = { onContentSelected(item) },
@@ -255,8 +258,6 @@ private fun TabletHeroPager(
 @Composable
 private fun TabletHeroCard(
     content: ContentModel,
-    pageCount: Int,
-    selectedPage: Int,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -318,8 +319,11 @@ private fun TabletHeroCard(
                     zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                 )
                 .padding(
-                    horizontal = StreamCoreDimens.Spacing.ExtraLarge,
-                    vertical = StreamCoreDimens.Spacing.ExtraLarge,
+                    start = StreamCoreDimens.Spacing.ExtraLarge,
+                    end = StreamCoreDimens.Spacing.ExtraLarge,
+                    top = StreamCoreDimens.Spacing.ExtraLarge,
+                    bottom = StreamCoreDimens.Spacing.ExtraLarge + StreamCoreDimens.Indicator.DotSize +
+                        StreamCoreDimens.Spacing.Small,
                 ),
         ) {
             Text(
@@ -365,10 +369,6 @@ private fun TabletHeroCard(
                 size = StreamCoreButtonSize.Compact,
                 leadingIcon = { StreamCoreInfoIcon() },
                 modifier = Modifier.testTag(HomeTestTags.HeroDetails),
-            )
-            PagerIndicator(
-                pageCount = pageCount,
-                selectedPage = selectedPage,
             )
         }
     }
@@ -758,36 +758,6 @@ private fun TopTenRank(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = TopTenRankContentAlpha),
             style = StreamCoreTextStyles.TabletTopTenRank,
         )
-    }
-}
-
-@Composable
-private fun PagerIndicator(
-    pageCount: Int,
-    selectedPage: Int,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Indicator.DotSpacing)) {
-        repeat(pageCount) { index ->
-            Box(
-                modifier = Modifier
-                    .width(
-                        if (index == selectedPage) {
-                            StreamCoreDimens.Indicator.SelectedDotWidth
-                        } else {
-                            StreamCoreDimens.Indicator.DotSize
-                        },
-                    )
-                    .height(StreamCoreDimens.Indicator.DotSize)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == selectedPage) {
-                            MaterialTheme.colorScheme.onArtwork
-                        } else {
-                            MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.32f)
-                        },
-                    ),
-            )
-        }
     }
 }
 
