@@ -1,22 +1,30 @@
 package com.pampoukidis.streamcoretv.feature.details.tv.details
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -57,12 +65,61 @@ class TvDetailsScreenTest {
     }
 
     @Test
-    fun dpadTraversalMovesPlayLikeMyListAndFirstRecommendation() {
+    fun initialPlayFocusKeepsEntireHeroInsideViewport() {
+        setContent(
+            stateProvider = {
+                contentState().copy(
+                    content = contentState().content?.copy(
+                        title = "Spider-Man: Brand New Day",
+                    ),
+                )
+            },
+        )
+
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).assertIsFocused()
+        val heroBounds = composeRule.onNodeWithTag(DetailsTestTags.Hero)
+            .getUnclippedBoundsInRoot()
+        val viewportBounds = composeRule.onNodeWithTag(DetailsTestTags.Content)
+            .getUnclippedBoundsInRoot()
+
+        assertTrue(
+            "Initial focus must not scroll the hero above the viewport: $heroBounds / $viewportBounds",
+            heroBounds.top >= viewportBounds.top,
+        )
+        assertTrue(heroBounds.bottom <= viewportBounds.bottom)
+    }
+
+    @Test
+    fun longSummaryStillAllowsDownFromLikeToRecommendations() {
+        setContent(stateProvider = ::longContentState)
+
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction)
+            .performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).assertIsFocused().press(Key.DirectionDown)
+        composeRule.onNodeWithTag(
+            DetailsTestTags.RecommendationPrefix + DetailsPreviewData.recommendations.first().id,
+        ).assertIsFocused().assertIsDisplayed()
+    }
+
+    @Test
+    fun recommendationsAreDiscoverableOnEntryWithLongContent() {
+        setContent(stateProvider = ::longContentState)
+
+        composeRule.onNodeWithText("More like this").assertIsDisplayed()
+        val viewport = composeRule.onNodeWithTag(DetailsTestTags.Content).getUnclippedBoundsInRoot()
+        val recommendation = composeRule.onNodeWithTag(
+            DetailsTestTags.RecommendationPrefix + DetailsPreviewData.recommendations.first().id,
+        ).getUnclippedBoundsInRoot()
+        assertTrue("At least 64 dp of recommendations should be visible on entry", recommendation.top <= viewport.bottom - 64.dp)
+    }
+
+    @Test
+    fun dpadTraversalRestoresActionsAndRecommendation() {
         setContent(stateProvider = ::contentState)
 
         composeRule.onNodeWithTag(DetailsTestTags.PlayButton)
             .assertIsFocused()
-            .press(Key.DirectionDown)
+            .press(Key.DirectionRight)
         composeRule.onNodeWithTag(DetailsTestTags.LikeAction)
             .assertIsFocused()
             .press(Key.DirectionRight)
@@ -71,7 +128,15 @@ class TvDetailsScreenTest {
             .press(Key.DirectionDown)
         composeRule.onNodeWithTag(
             DetailsTestTags.RecommendationPrefix + DetailsPreviewData.recommendations.first().id,
-        ).assertIsFocused()
+        ).assertIsFocused().assertIsDisplayed().press(Key.DirectionRight)
+        val secondRecommendation = composeRule.onNodeWithTag(
+            DetailsTestTags.RecommendationPrefix + DetailsPreviewData.recommendations[1].id,
+        )
+        secondRecommendation.assertIsFocused().press(Key.DirectionUp)
+        composeRule.onNodeWithTag(DetailsTestTags.MyListAction)
+            .assertIsFocused()
+            .press(Key.DirectionDown)
+        secondRecommendation.assertIsFocused().assertIsDisplayed()
     }
 
     @Test
@@ -101,7 +166,7 @@ class TvDetailsScreenTest {
 
         composeRule.onNodeWithTag(DetailsTestTags.LikeAction).assertIsSelected()
         composeRule.onNodeWithTag(DetailsTestTags.MyListAction).assertIsNotSelected()
-        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).press(Key.DirectionDown)
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).press(Key.DirectionRight)
         composeRule.onNodeWithTag(DetailsTestTags.LikeAction)
             .assertIsFocused()
             .press(Key.Enter)
@@ -122,7 +187,7 @@ class TvDetailsScreenTest {
         var state by mutableStateOf(contentState())
 
         setContent(stateProvider = { state }, actions = actions)
-        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).press(Key.DirectionDown)
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).press(Key.DirectionRight)
         composeRule.onNodeWithTag(DetailsTestTags.LikeAction).assertIsFocused()
 
         state = state.copy(isLikeMutationPending = true)
@@ -179,16 +244,43 @@ class TvDetailsScreenTest {
         composeRule.onNodeWithTag(DetailsTestTags.BackButton).assertIsEnabled()
     }
 
+    @Test
+    fun enlargedTextStillAllowsRecommendationsAndReturnToLike() {
+        setContent(stateProvider = ::longContentState, fontScale = 1.5f)
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction)
+            .performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).press(Key.DirectionDown)
+        composeRule.onNodeWithTag(
+            DetailsTestTags.RecommendationPrefix + DetailsPreviewData.recommendations.first().id,
+        ).assertIsFocused().assertIsDisplayed().press(Key.DirectionUp)
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).assertIsFocused().assertIsDisplayed()
+    }
+
+    @Test
+    fun noRecommendationsKeepsDownOnCurrentAction() {
+        setContent(stateProvider = { contentState().copy(recommendations = emptyList()) })
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction)
+            .performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).press(Key.DirectionDown)
+        composeRule.onNodeWithTag(DetailsTestTags.LikeAction).assertIsFocused()
+        composeRule.onNodeWithTag(DetailsTestTags.Recommendations).assertDoesNotExist()
+    }
+
     private fun setContent(
         stateProvider: () -> DetailsUiState,
         actions: MutableList<DetailsAction> = mutableListOf(),
+        fontScale: Float = 1f,
     ) {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
-                TvDetailsScreen(
-                    state = stateProvider(),
-                    onAction = actions::add,
-                )
+                CompositionLocalProvider(
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale),
+                ) {
+                    TvDetailsScreen(
+                        state = stateProvider(),
+                        onAction = actions::add,
+                    )
+                }
             }
         }
         composeRule.mainClock.advanceTimeBy(DetailsEntranceSettleMillis)
@@ -213,6 +305,18 @@ class TvDetailsScreenTest {
                 )
             },
             isLibraryAvailable = true,
+        )
+    }
+
+    private fun longContentState(): DetailsUiState {
+        val state = contentState()
+        val content = requireNotNull(state.content)
+        return state.copy(
+            content = content.copy(
+                title = "Spider-Man: Brand New Day — The Journey Beyond the Horizon",
+                description = content.description.repeat(6),
+                cast = content.cast.map { it.copy(characterName = "Commander of the International Expedition") },
+            ),
         )
     }
 
