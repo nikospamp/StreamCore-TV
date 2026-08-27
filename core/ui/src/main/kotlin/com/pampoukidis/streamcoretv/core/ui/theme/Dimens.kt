@@ -93,6 +93,7 @@ object StreamCoreDimens {
         }
 
         object Browse {
+            val HeroMinHeight = 280.dp
             val SectionSpacing = Spacing.ExtraLarge
             val RowSpacing = Spacing.Medium
             val ContinueWatchingWidth = 192.dp
@@ -172,6 +173,7 @@ object StreamCoreDimens {
         }
 
         object Browse {
+            val HeroHeight = 360.dp
             val FeaturedCardWidth = 440.dp
             val PosterCardWidth = 220.dp
             val LandscapeCardWidth = 320.dp
