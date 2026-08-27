@@ -1,8 +1,11 @@
 package com.pampoukidis.streamcoretv.feature.details.tv.details
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +41,10 @@ import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.
 import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component4
 import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component5
 import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component6
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component7
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
@@ -63,7 +69,6 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
-import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
@@ -79,6 +84,7 @@ import com.pampoukidis.streamcoretv.feature.details.tv.R
 import java.util.Calendar
 import java.util.TimeZone
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvDetailsScreen(
     state: DetailsUiState,
@@ -92,7 +98,8 @@ fun TvDetailsScreen(
         playFocusRequester,
         likeFocusRequester,
         myListFocusRequester,
-        firstRecommendationFocusRequester,
+        recommendationsFocusRequester,
+        actionsFocusRequester,
     ) = remember { FocusRequester.createRefs() }
     val contentId = state.content?.id
 
@@ -109,10 +116,10 @@ fun TvDetailsScreen(
             .testTag(DetailsTestTags.Root),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = StreamCoreDimens.Tv.Screen.VerticalPadding),
+                .padding(vertical = StreamCoreDimens.Spacing.ExtraLarge),
         ) {
             DetailsHeader(
                 isLoading = state.isLoading,
@@ -125,20 +132,27 @@ fun TvDetailsScreen(
                     horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                 ),
             )
-            DetailsBody(
-                state = state,
-                onAction = onAction,
-                backFocusRequester = backFocusRequester,
-                playFocusRequester = playFocusRequester,
-                likeFocusRequester = likeFocusRequester,
-                myListFocusRequester = myListFocusRequester,
-                firstRecommendationFocusRequester = firstRecommendationFocusRequester,
-                sharedElementScope = sharedElementScope,
-                modifier = Modifier.weight(1f),
-            )
+            // TV's default pivot scrolls even visible controls, cropping the hero as it
+            // leaves the shared-transition overlay. Only scroll to reveal off-screen content.
+            CompositionLocalProvider(LocalBringIntoViewSpec provides DetailsBringIntoViewSpec) {
+                DetailsBody(
+                    state = state,
+                    onAction = onAction,
+                    backFocusRequester = backFocusRequester,
+                    playFocusRequester = playFocusRequester,
+                    actionsFocusRequester = actionsFocusRequester,
+                    likeFocusRequester = likeFocusRequester,
+                    myListFocusRequester = myListFocusRequester,
+                    recommendationsFocusRequester = recommendationsFocusRequester,
+                    sharedElementScope = sharedElementScope,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
+
+private val DetailsBringIntoViewSpec = object : BringIntoViewSpec {}
 
 @Composable
 private fun DetailsHeader(
@@ -157,6 +171,7 @@ private fun DetailsHeader(
     ) {
         StreamCoreTvButton(
             text = "Back",
+            variant = StreamCoreTvButtonVariant.Tertiary,
             onClick = { onAction(DetailsAction.BackSelected) },
             enabled = true,
             modifier = Modifier
@@ -167,18 +182,27 @@ private fun DetailsHeader(
                 }
                 .testTag(DetailsTestTags.BackButton),
         )
-        StreamCoreTvButton(
-            text = "Refresh",
-            onClick = { onAction(DetailsAction.Refresh) },
-            enabled = !isLoading,
-            modifier = Modifier
-                .focusRequester(refreshFocusRequester)
-                .focusProperties {
-                    left = backFocusRequester
-                    down = if (hasContent) playFocusRequester else FocusRequester.Default
-                }
-                .testTag(DetailsTestTags.RefreshButton),
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isLoading && hasContent) {
+                StreamCoreLoadingChip(text = "Updating")
+            }
+            StreamCoreTvButton(
+                text = "Refresh",
+                variant = StreamCoreTvButtonVariant.Tertiary,
+                onClick = { onAction(DetailsAction.Refresh) },
+                enabled = !isLoading,
+                modifier = Modifier
+                    .focusRequester(refreshFocusRequester)
+                    .focusProperties {
+                        left = backFocusRequester
+                        down = if (hasContent) playFocusRequester else FocusRequester.Default
+                    }
+                    .testTag(DetailsTestTags.RefreshButton),
+            )
+        }
     }
 }
 
@@ -188,9 +212,10 @@ private fun DetailsBody(
     onAction: (DetailsAction) -> Unit,
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
+    actionsFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
-    firstRecommendationFocusRequester: FocusRequester,
+    recommendationsFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -208,65 +233,39 @@ private fun DetailsBody(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Tv.Screen.VerticalPadding),
+            // There are only two vertical sections. Keep both composed so a long summary
+            // cannot detach the recommendations' focus target. The horizontal row stays lazy.
+            else -> Column(
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
                 modifier = Modifier
                     .fillMaxSize()
-                    .testTag(DetailsTestTags.Content),
+                    .testTag(DetailsTestTags.Content)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = StreamCoreDimens.Spacing.Large),
             ) {
-                item(contentType = "summary") {
-                    SummarySection(
-                        state = state,
-                        onAction = onAction,
-                        backFocusRequester = backFocusRequester,
-                        playFocusRequester = playFocusRequester,
-                        likeFocusRequester = likeFocusRequester,
-                        myListFocusRequester = myListFocusRequester,
-                        firstRecommendationFocusRequester = firstRecommendationFocusRequester,
-                        sharedElementScope = sharedElementScope,
-                        modifier = Modifier.padding(
-                            horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-                        ),
-                    )
-                }
-                item(contentType = "recommendations") {
-                    StreamCoreDelayedEntrance(
-                        visibleKey = "${content.id}:recommendations",
-                        delayMillis = RecommendationsEntranceDelayMillis,
-                    ) {
-                        RecommendationsRow(
-                            recommendations = state.recommendations,
-                            onAction = onAction,
-                            firstRecommendationFocusRequester = firstRecommendationFocusRequester,
-                            actionsUpFocusRequester = if (state.isLibraryAvailable) {
-                                likeFocusRequester
-                            } else {
-                                playFocusRequester
-                            },
-                        )
-                    }
-                }
+                SummarySection(
+                    state = state,
+                    onAction = onAction,
+                    backFocusRequester = backFocusRequester,
+                    playFocusRequester = playFocusRequester,
+                    actionsFocusRequester = actionsFocusRequester,
+                    likeFocusRequester = likeFocusRequester,
+                    myListFocusRequester = myListFocusRequester,
+                    recommendationsFocusRequester = recommendationsFocusRequester,
+                    sharedElementScope = sharedElementScope,
+                    modifier = Modifier.padding(
+                        horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    ),
+                )
+                RecommendationsRow(
+                    recommendations = state.recommendations,
+                    onAction = onAction,
+                    recommendationsFocusRequester = recommendationsFocusRequester,
+                    actionsUpFocusRequester = actionsFocusRequester,
+                )
             }
         }
 
-        if (state.isLoading && content != null) {
-            StreamCoreLoadingChip(
-                text = "Updating",
-                textStyle = MaterialTheme.typography.labelLarge,
-                indicatorSize = StreamCoreDimens.Icon.Medium,
-                contentPadding = PaddingValues(
-                    horizontal = StreamCoreDimens.Spacing.Large,
-                    vertical = StreamCoreDimens.Spacing.Small,
-                ),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(
-                        top = StreamCoreDimens.Spacing.Medium,
-                        end = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-                    ),
-            )
-        }
     }
 }
 
@@ -276,9 +275,10 @@ private fun SummarySection(
     onAction: (DetailsAction) -> Unit,
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
+    actionsFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
-    firstRecommendationFocusRequester: FocusRequester,
+    recommendationsFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
@@ -292,7 +292,7 @@ private fun SummarySection(
             content = content,
             sharedElementScope = sharedElementScope,
             modifier = Modifier
-                .weight(0.56f)
+                .weight(0.48f)
                 .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
         )
         DetailsMetadata(
@@ -300,11 +300,12 @@ private fun SummarySection(
             onAction = onAction,
             backFocusRequester = backFocusRequester,
             playFocusRequester = playFocusRequester,
+            actionsFocusRequester = actionsFocusRequester,
             likeFocusRequester = likeFocusRequester,
             myListFocusRequester = myListFocusRequester,
-            firstRecommendationFocusRequester = firstRecommendationFocusRequester,
+            recommendationsFocusRequester = recommendationsFocusRequester,
             sharedElementScope = sharedElementScope,
-            modifier = Modifier.weight(0.44f),
+            modifier = Modifier.weight(0.52f),
         )
     }
 }
@@ -345,9 +346,10 @@ private fun DetailsMetadata(
     onAction: (DetailsAction) -> Unit,
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
+    actionsFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
-    firstRecommendationFocusRequester: FocusRequester,
+    recommendationsFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
@@ -362,78 +364,72 @@ private fun DetailsMetadata(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = modifier,
     ) {
         Text(
             text = content.title,
-            style = MaterialTheme.typography.displayMedium,
+            style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
-                key = StreamCoreSharedKey.title(
-                    contentId = content.id,
-                    row = content.row,
-                ),
+                key = StreamCoreSharedKey.title(contentId = content.id, row = content.row),
                 clipShape = RectangleShape,
                 zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
             ),
         )
-        StreamCoreDelayedEntrance(
-            visibleKey = content.id,
-            delayMillis = MetadataEntranceDelayMillis,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "${releaseYear(content.releaseDate)} · ${content.pgRatingName} · ${content.rating}/10",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = genreText,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DetailsActions(
-                    contentId = content.id,
-                    hasResumableProgress = state.hasResumableProgress,
-                    isLibraryAvailable = state.isLibraryAvailable,
-                    isLiked = state.isLiked,
-                    isInMyList = state.isInMyList,
-                    isLikeMutationPending = state.isLikeMutationPending,
-                    isMyListMutationPending = state.isMyListMutationPending,
-                    hasRecommendations = state.recommendations.isNotEmpty(),
-                    backFocusRequester = backFocusRequester,
-                    playFocusRequester = playFocusRequester,
-                    likeFocusRequester = likeFocusRequester,
-                    myListFocusRequester = myListFocusRequester,
-                    firstRecommendationFocusRequester = firstRecommendationFocusRequester,
-                    onPlayClick = { onAction(DetailsAction.PlaySelected) },
-                    onLikeClick = { onAction(DetailsAction.LikeToggled) },
-                    onMyListClick = { onAction(DetailsAction.MyListToggled) },
-                )
-                Text(
-                    text = content.description,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 5,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (castText.isNotBlank()) {
-                    Text(
-                        text = castText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+        Text(
+            text = "${releaseYear(content.releaseDate)} · ${content.pgRatingName} · ${content.rating}/10",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (genreText.isNotBlank()) {
+            Text(
+                text = genreText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        DetailsActions(
+            contentId = content.id,
+            hasResumableProgress = state.hasResumableProgress,
+            isLibraryAvailable = state.isLibraryAvailable,
+            isLiked = state.isLiked,
+            isInMyList = state.isInMyList,
+            isLikeMutationPending = state.isLikeMutationPending,
+            isMyListMutationPending = state.isMyListMutationPending,
+            hasRecommendations = state.recommendations.isNotEmpty(),
+            backFocusRequester = backFocusRequester,
+            playFocusRequester = playFocusRequester,
+            actionsFocusRequester = actionsFocusRequester,
+            likeFocusRequester = likeFocusRequester,
+            myListFocusRequester = myListFocusRequester,
+            recommendationsFocusRequester = recommendationsFocusRequester,
+            onPlayClick = { onAction(DetailsAction.PlaySelected) },
+            onLikeClick = { onAction(DetailsAction.LikeToggled) },
+            onMyListClick = { onAction(DetailsAction.MyListToggled) },
+        )
+        Text(
+            text = content.description,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.testTag(DetailsTestTags.Overview),
+        )
+        if (castText.isNotBlank()) {
+            Text(
+                text = castText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -450,9 +446,10 @@ private fun DetailsActions(
     hasRecommendations: Boolean,
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
+    actionsFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
-    firstRecommendationFocusRequester: FocusRequester,
+    recommendationsFocusRequester: FocusRequester,
     onPlayClick: () -> Unit,
     onLikeClick: () -> Unit,
     onMyListClick: () -> Unit,
@@ -461,12 +458,19 @@ private fun DetailsActions(
     LaunchedEffect(contentId) {
         playFocusRequester.requestFocus()
     }
+    val downFocusRequester = if (hasRecommendations) {
+        recommendationsFocusRequester
+    } else {
+        FocusRequester.Cancel
+    }
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = TvActionsMaxWidth)
+            .focusRequester(actionsFocusRequester)
+            .focusRestorer(fallback = playFocusRequester)
             .focusGroup(),
     ) {
         StreamCoreTvButton(
@@ -478,80 +482,63 @@ private fun DetailsActions(
             variant = StreamCoreTvButtonVariant.Primary,
             leadingIcon = { StreamCorePlayIcon() },
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .focusRequester(playFocusRequester)
                 .focusProperties {
                     up = backFocusRequester
-                    down = when {
-                        isLibraryAvailable -> likeFocusRequester
-                        hasRecommendations -> firstRecommendationFocusRequester
-                        else -> FocusRequester.Cancel
-                    }
+                    left = FocusRequester.Cancel
+                    right = if (isLibraryAvailable) likeFocusRequester else FocusRequester.Cancel
+                    down = downFocusRequester
                 }
                 .testTag(DetailsTestTags.PlayButton),
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-            modifier = Modifier.fillMaxWidth(),
+        DetailsLibraryButton(
+            label = stringResource(
+                if (isLiked) R.string.details_action_liked else R.string.details_action_like,
+            ),
+            selectedStateDescription = stringResource(
+                if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
+            ),
+            selected = isLiked,
+            isAvailable = isLibraryAvailable,
+            isLoading = isLikeMutationPending,
+            onClick = onLikeClick,
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(likeFocusRequester)
+                .focusProperties {
+                    canFocus = isLibraryAvailable
+                    up = backFocusRequester
+                    left = playFocusRequester
+                    right = myListFocusRequester
+                    down = downFocusRequester
+                }
+                .testTag(DetailsTestTags.LikeAction),
         ) {
-            DetailsLibraryButton(
-                label = stringResource(
-                    if (isLiked) R.string.details_action_liked else R.string.details_action_like,
-                ),
-                selectedStateDescription = stringResource(
-                    if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
-                ),
-                selected = isLiked,
-                isAvailable = isLibraryAvailable,
-                isLoading = isLikeMutationPending,
-                onClick = onLikeClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(likeFocusRequester)
-                    .focusProperties {
-                        canFocus = isLibraryAvailable
-                        up = playFocusRequester
-                        right = myListFocusRequester
-                        down = if (hasRecommendations) {
-                            firstRecommendationFocusRequester
-                        } else {
-                            FocusRequester.Cancel
-                        }
-                    }
-                    .testTag(DetailsTestTags.LikeAction),
-            ) {
-                StreamCoreHeartIcon(filled = isLiked)
-            }
-            DetailsLibraryButton(
-                label = stringResource(R.string.details_action_my_list),
-                selectedStateDescription = stringResource(
-                    if (isInMyList) {
-                        R.string.details_my_list_selected
-                    } else {
-                        R.string.details_my_list_unselected
-                    },
-                ),
-                selected = isInMyList,
-                isAvailable = isLibraryAvailable,
-                isLoading = isMyListMutationPending,
-                onClick = onMyListClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(myListFocusRequester)
-                    .focusProperties {
-                        canFocus = isLibraryAvailable
-                        up = playFocusRequester
-                        left = likeFocusRequester
-                        down = if (hasRecommendations) {
-                            firstRecommendationFocusRequester
-                        } else {
-                            FocusRequester.Cancel
-                        }
-                    }
-                    .testTag(DetailsTestTags.MyListAction),
-            ) {
-                StreamCoreBookmarkIcon(filled = isInMyList)
-            }
+            StreamCoreHeartIcon(filled = isLiked)
+        }
+        DetailsLibraryButton(
+            label = stringResource(R.string.details_action_my_list),
+            selectedStateDescription = stringResource(
+                if (isInMyList) R.string.details_my_list_selected else R.string.details_my_list_unselected,
+            ),
+            selected = isInMyList,
+            isAvailable = isLibraryAvailable,
+            isLoading = isMyListMutationPending,
+            onClick = onMyListClick,
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(myListFocusRequester)
+                .focusProperties {
+                    canFocus = isLibraryAvailable
+                    up = backFocusRequester
+                    left = likeFocusRequester
+                    right = FocusRequester.Cancel
+                    down = downFocusRequester
+                }
+                .testTag(DetailsTestTags.MyListAction),
+        ) {
+            StreamCoreBookmarkIcon(filled = isInMyList)
         }
     }
 }
@@ -597,7 +584,7 @@ private fun DetailsLibraryButton(
 private fun RecommendationsRow(
     recommendations: List<ContentModel>,
     onAction: (DetailsAction) -> Unit,
-    firstRecommendationFocusRequester: FocusRequester,
+    recommendationsFocusRequester: FocusRequester,
     actionsUpFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -606,14 +593,14 @@ private fun RecommendationsRow(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = modifier
             .fillMaxWidth()
             .testTag(DetailsTestTags.Recommendations),
     ) {
         Text(
             text = "More like this",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         )
@@ -622,25 +609,20 @@ private fun RecommendationsRow(
                 horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                 vertical = StreamCoreDimens.Tv.Focus.BorderPadding,
             ),
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+            modifier = Modifier
+                .focusRequester(recommendationsFocusRequester)
+                .focusRestorer(),
         ) {
             itemsIndexed(
                 items = recommendations,
                 key = { _, content -> content.id },
                 contentType = { _, _ -> "recommendation" },
-            ) { index, content ->
+            ) { _, content ->
                 RecommendationCard(
                     content = content,
-                    onClick = {
-                        onAction(DetailsAction.RecommendationSelected(content))
-                    },
-                    modifier = if (index == 0) {
-                        Modifier
-                            .focusRequester(firstRecommendationFocusRequester)
-                            .focusProperties { up = actionsUpFocusRequester }
-                    } else {
-                        Modifier
-                    },
+                    onClick = { onAction(DetailsAction.RecommendationSelected(content)) },
+                    modifier = Modifier.focusProperties { up = actionsUpFocusRequester },
                 )
             }
         }
@@ -677,7 +659,7 @@ private fun RecommendationCard(
             .clickable(onClick = onClick)
             .testTag(DetailsTestTags.RecommendationPrefix + content.id),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
+        Column {
             StreamCoreContentImage(
                 imageUrl = content.backdrop ?: content.poster,
                 contentDescription = content.title,
@@ -700,22 +682,22 @@ private fun RecommendationCard(
                     .clip(MaterialTheme.shapes.large),
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
                 modifier = Modifier.padding(
                     horizontal = StreamCoreDimens.Spacing.Large,
-                    vertical = StreamCoreDimens.Spacing.Medium,
+                    vertical = StreamCoreDimens.Spacing.Small,
                 ),
             ) {
                 Text(
                     text = content.title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${content.rating}/10 · ${content.pgRatingName}",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -729,9 +711,6 @@ private fun releaseYear(epochMillis: Long): Int {
     return calendar.get(Calendar.YEAR)
 }
 
-private const val MetadataEntranceDelayMillis = 90
-private const val RecommendationsEntranceDelayMillis = 170
-private val TvActionsMaxWidth = 420.dp
 
 @PreviewTV
 @Composable
@@ -795,6 +774,25 @@ private fun TvDetailsScreenUnavailableActionsPreview() {
                 content = DetailsPreviewData.content,
                 recommendations = DetailsPreviewData.recommendations,
                 isLibraryAvailable = false,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTV
+@Composable
+private fun TvDetailsScreenLongContentPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TvDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content.copy(
+                    title = "Beyond the Horizon: A Journey Through the Unknown",
+                    description = DetailsPreviewData.content.description.repeat(4),
+                ),
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
             ),
             onAction = {},
         )

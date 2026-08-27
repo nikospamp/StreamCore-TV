@@ -193,7 +193,7 @@ object StreamCoreDimens {
         }
 
         object Details {
-            val RecommendationCardWidth = 320.dp
+            val RecommendationCardWidth = 248.dp
         }
 
         object Profiles {
