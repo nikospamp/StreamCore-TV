@@ -58,6 +58,7 @@ class DetailsViewModel @Inject constructor(
             DetailsAction.Refresh -> refresh()
             is DetailsAction.RecommendationSelected -> selectRecommendation(action.content)
             DetailsAction.PlaySelected -> selectPlay()
+            DetailsAction.TrailerSelected -> selectTrailer()
             DetailsAction.LikeToggled -> toggleLike()
             DetailsAction.MyListToggled -> toggleMyList()
             DetailsAction.BackSelected -> navigateBack()
@@ -139,6 +140,13 @@ class DetailsViewModel @Inject constructor(
                     ),
                 ),
             )
+        }
+    }
+
+    private fun selectTrailer() {
+        val trailer = _uiState.value.content?.trailers?.firstOrNull() ?: return
+        viewModelScope.launch {
+            effectsChannel.send(DetailsEffect.OpenTrailer(trailer))
         }
     }
 

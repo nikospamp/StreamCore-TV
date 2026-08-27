@@ -99,8 +99,7 @@ internal interface TmdbApi {
     ): TmdbMovieListResponseDto
 
     /**
-     * Loads a movie details payload. Credits and release dates are appended by default
-     * because the details screen needs cast and certification data.
+     * Loads details with cast, certification, and trailer metadata in a single request.
      */
     suspend fun getMovieDetails(
         movieId: Int,
@@ -120,6 +119,6 @@ internal interface TmdbApi {
     private companion object {
         const val DEFAULT_LANGUAGE = "en-US"
         const val DEFAULT_PAGE = 1
-        val DEFAULT_DETAILS_APPEND_TO_RESPONSE = listOf("credits", "release_dates")
+        val DEFAULT_DETAILS_APPEND_TO_RESPONSE = listOf("credits", "release_dates", "videos")
     }
 }

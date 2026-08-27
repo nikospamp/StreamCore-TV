@@ -10,11 +10,64 @@ import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbReleaseDateDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbReleaseDatesCountryDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbReleaseDatesResponseDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceData
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideoDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideosResponseDto
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogMapperTest {
+
+    @Test
+    fun `decodes appended videos and prefers latest official trailer`() {
+        val details = MapperTestJson.decodeFromString<TmdbMovieDetailsDto>(
+            """{
+                "id": 1, "title": "Orbit Fall", "overview": "Description",
+                "videos": { "results": [
+                    { "id": "unofficial", "key": "abcdefghijk", "site": "YouTube",
+                      "type": "Trailer", "official": false, "published_at": "2026-08-20T12:00:00Z" },
+                    { "id": "old", "key": "lmnopqrstuv", "site": "YouTube",
+                      "type": "Trailer", "official": true, "published_at": "2026-06-01T12:00:00Z" },
+                    { "id": "new", "key": "12345678901", "site": "YouTube", "name": "Official trailer",
+                      "type": "Trailer", "official": true, "published_at": "2026-08-01T12:00:00Z",
+                      "iso_639_1": "en", "size": 1080 },
+                    { "id": "clip", "key": "ABCDEFGHIJK", "site": "YouTube", "type": "Clip" }
+                ] }
+            }""",
+        )
+        val trailers = details.toModel(referenceData()).trailers
+        assertEquals(listOf("new", "old", "unofficial"), trailers.map { it.id })
+        assertEquals("https://www.youtube.com/watch?v=12345678901", trailers.first().url)
+        assertEquals("Official trailer", trailers.first().title)
+    }
+
+    @Test
+    fun `filters unsupported or malformed videos and deduplicates trailer links`() {
+        val trailer = TmdbVideoDto(key = "abcdefghijk", site = "YouTube", type = "Trailer")
+        val trailers = TmdbVideosResponseDto(
+            results = listOf(
+                trailer,
+                trailer.copy(id = "duplicate"),
+                trailer.copy(key = "", id = "blank"),
+                trailer.copy(key = "abc&redirect=evil", id = "invalid"),
+                trailer.copy(site = "Other", id = "unsupported"),
+                trailer.copy(type = "Teaser", id = "teaser"),
+                trailer.copy(site = "Vimeo", key = "123456", id = "vimeo"),
+            ),
+        ).toTrailers()
+        assertEquals(
+            listOf("https://www.youtube.com/watch?v=abcdefghijk", "https://vimeo.com/123456"),
+            trailers.map { it.url },
+        )
+    }
+
+    @Test
+    fun `details without videos retain an empty trailer list`() {
+        val details = TmdbMovieDetailsDto(id = 1, title = "Movie", overview = "")
+        assertTrue(details.toModel(referenceData()).trailers.isEmpty())
+        assertTrue(details.copy(videos = TmdbVideosResponseDto()).toModel(referenceData()).trailers.isEmpty())
+    }
 
     @Test
     fun `maps TMDB summary into backend agnostic content model`() {
@@ -99,3 +152,5 @@ class CatalogMapperTest {
         )
     }
 }
+
+private val MapperTestJson = Json { ignoreUnknownKeys = true }

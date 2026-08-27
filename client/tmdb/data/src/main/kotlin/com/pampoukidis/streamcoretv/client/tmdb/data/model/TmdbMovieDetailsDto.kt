@@ -21,4 +21,5 @@ internal data class TmdbMovieDetailsDto(
     val credits: TmdbCreditsDto? = null,
     @SerialName("release_dates")
     val releaseDates: TmdbReleaseDatesResponseDto? = null,
+    val videos: TmdbVideosResponseDto? = null,
 )

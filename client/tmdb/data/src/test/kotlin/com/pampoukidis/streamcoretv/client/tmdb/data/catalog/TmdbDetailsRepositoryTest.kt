@@ -3,6 +3,8 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.catalog
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbErrorMapper
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideoDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideosResponseDto
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,6 +20,27 @@ class TmdbDetailsRepositoryTest {
         referenceDataSource = TmdbReferenceDataSource(tmdbApi = api),
         callExecutor = TmdbCallExecutor(errorMapper = TmdbErrorMapper()),
     )
+
+    @Test
+    fun `requests videos with details and maps the trailer`() {
+        runTest {
+            api.movieVideosResponse = TmdbVideosResponseDto(
+                results = listOf(
+                    TmdbVideoDto(
+                        id = "trailer", name = "Official Trailer", key = "abcdefghijk",
+                        site = "YouTube", type = "Trailer", official = true,
+                    ),
+                ),
+            )
+            val result = subject.getDetails(profileId = "profile-1", contentId = "1")
+            assertTrue(result is AppResult.Success)
+            assertTrue(api.lastDetailsAppendToResponse.contains("videos"))
+            assertEquals(
+                "https://www.youtube.com/watch?v=abcdefghijk",
+                (result as AppResult.Success).value.trailers.single().url,
+            )
+        }
+    }
 
     @Test
     fun `returns details for TMDB movie id`() {

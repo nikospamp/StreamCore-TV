@@ -21,6 +21,8 @@ data class ContentModel(
     val genres: List<Genre>,
     val row: String? = null,
     val playbackProgress: PlaybackProgressModel? = null,
+    /** Supported external trailers, ordered by provider preference. */
+    val trailers: List<TrailerModel> = emptyList(),
 )
 
 fun ContentModel.fallbackText(): String {

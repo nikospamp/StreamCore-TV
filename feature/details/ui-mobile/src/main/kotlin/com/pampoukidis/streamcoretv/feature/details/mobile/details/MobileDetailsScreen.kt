@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
@@ -171,8 +172,10 @@ private fun DetailsContent(
                 isInMyList = isInMyList,
                 isLikeMutationPending = isLikeMutationPending,
                 isMyListMutationPending = isMyListMutationPending,
+                isTrailerAvailable = content.trailers.isNotEmpty(),
                 onLikeClick = { onAction(DetailsAction.LikeToggled) },
                 onMyListClick = { onAction(DetailsAction.MyListToggled) },
+                onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
                 modifier = Modifier.padding(
                     horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
                 ),
@@ -220,8 +223,10 @@ private fun DetailsLibraryActions(
     isInMyList: Boolean,
     isLikeMutationPending: Boolean,
     isMyListMutationPending: Boolean,
+    isTrailerAvailable: Boolean,
     onLikeClick: () -> Unit,
     onMyListClick: () -> Unit,
+    onTrailerClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -266,11 +271,13 @@ private fun DetailsLibraryActions(
         }
         DetailsLabeledAction(
             label = stringResource(R.string.details_action_trailer),
-            stateDescription = stringResource(R.string.details_action_not_available),
+            stateDescription = stringResource(
+                if (isTrailerAvailable) R.string.details_trailer_open else R.string.details_trailer_unavailable,
+            ),
             selected = null,
-            enabled = false,
+            enabled = isTrailerAvailable,
             isLoading = false,
-            onClick = {},
+            onClick = onTrailerClick,
             modifier = Modifier
                 .weight(1f)
                 .testTag(DetailsTestTags.TrailerAction),
@@ -318,7 +325,7 @@ private fun DetailsLabeledAction(
         )
     } else {
         Modifier.clickable(
-            enabled = false,
+            enabled = enabled && !isLoading,
             role = Role.Button,
             onClick = onClick,
         )
@@ -853,6 +860,28 @@ private fun MobileDetailsScreenErrorPreview() {
     StreamCoreTheme(darkTheme = true) {
         MobileDetailsScreen(
             state = DetailsUiState(isLoading = false),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewMobile
+@Composable
+private fun MobileDetailsScreenTrailerPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        MobileDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content.copy(
+                    trailers = listOf(
+                        TrailerModel(
+                            id = "preview-trailer",
+                            title = "Official trailer",
+                            url = "https://www.youtube.com/watch?v=abcdefghijk",
+                        ),
+                    ),
+                ),
+            ),
             onAction = {},
         )
     }

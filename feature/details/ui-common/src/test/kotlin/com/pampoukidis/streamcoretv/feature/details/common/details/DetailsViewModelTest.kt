@@ -3,6 +3,7 @@ package com.pampoukidis.streamcoretv.feature.details.common.details
 import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
 import com.pampoukidis.streamcoretv.core.domain.LibraryRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.library.LibraryEntryModel
@@ -33,6 +34,39 @@ class DetailsViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `trailer selection emits preferred loaded trailer`() {
+        runTest {
+            val trailer = TrailerModel("official", "Official Trailer", "https://www.youtube.com/watch?v=abcdefghijk")
+            val content = contentModel("content-1").copy(
+                trailers = listOf(trailer, trailer.copy(id = "other")),
+            )
+            val subject = detailsViewModel(
+                FakeDetailsRepository(
+                    detailsResult = AppResult.Success(content),
+                    recommendationsResult = AppResult.Success(emptyList()),
+                ),
+            )
+            subject.onAction(DetailsAction.Load(DetailsRequest("profile-1", content.id)))
+            runCurrent()
+            subject.onAction(DetailsAction.TrailerSelected)
+            assertEquals(DetailsEffect.OpenTrailer(trailer), subject.effects.first())
+        }
+    }
+
+    @Test
+    fun `trailer selection without a trailer emits nothing`() {
+        runTest {
+            val subject = detailsViewModel()
+            subject.onAction(DetailsAction.TrailerSelected)
+            subject.onAction(DetailsAction.Load(DetailsRequest("profile-1", "content-1")))
+            runCurrent()
+            subject.onAction(DetailsAction.TrailerSelected)
+            subject.onAction(DetailsAction.BackSelected)
+            assertEquals(DetailsEffect.NavigateBack, subject.effects.first())
+        }
+    }
 
     @Test
     fun `load populates content and ignores duplicate request`() {

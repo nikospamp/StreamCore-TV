@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -24,6 +25,7 @@ fun DetailsRouteEventEffect(
     val currentPlaySelected by rememberUpdatedState(onPlaySelected)
     val currentBack by rememberUpdatedState(onBack)
     val currentError by rememberUpdatedState(onError)
+    val currentUriHandler by rememberUpdatedState(LocalUriHandler.current)
 
     LaunchedEffect(lifecycleOwner, viewModel) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -33,6 +35,11 @@ fun DetailsRouteEventEffect(
                         currentRecommendationSelected(effect.content)
                     }
                     is DetailsEffect.PlaySelected -> currentPlaySelected(effect.request)
+                    is DetailsEffect.OpenTrailer -> openDetailsTrailer(
+                        trailer = effect.trailer,
+                        uriHandler = currentUriHandler,
+                        onError = currentError,
+                    )
                     DetailsEffect.NavigateBack -> currentBack()
                     is DetailsEffect.ShowError -> currentError(effect.error)
                 }

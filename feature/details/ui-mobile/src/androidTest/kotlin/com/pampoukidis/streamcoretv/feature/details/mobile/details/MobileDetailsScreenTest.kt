@@ -4,12 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasTestTag
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
@@ -24,6 +28,29 @@ class MobileDetailsScreenTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun trailerBecomesAvailableAfterDetailsLoadAndDispatchesSelection() {
+        val actions = mutableListOf<DetailsAction>()
+        var state by mutableStateOf(contentState())
+        composeRule.setContent {
+            StreamCoreTheme {
+                MobileDetailsScreen(state = state, onAction = actions::add)
+            }
+        }
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).performScrollTo().assertIsNotEnabled()
+        composeRule.runOnIdle {
+            state = state.copy(
+                content = requireNotNull(state.content).copy(
+                    trailers = listOf(TrailerModel("trailer", "Trailer", "https://www.youtube.com/watch?v=abcdefghijk")),
+                ),
+            )
+        }
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).assertIsEnabled().performClick()
+        assertTrue(actions.contains(DetailsAction.TrailerSelected))
+        composeRule.runOnIdle { state = contentState() }
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).assertIsNotEnabled()
+    }
+
+    @Test
     fun contentStateRendersCinematicHierarchy() {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -35,8 +62,11 @@ class MobileDetailsScreenTest {
         }
 
         composeRule.onNodeWithTag(DetailsTestTags.Hero).assertExists()
-        composeRule.onNodeWithTag(DetailsTestTags.Overview).assertExists()
         composeRule.onNodeWithText(DetailsPreviewData.content.title).assertExists()
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onNodeWithTag(DetailsTestTags.Content)
+            .performScrollToNode(hasTestTag(DetailsTestTags.Overview))
+        composeRule.onNodeWithTag(DetailsTestTags.Overview).assertExists()
         composeRule.onNodeWithText(DetailsPreviewData.content.description).assertExists()
     }
 
@@ -104,7 +134,7 @@ class MobileDetailsScreenTest {
     }
 
     @Test
-    fun savedActionsDispatchWhileStagedActionsStayDisabled() {
+    fun savedActionsDispatchWhileUnavailableTrailerAndShareStayDisabled() {
         val actions = mutableListOf<DetailsAction>()
 
         composeRule.setContent {

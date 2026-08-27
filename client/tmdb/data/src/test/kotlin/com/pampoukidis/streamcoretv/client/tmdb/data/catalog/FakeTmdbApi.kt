@@ -17,12 +17,16 @@ import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbReleaseDatesCount
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbReleaseDatesResponseDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbRequestTokenResponseDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbSessionResponseDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideosResponseDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbApi
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbTrendingTimeWindow
 
 internal class FakeTmdbApi : TmdbApi {
 
     var failure: Throwable? = null
+    var movieVideosResponse: TmdbVideosResponseDto? = null
+    var lastDetailsAppendToResponse: List<String> = emptyList()
+        private set
     var configurationCalls = 0
         private set
     var genreCalls = 0
@@ -280,6 +284,7 @@ internal class FakeTmdbApi : TmdbApi {
         appendToResponse: List<String>,
     ): TmdbMovieDetailsDto {
         throwIfNeeded()
+        lastDetailsAppendToResponse = appendToResponse
         return when (movieId) {
             1 -> movieDetails(
                 id = 1,
@@ -293,7 +298,7 @@ internal class FakeTmdbApi : TmdbApi {
             )
 
             else -> error("No movie details configured for $movieId")
-        }
+        }.copy(videos = movieVideosResponse)
     }
 
     override suspend fun getMovieRecommendations(

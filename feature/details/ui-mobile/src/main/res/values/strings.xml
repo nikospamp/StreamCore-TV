@@ -4,6 +4,8 @@
     <string name="details_action_liked">Liked</string>
     <string name="details_action_my_list">My List</string>
     <string name="details_action_trailer">Trailer</string>
+    <string name="details_trailer_open">Watch trailer in a video app or browser</string>
+    <string name="details_trailer_unavailable">No trailer available</string>
     <string name="details_action_share">Share</string>
     <string name="details_action_not_available">Not available yet</string>
     <string name="details_like_selected">Liked</string>
