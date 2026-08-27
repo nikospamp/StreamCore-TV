@@ -511,8 +511,8 @@ platform-specific components, never by adding boolean tablet/TV flags to the mob
 - **Cards:** Continue Watching reuses the `192dp` landscape/progress treatment; Liked and My List reuse the `120dp` poster treatment.
 - **Saved state:** Like and My List are independent profile-scoped memberships. Feature UI observes backend-agnostic app models and never exposes a
   provider's remote favorite/watchlist terminology.
-- **Details actions:** Play/Resume is followed by Like, My List, Trailer, and Share. Like/My List are toggles; Trailer/Share remain visibly disabled
-  until their behaviors exist.
+- **Details actions:** Play/Resume is followed by Like, My List, Trailer, and Share. Like/My List are toggles. On mobile, Trailer opens the preferred
+  available trailer in a video app or browser; it remains disabled when no supported trailer is present. Share remains disabled.
 
 ## 6. Do's and Don'ts
 

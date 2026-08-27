@@ -56,6 +56,7 @@ internal fun TmdbMovieDetailsDto.toModel(
             .map { castMember -> castMember.toCast(referenceData = referenceData) },
         releaseDate = releaseDate.toEpochMillis(),
         genres = genres.map { genre -> genre.toGenre() },
+        trailers = videos?.toTrailers().orEmpty(),
     )
 }
 
