@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.navigation
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 
-internal enum class MobileTopLevelDestination {
+internal enum class TopLevelDestination {
     Home,
     Search,
     Library;
@@ -17,11 +17,11 @@ internal enum class MobileTopLevelDestination {
     }
 }
 
-internal fun NavDestination.mobileTopLevelDestination(): MobileTopLevelDestination? {
+internal fun NavDestination.topLevelDestination(): TopLevelDestination? {
     return when {
-        hasRoute<AppRoute.Home>() -> MobileTopLevelDestination.Home
-        hasRoute<AppRoute.Search>() -> MobileTopLevelDestination.Search
-        hasRoute<AppRoute.Library>() -> MobileTopLevelDestination.Library
+        hasRoute<AppRoute.Home>() -> TopLevelDestination.Home
+        hasRoute<AppRoute.Search>() -> TopLevelDestination.Search
+        hasRoute<AppRoute.Library>() -> TopLevelDestination.Library
         else -> null
     }
 }

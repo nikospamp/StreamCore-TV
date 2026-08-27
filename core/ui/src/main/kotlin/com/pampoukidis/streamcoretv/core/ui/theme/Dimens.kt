@@ -157,6 +157,13 @@ object StreamCoreDimens {
     }
 
     object Tv {
+        object Navigation {
+            val CollapsedWidth = 72.dp
+            val ExpandedWidth = 248.dp
+            val ContentStartPadding = CollapsedWidth + Screen.HorizontalPadding
+            val ItemHeight = 52.dp
+        }
+
         object Screen {
             val HorizontalPadding = 32.dp
             val VerticalPadding = 32.dp
@@ -174,10 +181,15 @@ object StreamCoreDimens {
 
         object Browse {
             val HeroHeight = 360.dp
-            val FeaturedCardWidth = 440.dp
-            val PosterCardWidth = 220.dp
-            val LandscapeCardWidth = 320.dp
-            val TopTenCardWidth = 250.dp
+            val FeaturedCardWidth = 360.dp
+            val PosterCardWidth = 160.dp
+            val LandscapeCardWidth = 248.dp
+            val TopTenCardWidth = 176.dp
+        }
+
+        object Search {
+            val FieldMaxWidth = 560.dp
+            val RecentItemWidth = 220.dp
         }
 
         object Details {

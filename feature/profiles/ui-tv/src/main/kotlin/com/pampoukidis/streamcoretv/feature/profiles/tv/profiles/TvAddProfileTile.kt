@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ internal fun TvAddProfileTile(
     modifier: Modifier = Modifier,
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
     val scale by animateFloatAsState(
         targetValue = if (isFocused && enabled) 1.06f else 1f,
         animationSpec = tween(durationMillis = 160),
@@ -63,6 +65,8 @@ internal fun TvAddProfileTile(
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
             )
             .testTag(ProfilesTestTags.AddProfileButton),

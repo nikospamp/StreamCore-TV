@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 
@@ -25,6 +26,7 @@ internal fun TvProfilesRow(
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
+    sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val initialFocusRequester = remember { FocusRequester() }
     val firstProfileId = profiles.firstOrNull()?.id
@@ -54,6 +56,7 @@ internal fun TvProfilesRow(
                 mode = mode,
                 isSelecting = pendingSelectionProfileId == profile.id,
                 enabled = interactionsEnabled,
+                sharedElementScope = sharedElementScope.takeIf { mode == ProfilesMode.Selection },
                 onClick = {
                     if (mode == ProfilesMode.Selection) {
                         onSelectProfile(profile.id)
