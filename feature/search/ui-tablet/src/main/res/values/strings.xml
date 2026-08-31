@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_field_label">Search titles</string>
+    <string name="search_field_placeholder">Search titles</string>
+    <string name="search_clear_query">Clear search</string>
+    <string name="search_recent_heading">Recent searches</string>
+    <string name="search_clear_recent">Clear all</string>
+    <string name="search_remove_recent">Remove %1$s from recent searches</string>
+    <string name="search_trending_heading">Trending now</string>
+    <string name="search_discovery_helper">Search for a title to get started.</string>
+    <string name="search_results_heading">Results</string>
+    <string name="search_results_loaded">Results loaded</string>
+    <string name="search_empty_title">No results for “%1$s”</string>
+    <string name="search_empty_body">Try another title or check the spelling.</string>
+    <string name="search_failure_offline_title">You’re offline</string>
+    <string name="search_failure_generic_title">Search isn’t available</string>
+    <string name="search_failure_body">Check your connection and try again.</string>
+    <string name="search_try_again">Try again</string>
+    <string name="search_offline_notice">You’re offline. Showing saved results.</string>
+    <string name="search_content_description">Open details for %1$s</string>
+</resources>
