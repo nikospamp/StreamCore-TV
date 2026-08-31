@@ -5,6 +5,7 @@
     <string name="details_action_like">Like</string>
     <string name="details_action_liked">Liked</string>
     <string name="details_action_my_list">My List</string>
+    <string name="details_action_trailer">Trailer</string>
     <string name="details_action_not_available">Not available</string>
     <string name="details_action_updating">Updating</string>
     <string name="details_like_selected">Liked</string>

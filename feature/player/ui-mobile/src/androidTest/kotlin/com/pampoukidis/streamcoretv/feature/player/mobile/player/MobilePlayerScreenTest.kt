@@ -1,19 +1,24 @@
 package com.pampoukidis.streamcoretv.feature.player.mobile.player
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
@@ -26,6 +31,7 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -139,6 +145,58 @@ class MobilePlayerScreenTest {
         composeRule.onNodeWithContentDescription("Picture in picture").assertHeightIsAtLeast(48.dp)
     }
 
+    @Test
+    fun tabletTouchControlsForwardPauseSeekSettingsAndExitActions() {
+        val actions = mutableListOf<PlayerAction>()
+        var state by mutableStateOf(readyState(isPlaying = true).copy(isPipSupported = true))
+        setTabletPlayerContent(
+            state = { state },
+            onAction = { action ->
+                actions += action
+                if (action == PlayerAction.TogglePlayPause) {
+                    state = state.copy(isPlaying = !state.isPlaying)
+                }
+            },
+        )
+
+        composeRule.onAllNodesWithContentDescription("Pause")[0].performClick()
+        composeRule.onAllNodesWithContentDescription("Play")[0].performClick()
+        composeRule.onNodeWithContentDescription("Back 10 seconds").performClick()
+        composeRule.onNodeWithContentDescription("Playback settings").performClick()
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        assertEquals(
+            listOf(
+                PlayerAction.TogglePlayPause,
+                PlayerAction.TogglePlayPause,
+                PlayerAction.SeekBy(deltaMillis = -10_000L),
+                PlayerAction.OpenSettings(),
+                PlayerAction.BackSelected,
+            ),
+            actions,
+        )
+    }
+
+    @Test
+    fun tabletSettingsPanelUsesBoundedTouchLayoutAndExposesPages() {
+        setTabletPlayerContent(
+            state = {
+                readyState().copy(
+                    settingsPage = PlayerSettingsPage.Root,
+                    videoTracks = listOf(
+                        PlaybackTrackModel("video-1080", PlaybackTrackType.Video, "1080p"),
+                    ),
+                )
+            },
+        )
+
+        composeRule.onNodeWithTag(PlayerTestTags.Settings)
+            .assertWidthIsEqualTo(TabletSettingsPanelWidthDp.dp)
+        composeRule.onNodeWithText("Quality").assertExists()
+        composeRule.onNodeWithText("Speed").assertExists()
+        composeRule.onNodeWithText("Resize mode").assertExists()
+    }
+
     private fun setPlayerContent(
         state: () -> PlayerUiState,
         onAction: (PlayerAction) -> Unit = {},
@@ -150,6 +208,31 @@ class MobilePlayerScreenTest {
                     videoSurface = FakeVideoSurface,
                     onAction = onAction,
                 )
+            }
+        }
+    }
+
+    private fun setTabletPlayerContent(
+        state: () -> PlayerUiState,
+        onAction: (PlayerAction) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            val currentConfiguration = LocalConfiguration.current
+            val tabletConfiguration = remember(currentConfiguration) {
+                Configuration(currentConfiguration).apply {
+                    orientation = Configuration.ORIENTATION_LANDSCAPE
+                    screenWidthDp = TabletWidthDp
+                    screenHeightDp = TabletHeightDp
+                }
+            }
+            CompositionLocalProvider(LocalConfiguration provides tabletConfiguration) {
+                StreamCoreTheme(darkTheme = true) {
+                    MobilePlayerScreen(
+                        state = state(),
+                        videoSurface = FakeVideoSurface,
+                        onAction = onAction,
+                    )
+                }
             }
         }
     }
@@ -171,5 +254,11 @@ class MobilePlayerScreenTest {
         override fun Render(modifier: Modifier) {
             Box(modifier)
         }
+    }
+
+    private companion object {
+        const val TabletWidthDp = 1_024
+        const val TabletHeightDp = 600
+        const val TabletSettingsPanelWidthDp = 410
     }
 }
