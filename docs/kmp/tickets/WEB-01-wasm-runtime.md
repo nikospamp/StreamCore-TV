@@ -26,6 +26,8 @@ boundary.
 - Web Koin graph and target adapters.
 - Runtime configuration, DataStore local storage, Ktor Fetch networking, Coil networking, URI launching, browser navigation, and production
   distribution.
+- A proved web-testing selector strategy and Playwright infrastructure for later web tickets.
+- Wasm ES-module/`HtmlElementView` compatibility spikes used by WEB-04.
 
 ## Non-Goals
 
@@ -34,13 +36,15 @@ boundary.
 - No ClientB web graph.
 - No hosting/CDN/CI deployment.
 - No mobile web, SSR, SEO, desktop/iOS targets, or compatibility JS fallback.
+- No guarantee of browser password-manager/autofill integration for canvas-rendered Compose text fields.
 
 ## Implementation Tasks
 
-1. Add `wasmJs { browser(); binaries.executable() }` to each required KMP module and resolve every dependency at the wasm compilation boundary.
-2. Add `:webApp` with a `wasmJs` browser executable and production distribution.
+1. Add a library-only `wasmJs()` target to each required shared KMP module and resolve every dependency at the wasm compilation boundary. Shared
+   libraries must not call `browser()` or `binaries.executable()`.
+2. Add `:webApp` with `wasmJs { browser(); binaries.executable() }` and production distribution. It is the only executable web module.
 3. Create the web entry point with `ComposeViewport`, full-window CSS, theme root, a diagnostic loading/error/ready shell, and explicit startup
-   sequencing.
+   sequencing. Include a minimal `HtmlElementView` probe so Compose `1.12.0` HTML interop is linked before player work.
 4. Define a serializable runtime configuration:
 
 ```kotlin
@@ -59,8 +63,11 @@ data class WebRuntimeConfig(
    definitions.
 8. Implement wasm platform adapters:
     - Ktor JS/Fetch engine and TMDB client.
-    - DataStore `WebLocalStorage` for auth, library, search history, and playback progress using distinct stable names.
-    - Coil `coil-network-ktor3` image loader.
+    - Official DataStore `WebLocalStorage` for auth, library, search history, and playback progress using distinct stable names.
+    - Probe local storage with a write/read/remove operation before graph creation. If browser policy denies persistent storage, fall back to official
+      `WebSessionStorage` and display a non-blocking warning that state will be lost when the tab closes.
+    - Map storage corruption, quota, and security failures without swallowing cancellation or destroying the current in-memory state.
+    - Configure the web Ktor engine used by the Coil `3.4.0` `coil-network-ktor3` artifact introduced in KMP-06.
     - External HTTPS URI launching with `noopener`/`noreferrer` behavior.
     - No-op/browser performance tracer.
 9. Add web navigation routes using ID-only browser-safe parameters. Bind the controller to browser history and verify Back/Forward/direct URL/reload
@@ -69,6 +76,17 @@ data class WebRuntimeConfig(
 11. Show an actionable blocking configuration screen when config fetch/parse/validation fails. Do not start Koin with invalid configuration.
 12. Add web graph tests and a smoke page that resolves every TMDB repository/ViewModel factory without rendering production feature screens.
 13. Generate `wasmJsBrowserDistribution` and document the exact output directory and local static-server command.
+14. Establish the test strategy before WEB-02:
+    - Create a probe UI containing a button, text field, focus transitions, roles, labels, and stable `testTag` values.
+    - Verify node-level behavior with Compose Multiplatform UI Test v2 on `wasmJs`.
+    - Inspect Chromium, Firefox, and WebKit DOM/accessibility projection with Playwright and record which role/name/tag selectors are actually stable.
+    - Use Compose UI Test as the primary semantic/node test layer. Playwright may use only selectors proven by the spike; otherwise it targets the
+      viewport/canvas and drives browser-level keyboard, pointer, history, storage, network, and screenshots.
+    - Document the locked strategy in `docs/kmp/web-testing.md`. Later tickets may not assume canvas children are ordinary DOM nodes.
+15. Move Playwright setup into this ticket, pin its stable version in the lockfile, and run the probe in Chromium, Firefox, and WebKit.
+16. Prove Kotlin/Wasm ES-module interop with an npm `@JsModule` external declaration. Compile/link a Shaka `5.2.3` import and minimal create/destroy
+    probe against `HTMLVideoElement`. If Shaka's export shape exceeds Wasm external-type restrictions, define a committed ESM `.mjs` adapter and
+    import that adapter with `@JsModule`; do not fall back to an untyped global `<script>`.
 
 ## Public API or Type Changes
 
@@ -81,15 +99,24 @@ data class WebRuntimeConfig(
 
 ```powershell
 .\gradlew.bat :webApp:compileKotlinWasmJs
-.\gradlew.bat :webApp:wasmJsBrowserDevelopmentRun
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
-.\gradlew.bat :webApp:allTests
+.\gradlew.bat :webApp:wasmJsBrowserTest
+.\gradlew.bat testAndroidHostTest
 .\gradlew.bat :app:compileTmdbDebugKotlin
 .\gradlew.bat :app:compileClientBDebugKotlin
-rg -n "android\.|java\.|androidx\.tv|media3|okhttp" webApp */*/src/wasmJsMain -g "*.kt"
+rg -n "^import (android|java|androidx\.annotation|androidx\.core|androidx\.tv|androidx\.media3|io\.ktor\.client\.engine\.okhttp)\." webApp core client feature playback -g "**/src/wasmJsMain/**/*.kt"
+Set-Location webApp/e2e
+npm ci
+npx playwright install
+npx playwright test
 ```
 
-Run the development server interactively only for the smoke checks; terminate it after validation.
+Run the development server separately because this command intentionally blocks. Complete the manual smoke checks, then terminate it before running
+the remaining gate:
+
+```powershell
+.\gradlew.bat :webApp:wasmJsBrowserDevelopmentRun
+```
 
 ## Test Scenarios
 
@@ -97,10 +124,13 @@ Run the development server interactively only for the smoke checks; terminate it
 - Invalid JSON, non-HTTPS base URL, and missing fields fail deterministically.
 - Valid config starts the TMDB web graph without ClientB/Android definitions.
 - All four browser stores use distinct names and retain values across reload.
+- Persistent-storage denial falls back to session storage with a visible warning; corruption/quota/security failures are recoverable and tested.
 - TMDB Fetch requests include expected base URL/auth headers and map network failures to `AppError`.
 - Image loading succeeds through the Ktor-backed Coil loader.
 - External links cannot retain `window.opener`.
 - Browser Back/Forward, direct URL, and reload preserve route identity.
+- Compose UI Test v2 can address the probe by `testTag`, and the documented Playwright strategy uses only selectors proven by the browser spike.
+- Shaka's ESM import compiles/links through direct `@JsModule` declarations or the committed ESM adapter selected by the spike.
 - Android debug compilations remain green after wasm targets are added.
 
 ## Acceptance Criteria
@@ -109,6 +139,8 @@ Run the development server interactively only for the smoke checks; terminate it
 - The diagnostic web shell runs with valid config and fails clearly without it.
 - `wasmJsBrowserDistribution` succeeds without embedding real configuration.
 - Web storage/network/image/navigation adapters are tested.
+- `docs/kmp/web-testing.md` fixes the Compose-test/Playwright responsibilities and selector contract for WEB-02 through WEB-04.
+- No browser password-manager/autofill claim is made unless the probe proves a stable native input integration.
 - Android TMDB and ClientB compilations remain green.
 - No Android/Media3/ClientB dependency is present in the web runtime graph.
 
@@ -117,8 +149,10 @@ Run the development server interactively only for the smoke checks; terminate it
 - [ ] Modules receiving wasm targets listed.
 - [ ] Runtime config schema and security properties documented.
 - [ ] Storage names and adapters documented.
+- [ ] Persistent-to-session storage fallback and failure tests documented.
 - [ ] Web graph contents documented.
+- [ ] Compose UI Test/Playwright selector strategy documented in `docs/kmp/web-testing.md`.
+- [ ] `HtmlElementView` and Shaka ESM interop spike results included.
 - [ ] Development and production build results included.
 - [ ] Android regression compilation results included.
 - [ ] Final working tree is clean after committing this ticket.
-

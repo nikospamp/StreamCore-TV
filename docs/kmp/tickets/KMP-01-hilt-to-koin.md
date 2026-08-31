@@ -13,7 +13,8 @@ Koin is locked to version `4.2.2`. Use the classic constructor DSL; do not adopt
 
 ## Dependencies and Parallelization
 
-- **Depends on:** KMP-00.
+- **Depends on:** KMP-00 with `docs/kmp/migration-baseline.md` marked `Accepted`, a green root `check`, recorded test/design-token counts, and completed
+  mobile/tablet/TV device evidence.
 - **Blocks:** KMP-02.
 - **Parallelization:** None. This ticket touches the application composition root and most module graphs.
 
@@ -23,6 +24,7 @@ Koin is locked to version `4.2.2`. Use the classic constructor DSL; do not adopt
 - TMDB and ClientB flavor-specific Koin roots.
 - Koin graph-verification tests.
 - Removal of Hilt/Dagger/KSP dependencies that are used only for Hilt.
+- `AGENTS.md` DI guidance so later agents use the selected Koin architecture.
 
 ## Non-Goals
 
@@ -34,23 +36,25 @@ Koin is locked to version `4.2.2`. Use the classic constructor DSL; do not adopt
 ## Implementation Tasks
 
 1. Add version-catalog aliases for Koin core, Android, Compose, and Compose ViewModel artifacts at `4.2.2`.
-2. Define constructor-based Koin modules beside their owning feature/provider boundary:
+2. Resolve the Koin artifacts immediately and run a minimal Android graph smoke; do not defer Koin compatibility to KMP-02.
+3. Define constructor-based Koin modules beside their owning feature/provider boundary:
     - Repository implementations are `single` unless their current lifecycle is shorter.
     - Use cases are `factory` unless they intentionally retain state.
     - ViewModels use `viewModelOf` or explicit `viewModel { ... }` when parameters are required.
     - Playback sessions remain factory-created; never register a playback session singleton.
-3. Replace stringly duplicated qualifiers with shared qualifier constants owned by the module exposing the contract.
-4. Start Koin once in `StreamCoreApplication` with Android context and the common Android module list.
-5. Add same-signature flavor source-set functions under `app/src/tmdb` and `app/src/clientB` that return their provider modules. Only the selected
+4. Replace stringly duplicated qualifiers with shared qualifier constants owned by the module exposing the contract.
+5. Start Koin once in `StreamCoreApplication` with Android context and the common Android module list.
+6. Add same-signature flavor source-set functions under `app/src/tmdb` and `app/src/clientB` that return their provider modules. Only the selected
    flavor's providers may be on the graph.
-6. Remove `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `@Inject`, `@Module`, `@Provides`, `@Binds`, `@InstallIn`, Hilt qualifiers, and
+7. Remove `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `@Inject`, `@Module`, `@Provides`, `@Binds`, `@InstallIn`, Hilt qualifiers, and
    generated Hilt integrations.
-7. Replace route-level `hiltViewModel()` defaults with `koinViewModel()`. Preserve explicit default parameters so previews/tests can pass fake
+8. Replace route-level `hiltViewModel()` defaults with `koinViewModel()`. Preserve explicit default parameters so previews/tests can pass fake
    ViewModels or state holders.
-8. Remove Hilt/Dagger libraries, plugins, compilers, and KSP where KSP has no remaining consumer.
-9. Add graph tests that create and verify TMDB and ClientB graphs independently, including every ViewModel factory and qualified DataStore/network
+9. Remove Hilt/Dagger libraries, plugins, compilers, and KSP where KSP has no remaining consumer.
+10. Add graph tests that create and verify TMDB and ClientB graphs independently, including every ViewModel factory and qualified DataStore/network
    binding.
-10. Ensure graph teardown occurs after each test so Koin global state cannot leak between tests.
+11. Ensure graph teardown occurs after each test so Koin global state cannot leak between tests.
+12. Add an `AGENTS.md` dependency-injection section: Koin 4.2.2/classic DSL, constructor injection, graph ownership, no service locator in business/stateless UI, and explicit singleton/factory/ViewModel lifecycle rules.
 
 ## Public API or Type Changes
 
@@ -66,8 +70,8 @@ Koin is locked to version `4.2.2`. Use the classic constructor DSL; do not adopt
 .\gradlew.bat :app:compileClientBDebugKotlin
 .\gradlew.bat :app:assembleTmdbDebug
 .\gradlew.bat :app:assembleClientBDebug
-.\gradlew.bat test
-rg -n "dagger\.|hiltViewModel|HiltViewModel|HiltAndroidApp|AndroidEntryPoint|javax\.inject" app core client feature playback -g "*.kt" -g "*.kts"
+.\gradlew.bat check
+rg -n "dagger\.|hiltViewModel|HiltViewModel|HiltAndroidApp|AndroidEntryPoint|javax\.inject|dagger-hilt|hilt-android" app core client feature playback build.gradle.kts settings.gradle.kts gradle/libs.versions.toml -g "*.kt" -g "*.kts" -g "*.toml"
 ```
 
 The final `rg` command must return no production DI usage. Test fixtures may mention old names only when explicitly testing a migration compatibility
@@ -86,6 +90,7 @@ layer, which is not expected.
 
 - Both flavors build and complete the KMP-00 smoke journeys.
 - Both Koin graphs verify without overrides or missing definitions.
+- Executed test counts are not lower than the KMP-00 baseline for affected modules.
 - No production Hilt/Dagger/`javax.inject` usage remains.
 - Koin lookup is restricted to application/route composition boundaries.
 - No unrelated behavior or architecture changed.
@@ -95,9 +100,10 @@ layer, which is not expected.
 - [ ] Koin modules listed by owner/module.
 - [ ] Singleton/factory/ViewModel lifecycle decisions summarized.
 - [ ] Both graph-test results included.
+- [ ] Executed test counts compared with KMP-00.
+- [ ] `AGENTS.md` DI contract updated.
 - [ ] Both Android flavor build results included.
 - [ ] Removal search result included.
 - [ ] Known Koin limitations documented.
 - [ ] No unrelated files changed.
 - [ ] Final working tree is clean after committing this ticket.
-

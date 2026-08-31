@@ -39,7 +39,8 @@ the migrated core modules and can be implemented concurrently with KMP-04.
 1. Apply the plain KMP Android convention from KMP-02 to every in-scope module.
 2. Move portable production sources from `src/main/kotlin` to `src/commonMain/kotlin`.
 3. Move portable unit tests to `src/commonTest/kotlin` and replace JUnit-only APIs with `kotlin.test` where required for common execution.
-4. Enable `androidHostTest` only for a test that genuinely requires an Android/JVM runtime; document why it cannot be common.
+4. Enable `withHostTest` in every converted module that contains `commonTest`; `testAndroidHostTest` must execute those common tests. Place a test in
+   `androidHostTest` only when it genuinely requires an Android/JVM runtime and document why it cannot be common.
 5. Re-declare project and library dependencies under the correct `commonMain`, `commonTest`, or `androidMain` source set.
 6. Remove obsolete JVM toolchain/plugin configuration from the converted modules; inherit JVM 11 Android configuration from the convention.
 7. Keep request/draft/validation models and use cases in their existing modules and packages. Do not combine files or change visibility without
@@ -69,13 +70,13 @@ provider/internal implementation types. Document every such change.
 .\gradlew.bat :feature:details:data:compileCommonMainKotlinMetadata
 .\gradlew.bat :feature:details:domain:compileCommonMainKotlinMetadata
 .\gradlew.bat :feature:home:domain:compileCommonMainKotlinMetadata
-.\gradlew.bat :feature:login:domain:allTests
-.\gradlew.bat :feature:profiles:domain:allTests
-.\gradlew.bat :feature:details:domain:allTests
-.\gradlew.bat :feature:home:domain:allTests
+.\gradlew.bat :feature:login:domain:testAndroidHostTest
+.\gradlew.bat :feature:profiles:domain:testAndroidHostTest
+.\gradlew.bat :feature:details:domain:testAndroidHostTest
+.\gradlew.bat :feature:home:domain:testAndroidHostTest
 .\gradlew.bat :app:compileTmdbDebugKotlin
 .\gradlew.bat :app:compileClientBDebugKotlin
-rg -n "^import (android|java)\." feature/login/data/src/commonMain feature/login/domain/src/commonMain feature/profiles/data/src/commonMain feature/profiles/domain/src/commonMain feature/details/data/src/commonMain feature/details/domain/src/commonMain feature/home/domain/src/commonMain -g "*.kt"
+rg -n "^import (android|java|androidx\.annotation|androidx\.core)\." feature/login/data/src/commonMain feature/login/domain/src/commonMain feature/profiles/data/src/commonMain feature/profiles/domain/src/commonMain feature/details/data/src/commonMain feature/details/domain/src/commonMain feature/home/domain/src/commonMain -g "*.kt"
 ```
 
 ## Test Scenarios
@@ -90,6 +91,7 @@ rg -n "^import (android|java)\." feature/login/data/src/commonMain feature/login
 
 - Every in-scope module compiles as common metadata and Android.
 - All migrated tests pass as common tests unless a documented Android-only reason exists.
+- Every common test is executed through `testAndroidHostTest`, and per-module counts are not lower than the KMP-00 baseline.
 - Both Android flavors compile against the migrated contracts.
 - No `android.*`, `java.*`, Hilt/Dagger, provider DTO, or Android resource usage exists in the new common source sets.
 - KMP-04 can merge before or after this ticket without file conflicts outside Gradle lock/cache outputs.
@@ -100,7 +102,7 @@ rg -n "^import (android|java)\." feature/login/data/src/commonMain feature/login
 - [ ] Any non-common test justified.
 - [ ] Any visibility/API changes documented.
 - [ ] Common and Android compilation results included.
+- [ ] Executed host-test counts compared with KMP-00.
 - [ ] Both app flavor compilation results included.
 - [ ] No KMP-04/root files modified.
 - [ ] Final working tree is clean after committing this ticket.
-

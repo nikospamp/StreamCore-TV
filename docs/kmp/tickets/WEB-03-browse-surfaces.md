@@ -70,7 +70,8 @@ temporary player placeholder, but every non-player product journey must be compl
    `ContentModel` navigation payload.
 10. Preserve stable item keys/content types and avoid per-recomposition list/resource allocation.
 11. Add screen showcases and deterministic screenshots for loading/content/empty/offline/error/long-text states at 1280×720 and 1920×1080.
-12. Add Playwright feature journeys and a full browse journey across Chromium, Firefox, and WebKit.
+12. Add Compose UI Test v2 coverage for semantic node/state/focus behavior and Playwright browser-level feature journeys using only the selector/input
+    strategy proven by WEB-01. Run the full browse journey across Chromium, Firefox, and WebKit.
 
 ## Public API or Type Changes
 
@@ -88,7 +89,7 @@ Each feature owner runs its module compilation/tests. The integration owner runs
 .\gradlew.bat :feature:library:ui-web:compileKotlinWasmJs
 .\gradlew.bat :feature:details:ui-web:compileKotlinWasmJs
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
-.\gradlew.bat :webApp:allTests
+.\gradlew.bat :webApp:wasmJsBrowserTest
 Set-Location webApp/e2e
 npm ci
 npx playwright test
@@ -119,6 +120,7 @@ Then run Android regression compilation from the repository root:
 - Login → Profiles → Home → Search/Library → Details works against TMDB.
 - Browser Back/Forward/direct URL/reload behave correctly.
 - Mouse and keyboard journeys pass on Chromium, Firefox, and WebKit.
+- Node-level assertions pass through Compose UI Test; Playwright does not assume canvas-rendered children are ordinary DOM nodes.
 - Visual hierarchy is approved against Android TV references at both resolutions.
 - Browse distribution builds independently before player work.
 - No provider DTO/network call appears in web UI modules.
@@ -131,6 +133,6 @@ Then run Android regression compilation from the repository root:
 - [ ] Focus restoration behavior documented.
 - [ ] State/screenshot coverage listed.
 - [ ] Per-feature and integrated E2E results included.
+- [ ] Selector usage conforms to `docs/kmp/web-testing.md`.
 - [ ] Temporary player behavior explicitly documented for WEB-04.
 - [ ] Final working tree is clean after committing this ticket.
-

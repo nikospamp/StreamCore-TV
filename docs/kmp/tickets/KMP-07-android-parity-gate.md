@@ -37,20 +37,25 @@ the final Phase 1 commit/tag.
 2. Resolve Android integration failures without moving platform-only code back into common source sets.
 3. Verify every KMP module uses the Android-KMP plugin and source-set conventions; Android-only modules retain Android plugins.
 4. Verify Koin graphs for TMDB and ClientB with strict duplicate/override checks.
-5. Repeat the exact KMP-00 build/test/smoke matrix and classify any delta as fixed, accepted/documented, or blocking.
+5. Run the accepted KMP-00-equivalent build/test/smoke matrix. Map migrated JVM/Android unit-test tasks to `testAndroidHostTest`, then compare tests by
+   owning module and executed test-case count rather than task name. Include design-token checked-file counts and classify any delta as explicitly
+   accepted or blocking. A green task with fewer/zero expected tests is blocking.
 6. Test persistence migration using an app installation containing pre-migration auth, library, search, and playback preference data.
 7. Verify mobile/tablet/TV previews and device tests, especially TV D-pad focus and player cleanup.
 8. Assemble debug and R8 variants for both clients.
 9. Build benchmark/baseline-profile modules and confirm existing generated profiles are still consumed by the intended variants.
 10. Run the existing controlled benchmark workflow and record before/after evidence. There is no numerical failure threshold, but repeatable
     regressions must be documented with likely cause and follow-up recommendation.
-11. Update module dependency documentation and add permanent KMP rules to the project documentation:
+11. Update `AGENTS.md`, `MODULE_DEPENDENCY_GRAPH.md`, and `DESIGN.md` with the final DI, source-set, preview, resource, testing, module, and web-readiness
+    rules:
     - Shared dependencies require KMP support.
     - Platform APIs live in target source sets.
     - Provider types never cross client boundaries.
     - New feature state/ViewModels start in `ui-common`.
     - Web support is not implied until a module gains and verifies `wasmJs` in WEB-01.
 12. Record the Phase 1 green commit in `docs/kmp/migration-baseline.md` and mark the Android baseline comparison complete.
+13. Treat any unresolved functional, persistence, test-count, design-verifier, graph, or build-variant regression as a stop condition. Do not merge
+    KMP-07 or begin WEB-01; return the fix to the owning Phase 1 ticket and retain the last green `codex/kmp-migration` commit as rollback.
 
 ## Public API or Type Changes
 
@@ -63,15 +68,16 @@ No new API changes are authorized. This ticket integrates and validates the expl
 .\gradlew.bat :app:assembleClientBDebug
 .\gradlew.bat :app:assembleTmdbReleaseR8
 .\gradlew.bat :app:assembleClientBReleaseR8
-.\gradlew.bat test
+.\gradlew.bat check -PverifyDesignTokensLogFiles=true
+.\gradlew.bat testAndroidHostTest
 .\gradlew.bat lint
 .\gradlew.bat :feature:home:ui-mobile:compileDebugAndroidTestKotlin
 .\gradlew.bat :feature:home:ui-tablet:compileDebugAndroidTestKotlin
-.\gradlew.bat :feature:login:ui-tv:compileDebugKotlin
+.\gradlew.bat :feature:login:ui-tv:compileDebugAndroidTestKotlin
 .\gradlew.bat :feature:search:ui-tv:compileDebugAndroidTestKotlin
 .\gradlew.bat :benchmark:assemble
 .\gradlew.bat :baselineprofile:assemble
-rg -n "dagger\.|hilt|javax\.inject" app core client feature playback -g "*.kt" -g "*.kts"
+rg -n "dagger\.|hilt|javax\.inject|dagger-hilt|hilt-android" app core client feature playback build.gradle.kts settings.gradle.kts gradle/libs.versions.toml -g "*.kt" -g "*.kts" -g "*.toml"
 ```
 
 Run all connected device tests available for the test device matrix, followed by the same controlled performance campaign recorded in KMP-00.
@@ -86,6 +92,7 @@ Run all connected device tests available for the test device matrix, followed by
 - Library load/mutations/empty/error/profile isolation.
 - Details initial content, refresh, recommendations, like/list mutation, trailers, and back.
 - Player prepare/play/pause/seek/settings/filmstrip/exit/PiP/progress resume.
+- Cold and warm artwork loading, placeholder/error handling, and cache-hit behavior after the Coil Ktor3 migration.
 - TV drawer navigation, deterministic D-pad order, focused styling, and return-focus restoration.
 - Phone/tablet adaptive routing and rotation/configuration changes.
 
@@ -93,6 +100,8 @@ Run all connected device tests available for the test device matrix, followed by
 
 - Both debug and R8 provider variants assemble.
 - All previously green tests remain green or have an explicitly approved baseline update.
+- Every migrated common test executes through `testAndroidHostTest`; per-module counts match or exceed KMP-00.
+- `verifyDesignTokens` checks migrated `commonMain`/`androidMain` UI sources and does not pass with zero checked files.
 - Pre-migration persisted data is readable.
 - Every baseline smoke journey passes on its relevant platform.
 - Benchmark/baseline-profile infrastructure builds and the non-blocking comparison is recorded.
@@ -105,9 +114,10 @@ Run all connected device tests available for the test device matrix, followed by
 - [ ] Baseline-vs-current matrix attached.
 - [ ] Both provider/debug/R8 results included.
 - [ ] Unit/common/device/lint results included.
+- [ ] Executed test counts and design-token checked-file counts compared with KMP-00.
 - [ ] Persistence migration evidence included.
 - [ ] Performance comparison location included.
 - [ ] Remaining known issues and owners documented.
 - [ ] Phase 1 green commit recorded.
+- [ ] `AGENTS.md`, `MODULE_DEPENDENCY_GRAPH.md`, and `DESIGN.md` updated.
 - [ ] Final working tree is clean after committing this ticket.
-
