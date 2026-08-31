@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
@@ -29,7 +30,36 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Production-signing-equivalent rollout candidate. The shipping release
+        // flag remains unchanged until all client smoke checks are complete.
+        create("releaseR8") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            matchingFallbacks += "release"
+        }
+        create("benchmark") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".benchmark"
+            matchingFallbacks += "release"
+        }
+        create("benchmarkR8") {
+            initWith(getByName("benchmark"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            matchingFallbacks += listOf("benchmark", "release")
+        }
+        // Dedicated profile-generation target. It retains the isolated benchmark
+        // application id/auth state without changing the frozen benchmark variants.
+        create("profile") {
+            initWith(getByName("benchmark"))
+            matchingFallbacks += listOf("benchmark", "release")
+        }
     }
+    sourceSets.getByName("benchmarkR8").manifest.srcFile("src/benchmark/AndroidManifest.xml")
+    sourceSets.getByName("profile").manifest.srcFile("src/benchmark/AndroidManifest.xml")
 
     flavorDimensions += "client"
     productFlavors {
@@ -50,10 +80,27 @@ android {
     }
 }
 
+baselineProfile {
+    saveInSrc = true
+    automaticGenerationDuringBuild = false
+    variants {
+        create("tmdbProfile") {
+            from(project(":baselineprofile"))
+            mergeIntoMain = true
+        }
+    }
+}
+
 val tmdbImplementation by configurations
 val clientBImplementation by configurations
 
 dependencies {
+    // Required for reliable local/sideload profile installation and the
+    // Macrobenchmark profile-install broadcast used by BaselineProfileMode.Require.
+    implementation(libs.androidx.profileinstaller)
+    listOf("benchmarkImplementation", "benchmarkR8Implementation", "profileImplementation").forEach { configuration ->
+        add(configuration, libs.androidx.compose.runtime.tracing)
+    }
     // Clients
     tmdbImplementation(projects.client.tmdb.data)
     tmdbImplementation(projects.client.tmdb.ui)

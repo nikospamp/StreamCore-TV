@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.player.mobile.player
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
+
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -89,6 +91,7 @@ fun MobilePlayerScreen(
     Box(
         modifier = modifier
             .testTag(PlayerTestTags.Root)
+            .benchmarkReadiness("player", state.phase == PlaybackPhase.Ready && state.isPlaying)
             .fillMaxSize()
             .background(Color.Black)
             .pointerInput(state.durationMillis) {

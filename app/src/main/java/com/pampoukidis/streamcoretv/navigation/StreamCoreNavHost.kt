@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.navigation
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkSemantics
+
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -111,6 +113,7 @@ internal fun StreamCoreNavHost(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .benchmarkSemantics()
             .background(MaterialTheme.colorScheme.background),
     ) {
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {

@@ -46,6 +46,7 @@ fun StreamCorePagerCarousel(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     pageSpacing: Dp = StreamCoreDimens.Spacing.Medium,
     indicatorPadding: PaddingValues = PaddingValues(StreamCoreDimens.Spacing.Large),
+    indicatorModifier: Modifier = Modifier,
     autoAdvanceEnabled: Boolean = true,
     key: ((Int) -> Any)? = null,
     content: @Composable (Int) -> Unit,
@@ -106,7 +107,8 @@ fun StreamCorePagerCarousel(
             activeItemIndex = state.currentPage,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(indicatorPadding),
+                .padding(indicatorPadding)
+                .then(indicatorModifier),
         )
     }
 }

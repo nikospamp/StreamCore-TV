@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.details.tablet.details
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -78,7 +80,8 @@ fun TabletDetailsScreen(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier
             .fillMaxSize()
-            .testTag(DetailsTestTags.Root),
+            .testTag(DetailsTestTags.Root)
+            .benchmarkReadiness("details-tablet", !state.isLoading && state.content != null),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),

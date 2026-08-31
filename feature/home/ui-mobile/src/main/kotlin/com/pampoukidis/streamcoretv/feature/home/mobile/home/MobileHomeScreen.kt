@@ -1,5 +1,10 @@
 package com.pampoukidis.streamcoretv.feature.home.mobile.home
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkCounter
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkLayoutTrace
+import com.pampoukidis.streamcoretv.core.tracing.BenchmarkTracingEnabled
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,9 +32,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +46,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -82,15 +91,24 @@ fun MobileHomeScreen(
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
+    val configuration = LocalConfiguration.current
     val content = remember(state.rows) {
         state.rows.toHomeContentModel()
+    }
+    if (BenchmarkTracingEnabled) {
+        SideEffect {
+            benchmarkCounter("SC.Home.windowWidthDp", configuration.screenWidthDp)
+            benchmarkCounter("SC.Home.profileSharedBoundsActive", if (activeProfile != null) 1 else 0)
+            benchmarkCounter("SC.Home.contentSharedBoundsActive", if (selectedContentKey != null) 1 else 0)
+        }
     }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier
             .fillMaxSize()
-            .testTag(HomeTestTags.Root),
+            .testTag(HomeTestTags.Root)
+            .benchmarkReadiness("home", !state.isLoading && state.rows.isNotEmpty()),
     ) {
         Column(
             modifier = Modifier
@@ -101,7 +119,9 @@ fun MobileHomeScreen(
                 onProfileSelected = onProfileSelected,
                 profileAvatar = activeProfile?.avatar,
                 profileArtworkModifier = if (activeProfile != null) {
-                    Modifier.streamCoreSharedBounds(
+                    Modifier
+                        .benchmarkLayoutTrace("SC.Home.profileAvatar")
+                        .streamCoreSharedBounds(
                         sharedElementScope = sharedElementScope,
                         key = StreamCoreSharedKey.profileAvatar(activeProfile.id),
                         clipShape = CircleShape,
@@ -109,16 +129,17 @@ fun MobileHomeScreen(
                 } else {
                     Modifier
                 },
-                modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding,
-                ),
+                modifier = Modifier
+                    .benchmarkLayoutTrace("SC.Home.topBar")
+                    .padding(horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding),
             )
             PullToRefreshBox(
                 isRefreshing = state.isLoading && state.rows.isNotEmpty(),
                 onRefresh = { onAction(HomeAction.Refresh) },
                 modifier = Modifier
                     .fillMaxSize()
-                    .testTag(HomeTestTags.PullToRefresh),
+                    .testTag(HomeTestTags.PullToRefresh)
+                    .benchmarkLayoutTrace("SC.Home.pullToRefresh"),
             ) {
                 MobileHomeContent(
                     state = state,
@@ -156,7 +177,9 @@ private fun MobileHomeContent(
                 verticalArrangement = Arrangement.spacedBy(
                     StreamCoreDimens.Mobile.Browse.SectionSpacing,
                 ),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .benchmarkLayoutTrace("SC.Home.outerLazyList"),
             ) {
                 item(
                     key = HomeTestTags.Hero,
@@ -167,6 +190,7 @@ private fun MobileHomeContent(
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
                         onContentSelected = onContentSelected,
+                        modifier = Modifier.benchmarkLayoutTrace("SC.Home.hero"),
                     )
                 }
                 content.continueWatching?.let { row ->
@@ -205,13 +229,21 @@ private fun MobileHeroPager(
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // The pager count updates before BoxWithConstraints subcomposes. Retained key/content
     // callbacks must read the same snapshot-backed list instead of capturing the old one.
     val carouselItems by rememberUpdatedState(content)
     val pagerState = rememberPagerState(pageCount = { carouselItems.size })
+    if (BenchmarkTracingEnabled) {
+        LaunchedEffect(pagerState) {
+            snapshotFlow { pagerState.currentPage }.collect { page ->
+                benchmarkCounter("SC.Home.pagerPage", page)
+            }
+        }
+    }
 
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
         StreamCorePagerCarousel(
             state = pagerState,
             key = { page -> carouselItems[page].sharedIdentity() },
@@ -223,6 +255,7 @@ private fun MobileHeroPager(
                 end = StreamCoreDimens.Mobile.Screen.HorizontalPadding + StreamCoreDimens.Spacing.Large,
                 bottom = StreamCoreDimens.Spacing.Large,
             ),
+            indicatorModifier = Modifier.benchmarkLayoutTrace("SC.Home.indicator"),
             pageSpacing = StreamCoreDimens.Mobile.Browse.RowSpacing,
             modifier = Modifier
                 .fillMaxWidth()
@@ -232,6 +265,7 @@ private fun MobileHeroPager(
                         maxWidth / StreamCoreDimens.Artwork.LandscapeAspectRatio,
                     ),
                 )
+                .benchmarkLayoutTrace("SC.Home.pager")
                 .testTag(HomeTestTags.Hero),
         ) { page ->
             val item = carouselItems[page]
@@ -375,6 +409,7 @@ private fun MobileContinueWatchingRow(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
         modifier = Modifier
             .fillMaxWidth()
+            .benchmarkLayoutTrace("SC.Home.row.continueWatching")
             .testTag(HomeTestTags.RowPrefix + row.id),
     ) {
         HomeShelfHeader(
@@ -419,6 +454,7 @@ private fun MobileShelf(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
         modifier = Modifier
             .fillMaxWidth()
+            .benchmarkRowLayoutTrace(row.type)
             .testTag(HomeTestTags.RowPrefix + row.id),
     ) {
         HomeShelfHeader(
@@ -839,6 +875,22 @@ private fun ContentModel.sharedIdentity(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,
+    )
+}
+
+@Suppress("NOTHING_TO_INLINE")
+private inline fun Modifier.benchmarkRowLayoutTrace(rowType: RowType): Modifier {
+    if (!BenchmarkTracingEnabled) {
+        return this
+    }
+    return benchmarkLayoutTrace(
+        when (rowType) {
+            RowType.Featured -> "SC.Home.row.featured"
+            RowType.ContinueWatching -> "SC.Home.row.continueWatching"
+            RowType.Poster -> "SC.Home.row.poster"
+            RowType.Landscape -> "SC.Home.row.landscape"
+            RowType.TopTen -> "SC.Home.row.topTen"
+        },
     )
 }
 
