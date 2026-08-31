@@ -1,9 +1,9 @@
 # Android migration baseline
 
-> **Status: PROVISIONAL — KMP-01 is blocked.** The initial pass at commit `2dcd325c2c9c27ec45ca170783f03af007c77e4a`
-> found two host blockers and captured no device evidence. KMP-00 is reopened. This report becomes canonical only after its status is changed to
-> `Accepted`, the remediation commit is recorded, root `check` is green with test/design-token counts, and mobile/tablet/TV results replace every
-> `Not run` entry.
+> **Status: PROVISIONAL — KMP-01 is blocked.** Remediation commit `8bc11dc4300e55822bbae689dfdad271ef3fe769`
+> has a green host gate, 185 passing tests, and 266 checked design-token source files. Phone/tablet/TV execution replaced every provisional
+> `Not run`, but exposed functional Android baseline failures listed below. The report must not be marked `Accepted` until those failures are fixed
+> and the complete device matrix is rerun.
 
 Provisional Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of
@@ -15,10 +15,11 @@ provider SDKs, DTOs, API responses, and client-specific models.
 |---|---|
 | Status | `PROVISIONAL` — do not start KMP-01 |
 | Date | 2026-08-31 (Europe/Athens) |
-| Commit | `2dcd325c2c9c27ec45ca170783f03af007c77e4a` |
-| Branch | `master` |
-| Commit subject | `feature: Start kpm migration.` |
-| Initial working tree | Clean (`git status --short` produced no output) |
+| Tested remediation commit | `8bc11dc4300e55822bbae689dfdad271ef3fe769` |
+| Planning checkpoint | `10276fe776e3ad616895ce7237c2c79ab47bcea9` |
+| Branch | `codex/kmp-00-android-baseline` |
+| Commit subject | `fix: establish green Android migration baseline` |
+| Tested working tree | Clean (`git status --short` produced no output) |
 | Host | Windows 11 10.0 amd64 |
 | Gradle | 9.3.1 (`gradle-wrapper.properties`) |
 | Android Gradle Plugin | 9.1.1 |
@@ -32,11 +33,11 @@ provider SDKs, DTOs, API responses, and client-specific models.
 | App min/target SDK | 26 / 36 |
 | Benchmark/profile min/target SDK | 29 / 36 |
 | Java source/target compatibility | 11 |
-| Connected devices | None (`adb devices -l` returned an empty device list) |
+| Connected devices | `Medium_Phone_API_36.1`, `Medium_Tablet`, and `Television_1080p`, run locally and sequentially except for the opaque session transfer |
 
-The initial pass changed only this report; Gradle outputs/test reports remain ignored. Reopened KMP-00 is narrowly authorized to clear production
-Login credential defaults and repair design-token task input construction. The final accepted report must replace the commit/device rows above and
-describe those two remediations; no dependency, source-set, threshold, generated Baseline Profile, or unrelated behavior change is authorized.
+The remediation clears production Login credential defaults, isolates `verifyDesignTokens` to explicit production source-set file trees, and applies
+the separately authorized KMP-00A semantic-token compliance cleanup. It adds no dependency, KMP/Koin/Wasm configuration, source-set migration,
+performance threshold, generated Baseline Profile, or unrelated behavior change.
 
 ## Gradle module inventory
 
@@ -184,64 +185,44 @@ Modules absent from this graph have no project-to-project dependency.
 
 ## Host build and test baseline
 
-Commands were run from the repository root on 2026-08-31. The first attempted
-Client B assembly was blocked before Gradle startup by the execution sandbox's
-network policy while locating the wrapper distribution; it was rerun with the
-same command after granting wrapper/dependency access. That infrastructure-only
-attempt is not an Android baseline failure.
+Commands were run independently from the repository root on 2026-08-31 at exact remediation commit
+`8bc11dc4300e55822bbae689dfdad271ef3fe769`. Wrapper-only sandbox network denials were rerun with approved wrapper/dependency access and are not
+Android baseline failures.
 
 | Command | Result | Evidence |
 |---|---|---|
 | `.\gradlew.bat :app:assembleTmdbDebug` | Pass | `BUILD SUCCESSFUL`; 789 actionable tasks |
 | `.\gradlew.bat :app:assembleClientBDebug` | Pass | `BUILD SUCCESSFUL`; 788 actionable tasks |
+| `.\gradlew.bat :app:assembleTmdbReleaseR8` | Pass | `BUILD SUCCESSFUL`; 1,415 actionable tasks |
+| `.\gradlew.bat :app:assembleClientBReleaseR8` | Pass | `BUILD SUCCESSFUL`; 1,414 actionable tasks |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin` | Pass | `BUILD SUCCESSFUL`; 366 actionable tasks |
 | `.\gradlew.bat :app:compileClientBDebugKotlin` | Pass | `BUILD SUCCESSFUL`; 365 actionable tasks |
-| `.\gradlew.bat test` | **Fail** | `:feature:login:ui-common:testDebugUnitTest`; 913 actionable tasks |
-| `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --console=plain` | **Fail** | Exactly two failures: the Login test and Gradle 9 input validation for `:verifyDesignTokens`; all lint tasks completed successfully |
+| `.\gradlew.bat :feature:login:ui-common:testDebugUnitTest --tests "*LoginViewModelTest"` | Pass | 5 tests; 0 failures/errors/skipped; 42 actionable tasks |
+| `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass | 266 production Kotlin files checked; zero violations; configuration cache reused |
+| `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --console=plain` | Pass | `BUILD SUCCESSFUL`; 1,921 actionable tasks; all unit tests and Android lint tasks green |
 | `.\gradlew.bat :feature:home:ui-mobile:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 62 actionable tasks |
 | `.\gradlew.bat :feature:home:ui-tablet:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 62 actionable tasks |
-| `.\gradlew.bat :feature:login:ui-tv:compileDebugKotlin` | Pass | `BUILD SUCCESSFUL`; 37 actionable tasks |
+| `.\gradlew.bat :feature:login:ui-tv:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 45 actionable tasks |
+| `.\gradlew.bat :feature:search:ui-tv:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 40 actionable tasks |
 | `.\gradlew.bat :benchmark:assemble` | Pass | `BUILD SUCCESSFUL`; 98 actionable tasks |
-| `.\gradlew.bat :baselineprofile:assemble` | Pass | `BUILD SUCCESSFUL`; 160 actionable tasks |
+| `.\gradlew.bat :baselineprofile:assemble` | Pass | `BUILD SUCCESSFUL`; 160 actionable tasks; profiles not regenerated |
 
-### Provisional baseline host blockers
+### Completed host remediations
 
-The Login failure is a real baseline defect, not an accepted expected failure. `LoginUiState` hardcodes non-empty production identifier/password
-defaults, so an empty Submit uses valid credentials and cannot produce the required validation errors. KMP-00 must clear production defaults and
-keep sample values only in previews/tests; the test must not be weakened.
+- `LoginUiState` production identifier/password defaults are empty. Sample values remain explicit preview/test arguments, and the original invalid
+  submit test is unchanged and green.
+- `verifyDesignTokens` now roots file trees at explicit `src/main/kotlin`, Kotlin-under-`src/main/java`, `commonMain`, `androidMain`, and `wasmJsMain`
+  production source sets for `app`/`core`/`feature`, excluding build/generated/test trees. Gradle 9 input validation and configuration-cache reuse pass.
+- KMP-00A classified 96 pre-edit violations semantically and replaced them without changing numeric/color values or adding suppressions, allow-lists,
+  exclusions, or behavior changes. Missing roles live only in approved token files; shape/color reads are stable and allocation-safe.
+- The verifier's authoritative checked count is **266** after its five approved token-definition files. Representative checked paths include
+  `app/src/main/java/com/pampoukidis/streamcoretv/navigation/StreamCoreNavHost.kt`,
+  `core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/components/StreamCorePagerCarousel.kt`, and
+  `feature/player/ui-mobile/src/main/kotlin/com/pampoukidis/streamcoretv/feature/player/mobile/player/MobilePlayerScreen.kt`.
 
-```text
-:feature:login:ui-common:testDebugUnitTest
-LoginViewModelTest > invalid submit surfaces validation errors FAILED
-LoginViewModelTest.kt:49
-expected: LoginFieldError.Required
-actual: null
-```
+### Green host test inventory
 
-Focused reproduction:
-
-```powershell
-.\gradlew.bat :feature:login:ui-common:testDebugUnitTest --tests "*LoginViewModelTest"
-```
-
-The expanded gate exposed a second blocker before the verifier action could run:
-
-```text
-:verifyDesignTokens
-Gradle 9 implicit-dependency validation rejects broad FileTree roots at core/, feature/, and app/
-because those roots overlap subproject build outputs.
-```
-
-KMP-00 must pass an explicit provider/set of individual production Kotlin source files, include Kotlin files under `app/src/main/java`, and exclude
-all build/generated/test trees. The original verifier scope manually resolves to 255 checked files after its five allow-listed token files; this is
-diagnostic only, not the accepted checked-file count because the task did not execute. The remediated task's logged count is authoritative.
-
-All Android lint tasks completed successfully under the expanded `check --continue` run. There is no separate known lint baseline failure.
-
-### Provisional host test inventory
-
-These counts were recovered from included modules' XML reports after the expanded gate. The accepted remediation run must preserve the same test
-cases with zero failures; generated reports from non-included stale modules are excluded.
+Counts were read from the XML reports produced by the committed root `check`. Generated reports from non-included stale modules are excluded.
 
 | Module | Task | Tests | Failures | Errors | Skipped |
 |---|---|---:|---:|---:|---:|
@@ -259,35 +240,45 @@ cases with zero failures; generated reports from non-included stale modules are 
 | `:feature:library:domain` | `testDebugUnitTest` | 4 | 0 | 0 | 0 |
 | `:feature:library:ui-common` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
 | `:feature:login:domain` | `test` | 3 | 0 | 0 | 0 |
-| `:feature:login:ui-common` | `testDebugUnitTest` | 5 | 1 | 0 | 0 |
+| `:feature:login:ui-common` | `testDebugUnitTest` | 5 | 0 | 0 | 0 |
 | `:feature:player:data` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
 | `:feature:player:ui-common` | `testDebugUnitTest` | 10 | 0 | 0 | 0 |
 | `:feature:player:ui-mobile` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
 | `:feature:search:data` | `testDebugUnitTest` | 2 | 0 | 0 | 0 |
 | `:feature:search:domain` | `test` | 2 | 0 | 0 | 0 |
 | `:feature:search:ui-common` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
-| **Total** |  | **185** | **1** | **0** | **0** |
+| **Total** |  | **185** | **0** | **0** | **0** |
 
 ## Device smoke baseline
 
-No Android device or emulator was connected during KMP-00. Consequently, no
-new behavior was claimed from APK assembly alone. These are explicitly
-uncovered baseline checks, not passes and not known behavior failures.
+The matrix ran locally against remediation commit `8bc11dc4300e55822bbae689dfdad271ef3fe769`. Serial values are scoped to each
+isolated form-factor run; the phone temporarily used `emulator-5556` only while its opaque 58-byte TMDB session DataStore was streamed directly into
+tablet/TV app sandboxes. The token was never decoded, printed, or written to the host. Under the explicitly approved combined-coverage exception,
+TMDB credential submission is proven on phone, TMDB session restoration and post-auth behavior are proven on all form factors, and ClientB generated-
+input login submission is proven on phone/tablet/TV.
+
+| AVD | Serial | API | Resolution | Orientation | Variants | Tested commit |
+|---|---|---:|---:|---|---|---|
+| `Medium_Phone_API_36.1` | `emulator-5554` | 36 | 1080x2400 | Portrait; player landscape | TMDB + ClientB debug | `8bc11dc` |
+| `Medium_Tablet` | `emulator-5554` | 36 | 2560x1600 | Landscape | TMDB + ClientB debug | `8bc11dc` |
+| `Television_1080p` | `emulator-5554` | 31 | 1920x1080 | Landscape | TMDB + ClientB debug | `8bc11dc` |
 
 | Surface/journey | Mobile | Tablet | TV | Outcome |
 |---|---|---|---|---|
-| Login, logout, session restoration | Not run | Not run | Not run | No connected device |
-| Profile selection, creation, editing, deletion | Not run | Not run | Not run | No connected device |
-| Home loading, refresh, navigation | Not run | Not run | Not run | No connected device |
-| Search discovery, query, recents, result selection | Not run | Not run | Not run | No connected device |
-| Library states, details mutations | Not run | Not run | Not run | No connected device |
-| Details, trailer, recommendations, back | Not run | Not run | Not run | No connected device |
-| Player start, seek, pause/resume, settings, exit, restoration | Not run | Not run | Not run | No connected device |
-| D-pad focus traversal and restoration | N/A | N/A | Not run | No connected TV/emulator |
+| Login, logout, session restoration | **Fail**: TMDB login/session pass; logout UI absent | **Fail**: TMDB session + ClientB login pass; logout UI absent | **Fail**: TMDB session + ClientB login pass; logout UI absent | Global production logout action/call site is absent |
+| Profile selection, creation, editing, deletion | Pass | Pass | **Fail**: selection/create/edit pass; delete inaccessible | TV exposes no delete trigger |
+| Home loading, refresh, navigation | Pass | **Fail**: load/refresh pass; Search/Library top-level navigation absent | Pass | Tablet top-level navigation is missing |
+| Search discovery, query, recents, result selection | Pass | **Fail**: no navigation entry | Pass | Tablet Search is unreachable |
+| Library states, details mutations | Pass | **Fail**: mutations pass in Details; Library has no navigation entry | Pass | Tablet Library is unreachable |
+| Details, trailer, recommendations, back | Pass | **Fail**: details/recommendations/back pass; trailer absent | **Fail**: details/recommendations pass; trailer absent and selected Search result focus is not restored after Back | Platform details surfaces omit trailer |
+| Player start, seek, pause/resume, settings, exit, restoration | Pass | **Fail**: Play is a no-op | **Fail**: Play is a no-op | Tablet/TV routes discard `onPlaySelected` |
+| D-pad focus traversal and restoration | N/A | N/A | **Fail**: drawer order, visible focus, drawer Back, and drawer/content restoration pass; Details-to-Search selected-result restoration fails | Partial TV focus coverage is insufficient |
 
-This absence is blocking rather than an accepted limitation. Before KMP-01, reopened KMP-00 must run the reference matrix on identified mobile,
-tablet, and Android TV targets at the remediated baseline commit. Emulator evidence is acceptable. The report must also include at least
-boot/auth/profile/home/details/player provider smoke for ClientB. KMP-07 remains a parity gate only because KMP-00 will supply this evidence.
+ClientB phone provider smoke passed boot/auth/profile/home/details/player. Tablet and TV additionally passed ClientB generated-input login submission
+and profile transition. All journeys have a Pass/Fail/N/A result; none remain `Not run`.
+
+Local ignored evidence is under `build/kmp-00-evidence/`, including phone home/details/player/trailer captures, tablet profiles/home/attempted-player
+captures, and TV profile focus, expanded drawer focus, and Play-no-op captures. The evidence remains local and is not committed as production input.
 
 ## Existing performance and Baseline Profile evidence
 
@@ -364,9 +355,7 @@ from the repository root so the first failure remains attributable:
 .\gradlew.bat :app:assembleClientBDebug
 .\gradlew.bat :app:assembleTmdbReleaseR8
 .\gradlew.bat :app:assembleClientBReleaseR8
-.\gradlew.bat :app:compileTmdbDebugKotlin
-.\gradlew.bat :app:compileClientBDebugKotlin
-.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --console=plain
+.\gradlew.bat check -PverifyDesignTokensLogFiles=true
 .\gradlew.bat testAndroidHostTest
 .\gradlew.bat lint
 .\gradlew.bat :feature:home:ui-mobile:compileDebugAndroidTestKotlin
@@ -375,15 +364,16 @@ from the repository root so the first failure remains attributable:
 .\gradlew.bat :feature:search:ui-tv:compileDebugAndroidTestKotlin
 .\gradlew.bat :benchmark:assemble
 .\gradlew.bat :baselineprofile:assemble
+rg -n "dagger\.|hilt|javax\.inject|dagger-hilt|hilt-android" app core client feature playback build.gradle.kts settings.gradle.kts gradle/libs.versions.toml -g "*.kt" -g "*.kts" -g "*.toml"
 ```
 
 Expected comparison:
 
-- Every command must pass. The accepted KMP-00 remediation baseline has no expected-failure allow-list.
+- Every command must pass. KMP-00 has no expected-failure allow-list.
 - `testAndroidHostTest` replaces migrated JVM/Android unit-test tasks. Compare executed test-case counts by owning module/feature against the accepted
   KMP-00 table; task-name changes do not excuse missing tests.
 - `verifyDesignTokens` must report migrated source-set files and a nonzero checked count.
-- Repeat the complete device smoke table on equivalent form factors and compare results with the accepted KMP-00 evidence.
+- Repeat the complete device smoke table on equivalent form factors; every provisional functional blocker above must be fixed before acceptance.
 - Do not regenerate profiles merely to run the gate.
 
 When a controlled performance comparison is required, use the repository
@@ -405,11 +395,17 @@ explicitly approves thresholds.
 
 ## Current provisional blockers and durable limitations
 
-- Provisional blocker: the Login default-credential defect must be fixed by reopened KMP-00.
-- Provisional blocker: `verifyDesignTokens` broad FileTree inputs must be repaired and counted by reopened KMP-00.
-- Provisional blocker: mobile/tablet/TV device evidence must replace every `Not run` result before KMP-01.
+- Host remediation is complete and green at `8bc11dc4300e55822bbae689dfdad271ef3fe769`; there is no host expected-failure allow-list.
+- [KMP-00B](tickets/KMP-00B-auth-session-lifecycle.md): no production logout action/UI exists on any platform.
+- [KMP-00C](tickets/KMP-00C-tablet-top-level-navigation.md) and [KMP-00D](tickets/KMP-00D-tablet-details-player-parity.md): tablet has no top-level
+  Search/Library navigation or trailer action, and `TabletDetailsRoute` discards `onPlaySelected`.
+- [KMP-00E](tickets/KMP-00E-tv-profile-deletion.md), [KMP-00F](tickets/KMP-00F-tv-details-player-parity.md), and
+  [KMP-00G](tickets/KMP-00G-tv-return-focus-restoration.md): TV profile deletion is inaccessible, trailer is absent, `TvDetailsRoute` discards
+  `onPlaySelected`, and selected Search result focus is not restored after Details.
+- The combined TMDB-session/ClientB-login exception is documented evidence, not a substitute for fixing these functional failures.
 - Accepted controlled performance evidence predates the baseline commit; it is
   retained as contextual evidence, not same-commit proof.
 - The Baseline Profile `Require` run is partial and non-reportable.
 - `MODULE_DEPENDENCY_GRAPH.md` is stale; use this report and the build scripts.
-- Only the two narrowly authorized baseline remediations may change production/build configuration before acceptance.
+- KMP-01 and `codex/kmp-migration` remain blocked. [KMP-00H](tickets/KMP-00H-android-baseline-reacceptance.md) owns the complete rerun,
+  documentation-only acceptance commit, and integration branch after B-G pass.

@@ -33,14 +33,15 @@ Every ticket is intended to be executable in a fresh agent/task with no hidden d
 ## Required Merge Order
 
 ```text
-KMP-00 -> KMP-01 -> KMP-02 -> [KMP-03 || KMP-04] -> KMP-05 -> KMP-06 -> KMP-07 -> WEB-01 -> WEB-02 -> WEB-03 -> WEB-04
+KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00G -> KMP-00H -> KMP-01 -> KMP-02 -> [KMP-03 || KMP-04] -> KMP-05 -> KMP-06 -> KMP-07 -> WEB-01 -> WEB-02 -> WEB-03 -> WEB-04
 ```
 
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current start gate:** KMP-00 is reopened. `docs/kmp/migration-baseline.md` is provisional until the two known host blockers are remediated, the
-expanded gate is green with counts, and mobile/tablet/TV device evidence is recorded. KMP-01 must not start before the report status is `Accepted`.
+**Current start gate:** KMP-00 host remediation is green at `8bc11dc4300e55822bbae689dfdad271ef3fe769`, but the device matrix exposed functional
+blockers. `docs/kmp/migration-baseline.md` remains provisional until KMP-00B through KMP-00G pass and KMP-00H records a fully green rerun. KMP-01 must
+not start before the report status is `Accepted` and `codex/kmp-migration` exists.
 
 WEB-03 may use several agents internally after WEB-02 freezes the shared web component APIs. Each agent must own disjoint feature modules; one
 integration owner owns `:webApp`, navigation, and shared web design-system changes.
@@ -49,7 +50,14 @@ integration owner owns `:webApp`, navigation, and shared web design-system chang
 
 | Ticket                                           | Outcome                                                       | Depends on             | Parallel-safe                    |
 |--------------------------------------------------|---------------------------------------------------------------|------------------------|----------------------------------|
-| [KMP-00](KMP-00-android-baseline.md)             | Remediated green Android baseline with device evidence        | Current work committed | No                               |
+| [KMP-00](KMP-00-android-baseline.md)             | Accepted green Android baseline after B-H                     | Current work committed | No                               |
+| [KMP-00B](KMP-00B-auth-session-lifecycle.md)     | Logout and restored-session lifecycle on all platforms        | KMP-00A remediation    | No                               |
+| [KMP-00C](KMP-00C-tablet-top-level-navigation.md) | Tablet Home/Search/Library navigation and surfaces           | KMP-00B                | Yes, feature-local ownership     |
+| [KMP-00D](KMP-00D-tablet-details-player-parity.md) | Tablet trailer/player parity                                | KMP-00B                | Yes, feature-local ownership     |
+| [KMP-00E](KMP-00E-tv-profile-deletion.md)        | TV profile deletion and confirmation focus                    | KMP-00B                | Yes, feature-local ownership     |
+| [KMP-00F](KMP-00F-tv-details-player-parity.md)   | TV trailer and D-pad player parity                            | KMP-00B                | Yes, feature-local ownership     |
+| [KMP-00G](KMP-00G-tv-return-focus-restoration.md) | Exact TV content return-focus restoration                   | KMP-00C through F      | No                               |
+| [KMP-00H](KMP-00H-android-baseline-reacceptance.md) | Full rerun, Accepted report, integration branch            | KMP-00B through G      | One integration owner            |
 | [KMP-01](KMP-01-hilt-to-koin.md)                 | Android graph migrated from Hilt to Koin                      | KMP-00                 | No                               |
 | [KMP-02](KMP-02-kmp-foundation-and-core.md)      | KMP build conventions and core modules                        | KMP-01                 | No                               |
 | [KMP-03](KMP-03-feature-logic-group-a.md)        | Login/profiles/details/home logic migrated                    | KMP-02                 | With KMP-04                      |
@@ -64,7 +72,9 @@ integration owner owns `:webApp`, navigation, and shared web design-system chang
 
 ## Execution Protocol
 
-1. KMP-00 establishes the green baseline. Create the long-lived `codex/kmp-migration` integration branch from that accepted commit.
+1. KMP-00B executes first; KMP-00C through KMP-00F then execute in parallel with shared files reserved for the integration owner. KMP-00G and
+   KMP-00H execute serially after integration. KMP-00H establishes the accepted green baseline and creates the
+   long-lived `codex/kmp-migration` integration branch from its documentation-only acceptance commit.
 2. Create one `codex/<ticket-id>-<slug>` branch/worktree per ticket from the latest accepted integration commit. Never implement migration tickets directly on the default branch.
 3. Start from the merged commit of every prerequisite ticket.
 4. Confirm `git status --short` is empty. Stop rather than overwrite unrelated/user changes.
