@@ -39,7 +39,8 @@ Client UI/resource modules are deferred to KMP-06.
 ## Implementation Tasks
 
 1. Convert both provider data modules to plain KMP Android libraries and move portable DTOs, mappers, API contracts, repositories, and tests to common
-   source sets.
+   source sets. Enable `withHostTest` in every converted provider module containing `commonTest`; execute those tests with
+   `testAndroidHostTest`.
 2. Preserve all provider DTOs as `internal`; no core/domain/feature module may import them.
 3. Introduce the common configuration value:
 
@@ -83,12 +84,12 @@ data class TmdbRuntimeConfig(
 .\gradlew.bat :client:clientB:data:compileCommonMainKotlinMetadata
 .\gradlew.bat :client:tmdb:player:compileCommonMainKotlinMetadata
 .\gradlew.bat :client:clientB:player:compileCommonMainKotlinMetadata
-.\gradlew.bat :client:tmdb:data:allTests
-.\gradlew.bat :client:clientB:data:allTests
+.\gradlew.bat :client:tmdb:data:testAndroidHostTest
+.\gradlew.bat :client:clientB:data:testAndroidHostTest
 .\gradlew.bat :playback:media3:compileDebugKotlin
 .\gradlew.bat :app:assembleTmdbDebug
 .\gradlew.bat :app:assembleClientBDebug
-rg -n "BuildConfig|io\.ktor\.client\.engine\.okhttp|^import (android|java)\." client/tmdb/data/src/commonMain client/clientB/data/src/commonMain client/tmdb/player/src/commonMain client/clientB/player/src/commonMain -g "*.kt"
+rg -n "BuildConfig|io\.ktor\.client\.engine\.okhttp|^import (android|java|androidx\.annotation|androidx\.core)\." client/tmdb/data/src/commonMain client/clientB/data/src/commonMain client/tmdb/player/src/commonMain client/clientB/player/src/commonMain -g "*.kt"
 ```
 
 `BuildConfig` and OkHttp may exist only in Android/app source sets, not in provider common code.
@@ -106,6 +107,8 @@ rg -n "BuildConfig|io\.ktor\.client\.engine\.okhttp|^import (android|java)\." cl
 ## Acceptance Criteria
 
 - Both provider common metadata/test suites pass.
+- Every provider data test file recorded in the accepted KMP-00 inventory is represented in executable host tests, and executed test-case counts
+  match the baseline plus any tests added during migration; no common suite may disappear behind a zero-test task.
 - Both Android flavor APKs assemble and complete the baseline provider flows.
 - No provider token/account/base URL is hard-coded into common source.
 - No provider DTO escapes its client module.
@@ -120,5 +123,5 @@ rg -n "BuildConfig|io\.ktor\.client\.engine\.okhttp|^import (android|java)\." cl
 - [ ] Auth DataStore filename/key compatibility confirmed.
 - [ ] Playback module ownership change documented.
 - [ ] Both flavor build/test results included.
+- [ ] Executed provider host-test counts compared with KMP-00.
 - [ ] Final working tree is clean after committing this ticket.
-

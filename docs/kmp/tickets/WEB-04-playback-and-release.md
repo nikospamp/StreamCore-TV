@@ -37,7 +37,8 @@ this ticket.
 
 ## Implementation Tasks
 
-1. Add and pin Shaka Player `5.2.3` in the Kotlin/JS/Wasm npm dependency graph.
+1. Consume the Shaka Player `5.2.3` ESM interop shape proven by WEB-01: direct `@JsModule` declarations when compatible, otherwise the committed ESM
+   adapter imported through `@JsModule`. Do not add a global `<script>` fallback.
 2. Create `:playback:web` implementing:
     - `PlaybackSessionFactory`.
     - `PlaybackSession`.
@@ -70,14 +71,15 @@ this ticket.
 13. Ensure cleanup closes the shared ViewModel session, Shaka instance, event listeners, DOM node, ticker/filmstrip jobs, and StateFlow collectors.
 14. Replace WEB-03's placeholder with the functional player route. Direct player reload must resolve required content by IDs or return safely to
     Details when it cannot.
-15. Add unit/fake-player tests and Playwright journeys for successful playback, autoplay rejection, network error/retry, seek, track selection,
-    resume, fullscreen, and repeated enter/exit.
+15. Add unit/fake-player tests and Compose UI Test v2 coverage for player state/control/focus behavior. Add Playwright browser-level journeys, using
+    WEB-01's selector strategy, for successful playback, autoplay rejection, network error/retry, seek, track selection, resume, fullscreen, and
+    repeated enter/exit.
 16. Generate the final static distribution and document:
     - Output directory and artifact contents.
     - `/config.json` deployment contract.
     - Required MIME types for Wasm/JS/assets.
     - TMDB/media/image CORS expectations.
-    - Suggested CSP directives for Fetch, images, media, workers, and Shaka.
+    - Suggested CSP directives for Fetch, images, media, workers, and the selected Shaka ESM/direct-adapter import.
     - Cache policy and versioned asset behavior.
     - Static-server fallback/routing requirements.
 17. Run automated Chromium/Firefox/WebKit coverage. Require a manual pass on current Safari/macOS before declaring release acceptance.
@@ -93,8 +95,8 @@ this ticket.
 ```powershell
 .\gradlew.bat :playback:web:compileKotlinWasmJs
 .\gradlew.bat :feature:player:ui-web:compileKotlinWasmJs
-.\gradlew.bat :playback:web:allTests
-.\gradlew.bat :feature:player:ui-common:allTests
+.\gradlew.bat :webApp:wasmJsBrowserTest
+.\gradlew.bat :feature:player:ui-common:testAndroidHostTest
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
 Set-Location webApp/e2e
 npm ci
@@ -128,6 +130,7 @@ Then run Android regression verification from the repository root:
 
 - The TMDB public DASH source plays end to end in Chromium, Firefox, WebKit, and a manually verified current Safari.
 - Shared PlayerViewModel controls the web implementation through the provider-neutral interfaces.
+- Compose UI tests cover node/state/focus behavior, while Playwright follows the canvas-safe strategy documented by WEB-01.
 - Progress resume, error/retry, cleanup, and keyboard/mouse control tests pass.
 - `wasmJsBrowserDistribution` produces a deployable static artifact with no real config/token.
 - Deployment documentation is complete without selecting or configuring a host.
@@ -137,6 +140,7 @@ Then run Android regression verification from the repository root:
 ## Handoff Checklist
 
 - [ ] Shaka/HTML interop architecture documented.
+- [ ] Direct `@JsModule` or ESM-adapter choice matches the WEB-01 spike and CSP documentation.
 - [ ] Playback state/command mapping documented.
 - [ ] Cleanup ownership and leak-test results included.
 - [ ] Browser automated and Safari manual results included.
@@ -144,4 +148,3 @@ Then run Android regression verification from the repository root:
 - [ ] Production artifact path and config/CORS/CSP requirements included.
 - [ ] Deferred playback capabilities listed.
 - [ ] Final working tree is clean after committing this ticket.
-

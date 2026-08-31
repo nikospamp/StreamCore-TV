@@ -43,23 +43,24 @@ Compose graphics in playback contracts. The repository logic remains portable on
     - Data/domain modules use plain KMP.
     - `:playback:api` uses Compose KMP because `PlaybackVideoSurface` and filmstrip frames expose Compose graphics/UI types.
 2. Move portable production code to `commonMain` and portable tests to `commonTest`.
-3. Replace Android DataStore dependencies with `datastore-core` and `datastore-preferences-core` in common code.
-4. Keep each repository dependent on an injected `DataStore<Preferences>`; it must not construct storage or access `Context`.
-5. Define stable Koin qualifiers for four independent stores:
+3. Enable `withHostTest` in every converted module that contains `commonTest`; `testAndroidHostTest` must execute those common tests.
+4. Replace Android DataStore dependencies with `datastore-core` and `datastore-preferences-core` in common code.
+5. Keep each repository dependent on an injected `DataStore<Preferences>`; it must not construct storage or access `Context`.
+6. Define stable Koin qualifiers for three independent stores:
     - Search history.
     - Library.
     - Playback progress.
-    - Auth is reserved for KMP-05 because it belongs to the TMDB provider.
-6. Implement Android DataStore creation in `androidMain` using application context and the existing filenames. Register instances in Android Koin
+   Auth storage is explicitly owned by KMP-05 because it belongs to the TMDB provider.
+7. Implement Android DataStore creation in `androidMain` using application context and the existing filenames. Register instances in Android Koin
    modules.
-7. Preserve preference keys and serialized JSON so existing Android data remains readable after migration.
-8. Replace `java.io.IOException` handling with common DataStore/storage failure handling. Cancellation must always be rethrown.
-9. Replace wall-clock defaults with an injected/common clock abstraction. Tests use deterministic clocks; persisted values remain epoch milliseconds.
-10. Keep `PlaybackSession`, `PlaybackSessionFactory`, `PlaybackSourceRepository`, `PlaybackProgressRepository`, and `PlaybackVideoSurface`
+8. Preserve preference keys and serialized JSON so existing Android data remains readable after migration.
+9. Replace `java.io.IOException` handling with common DataStore/storage failure handling. Cancellation must always be rethrown.
+10. Replace wall-clock defaults with an injected/common clock abstraction. Tests use deterministic clocks; persisted values remain epoch milliseconds.
+11. Keep `PlaybackSession`, `PlaybackSessionFactory`, `PlaybackSourceRepository`, `PlaybackProgressRepository`, and `PlaybackVideoSurface`
     provider-neutral.
-11. Update `:playback:media3` dependencies/source imports only as needed to implement the KMP API; keep all Media3, Android bitmap/cache, and
+12. Update `:playback:media3` dependencies/source imports only as needed to implement the KMP API; keep all Media3, Android bitmap/cache, and
     `Context` logic inside the Android module.
-12. Migrate reducer/state/flow tests and add persistence compatibility tests that seed the pre-migration preference keys.
+13. Migrate reducer/state/flow tests and add persistence compatibility tests that seed the pre-migration preference keys.
 
 ## Public API or Type Changes
 
@@ -78,13 +79,15 @@ Compose graphics in playback contracts. The repository logic remains portable on
 .\gradlew.bat :feature:player:data:compileCommonMainKotlinMetadata
 .\gradlew.bat :feature:player:domain:compileCommonMainKotlinMetadata
 .\gradlew.bat :playback:api:compileCommonMainKotlinMetadata
-.\gradlew.bat :feature:search:data:allTests
-.\gradlew.bat :feature:library:data:allTests
-.\gradlew.bat :feature:player:data:allTests
+.\gradlew.bat :feature:search:data:testAndroidHostTest
+.\gradlew.bat :feature:search:domain:testAndroidHostTest
+.\gradlew.bat :feature:library:data:testAndroidHostTest
+.\gradlew.bat :feature:library:domain:testAndroidHostTest
+.\gradlew.bat :feature:player:data:testAndroidHostTest
 .\gradlew.bat :playback:media3:compileDebugKotlin
 .\gradlew.bat :app:compileTmdbDebugKotlin
 .\gradlew.bat :app:compileClientBDebugKotlin
-rg -n "^import (android|java)\." feature/search/data/src/commonMain feature/search/domain/src/commonMain feature/library/data/src/commonMain feature/library/domain/src/commonMain feature/player/data/src/commonMain feature/player/domain/src/commonMain playback/api/src/commonMain -g "*.kt"
+rg -n "^import (android|java|androidx\.annotation|androidx\.core)\." feature/search/data/src/commonMain feature/search/domain/src/commonMain feature/library/data/src/commonMain feature/library/domain/src/commonMain feature/player/data/src/commonMain feature/player/domain/src/commonMain playback/api/src/commonMain -g "*.kt"
 ```
 
 ## Test Scenarios
@@ -100,6 +103,7 @@ rg -n "^import (android|java)\." feature/search/data/src/commonMain feature/sear
 ## Acceptance Criteria
 
 - Every in-scope module compiles as common metadata and Android.
+- Every common test is executed through `testAndroidHostTest`, and per-module counts are not lower than the KMP-00 baseline.
 - Persistence compatibility tests pass against pre-migration preference fixtures.
 - Media3 and both Android app flavors compile against the migrated playback contract.
 - No platform storage construction, Android/JVM imports, or provider implementation exists in common source sets.
@@ -111,6 +115,7 @@ rg -n "^import (android|java)\." feature/search/data/src/commonMain feature/sear
 - [ ] DataStore qualifiers and filenames recorded.
 - [ ] Clock API and call sites documented.
 - [ ] Preference compatibility results included.
+- [ ] Executed host-test counts compared with KMP-00.
 - [ ] Playback API/Media3 compilation results included.
 - [ ] No KMP-03/root files modified.
 - [ ] Final working tree is clean after committing this ticket.

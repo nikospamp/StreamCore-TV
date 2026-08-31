@@ -23,7 +23,7 @@ Material3/Foundation focus, pointer, keyboard, and scroll APIs. The supported fi
 - New `:feature:login:ui-web`.
 - New `:feature:profiles:ui-web`.
 - Web app navigation/composition integration for login and profile routes.
-- Playwright/web screenshot test infrastructure.
+- Compose UI Test/Playwright coverage using the selector strategy frozen by WEB-01.
 
 ## Non-Goals
 
@@ -32,6 +32,7 @@ Material3/Foundation focus, pointer, keyboard, and scroll APIs. The supported fi
 - No Android TV component replacement.
 - No mobile/narrow browser layout.
 - No ClientB web graph.
+- Browser password-manager/autofill integration is not required unless WEB-01 proved a stable native-input path.
 - No visual redesign of Android TV reference screens.
 
 ## Implementation Tasks
@@ -53,8 +54,8 @@ Material3/Foundation focus, pointer, keyboard, and scroll APIs. The supported fi
 4. Create stateless web login and profile screens with static previews/showcase states for loading, content, validation error, backend error, empty,
    delete confirmation, and long text.
 5. Create web routes that use the existing shared ViewModels through `koinViewModel()` and lifecycle-aware StateFlow collection.
-6. Wire login actions/effects to TMDB auth. Preserve identifier/password autofill semantics and ensure password content is never logged or placed in
-   URLs.
+6. Wire login actions/effects to TMDB auth. Apply shared `ContentType`/password semantics for accessibility and future platform support, but do not
+   claim browser password-manager/autofill support for canvas fields unless WEB-01 proved it. Password content must never be logged or placed in URLs.
 7. Wire profiles select/create/edit/delete flows and provider avatar resolution.
 8. Persist auth/profile state through the WEB-01 browser DataStore. Reload must restore a valid session and route appropriately.
 9. Define startup routing:
@@ -62,8 +63,8 @@ Material3/Foundation focus, pointer, keyboard, and scroll APIs. The supported fi
     - Valid session with no selected profile → Profiles.
     - Profile selected → temporary authenticated landing route until WEB-03 provides Home.
 10. Add accessibility semantics for labels, roles, states, errors, dialogs, and focus order.
-11. Add Playwright infrastructure under a dedicated web E2E directory. Pin the selected stable Playwright version in its lockfile and install
-    Chromium, Firefox, and WebKit test engines.
+11. Use WEB-01's test contract: node/state/focus assertions live in Compose UI Test v2; Playwright covers browser launch, actual proven accessibility
+    selectors, viewport-level keyboard/pointer behavior, persistence, history, and screenshots. Do not introduce unproven DOM selectors.
 12. Capture deterministic screenshots at 1280×720 and 1920×1080. Compare against Android TV references side by side; do not require renderer-level
     pixel equality.
 
@@ -80,7 +81,7 @@ Material3/Foundation focus, pointer, keyboard, and scroll APIs. The supported fi
 .\gradlew.bat :feature:login:ui-web:compileKotlinWasmJs
 .\gradlew.bat :feature:profiles:ui-web:compileKotlinWasmJs
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
-.\gradlew.bat :webApp:allTests
+.\gradlew.bat :webApp:wasmJsBrowserTest
 Set-Location webApp/e2e
 npm ci
 npx playwright install
@@ -111,7 +112,8 @@ Return to the repository root before running Android regression compilation:
 ## Acceptance Criteria
 
 - A user can authenticate, manage/select a profile, reload, and retain a valid session.
-- The slice works in Playwright Chromium, Firefox, and WebKit at both target resolutions.
+- Compose UI tests cover semantic node/focus behavior, and the browser-level slice works through WEB-01's Playwright strategy in Chromium, Firefox,
+  and WebKit at both target resolutions.
 - Visual hierarchy/focus treatment is approved against Android TV references.
 - Stateless screens remain preview/showcase friendly and do not resolve Koin directly.
 - Android TMDB and ClientB compilations remain green.
@@ -124,6 +126,6 @@ Return to the repository root before running Android regression compilation:
 - [ ] Startup/session routing documented.
 - [ ] Screenshot locations and reference comparison included.
 - [ ] Playwright and web test results included.
+- [ ] Any browser autofill capability or explicit limitation documented without overstating support.
 - [ ] Android regression compilation results included.
 - [ ] Final working tree is clean after committing this ticket.
-
