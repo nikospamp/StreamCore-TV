@@ -55,6 +55,7 @@ fun TvProfilesScreen(
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
+    val initialFocusTarget = remember { TvProfilesFocusRestorationStore.consume() }
     val profileInteractionsEnabled = !state.isLoading &&
             !state.isSaving &&
             !isLogoutInProgress &&
@@ -119,6 +120,7 @@ fun TvProfilesScreen(
                         },
                         onCreateProfile = onCreateProfile,
                         onEditProfile = onEditProfile,
+                        initialFocusTarget = initialFocusTarget,
                         sharedElementScope = sharedElementScope,
                         modifier = Modifier.fillMaxWidth(),
                     )

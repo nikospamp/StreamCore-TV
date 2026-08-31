@@ -247,7 +247,12 @@ class ProfileEditorViewModel @Inject constructor(
                 }
 
                 is AppResult.Failure -> {
-                    _uiState.update { it.copy(isSaving = false) }
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            pendingDeleteProfile = null,
+                        )
+                    }
                     emitError(result.error)
                 }
             }
