@@ -72,6 +72,7 @@ include(":feature:search:data")
 include(":feature:search:domain")
 include(":feature:search:ui-common")
 include(":feature:search:ui-mobile")
+include(":feature:search:ui-tablet")
 include(":feature:search:ui-tv")
 
 // Details
@@ -87,6 +88,7 @@ include(":feature:library:data")
 include(":feature:library:domain")
 include(":feature:library:ui-common")
 include(":feature:library:ui-mobile")
+include(":feature:library:ui-tablet")
 include(":feature:library:ui-tv")
 
 // Playback
@@ -96,5 +98,6 @@ include(":feature:player:data")
 include(":feature:player:domain")
 include(":feature:player:ui-common")
 include(":feature:player:ui-mobile")
+include(":feature:player:ui-tv")
 include(":client:tmdb:player")
 include(":client:clientB:player")

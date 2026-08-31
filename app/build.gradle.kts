@@ -126,15 +126,18 @@ dependencies {
     implementation(projects.feature.home.uiTv)
     implementation(projects.feature.search.data)
     implementation(projects.feature.search.uiMobile)
+    implementation(projects.feature.search.uiTablet)
     implementation(projects.feature.search.uiTv)
     implementation(projects.feature.details.uiMobile)
     implementation(projects.feature.details.uiTablet)
     implementation(projects.feature.details.uiTv)
     implementation(projects.feature.library.data)
     implementation(projects.feature.library.uiMobile)
+    implementation(projects.feature.library.uiTablet)
     implementation(projects.feature.library.uiTv)
     implementation(projects.feature.player.data)
     implementation(projects.feature.player.uiMobile)
+    implementation(projects.feature.player.uiTv)
     implementation(projects.playback.api)
 
     // Libraries

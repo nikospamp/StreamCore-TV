@@ -14,9 +14,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -60,11 +62,13 @@ import com.pampoukidis.streamcoretv.feature.home.mobile.home.MobileHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tablet.home.TabletHomeRoute
 import com.pampoukidis.streamcoretv.feature.home.tv.home.TvHomeRoute
 import com.pampoukidis.streamcoretv.feature.library.mobile.library.MobileLibraryRoute
+import com.pampoukidis.streamcoretv.feature.library.tablet.library.TabletLibraryRoute
 import com.pampoukidis.streamcoretv.feature.library.tv.library.TvLibraryRoute
 import com.pampoukidis.streamcoretv.feature.login.mobile.login.MobileLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
 import com.pampoukidis.streamcoretv.feature.player.mobile.player.MobilePlayerRoute
+import com.pampoukidis.streamcoretv.feature.player.tv.player.TvPlayerRoute
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.editor.MobileProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles.MobileProfilesRoute
@@ -73,6 +77,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles.TabletProfi
 import com.pampoukidis.streamcoretv.feature.profiles.tv.editor.TvProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
 import com.pampoukidis.streamcoretv.feature.search.mobile.search.MobileSearchRoute
+import com.pampoukidis.streamcoretv.feature.search.tablet.search.TabletSearchRoute
 import com.pampoukidis.streamcoretv.feature.search.tv.search.TvSearchRoute
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import kotlin.reflect.typeOf
@@ -174,10 +179,29 @@ internal fun StreamCoreNavHost(
                 }
             },
         ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (platform == Platform.Tablet && currentTopLevelDestination != null) {
+                    TabletNavigationRail(
+                        selectedDestination = displayedTopLevelDestination,
+                        onDestinationSelected = { destination ->
+                            val profileId = displayedTopLevelProfileId
+                            if (profileId != null && destination != currentTopLevelDestination) {
+                                selectedContent = null
+                                selectedContentKey = null
+                                navController.navigateToTopLevel(
+                                    destination = destination,
+                                    profileId = profileId,
+                                )
+                            }
+                        },
+                    )
+                }
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 enterTransition = {
                     if (isTopLevelSwitch()) {
                         fadeIn(animationSpec = tween(TopLevelTransitionMillis))
@@ -521,14 +545,24 @@ internal fun StreamCoreNavHost(
                 typeMap = mapOf(typeOf<ContentModel>() to ContentModelNavType),
             ) { backStackEntry ->
                 val route = backStackEntry.toRoute<AppRoute.Player>()
-                MobilePlayerRoute(
-                    request = PlaybackRequestModel(
-                        profileId = route.profileId,
-                        contentId = route.contentId,
-                        contentSnapshot = route.contentSnapshot,
-                    ),
-                    onBack = { navController.popBackStack() },
+                val request = PlaybackRequestModel(
+                    profileId = route.profileId,
+                    contentId = route.contentId,
+                    contentSnapshot = route.contentSnapshot,
                 )
+                when (platform) {
+                    Platform.Mobile,
+                    Platform.Tablet -> MobilePlayerRoute(
+                        request = request,
+                        onBack = { navController.popBackStack() },
+                    )
+
+                    Platform.Tv -> TvPlayerRoute(
+                        request = request,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
             }
             }
         }
@@ -812,8 +846,15 @@ private fun SearchDestination(
             sharedElementScope = sharedElementScope,
         )
 
-        Platform.Mobile,
-        Platform.Tablet -> MobileSearchRoute(
+        Platform.Tablet -> TabletSearchRoute(
+            profileId = profileId,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onBack = onBack,
+            sharedElementScope = sharedElementScope,
+        )
+
+        Platform.Mobile -> MobileSearchRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
@@ -844,8 +885,17 @@ private fun LibraryDestination(
             sharedElementScope = sharedElementScope,
         )
 
-        Platform.Mobile,
-        Platform.Tablet -> MobileLibraryRoute(
+        Platform.Tablet -> TabletLibraryRoute(
+            profileId = profileId,
+            activeProfile = activeProfile,
+            selectedContentKey = selectedContentKey,
+            onContentSelected = onContentSelected,
+            onProfileSelected = onProfileSelected,
+            onError = onError,
+            sharedElementScope = sharedElementScope,
+        )
+
+        Platform.Mobile -> MobileLibraryRoute(
             profileId = profileId,
             activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
@@ -884,6 +934,7 @@ private fun DetailsDestination(
             profileId = profileId,
             contentId = contentId,
             onRecommendationSelected = onRecommendationSelected,
+            onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,
@@ -894,6 +945,7 @@ private fun DetailsDestination(
             profileId = profileId,
             contentId = contentId,
             onRecommendationSelected = onRecommendationSelected,
+            onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,
