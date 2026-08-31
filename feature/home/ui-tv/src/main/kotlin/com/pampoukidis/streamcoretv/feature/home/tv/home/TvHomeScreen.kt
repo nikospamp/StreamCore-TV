@@ -22,7 +22,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +71,8 @@ fun TvHomeScreen(
     onAction: (HomeAction) -> Unit,
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val content = remember(state.rows) { state.rows.toHomeContentModel() }
@@ -106,6 +111,8 @@ fun TvHomeScreen(
                 onAction = onAction,
                 refreshFocusRequester = refreshFocusRequester,
                 selectedContentKey = selectedContentKey,
+                returnFocusKey = returnFocusKey,
+                onReturnFocusConsumed = onReturnFocusConsumed,
                 sharedElementScope = sharedElementScope,
                 modifier = Modifier.weight(1f),
             )
@@ -154,22 +161,25 @@ private fun TvHomeBody(
     refreshFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     val listState = rememberLazyListState()
     val heroFocusRequester = remember { FocusRequester() }
+    var hasAssignedFocus by remember { mutableStateOf(false) }
     val rows = remember(content) {
         buildList {
             content.continueWatching?.let(::add)
             addAll(content.shelves)
         }
     }
-    val selectedHeroIndex = remember(content.featured, selectedContentKey) {
-        content.featured.indexOfContentKey(selectedContentKey)
+    val selectedHeroIndex = remember(content.featured, returnFocusKey) {
+        content.featured.indexOfContentKey(returnFocusKey)
     }
-    val rowFocusLocation = remember(rows, selectedContentKey, content.featured) {
+    val rowFocusLocation = remember(rows, returnFocusKey, content.featured) {
         rows.findFocusLocation(
-            selectedContentKey = selectedContentKey,
+            selectedContentKey = returnFocusKey,
             useFallback = content.featured.isEmpty(),
         )
     }
@@ -186,18 +196,37 @@ private fun TvHomeBody(
         selectedHeroIndex,
         rowFocusLocation,
         state.isLoading,
+        returnFocusKey,
+        hasAssignedFocus,
     ) {
-        if (state.isLoading) {
+        if (state.isLoading || hasAssignedFocus) {
             return@LaunchedEffect
         }
-        withFrameNanos { }
-        when {
+        val focused = when {
             content.featured.isNotEmpty() && rowFocusLocation == null -> {
-                heroFocusRequester.requestFocus()
+                if (returnFocusKey == null) {
+                    withFrameNanos { }
+                    heroFocusRequester.requestFocus()
+                } else {
+                    heroFocusRequester.requestFocusWhenReady()
+                }
             }
 
             content.featured.isEmpty() && rows.isEmpty() -> {
-                refreshFocusRequester.requestFocus()
+                if (returnFocusKey == null) {
+                    withFrameNanos { }
+                    refreshFocusRequester.requestFocus()
+                } else {
+                    refreshFocusRequester.requestFocusWhenReady()
+                }
+            }
+
+            else -> false
+        }
+        if (focused) {
+            returnFocusKey?.let { focusKey ->
+                hasAssignedFocus = true
+                onReturnFocusConsumed(focusKey)
             }
         }
     }
@@ -258,6 +287,14 @@ private fun TvHomeBody(
                             null
                         },
                         selectedContentKey = selectedContentKey,
+                        returnFocusKey = returnFocusKey,
+                        focusRequestEnabled = !hasAssignedFocus,
+                        onFocusAssigned = { consumedKey ->
+                            consumedKey?.let { focusKey ->
+                                hasAssignedFocus = true
+                                onReturnFocusConsumed(focusKey)
+                            }
+                        },
                         sharedElementScope = sharedElementScope,
                     )
                 }
@@ -420,16 +457,29 @@ private fun TvContentRow(
     focusContentIndex: Int?,
     modifier: Modifier = Modifier,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    focusRequestEnabled: Boolean,
+    onFocusAssigned: (String?) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     val rowState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(focusContentIndex) {
+    LaunchedEffect(focusContentIndex, returnFocusKey, focusRequestEnabled) {
+        if (!focusRequestEnabled) {
+            return@LaunchedEffect
+        }
         focusContentIndex?.let { contentIndex ->
             rowState.scrollToItem(contentIndex)
-            withFrameNanos { }
-            focusRequester.requestFocus()
+            val focused = if (returnFocusKey == null) {
+                withFrameNanos { }
+                focusRequester.requestFocus()
+            } else {
+                focusRequester.requestFocusWhenReady()
+            }
+            if (focused) {
+                onFocusAssigned(returnFocusKey)
+            }
         }
     }
 
@@ -556,10 +606,22 @@ private fun ContentModel.sharedContentKey(): String {
     )
 }
 
+private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
+    repeat(FocusRequestAttempts) {
+        withFrameNanos { }
+        if (requestFocus()) {
+            return true
+        }
+    }
+    return false
+}
+
 private data class TvFocusLocation(
     val rowIndex: Int,
     val contentIndex: Int,
 )
+
+private const val FocusRequestAttempts = 3
 
 @PreviewTV
 @Composable

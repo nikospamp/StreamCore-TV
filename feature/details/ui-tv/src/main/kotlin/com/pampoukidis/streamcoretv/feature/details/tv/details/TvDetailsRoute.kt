@@ -24,6 +24,8 @@ fun TvDetailsRoute(
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: DetailsViewModel = hiltViewModel(),
 ) {
@@ -56,6 +58,8 @@ fun TvDetailsRoute(
     TvDetailsScreen(
         state = displayState,
         onAction = viewModel::onAction,
+        returnFocusKey = returnFocusKey,
+        onReturnFocusConsumed = onReturnFocusConsumed,
         sharedElementScope = sharedElementScope,
     )
 }

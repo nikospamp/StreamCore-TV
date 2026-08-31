@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -303,10 +304,47 @@ class TvDetailsScreenTest {
         composeRule.onNodeWithTag(DetailsTestTags.Recommendations).assertDoesNotExist()
     }
 
+    @Test
+    fun returnFocusKeyRestoresExactRecommendationAndConsumesKey() {
+        val recommendation = DetailsPreviewData.recommendations[1]
+        val returnFocusKey = StreamCoreSharedKey.content(
+            recommendation.id,
+            recommendation.row,
+        )
+        val consumedKeys = mutableListOf<String>()
+
+        setContent(
+            stateProvider = ::contentState,
+            returnFocusKey = returnFocusKey,
+            onReturnFocusConsumed = consumedKeys::add,
+        )
+
+        composeRule.onNodeWithTag(
+            DetailsTestTags.RecommendationPrefix + recommendation.id,
+        ).assertIsFocused()
+        assertEquals(listOf(returnFocusKey), consumedKeys)
+    }
+
+    @Test
+    fun missingRecommendationReturnKeyFallsBackToPlay() {
+        val consumedKeys = mutableListOf<String>()
+
+        setContent(
+            stateProvider = ::contentState,
+            returnFocusKey = "missing:recommendation",
+            onReturnFocusConsumed = consumedKeys::add,
+        )
+
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).assertIsFocused()
+        assertEquals(listOf("missing:recommendation"), consumedKeys)
+    }
+
     private fun setContent(
         stateProvider: () -> DetailsUiState,
         actions: MutableList<DetailsAction> = mutableListOf(),
         fontScale: Float = 1f,
+        returnFocusKey: String? = null,
+        onReturnFocusConsumed: (String) -> Unit = {},
     ) {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -316,6 +354,8 @@ class TvDetailsScreenTest {
                     TvDetailsScreen(
                         state = stateProvider(),
                         onAction = actions::add,
+                        returnFocusKey = returnFocusKey,
+                        onReturnFocusConsumed = onReturnFocusConsumed,
                     )
                 }
             }

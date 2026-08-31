@@ -82,8 +82,19 @@ fun TvSearchScreen(
     fieldFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
+    LaunchedEffect(state.content, returnFocusKey) {
+        val focusKey = returnFocusKey ?: return@LaunchedEffect
+        val shouldUseFieldFallback = state.content is SearchContentState.Empty ||
+                state.content is SearchContentState.Failure
+        if (shouldUseFieldFallback && fieldFocusRequester.requestFocusWhenReady()) {
+            onReturnFocusConsumed(focusKey)
+        }
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier
@@ -126,6 +137,9 @@ fun TvSearchScreen(
                         trending = state.trending,
                         onAction = onAction,
                         selectedContentKey = selectedContentKey,
+                        returnFocusKey = returnFocusKey,
+                        fallbackFocusRequester = fieldFocusRequester,
+                        onReturnFocusConsumed = onReturnFocusConsumed,
                         sharedElementScope = sharedElementScope,
                     )
 
@@ -141,6 +155,9 @@ fun TvSearchScreen(
                             onAction(SearchAction.ResultSelected(content))
                         },
                         selectedContentKey = selectedContentKey,
+                        returnFocusKey = returnFocusKey,
+                        fallbackFocusRequester = fieldFocusRequester,
+                        onReturnFocusConsumed = onReturnFocusConsumed,
                         sharedElementScope = sharedElementScope,
                     )
 
@@ -230,6 +247,9 @@ private fun TvSearchDiscovery(
     trending: List<ContentModel>,
     onAction: (SearchAction) -> Unit,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    fallbackFocusRequester: FocusRequester,
+    onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     LazyColumn(
@@ -304,14 +324,19 @@ private fun TvSearchDiscovery(
                     )
                     val rowState = rememberLazyListState()
                     val focusRequester = remember { FocusRequester() }
-                    val selectedIndex = remember(trending, selectedContentKey) {
-                        trending.indexOfContentKey(selectedContentKey)
+                    val selectedIndex = remember(trending, returnFocusKey) {
+                        trending.indexOfContentKey(returnFocusKey)
                     }
-                    LaunchedEffect(selectedIndex) {
-                        if (selectedIndex >= 0) {
+                    LaunchedEffect(selectedIndex, returnFocusKey) {
+                        val focusKey = returnFocusKey ?: return@LaunchedEffect
+                        val targetRequester = if (selectedIndex >= 0) {
                             rowState.scrollToItem(selectedIndex)
-                            withFrameNanos { }
-                            focusRequester.requestFocus()
+                            focusRequester
+                        } else {
+                            fallbackFocusRequester
+                        }
+                        if (targetRequester.requestFocusWhenReady()) {
+                            onReturnFocusConsumed(focusKey)
                         }
                     }
                     LazyRow(
@@ -337,7 +362,7 @@ private fun TvSearchDiscovery(
                                 },
                                 selectedContentKey = selectedContentKey,
                                 sharedElementScope = sharedElementScope,
-                                focusRequester = if (content.matchesContentKey(selectedContentKey)) {
+                                focusRequester = if (content.matchesContentKey(returnFocusKey)) {
                                     focusRequester
                                 } else {
                                     null
@@ -357,19 +382,27 @@ private fun TvSearchResults(
     showOfflineNotice: Boolean,
     onSelected: (ContentModel) -> Unit,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    fallbackFocusRequester: FocusRequester,
+    onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     val gridState = rememberLazyGridState()
     val focusRequester = remember { FocusRequester() }
-    val selectedIndex = remember(items, selectedContentKey) {
-        items.indexOfContentKey(selectedContentKey)
+    val selectedIndex = remember(items, returnFocusKey) {
+        items.indexOfContentKey(returnFocusKey)
     }
 
-    LaunchedEffect(selectedIndex) {
-        if (selectedIndex >= 0) {
+    LaunchedEffect(selectedIndex, returnFocusKey) {
+        val focusKey = returnFocusKey ?: return@LaunchedEffect
+        val targetRequester = if (selectedIndex >= 0) {
             gridState.scrollToItem(selectedIndex)
-            withFrameNanos { }
-            focusRequester.requestFocus()
+            focusRequester
+        } else {
+            fallbackFocusRequester
+        }
+        if (targetRequester.requestFocusWhenReady()) {
+            onReturnFocusConsumed(focusKey)
         }
     }
 
@@ -419,7 +452,7 @@ private fun TvSearchResults(
                     onClick = { onSelected(content) },
                     selectedContentKey = selectedContentKey,
                     sharedElementScope = sharedElementScope,
-                    focusRequester = if (content.matchesContentKey(selectedContentKey)) {
+                    focusRequester = if (content.matchesContentKey(returnFocusKey)) {
                         focusRequester
                     } else {
                         null
@@ -530,6 +563,16 @@ private fun ContentModel.matchesContentKey(selectedContentKey: String?): Boolean
     ) == selectedContentKey
 }
 
+private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
+    repeat(FocusRequestAttempts) {
+        withFrameNanos { }
+        if (requestFocus()) {
+            return true
+        }
+    }
+    return false
+}
+
 @PreviewTV
 @Composable
 private fun TvSearchScreenPreview() {
@@ -557,3 +600,4 @@ private fun TvSearchResultsPreview() {
 }
 
 private const val ContentCrossfadeMillis = 200
+private const val FocusRequestAttempts = 3

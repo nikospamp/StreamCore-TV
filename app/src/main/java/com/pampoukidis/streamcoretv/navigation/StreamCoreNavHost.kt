@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.navigation
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkSemantics
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -105,6 +106,7 @@ internal fun StreamCoreNavHost(
         .calculateBottomPadding() + StreamCoreDimens.Mobile.Navigation.BottomContentClearance
     var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
     var selectedContentKey by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingTvFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedProfile by remember { mutableStateOf<ProfileModel?>(null) }
     var displayedTopLevelDestination by remember {
         mutableStateOf(TopLevelDestination.Home)
@@ -118,6 +120,7 @@ internal fun StreamCoreNavHost(
         if (shouldResetToLogin) {
             selectedContent = null
             selectedContentKey = null
+            pendingTvFocusKey = null
             selectedProfile = null
             displayedTopLevelProfileId = null
             onActiveProfileChanged(null)
@@ -157,6 +160,7 @@ internal fun StreamCoreNavHost(
                 if (profileId != null && destination != currentTopLevelDestination) {
                     selectedContent = null
                     selectedContentKey = null
+                    pendingTvFocusKey = null
                     navController.navigateToTopLevel(
                         destination = destination,
                         profileId = profileId,
@@ -168,6 +172,7 @@ internal fun StreamCoreNavHost(
                 if (profileId != null) {
                     selectedContent = null
                     selectedContentKey = null
+                    pendingTvFocusKey = null
                     navController.clearTopLevelState(profileId = profileId)
                     onActiveProfileChanged(null)
                     navController.navigate(AppRoute.Profiles) {
@@ -188,6 +193,7 @@ internal fun StreamCoreNavHost(
                             if (profileId != null && destination != currentTopLevelDestination) {
                                 selectedContent = null
                                 selectedContentKey = null
+                                pendingTvFocusKey = null
                                 navController.navigateToTopLevel(
                                     destination = destination,
                                     profileId = profileId,
@@ -266,6 +272,7 @@ internal fun StreamCoreNavHost(
                     onLoginSucceeded = {
                         selectedContent = null
                         selectedContentKey = null
+                        pendingTvFocusKey = null
                         onActiveProfileChanged(null)
                         navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Login> {
@@ -377,6 +384,13 @@ internal fun StreamCoreNavHost(
                         profile.id == route.profileId
                     },
                     selectedContentKey = selectedContentKey,
+                    returnFocusKey = pendingTvFocusKey,
+                    onReturnFocusConsumed = { consumedKey ->
+                        pendingTvFocusKey = consumeTvReturnFocusKey(
+                            pendingKey = pendingTvFocusKey,
+                            consumedKey = consumedKey,
+                        )
+                    },
                     mobileBottomContentPadding = mobileBottomContentPadding,
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
@@ -390,6 +404,7 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
+                                returnFocusKey = content.sharedContentKey(),
                             ),
                         ) {
                             launchSingleTop = true
@@ -398,6 +413,7 @@ internal fun StreamCoreNavHost(
                     onProfileSelected = {
                         selectedContent = null
                         selectedContentKey = null
+                        pendingTvFocusKey = null
                         navController.clearTopLevelState(profileId = route.profileId)
                         onActiveProfileChanged(null)
                         navController.navigate(AppRoute.Profiles) {
@@ -418,6 +434,13 @@ internal fun StreamCoreNavHost(
                     platform = platform,
                     profileId = route.profileId,
                     selectedContentKey = selectedContentKey,
+                    returnFocusKey = pendingTvFocusKey,
+                    onReturnFocusConsumed = { consumedKey ->
+                        pendingTvFocusKey = consumeTvReturnFocusKey(
+                            pendingKey = pendingTvFocusKey,
+                            consumedKey = consumedKey,
+                        )
+                    },
                     mobileBottomContentPadding = mobileBottomContentPadding,
                     onContentSelected = { content ->
                         selectedContent = content
@@ -427,6 +450,7 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
+                                returnFocusKey = content.sharedContentKey(),
                             ),
                         ) {
                             launchSingleTop = true
@@ -435,6 +459,7 @@ internal fun StreamCoreNavHost(
                     onBack = {
                         selectedContent = null
                         selectedContentKey = null
+                        pendingTvFocusKey = null
                         navController.popBackStack()
                     },
                     sharedElementScope = StreamCoreSharedElementScope(
@@ -454,6 +479,13 @@ internal fun StreamCoreNavHost(
                             profile.id == route.profileId
                         },
                         selectedContentKey = selectedContentKey,
+                        returnFocusKey = pendingTvFocusKey,
+                        onReturnFocusConsumed = { consumedKey ->
+                            pendingTvFocusKey = consumeTvReturnFocusKey(
+                                pendingKey = pendingTvFocusKey,
+                                consumedKey = consumedKey,
+                            )
+                        },
                         onContentSelected = { content ->
                             selectedContent = content
                             selectedContentKey = content.sharedContentKey()
@@ -462,6 +494,7 @@ internal fun StreamCoreNavHost(
                                     profileId = route.profileId,
                                     contentId = content.id,
                                     sourceRow = content.row,
+                                    returnFocusKey = content.sharedContentKey(),
                                 ),
                             ) {
                                 launchSingleTop = true
@@ -470,6 +503,7 @@ internal fun StreamCoreNavHost(
                         onProfileSelected = {
                             selectedContent = null
                             selectedContentKey = null
+                            pendingTvFocusKey = null
                             navController.clearTopLevelState(profileId = route.profileId)
                             onActiveProfileChanged(null)
                             navController.navigate(AppRoute.Profiles) {
@@ -498,10 +532,23 @@ internal fun StreamCoreNavHost(
                         }
                         )?.withSourceRow(route.sourceRow)
 
+                BackHandler(enabled = platform == Platform.Tv) {
+                    selectedContentKey = route.returnFocusKey
+                    pendingTvFocusKey = route.returnFocusKey
+                    navController.popBackStack()
+                }
+
                 DetailsDestination(
                     profileId = route.profileId,
                     contentId = route.contentId,
                     initialContent = initialContent,
+                    returnFocusKey = pendingTvFocusKey,
+                    onReturnFocusConsumed = { consumedKey ->
+                        pendingTvFocusKey = consumeTvReturnFocusKey(
+                            pendingKey = pendingTvFocusKey,
+                            consumedKey = consumedKey,
+                        )
+                    },
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
@@ -514,12 +561,10 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
-                                initialContent = content
+                                initialContent = content,
+                                returnFocusKey = content.sharedContentKey(),
                             ),
                         ) {
-                            popUpTo(backStackEntry.destination.id) {
-                                inclusive = true
-                            }
                             launchSingleTop = true
                         }
                     },
@@ -535,6 +580,10 @@ internal fun StreamCoreNavHost(
                         }
                     },
                     onBack = {
+                        selectedContentKey = route.returnFocusKey
+                        if (platform == Platform.Tv) {
+                            pendingTvFocusKey = route.returnFocusKey
+                        }
                         navController.popBackStack()
                     },
                     onError = onError,
@@ -590,6 +639,7 @@ internal fun StreamCoreNavHost(
                         if (destination != currentTopLevelDestination) {
                             selectedContent = null
                             selectedContentKey = null
+                            pendingTvFocusKey = null
                             navController.navigateToTopLevel(
                                 destination = destination,
                                 profileId = profileId,
@@ -647,6 +697,13 @@ private fun ContentModel.sharedContentKey(): String {
         contentId = id,
         row = row,
     )
+}
+
+internal fun consumeTvReturnFocusKey(
+    pendingKey: String?,
+    consumedKey: String,
+): String? {
+    return pendingKey?.takeUnless { key -> key == consumedKey }
 }
 
 private fun ContentModel.withSourceRow(sourceRow: String?): ContentModel {
@@ -790,6 +847,8 @@ private fun HomeDestination(
     profileId: String,
     activeProfile: ProfileModel?,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     mobileBottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
@@ -820,6 +879,8 @@ private fun HomeDestination(
         Platform.Tv -> TvHomeRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
+            returnFocusKey = returnFocusKey,
+            onReturnFocusConsumed = onReturnFocusConsumed,
             onContentSelected = onContentSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
@@ -832,6 +893,8 @@ private fun SearchDestination(
     platform: Platform,
     profileId: String,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     mobileBottomContentPadding: Dp,
     onContentSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
@@ -841,6 +904,8 @@ private fun SearchDestination(
         Platform.Tv -> TvSearchRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
+            returnFocusKey = returnFocusKey,
+            onReturnFocusConsumed = onReturnFocusConsumed,
             onContentSelected = onContentSelected,
             onBack = onBack,
             sharedElementScope = sharedElementScope,
@@ -871,6 +936,8 @@ private fun LibraryDestination(
     profileId: String,
     activeProfile: ProfileModel?,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     onContentSelected: (ContentModel) -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
@@ -880,6 +947,8 @@ private fun LibraryDestination(
         Platform.Tv -> TvLibraryRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
+            returnFocusKey = returnFocusKey,
+            onReturnFocusConsumed = onReturnFocusConsumed,
             onContentSelected = onContentSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
@@ -912,6 +981,8 @@ private fun DetailsDestination(
     profileId: String,
     contentId: String,
     initialContent: ContentModel?,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
     onRecommendationSelected: (ContentModel) -> Unit,
     onPlaySelected: (PlaybackRequestModel) -> Unit,
@@ -949,6 +1020,8 @@ private fun DetailsDestination(
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,
+            returnFocusKey = returnFocusKey,
+            onReturnFocusConsumed = onReturnFocusConsumed,
             sharedElementScope = sharedElementScope,
         )
     }
