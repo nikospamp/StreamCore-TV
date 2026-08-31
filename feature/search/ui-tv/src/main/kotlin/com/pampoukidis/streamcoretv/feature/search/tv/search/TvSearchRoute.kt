@@ -25,6 +25,8 @@ fun TvSearchRoute(
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -36,7 +38,7 @@ fun TvSearchRoute(
 
     LaunchedEffect(profileId, viewModel) {
         viewModel.onAction(SearchAction.Load(profileId))
-        if (selectedContentKey == null) {
+        if (returnFocusKey == null) {
             withFrameNanos { }
             fieldFocusRequester.requestFocus()
         }
@@ -64,6 +66,8 @@ fun TvSearchRoute(
         onKeyboardRequested = { keyboardController?.show() },
         fieldFocusRequester = fieldFocusRequester,
         selectedContentKey = selectedContentKey,
+        returnFocusKey = returnFocusKey,
+        onReturnFocusConsumed = onReturnFocusConsumed,
         sharedElementScope = sharedElementScope,
     )
 }

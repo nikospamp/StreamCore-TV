@@ -42,6 +42,7 @@ internal sealed interface AppRoute {
         val contentId: String,
         val sourceRow: String? = null,
         val initialContent: ContentModel? = null,
+        val returnFocusKey: String? = null,
     ) : AppRoute
 
     @Serializable

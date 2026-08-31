@@ -45,4 +45,41 @@ class StreamCoreNavHostTest {
 
         assertEquals(AppRoute.Login, result)
     }
+
+    @Test
+    fun `matching TV return focus consumption clears pending key`() {
+        val result = consumeTvReturnFocusKey(
+            pendingKey = "search:item-1",
+            consumedKey = "search:item-1",
+        )
+
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `stale TV focus callback cannot clear newer pending key`() {
+        val result = consumeTvReturnFocusKey(
+            pendingKey = "library:item-2",
+            consumedKey = "search:item-1",
+        )
+
+        assertEquals("library:item-2", result)
+    }
+
+    @Test
+    fun `nested details routes retain independent return focus keys`() {
+        val parent = AppRoute.AssetDetails(
+            profileId = "profile-1",
+            contentId = "origin",
+            returnFocusKey = "home:origin",
+        )
+        val child = AppRoute.AssetDetails(
+            profileId = "profile-1",
+            contentId = "recommendation",
+            returnFocusKey = "recommendations:recommendation",
+        )
+
+        assertEquals("home:origin", parent.returnFocusKey)
+        assertEquals("recommendations:recommendation", child.returnFocusKey)
+    }
 }

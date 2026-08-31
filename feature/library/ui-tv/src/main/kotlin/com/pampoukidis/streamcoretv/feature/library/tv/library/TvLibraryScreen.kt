@@ -21,7 +21,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,29 +61,46 @@ fun TvLibraryScreen(
     onAction: (LibraryAction) -> Unit,
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val listState = rememberLazyListState()
     val refreshFocusRequester = remember { FocusRequester() }
     val retryFocusRequester = remember { FocusRequester() }
+    var hasAssignedFocus by remember { mutableStateOf(false) }
     val sections = remember(state) { state.toSections() }
-    val focusLocation = remember(sections, selectedContentKey) {
-        sections.findFocusLocation(selectedContentKey)
+    val focusLocation = remember(sections, returnFocusKey) {
+        sections.findFocusLocation(returnFocusKey)
     }
     val sectionStartIndex = 1 + if (state.error != null) 1 else 0
 
-    LaunchedEffect(focusLocation, state.isLoading, state.error) {
-        if (state.isLoading) {
+    LaunchedEffect(focusLocation, state.isLoading, state.error, returnFocusKey, hasAssignedFocus) {
+        if (state.isLoading || hasAssignedFocus) {
             return@LaunchedEffect
         }
-        withFrameNanos { }
         when {
             focusLocation != null -> {
                 listState.scrollToItem(sectionStartIndex + focusLocation.sectionIndex)
             }
 
-            state.error != null -> retryFocusRequester.requestFocus()
-            else -> refreshFocusRequester.requestFocus()
+            state.error != null -> {
+                if (retryFocusRequester.requestFocusWhenReady()) {
+                    returnFocusKey?.let { focusKey ->
+                        hasAssignedFocus = true
+                        onReturnFocusConsumed(focusKey)
+                    }
+                }
+            }
+
+            else -> {
+                if (refreshFocusRequester.requestFocusWhenReady()) {
+                    returnFocusKey?.let { focusKey ->
+                        hasAssignedFocus = true
+                        onReturnFocusConsumed(focusKey)
+                    }
+                }
+            }
         }
     }
 
@@ -137,6 +157,14 @@ fun TvLibraryScreen(
                             onAction(LibraryAction.ContentSelected(content))
                         },
                         selectedContentKey = selectedContentKey,
+                        returnFocusKey = returnFocusKey,
+                        focusRequestEnabled = !hasAssignedFocus,
+                        onFocusAssigned = { consumedKey ->
+                            consumedKey?.let { focusKey ->
+                                hasAssignedFocus = true
+                                onReturnFocusConsumed(focusKey)
+                            }
+                        },
                         sharedElementScope = sharedElementScope,
                     )
                 }
@@ -224,16 +252,23 @@ private fun TvLibrarySection(
     focusContentIndex: Int?,
     onSelected: (ContentModel) -> Unit,
     selectedContentKey: String?,
+    returnFocusKey: String?,
+    focusRequestEnabled: Boolean,
+    onFocusAssigned: (String?) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     val rowState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(focusContentIndex) {
+    LaunchedEffect(focusContentIndex, returnFocusKey, focusRequestEnabled) {
+        if (!focusRequestEnabled) {
+            return@LaunchedEffect
+        }
         focusContentIndex?.let { index ->
             rowState.scrollToItem(index)
-            withFrameNanos { }
-            focusRequester.requestFocus()
+            if (focusRequester.requestFocusWhenReady()) {
+                onFocusAssigned(returnFocusKey)
+            }
         }
     }
 
@@ -427,10 +462,22 @@ private fun List<TvLibrarySectionModel>.findFocusLocation(
     return TvLibraryFocusLocation(firstSectionIndex, 0)
 }
 
+private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
+    repeat(FocusRequestAttempts) {
+        withFrameNanos { }
+        if (requestFocus()) {
+            return true
+        }
+    }
+    return false
+}
+
 private data class TvLibraryFocusLocation(
     val sectionIndex: Int,
     val contentIndex: Int,
 )
+
+private const val FocusRequestAttempts = 3
 
 private data class TvLibrarySectionModel(
     val key: String,

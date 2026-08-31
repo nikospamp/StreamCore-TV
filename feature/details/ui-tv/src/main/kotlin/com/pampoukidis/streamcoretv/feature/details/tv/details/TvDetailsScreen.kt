@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,7 +31,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +95,8 @@ fun TvDetailsScreen(
     state: DetailsUiState,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val (
@@ -105,12 +110,15 @@ fun TvDetailsScreen(
         actionsFocusRequester,
     ) = remember { FocusRequester.createRefs() }
     val contentId = state.content?.id
+    val currentReturnFocusKey by rememberUpdatedState(returnFocusKey)
 
     LifecycleResumeEffect(contentId) {
-        if (contentId == null) {
-            backFocusRequester.requestFocus()
-        } else {
-            playFocusRequester.requestFocus()
+        if (currentReturnFocusKey == null) {
+            if (contentId == null) {
+                backFocusRequester.requestFocus()
+            } else {
+                playFocusRequester.requestFocus()
+            }
         }
         onPauseOrDispose { }
     }
@@ -151,6 +159,8 @@ fun TvDetailsScreen(
                     likeFocusRequester = likeFocusRequester,
                     myListFocusRequester = myListFocusRequester,
                     recommendationsFocusRequester = recommendationsFocusRequester,
+                    returnFocusKey = returnFocusKey,
+                    onReturnFocusConsumed = onReturnFocusConsumed,
                     sharedElementScope = sharedElementScope,
                     modifier = Modifier.weight(1f),
                 )
@@ -224,6 +234,8 @@ private fun DetailsBody(
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
     recommendationsFocusRequester: FocusRequester,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -271,6 +283,9 @@ private fun DetailsBody(
                     onAction = onAction,
                     recommendationsFocusRequester = recommendationsFocusRequester,
                     actionsUpFocusRequester = actionsFocusRequester,
+                    fallbackFocusRequester = playFocusRequester,
+                    returnFocusKey = returnFocusKey,
+                    onReturnFocusConsumed = onReturnFocusConsumed,
                 )
             }
         }
@@ -627,10 +642,40 @@ private fun RecommendationsRow(
     onAction: (DetailsAction) -> Unit,
     recommendationsFocusRequester: FocusRequester,
     actionsUpFocusRequester: FocusRequester,
+    fallbackFocusRequester: FocusRequester,
+    returnFocusKey: String?,
+    onReturnFocusConsumed: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (recommendations.isEmpty()) {
+        LaunchedEffect(returnFocusKey) {
+            val focusKey = returnFocusKey ?: return@LaunchedEffect
+            if (fallbackFocusRequester.requestFocusWhenReady()) {
+                onReturnFocusConsumed(focusKey)
+            }
+        }
         return
+    }
+
+    val rowState = rememberLazyListState()
+    val returnFocusRequester = remember { FocusRequester() }
+    val returnFocusIndex = remember(recommendations, returnFocusKey) {
+        recommendations.indexOfFirst { content ->
+            content.sharedContentKey() == returnFocusKey
+        }
+    }
+
+    LaunchedEffect(returnFocusIndex, returnFocusKey) {
+        val focusKey = returnFocusKey ?: return@LaunchedEffect
+        val targetRequester = if (returnFocusIndex >= 0) {
+            rowState.scrollToItem(returnFocusIndex)
+            returnFocusRequester
+        } else {
+            fallbackFocusRequester
+        }
+        if (targetRequester.requestFocusWhenReady()) {
+            onReturnFocusConsumed(focusKey)
+        }
     }
 
     Column(
@@ -646,6 +691,7 @@ private fun RecommendationsRow(
             modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         )
         LazyRow(
+            state = rowState,
             contentPadding = PaddingValues(
                 horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
                 vertical = StreamCoreDimens.Tv.Focus.BorderPadding,
@@ -659,11 +705,19 @@ private fun RecommendationsRow(
                 items = recommendations,
                 key = { _, content -> content.id },
                 contentType = { _, _ -> "recommendation" },
-            ) { _, content ->
+            ) { index, content ->
                 RecommendationCard(
                     content = content,
                     onClick = { onAction(DetailsAction.RecommendationSelected(content)) },
-                    modifier = Modifier.focusProperties { up = actionsUpFocusRequester },
+                    modifier = Modifier
+                        .then(
+                            if (index == returnFocusIndex) {
+                                Modifier.focusRequester(returnFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .focusProperties { up = actionsUpFocusRequester },
                 )
             }
         }
@@ -746,12 +800,30 @@ private fun RecommendationCard(
     }
 }
 
+private fun ContentModel.sharedContentKey(): String {
+    return StreamCoreSharedKey.content(
+        contentId = id,
+        row = row,
+    )
+}
+
+private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
+    repeat(FocusRequestAttempts) {
+        withFrameNanos { }
+        if (requestFocus()) {
+            return true
+        }
+    }
+    return false
+}
+
+private const val FocusRequestAttempts = 3
+
 private fun releaseYear(epochMillis: Long): Int {
     val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
     calendar.timeInMillis = epochMillis
     return calendar.get(Calendar.YEAR)
 }
-
 
 @PreviewTV
 @Composable

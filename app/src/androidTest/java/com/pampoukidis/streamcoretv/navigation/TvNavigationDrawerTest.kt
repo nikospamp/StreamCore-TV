@@ -22,6 +22,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -121,7 +122,7 @@ class TvNavigationDrawerTest {
                     TvLibraryScreen(
                         state = state,
                         onAction = {},
-                        selectedContentKey = StreamCoreSharedKey.content(card.id, card.row),
+                        returnFocusKey = StreamCoreSharedKey.content(card.id, card.row),
                     )
                 }
             }
@@ -156,7 +157,7 @@ class TvNavigationDrawerTest {
                         onAction = {},
                         onKeyboardRequested = {},
                         fieldFocusRequester = remember { FocusRequester() },
-                        selectedContentKey = StreamCoreSharedKey.content(card.id, card.row),
+                        returnFocusKey = StreamCoreSharedKey.content(card.id, card.row),
                     )
                 }
             }
@@ -172,6 +173,88 @@ class TvNavigationDrawerTest {
         assertEquals(0, screenBackCalls)
         pressBack()
         assertEquals(1, screenBackCalls)
+    }
+
+    @Test
+    fun detailsBackKeepsDrawerClosedAndRestoresSearchResult() {
+        val items = SearchPreviewData.items.map { content ->
+            content.copy(row = "search:orbit", poster = "", backdrop = null)
+        }
+        val origin = items.first()
+        val originKey = StreamCoreSharedKey.content(origin.id, origin.row)
+        var showDetails by mutableStateOf(false)
+        var returnFocusKey by mutableStateOf<String?>(originKey)
+
+        composeRule.setContent {
+            StreamCoreTheme(darkTheme = true) {
+                TvNavigationDrawer(
+                    enabled = !showDetails,
+                    selectedDestination = TopLevelDestination.Search,
+                    activeProfile = null,
+                    onDestinationSelected = {},
+                    onProfileSelected = {},
+                ) {
+                    AnimatedContent(targetState = showDetails, label = "details-return") { details ->
+                        if (details) {
+                            val backFocusRequester = remember { FocusRequester() }
+                            LaunchedEffect(backFocusRequester) {
+                                withFrameNanos { }
+                                backFocusRequester.requestFocus()
+                            }
+                            BackHandler {
+                                returnFocusKey = originKey
+                                showDetails = false
+                            }
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                StreamCoreTvButton(
+                                    text = "Back",
+                                    onClick = {
+                                        returnFocusKey = originKey
+                                        showDetails = false
+                                    },
+                                    enabled = true,
+                                    modifier = Modifier
+                                        .focusRequester(backFocusRequester)
+                                        .testTag(DetailsBackTag),
+                                )
+                            }
+                        } else {
+                            TvSearchScreen(
+                                state = SearchPreviewData.results.copy(
+                                    content = SearchContentState.Results(items),
+                                ),
+                                onAction = { action ->
+                                    if (action is com.pampoukidis.streamcoretv.feature.search.common.search.SearchAction.ResultSelected) {
+                                        showDetails = true
+                                    }
+                                },
+                                onKeyboardRequested = {},
+                                fieldFocusRequester = remember { FocusRequester() },
+                                returnFocusKey = returnFocusKey,
+                                onReturnFocusConsumed = { consumedKey ->
+                                    if (returnFocusKey == consumedKey) {
+                                        returnFocusKey = null
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(SearchTestTags.result(origin.id)).assertIsFocused().performClick()
+        composeRule.onNodeWithTag(DetailsBackTag).assertIsFocused()
+        pressBack()
+
+        composeRule.onNodeWithTag(SearchTestTags.result(origin.id)).assertIsFocused()
+        composeRule.onNodeWithTag(TvNavigationTestTags.Drawer)
+            .assertWidthIsEqualTo(
+                StreamCoreDimens.Tv.Navigation.CollapsedWidth -
+                        StreamCoreDimens.Spacing.Small * 2,
+            )
+        composeRule.onNodeWithTag(TvNavigationTestTags.destination(TopLevelDestination.Search))
+            .assertIsNotFocused()
     }
 
     @Test
@@ -334,7 +417,7 @@ class TvNavigationDrawerTest {
                     TvHomeScreen(
                         state = HomeUiState(isLoading = false, rows = rows),
                         onAction = {},
-                        selectedContentKey = StreamCoreSharedKey.content(card.id, card.row),
+                        returnFocusKey = StreamCoreSharedKey.content(card.id, card.row),
                     )
                 }
             }
@@ -441,5 +524,6 @@ class TvNavigationDrawerTest {
 
     private companion object {
         const val ContentTag = "tv-navigation:content"
+        const val DetailsBackTag = "tv-navigation:details-back"
     }
 }

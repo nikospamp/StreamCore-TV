@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.home.tv.home
 
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -8,8 +9,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
@@ -60,7 +61,7 @@ class TvHomeScreenTest {
         composeRule
             .onNodeWithTag(HomeTestTags.HeroDetails)
             .assertIsFocused()
-            .performClick()
+            .performKeyInput { pressKey(Key.Enter) }
 
         assertEquals(listOf(HomeAction.ContentSelected(content)), actions)
     }
@@ -96,19 +97,32 @@ class TvHomeScreenTest {
     }
 
     @Test
-    fun selectedContentKeyRestoresFocusToExactShelfCard() {
+    fun returnFocusKeyRestoresFocusToExactShelfCard() {
         val row = HomePreviewData.rows.first { it.type == RowType.TopTen }
         val content = row.content[2]
-        val selectedContentKey = StreamCoreSharedKey.content(
+        val returnFocusKey = StreamCoreSharedKey.content(
             contentId = content.id,
             row = content.row,
         )
 
-        setScreen(selectedContentKey = selectedContentKey)
+        setScreen(returnFocusKey = returnFocusKey)
 
         composeRule
             .onNodeWithTag(HomeTestTags.ContentCardPrefix + row.id + ":" + content.id)
             .assertIsFocused()
+    }
+
+    @Test
+    fun missingReturnFocusKeyUsesStableHeroFallbackAndConsumesKey() {
+        val consumedKeys = mutableListOf<String>()
+
+        setScreen(
+            returnFocusKey = "missing:content",
+            onReturnFocusConsumed = consumedKeys::add,
+        )
+
+        composeRule.onNodeWithTag(HomeTestTags.HeroDetails).assertIsFocused()
+        assertEquals(listOf("missing:content"), consumedKeys)
     }
 
     @Test
@@ -148,7 +162,11 @@ class TvHomeScreenTest {
         val actions = mutableListOf<HomeAction>()
         setScreen(onAction = actions::add)
 
-        composeRule.onNodeWithTag(HomeTestTags.RefreshButton).performClick()
+        composeRule.onNodeWithTag(HomeTestTags.RefreshButton)
+            .performSemanticsAction(SemanticsActions.RequestFocus) { requestFocus ->
+                requestFocus()
+            }
+            .performKeyInput { pressKey(Key.Enter) }
 
         assertEquals(listOf(HomeAction.Refresh), actions)
     }
@@ -160,6 +178,8 @@ class TvHomeScreenTest {
         ),
         onAction: (HomeAction) -> Unit = {},
         selectedContentKey: String? = null,
+        returnFocusKey: String? = null,
+        onReturnFocusConsumed: (String) -> Unit = {},
     ) {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -171,6 +191,8 @@ class TvHomeScreenTest {
                     ),
                     onAction = onAction,
                     selectedContentKey = selectedContentKey,
+                    returnFocusKey = returnFocusKey,
+                    onReturnFocusConsumed = onReturnFocusConsumed,
                 )
             }
         }

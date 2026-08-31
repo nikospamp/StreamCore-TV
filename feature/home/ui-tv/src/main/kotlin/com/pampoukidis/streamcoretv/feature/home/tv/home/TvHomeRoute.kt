@@ -18,6 +18,8 @@ fun TvHomeRoute(
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
     onError: (AppError) -> Unit,
+    returnFocusKey: String? = null,
+    onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -37,6 +39,8 @@ fun TvHomeRoute(
         state = state,
         onAction = viewModel::onAction,
         selectedContentKey = selectedContentKey,
+        returnFocusKey = returnFocusKey,
+        onReturnFocusConsumed = onReturnFocusConsumed,
         sharedElementScope = sharedElementScope,
     )
 }
