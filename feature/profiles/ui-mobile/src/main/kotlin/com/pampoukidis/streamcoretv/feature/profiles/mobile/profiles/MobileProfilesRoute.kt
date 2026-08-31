@@ -18,6 +18,8 @@ fun MobileProfilesRoute(
     onProfileSelected: (ProfileModel) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutInProgress: Boolean,
+    onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: ProfilesViewModel = hiltViewModel(),
@@ -39,7 +41,8 @@ fun MobileProfilesRoute(
         onAction = viewModel::onAction,
         onCreateProfile = onCreateProfile,
         onEditProfile = onEditProfile,
+        isLogoutInProgress = isLogoutInProgress,
+        onLogoutRequested = onLogoutRequested,
         sharedElementScope = sharedElementScope,
     )
 }
-

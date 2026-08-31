@@ -31,6 +31,7 @@ dependencies {
 
     // Libraries
     implementation(libs.dagger.hilt.android)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.core)
     ksp(libs.dagger.hilt.compiler)
 

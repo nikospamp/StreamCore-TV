@@ -1,7 +1,9 @@
 package com.pampoukidis.streamcoretv.feature.profiles.tv.profiles
 
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
+import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -64,11 +67,65 @@ class TvProfilesScreenTest {
             .onNodeWithTag(ProfilesTestTags.ProfileCardPrefix + ProfilesPreviewData.profiles.first().id)
             .performKeyInput { pressKey(Key.DirectionUp) }
         composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule
             .onNodeWithTag(ProfilesTestTags.ManageProfilesButton)
             .assertIsFocused()
             .performKeyInput { pressKey(Key.Enter) }
 
         assertEquals(listOf(ProfilesAction.ManageProfiles), actions)
+    }
+
+    @Test
+    fun signOutPrecedesManageInHeaderFocusOrderAndDispatchesRequest() {
+        var logoutRequests = 0
+        setScreen(onLogoutRequested = { logoutRequests++ })
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.ProfileCardPrefix + ProfilesPreviewData.profiles.first().id)
+            .performKeyInput { pressKey(Key.DirectionUp) }
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsDisplayed()
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
+
+        assertEquals(1, logoutRequests)
+    }
+
+    @Test
+    fun logoutInProgressDisablesSignOutAction() {
+        setScreen(isLogoutInProgress = true)
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun profileLoadErrorKeepsSignOutAvailable() {
+        setScreen(state = contentState.copy(loadError = AppError.Network()))
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun emptyProfilesDoNotPointSignOutAtMissingManageControl() {
+        setScreen(state = contentState.copy(profiles = emptyList()))
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.AddProfileButton)
+            .performKeyInput { pressKey(Key.DirectionUp) }
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithTag(ProfilesTestTags.SignOutButton).assertIsFocused()
     }
 
     @Test
@@ -106,6 +163,8 @@ class TvProfilesScreenTest {
         onAction: (ProfilesAction) -> Unit = {},
         onCreateProfile: () -> Unit = {},
         onEditProfile: (String) -> Unit = {},
+        isLogoutInProgress: Boolean = false,
+        onLogoutRequested: () -> Unit = {},
     ) {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -114,6 +173,8 @@ class TvProfilesScreenTest {
                     onAction = onAction,
                     onCreateProfile = onCreateProfile,
                     onEditProfile = onEditProfile,
+                    isLogoutInProgress = isLogoutInProgress,
+                    onLogoutRequested = onLogoutRequested,
                 )
             }
         }

@@ -50,13 +50,16 @@ fun MobileProfilesScreen(
     onAction: (ProfilesAction) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutInProgress: Boolean = false,
+    onLogoutRequested: () -> Unit = {},
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     ReportDrawnWhen { !state.isLoading }
 
-    val interactionsEnabled = !state.isLoading &&
+    val profileInteractionsEnabled = !state.isLoading &&
             !state.isSaving &&
+            !isLogoutInProgress &&
             state.pendingSelectionProfileId == null
 
     Surface(
@@ -74,10 +77,13 @@ fun MobileProfilesScreen(
             ) {
                 ProfilesTopBar(
                     mode = state.mode,
-                    showAction = !state.isLoading &&
+                    showManageAction = !state.isLoading &&
                             state.loadError == null &&
                             state.profiles.isNotEmpty(),
-                    actionEnabled = interactionsEnabled,
+                    showLogoutAction = state.mode == ProfilesMode.Selection,
+                    profileActionEnabled = profileInteractionsEnabled,
+                    logoutEnabled = !isLogoutInProgress,
+                    onLogoutRequested = onLogoutRequested,
                     onAction = onAction,
                 )
                 Spacer(modifier = Modifier.height(StreamCoreDimens.Spacing.Large))
@@ -97,7 +103,7 @@ fun MobileProfilesScreen(
                         profiles = state.profiles,
                         mode = state.mode,
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
-                        interactionsEnabled = interactionsEnabled,
+                        interactionsEnabled = profileInteractionsEnabled,
                         onSelectProfile = { profileId ->
                             onAction(ProfilesAction.SelectProfile(profileId))
                         },
@@ -117,8 +123,11 @@ fun MobileProfilesScreen(
 @Composable
 private fun ProfilesTopBar(
     mode: ProfilesMode,
-    showAction: Boolean,
-    actionEnabled: Boolean,
+    showManageAction: Boolean,
+    showLogoutAction: Boolean,
+    profileActionEnabled: Boolean,
+    logoutEnabled: Boolean,
+    onLogoutRequested: () -> Unit,
     onAction: (ProfilesAction) -> Unit,
 ) {
     Box(
@@ -144,7 +153,18 @@ private fun ProfilesTopBar(
                 horizontal = StreamCoreDimens.Mobile.Profiles.HeaderSideClearance,
             ),
         )
-        if (showAction) {
+        if (showLogoutAction) {
+            StreamCoreTextButton(
+                text = "Sign out",
+                onClick = onLogoutRequested,
+                enabled = logoutEnabled,
+                contentColor = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .testTag(ProfilesTestTags.SignOutButton),
+            )
+        }
+        if (showManageAction) {
             StreamCoreTextButton(
                 text = if (mode == ProfilesMode.Selection) "Manage" else "Done",
                 onClick = {
@@ -156,7 +176,7 @@ private fun ProfilesTopBar(
                         },
                     )
                 },
-                enabled = actionEnabled,
+                enabled = profileActionEnabled,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)

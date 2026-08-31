@@ -18,12 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesDeleteConfirmationDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesGrid
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
@@ -34,6 +36,8 @@ fun TabletProfilesScreen(
     onAction: (ProfilesAction) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutInProgress: Boolean = false,
+    onLogoutRequested: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -68,9 +72,18 @@ fun TabletProfilesScreen(
                 StreamCoreButton(
                     text = "Add profile",
                     onClick = onCreateProfile,
-                    enabled = !state.isLoading && !state.isSaving,
+                    enabled = !state.isLoading && !state.isSaving && !isLogoutInProgress,
                     modifier = Modifier.testTag(ProfilesTestTags.AddProfileButton),
                 )
+                if (state.mode == ProfilesMode.Selection) {
+                    StreamCoreButton(
+                        text = "Sign out",
+                        onClick = onLogoutRequested,
+                        enabled = !isLogoutInProgress,
+                        variant = StreamCoreButtonVariant.Secondary,
+                        modifier = Modifier.testTag(ProfilesTestTags.SignOutButton),
+                    )
+                }
             }
             Box(
                 contentAlignment = Alignment.Center,

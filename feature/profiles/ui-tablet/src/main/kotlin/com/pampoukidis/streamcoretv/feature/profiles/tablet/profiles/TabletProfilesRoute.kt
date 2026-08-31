@@ -14,6 +14,8 @@ fun TabletProfilesRoute(
     onProfileSelected: (ProfileModel) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutInProgress: Boolean,
+    onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     viewModel: ProfilesViewModel = hiltViewModel(),
 ) {
@@ -30,6 +32,8 @@ fun TabletProfilesRoute(
         onAction = viewModel::onAction,
         onCreateProfile = onCreateProfile,
         onEditProfile = onEditProfile,
+        isLogoutInProgress = isLogoutInProgress,
+        onLogoutRequested = onLogoutRequested,
     )
 }
 

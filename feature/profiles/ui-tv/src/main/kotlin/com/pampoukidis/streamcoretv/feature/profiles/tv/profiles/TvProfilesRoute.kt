@@ -15,6 +15,9 @@ fun TvProfilesRoute(
     onProfileSelected: (ProfileModel) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutConfirmationVisible: Boolean,
+    isLogoutInProgress: Boolean,
+    onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     viewModel: ProfilesViewModel = hiltViewModel(),
     sharedElementScope: StreamCoreSharedElementScope? = null,
@@ -32,6 +35,9 @@ fun TvProfilesRoute(
         onAction = viewModel::onAction,
         onCreateProfile = onCreateProfile,
         onEditProfile = onEditProfile,
+        isLogoutConfirmationVisible = isLogoutConfirmationVisible,
+        isLogoutInProgress = isLogoutInProgress,
+        onLogoutRequested = onLogoutRequested,
         sharedElementScope = sharedElementScope,
     )
 }

@@ -15,9 +15,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,12 +49,27 @@ fun TvProfilesScreen(
     onAction: (ProfilesAction) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutConfirmationVisible: Boolean = false,
+    isLogoutInProgress: Boolean = false,
+    onLogoutRequested: () -> Unit = {},
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
-    val interactionsEnabled = !state.isLoading &&
+    val profileInteractionsEnabled = !state.isLoading &&
             !state.isSaving &&
+            !isLogoutInProgress &&
             state.pendingSelectionProfileId == null
+    val logoutFocusRequester = remember { FocusRequester() }
+    var restoreLogoutFocus by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isLogoutConfirmationVisible) {
+        if (isLogoutConfirmationVisible) {
+            restoreLogoutFocus = true
+        } else if (restoreLogoutFocus) {
+            logoutFocusRequester.requestFocus()
+            restoreLogoutFocus = false
+        }
+    }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -64,10 +87,14 @@ fun TvProfilesScreen(
         ) {
             ProfilesHeader(
                 mode = state.mode,
-                showAction = !state.isLoading &&
+                showManageAction = !state.isLoading &&
                         state.loadError == null &&
                         state.profiles.isNotEmpty(),
-                actionEnabled = interactionsEnabled,
+                showLogoutAction = state.mode == ProfilesMode.Selection,
+                profileActionEnabled = profileInteractionsEnabled,
+                logoutEnabled = !isLogoutInProgress,
+                logoutFocusRequester = logoutFocusRequester,
+                onLogoutRequested = onLogoutRequested,
                 onAction = onAction,
             )
             Box(
@@ -86,7 +113,7 @@ fun TvProfilesScreen(
                         profiles = state.profiles,
                         mode = state.mode,
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
-                        interactionsEnabled = interactionsEnabled,
+                        interactionsEnabled = profileInteractionsEnabled,
                         onSelectProfile = { profileId ->
                             onAction(ProfilesAction.SelectProfile(profileId))
                         },
@@ -111,10 +138,16 @@ fun TvProfilesScreen(
 @Composable
 private fun ProfilesHeader(
     mode: ProfilesMode,
-    showAction: Boolean,
-    actionEnabled: Boolean,
+    showManageAction: Boolean,
+    showLogoutAction: Boolean,
+    profileActionEnabled: Boolean,
+    logoutEnabled: Boolean,
+    logoutFocusRequester: FocusRequester,
+    onLogoutRequested: () -> Unit,
     onAction: (ProfilesAction) -> Unit,
 ) {
+    val manageFocusRequester = remember { FocusRequester() }
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -137,7 +170,26 @@ private fun ProfilesHeader(
                 horizontal = StreamCoreDimens.Tv.Profiles.HeaderSideClearance,
             ),
         )
-        if (showAction) {
+        if (showLogoutAction) {
+            StreamCoreTvButton(
+                text = "Sign out",
+                onClick = onLogoutRequested,
+                enabled = logoutEnabled,
+                variant = StreamCoreTvButtonVariant.Tertiary,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .focusRequester(logoutFocusRequester)
+                    .then(
+                        if (showManageAction) {
+                            Modifier.focusProperties { right = manageFocusRequester }
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .testTag(ProfilesTestTags.SignOutButton),
+            )
+        }
+        if (showManageAction) {
             StreamCoreTvButton(
                 text = if (mode == ProfilesMode.Selection) "Manage" else "Done",
                 onClick = {
@@ -149,10 +201,18 @@ private fun ProfilesHeader(
                         },
                     )
                 },
-                enabled = actionEnabled,
+                enabled = profileActionEnabled,
                 variant = StreamCoreTvButtonVariant.Tertiary,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
+                    .focusRequester(manageFocusRequester)
+                    .then(
+                        if (showLogoutAction) {
+                            Modifier.focusProperties { left = logoutFocusRequester }
+                        } else {
+                            Modifier
+                        },
+                    )
                     .testTag(ProfilesTestTags.ManageProfilesButton),
             )
         }

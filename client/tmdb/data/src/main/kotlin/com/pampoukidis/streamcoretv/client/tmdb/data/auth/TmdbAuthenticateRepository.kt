@@ -12,6 +12,7 @@ import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,8 +94,13 @@ class TmdbAuthenticateRepository @Inject internal constructor(
     }
 
     override suspend fun logoutUser(): AppResult<Unit> {
-        authStore.currentSessionId()?.let { sessionId ->
-            callExecutor.execute(operation = LOGOUT_OPERATION) {
+        val sessionId = when (val result = readSessionForLogout()) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
+
+        if (sessionId != null) {
+            when (val result = callExecutor.execute(operation = LOGOUT_OPERATION) {
                 val response = tmdbApi.deleteSession(sessionId = sessionId)
                 if (!response.success) {
                     throw TmdbAuthenticationFailureException(
@@ -102,12 +108,61 @@ class TmdbAuthenticateRepository @Inject internal constructor(
                         message = "TMDB did not delete the session.",
                     )
                 }
+            }) {
+                is AppResult.Success -> Unit
+                is AppResult.Failure -> return result
             }
         }
 
-        authStore.clear()
+        when (val result = clearSessionForLogout()) {
+            is AppResult.Success -> Unit
+            is AppResult.Failure -> return result
+        }
         _authState.value = AuthStateModel.LoggedOut
         return AppResult.Success(Unit)
+    }
+
+    private suspend fun readSessionForLogout(): AppResult<String?> {
+        return try {
+            AppResult.Success(authStore.currentSessionId())
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (throwable: Throwable) {
+            localLogoutFailure(
+                backendCode = LOGOUT_LOCAL_READ_FAILED_CODE,
+                message = throwable.message,
+            )
+        }
+    }
+
+    private suspend fun clearSessionForLogout(): AppResult<Unit> {
+        return try {
+            authStore.clear()
+            AppResult.Success(Unit)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (throwable: Throwable) {
+            localLogoutFailure(
+                backendCode = LOGOUT_LOCAL_CLEAR_FAILED_CODE,
+                message = throwable.message,
+            )
+        }
+    }
+
+    private fun <T> localLogoutFailure(
+        backendCode: String,
+        message: String?,
+    ): AppResult<T> {
+        return AppResult.Failure(
+            AppError.Unknown(
+                source = ErrorSource(
+                    client = CLIENT,
+                    operation = LOGOUT_OPERATION,
+                    backendCode = backendCode,
+                    backendMessage = message,
+                ),
+            ),
+        )
     }
 
     override suspend fun forgotPassword(
@@ -219,5 +274,7 @@ class TmdbAuthenticateRepository @Inject internal constructor(
         const val VALIDATE_LOGIN_FAILED_CODE = "VALIDATE_LOGIN_FAILED"
         const val CREATE_SESSION_FAILED_CODE = "CREATE_SESSION_FAILED"
         const val DELETE_SESSION_FAILED_CODE = "DELETE_SESSION_FAILED"
+        const val LOGOUT_LOCAL_READ_FAILED_CODE = "LOGOUT_LOCAL_READ_FAILED"
+        const val LOGOUT_LOCAL_CLEAR_FAILED_CODE = "LOGOUT_LOCAL_CLEAR_FAILED"
     }
 }

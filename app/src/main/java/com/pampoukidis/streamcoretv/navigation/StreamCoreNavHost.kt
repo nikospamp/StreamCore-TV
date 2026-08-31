@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -80,7 +81,11 @@ import kotlin.reflect.typeOf
 @Composable
 internal fun StreamCoreNavHost(
     startDestination: AppRoute,
+    authState: AuthStateModel,
+    isLogoutConfirmationVisible: Boolean,
+    isLogoutInProgress: Boolean,
     onActiveProfileChanged: (String?) -> Unit,
+    onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -100,6 +105,25 @@ internal fun StreamCoreNavHost(
         mutableStateOf(TopLevelDestination.Home)
     }
     var displayedTopLevelProfileId by remember { mutableStateOf<String?>(null) }
+
+    val shouldResetToLogin = authState is AuthStateModel.LoggedOut &&
+            currentBackStackEntry?.destination?.hasRoute<AppRoute.Login>() == false
+
+    LaunchedEffect(shouldResetToLogin) {
+        if (shouldResetToLogin) {
+            selectedContent = null
+            selectedContentKey = null
+            selectedProfile = null
+            displayedTopLevelProfileId = null
+            onActiveProfileChanged(null)
+            navController.navigate(AppRoute.Login) {
+                popUpTo(navController.graph.id) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        }
+    }
 
     LaunchedEffect(currentTopLevelDestination, currentTopLevelProfileId) {
         if (currentTopLevelDestination != null && currentTopLevelProfileId != null) {
@@ -261,6 +285,9 @@ internal fun StreamCoreNavHost(
                     onEditProfile = { profileId ->
                         navController.navigate(AppRoute.EditProfile(profileId = profileId))
                     },
+                    isLogoutConfirmationVisible = isLogoutConfirmationVisible,
+                    isLogoutInProgress = isLogoutInProgress,
+                    onLogoutRequested = onLogoutRequested,
                     onError = onError,
                 )
             }
@@ -650,6 +677,9 @@ private fun ProfilesDestination(
     onProfileSelected: (ProfileModel) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    isLogoutConfirmationVisible: Boolean,
+    isLogoutInProgress: Boolean,
+    onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
@@ -658,6 +688,8 @@ private fun ProfilesDestination(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
+            isLogoutInProgress = isLogoutInProgress,
+            onLogoutRequested = onLogoutRequested,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )
@@ -666,6 +698,8 @@ private fun ProfilesDestination(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
+            isLogoutInProgress = isLogoutInProgress,
+            onLogoutRequested = onLogoutRequested,
             onError = onError,
         )
 
@@ -673,6 +707,9 @@ private fun ProfilesDestination(
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
+            isLogoutConfirmationVisible = isLogoutConfirmationVisible,
+            isLogoutInProgress = isLogoutInProgress,
+            onLogoutRequested = onLogoutRequested,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )
