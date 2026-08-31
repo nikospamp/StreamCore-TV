@@ -8,5 +8,7 @@ sealed interface AppAuthUiState {
     data class Ready(
         val authState: AuthStateModel,
         val activeProfileId: String? = null,
+        val isLogoutConfirmationVisible: Boolean = false,
+        val isLogoutInProgress: Boolean = false,
     ) : AppAuthUiState
 }

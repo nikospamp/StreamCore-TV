@@ -10,13 +10,19 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.pampoukidis.streamcoretv.MainActivity
+import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -36,6 +42,42 @@ class StreamCoreNavHostBackgroundTest {
         assertNavigationBackground(darkTheme = false)
     }
 
+    @Test
+    fun loggedOutAuthStateResetsBackStackToLogin() {
+        lateinit var navController: NavHostController
+        var authState by mutableStateOf<AuthStateModel>(AuthStateModel.LoggedIn(account = null))
+
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.setContent {
+                MaterialTheme {
+                    navController = rememberNavController()
+                    StreamCoreNavHost(
+                        startDestination = AppRoute.Profiles,
+                        authState = authState,
+                        isLogoutConfirmationVisible = false,
+                        isLogoutInProgress = false,
+                        onActiveProfileChanged = {},
+                        onLogoutRequested = {},
+                        onError = {},
+                        navController = navController,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            navController.navigate(AppRoute.CreateProfile(fromLogin = false))
+            authState = AuthStateModel.LoggedOut
+        }
+
+        composeRule.waitUntil {
+            navController.currentDestination?.hasRoute<AppRoute.Login>() == true
+        }
+        composeRule.runOnIdle {
+            assertFalse(navController.popBackStack())
+        }
+    }
+
     private fun assertNavigationBackground(darkTheme: Boolean) {
         val colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
         lateinit var navController: NavHostController
@@ -48,7 +90,11 @@ class StreamCoreNavHostBackgroundTest {
                     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
                         StreamCoreNavHost(
                             startDestination = AppRoute.Profiles,
+                            authState = AuthStateModel.LoggedIn(account = null),
+                            isLogoutConfirmationVisible = false,
+                            isLogoutInProgress = false,
                             onActiveProfileChanged = {},
+                            onLogoutRequested = {},
                             onError = {},
                             navController = navController,
                         )

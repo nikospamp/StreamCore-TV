@@ -2,11 +2,14 @@ package com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles
 
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -107,6 +110,38 @@ class MobileProfilesScreenTest {
     }
 
     @Test
+    fun signOutActionIsVisibleAndDispatchesRequest() {
+        var logoutRequests = 0
+        setScreen(onLogoutRequested = { logoutRequests++ })
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsDisplayed()
+            .performClick()
+
+        assertEquals(1, logoutRequests)
+    }
+
+    @Test
+    fun logoutInProgressDisablesSignOutAction() {
+        setScreen(isLogoutInProgress = true)
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun profileLoadErrorKeepsSignOutAvailable() {
+        setScreen(state = contentState.copy(loadError = AppError.Network()))
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.SignOutButton)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    @Test
     fun kidsProfile_showsKidsChipOnAvatar() {
         val kidsProfile = ProfilesPreviewData.profiles.first { it.isKidsProfile }
         setScreen()
@@ -121,6 +156,8 @@ class MobileProfilesScreenTest {
         onAction: (ProfilesAction) -> Unit = {},
         onCreateProfile: () -> Unit = {},
         onEditProfile: (String) -> Unit = {},
+        isLogoutInProgress: Boolean = false,
+        onLogoutRequested: () -> Unit = {},
     ) {
         composeRule.setContent {
             StreamCoreTheme(darkTheme = true) {
@@ -129,6 +166,8 @@ class MobileProfilesScreenTest {
                     onAction = onAction,
                     onCreateProfile = onCreateProfile,
                     onEditProfile = onEditProfile,
+                    isLogoutInProgress = isLogoutInProgress,
+                    onLogoutRequested = onLogoutRequested,
                 )
             }
         }

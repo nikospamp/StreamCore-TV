@@ -3,6 +3,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.common.testing
 object ProfilesTestTags {
     const val Root = "profiles:root"
     const val ManageProfilesButton = "profiles:manage"
+    const val SignOutButton = "profiles:sign-out"
     const val AddProfileButton = "profiles:add-profile"
     const val ProfileCardPrefix = "profiles:profile:"
     const val EditProfileButtonPrefix = "profiles:edit-profile:"

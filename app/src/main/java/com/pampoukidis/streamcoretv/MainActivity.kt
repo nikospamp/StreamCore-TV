@@ -15,8 +15,10 @@ import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.auth.AppAuthEffect
+import com.pampoukidis.streamcoretv.auth.AppAuthAction
 import com.pampoukidis.streamcoretv.auth.AppAuthUiState
 import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
+import com.pampoukidis.streamcoretv.auth.AppLogoutConfirmationDialog
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
@@ -72,9 +74,28 @@ class MainActivity : ComponentActivity() {
 
                             StreamCoreNavHost(
                                 startDestination = startDestination,
+                                authState = state.authState,
+                                isLogoutConfirmationVisible = state.isLogoutConfirmationVisible,
+                                isLogoutInProgress = state.isLogoutInProgress,
                                 onActiveProfileChanged = appAuthViewModel::onActiveProfileChanged,
+                                onLogoutRequested = {
+                                    appAuthViewModel.onAction(AppAuthAction.RequestLogout)
+                                },
                                 onError = { error ->
                                     activeError = errorPresentationMapper.map(error)
+                                },
+                            )
+
+                            AppLogoutConfirmationDialog(
+                                visible = state.isLogoutConfirmationVisible,
+                                isLogoutInProgress = state.isLogoutInProgress,
+                                onConfirm = {
+                                    appAuthViewModel.onAction(AppAuthAction.ConfirmLogout)
+                                },
+                                onDismiss = {
+                                    appAuthViewModel.onAction(
+                                        AppAuthAction.DismissLogoutConfirmation,
+                                    )
                                 },
                             )
                         }

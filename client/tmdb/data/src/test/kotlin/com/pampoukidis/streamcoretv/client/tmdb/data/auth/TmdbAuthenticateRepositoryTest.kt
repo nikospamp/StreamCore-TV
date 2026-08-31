@@ -280,6 +280,56 @@ class TmdbAuthenticateRepositoryTest {
     }
 
     @Test
+    fun `logout remote failure preserves local session and authenticated state`() = runTest {
+        val api = FakeTmdbApi()
+        val store = FakeTmdbAuthStore()
+        store.saveSession(
+            sessionId = "session-id",
+            account = null,
+        )
+        val subject = repository(
+            api = api,
+            store = store,
+            accountId = "548",
+        )
+        assertTrue(subject.bootstrapAuth() is AppResult.Success)
+        api.failure = IOException("offline")
+
+        val result = subject.logoutUser()
+
+        assertTrue(result is AppResult.Failure)
+        assertTrue((result as AppResult.Failure).error is AppError.Network)
+        assertEquals("session-id", store.sessionId)
+        assertTrue(subject.authState.first() is AuthStateModel.LoggedIn)
+    }
+
+    @Test
+    fun `logout local clear failure preserves local session and authenticated state`() = runTest {
+        val api = FakeTmdbApi()
+        val store = FakeTmdbAuthStore()
+        store.saveSession(
+            sessionId = "session-id",
+            account = null,
+        )
+        val subject = repository(
+            api = api,
+            store = store,
+            accountId = "548",
+        )
+        assertTrue(subject.bootstrapAuth() is AppResult.Success)
+        store.clearFailure = IOException("disk unavailable")
+
+        val result = subject.logoutUser()
+
+        assertTrue(result is AppResult.Failure)
+        val error = (result as AppResult.Failure).error
+        assertTrue(error is AppError.Unknown)
+        assertEquals("LOGOUT_LOCAL_CLEAR_FAILED", error.source?.backendCode)
+        assertEquals("session-id", store.sessionId)
+        assertTrue(subject.authState.first() is AuthStateModel.LoggedIn)
+    }
+
+    @Test
     fun `secondary auth operations complete`() = runTest {
         val subject = repository()
 
@@ -310,6 +360,8 @@ class TmdbAuthenticateRepositoryTest {
     }
 
     private class FakeTmdbAuthStore : TmdbAuthStore {
+        var clearFailure: Throwable? = null
+
         var sessionId: String? = null
             private set
 
@@ -329,6 +381,7 @@ class TmdbAuthenticateRepositoryTest {
         }
 
         override suspend fun clear() {
+            clearFailure?.let { throwable -> throw throwable }
             sessionId = null
             account = null
         }
