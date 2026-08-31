@@ -568,7 +568,7 @@ private fun releaseYear(epochMillis: Long): Int {
 private const val MetadataEntranceDelayMillis = 80
 private const val RecommendationsEntranceDelayMillis = 150
 private const val ActionStateAnimationMillis = 180
-private val DetailsActionsMaxWidth = 420.dp
+private val DetailsActionsMaxWidth = StreamCoreDimens.Tablet.Details.ActionsMaxWidth
 
 @PreviewTablet
 @Composable

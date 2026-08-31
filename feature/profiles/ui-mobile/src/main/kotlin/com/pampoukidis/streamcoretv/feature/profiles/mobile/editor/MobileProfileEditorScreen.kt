@@ -39,7 +39,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
@@ -154,12 +153,12 @@ private fun MobileProfileEditorTopBar(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = EditorTopBarHeight)
+            .heightIn(min = StreamCoreDimens.Mobile.Profiles.HeaderHeight)
             .padding(horizontal = StreamCoreDimens.Spacing.Small),
     ) {
         Box(
             contentAlignment = Alignment.CenterStart,
-            modifier = Modifier.width(EditorTopBarSideWidth),
+            modifier = Modifier.width(StreamCoreDimens.Mobile.Profiles.EditorTopBarSideWidth),
         ) {
             StreamCoreCloseButton(
                 onClick = onClose,
@@ -178,7 +177,7 @@ private fun MobileProfileEditorTopBar(
         )
         Box(
             contentAlignment = Alignment.CenterEnd,
-            modifier = Modifier.width(EditorTopBarSideWidth),
+            modifier = Modifier.width(StreamCoreDimens.Mobile.Profiles.EditorTopBarSideWidth),
         ) {
             StreamCoreTextButton(
                 text = if (isSaving) "Saving" else "Save",
@@ -293,11 +292,11 @@ private fun MobileProfileEditorAvatar(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(EditorAvatarContainerSize),
+            modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.EditorAvatarContainerSize),
         ) {
             Box(
                 modifier = Modifier
-                    .size(EditorAvatarSize)
+                    .size(StreamCoreDimens.Mobile.Profiles.EditorAvatarSize)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
             ) {
@@ -314,8 +313,11 @@ private fun MobileProfileEditorAvatar(
                 shadowElevation = StreamCoreDimens.Elevation.Low,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = EditorBadgeOffset, y = EditorBadgeOffset)
-                    .size(EditorBadgeSize),
+                    .offset(
+                        x = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+                        y = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+                    )
+                    .size(StreamCoreDimens.Mobile.Profiles.EditorBadgeSize),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     StreamCoreEditIcon(modifier = Modifier.size(StreamCoreDimens.Icon.Medium))
@@ -387,10 +389,3 @@ private fun MobileProfileEditorEditPreview() {
         )
     }
 }
-
-private val EditorTopBarHeight = 56.dp
-private val EditorTopBarSideWidth = 72.dp
-private val EditorAvatarSize = 120.dp
-private val EditorAvatarContainerSize = 132.dp
-private val EditorBadgeSize = 36.dp
-private val EditorBadgeOffset = 2.dp

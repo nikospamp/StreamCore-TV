@@ -120,7 +120,7 @@ private fun StreamCorePagerCarouselPreview() {
         StreamCorePagerCarousel(
             state = rememberPagerState { 3 },
             autoAdvanceEnabled = false,
-            modifier = Modifier.height(240.dp),
+            modifier = Modifier.height(StreamCoreDimens.Carousel.PreviewHeight),
         ) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
         }

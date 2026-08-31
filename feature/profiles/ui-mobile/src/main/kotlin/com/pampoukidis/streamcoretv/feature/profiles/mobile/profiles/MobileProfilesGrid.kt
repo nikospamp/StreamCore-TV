@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -33,7 +32,7 @@ internal fun MobileProfilesGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(
             top = StreamCoreDimens.Spacing.Small,
-            bottom = 32.dp,
+            bottom = StreamCoreDimens.Mobile.Profiles.GridBottomPadding,
         ),
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),

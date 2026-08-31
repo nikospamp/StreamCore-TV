@@ -348,8 +348,8 @@ private fun TvLibraryLoading() {
             ) {
                 Box(
                     modifier = Modifier
-                        .width(180.dp)
-                        .height(24.dp)
+                        .width(StreamCoreDimens.Tv.Loading.TitleWidth)
+                        .height(StreamCoreDimens.Tv.Loading.TitleHeight)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 )

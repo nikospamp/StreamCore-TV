@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -120,7 +119,7 @@ private fun ProfilesHeader(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp),
+            .height(StreamCoreDimens.Tv.Profiles.HeaderHeight),
     ) {
         Text(
             text = if (mode == ProfilesMode.Selection) {
@@ -134,7 +133,9 @@ private fun ProfilesHeader(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 160.dp),
+            modifier = Modifier.padding(
+                horizontal = StreamCoreDimens.Tv.Profiles.HeaderSideClearance,
+            ),
         )
         if (showAction) {
             StreamCoreTvButton(
@@ -170,7 +171,7 @@ private fun TvProfilesLoadingRow() {
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
                 modifier = Modifier.size(
                     width = StreamCoreDimens.Tv.Profiles.TileWidth,
-                    height = 176.dp,
+                    height = StreamCoreDimens.Tv.Profiles.LoadingTileHeight,
                 ),
             ) {
                 Box(
@@ -181,7 +182,10 @@ private fun TvProfilesLoadingRow() {
                 )
                 Box(
                     modifier = Modifier
-                        .size(width = 88.dp, height = 14.dp)
+                        .size(
+                            width = StreamCoreDimens.Tv.Profiles.LoadingLabelWidth,
+                            height = StreamCoreDimens.Tv.Profiles.LoadingLabelHeight,
+                        )
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 )

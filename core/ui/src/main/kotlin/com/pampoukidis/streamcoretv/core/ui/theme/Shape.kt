@@ -11,3 +11,10 @@ val Shapes = Shapes(
     large = RoundedCornerShape(12.dp),
     extraLarge = RoundedCornerShape(16.dp),
 )
+
+internal val StreamCoreBottomRoundedShape = RoundedCornerShape(
+    topStart = 0.dp,
+    topEnd = 0.dp,
+    bottomEnd = 16.dp,
+    bottomStart = 16.dp,
+)

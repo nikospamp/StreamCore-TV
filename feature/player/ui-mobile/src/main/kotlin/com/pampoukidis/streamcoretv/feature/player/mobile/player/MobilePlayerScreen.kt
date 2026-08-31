@@ -61,6 +61,10 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.onPlayerSurface
+import com.pampoukidis.streamcoretv.core.ui.extensions.playerSurface
+import com.pampoukidis.streamcoretv.core.ui.extensions.playerThumbnailPlaceholder
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
@@ -93,7 +97,7 @@ fun MobilePlayerScreen(
             .testTag(PlayerTestTags.Root)
             .benchmarkReadiness("player", state.phase == PlaybackPhase.Ready && state.isPlaying)
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.playerSurface)
             .pointerInput(state.durationMillis) {
                 detectTapGestures(
                     onTap = { onAction(PlayerAction.ToggleControls) },
@@ -154,13 +158,19 @@ fun MobilePlayerScreen(
             state.seekFeedbackSeconds?.let { seconds ->
                 Text(
                     text = if (seconds < 0) "−${-seconds}s" else "+${seconds}s",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPlayerSurface,
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .align(if (seconds < 0) Alignment.CenterStart else Alignment.CenterEnd)
-                        .padding(horizontal = 72.dp)
-                        .background(Color.Black.copy(alpha = 0.72f), MaterialTheme.shapes.medium)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = StreamCoreDimens.Mobile.Player.SeekFeedbackHorizontalOffset)
+                        .background(
+                            MaterialTheme.colorScheme.playerSurface.copy(alpha = 0.72f),
+                            MaterialTheme.shapes.medium,
+                        )
+                        .padding(
+                            horizontal = StreamCoreDimens.Spacing.Large,
+                            vertical = StreamCoreDimens.Mobile.Player.OverlayVerticalPadding,
+                        ),
                 )
             }
 
@@ -187,8 +197,11 @@ private fun PlayerTopBar(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = OverlayAlpha))
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .background(MaterialTheme.colorScheme.playerSurface.copy(alpha = OverlayAlpha))
+            .padding(
+                horizontal = StreamCoreDimens.Mobile.Player.OverlayHorizontalPadding,
+                vertical = StreamCoreDimens.Mobile.Player.OverlayVerticalPadding,
+            ),
     ) {
         StreamCoreIconButton(
             contentDescription = "Back",
@@ -196,7 +209,7 @@ private fun PlayerTopBar(
         ) { StreamCoreBackIcon() }
         Text(
             text = title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPlayerSurface,
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -237,12 +250,15 @@ private fun PlayerBottomControls(
     onAction: (PlayerAction) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = OverlayAlpha))
+            .background(MaterialTheme.colorScheme.playerSurface.copy(alpha = OverlayAlpha))
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(
+                horizontal = StreamCoreDimens.Mobile.Player.OverlayHorizontalPadding,
+                vertical = StreamCoreDimens.Mobile.Player.OverlayVerticalPadding,
+            ),
     ) {
         if (state.isScrubbing) {
             Filmstrip(state)
@@ -250,7 +266,7 @@ private fun PlayerBottomControls(
         BufferedTimeline(state, onAction)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier.fillMaxWidth(),
         ) {
             PlayerIconButton(
@@ -272,7 +288,7 @@ private fun PlayerBottomControls(
             )
             Text(
                 text = "${formatTime(state.positionMillis)} / ${formatTime(state.durationMillis)}",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPlayerSurface,
                 style = MaterialTheme.typography.labelMedium,
             )
             Spacer(Modifier.weight(1f))
@@ -302,7 +318,7 @@ private fun BufferedTimeline(
     val displayedPosition = if (state.isScrubbing) state.scrubPositionMillis else state.positionMillis
     val sliderColors = SliderDefaults.colors(
         activeTrackColor = MaterialTheme.colorScheme.primary,
-        inactiveTrackColor = Color.Transparent,
+        inactiveTrackColor = MaterialTheme.colorScheme.transparentContainer,
         thumbColor = MaterialTheme.colorScheme.primary,
     )
     Box(
@@ -360,21 +376,21 @@ private fun PlayerTimelineTrack(
             progress = {
                 (bufferedPositionMillis.toFloat() / durationMillis).coerceIn(0f, 1f)
             },
-            color = Color.White.copy(alpha = 0.5f),
-            trackColor = Color.White.copy(alpha = 0.18f),
+            color = MaterialTheme.colorScheme.onPlayerSurface.copy(alpha = 0.5f),
+            trackColor = MaterialTheme.colorScheme.onPlayerSurface.copy(alpha = 0.18f),
             strokeCap = StrokeCap.Round,
             gapSize = 0.dp,
             drawStopIndicator = {},
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp),
+                .height(StreamCoreDimens.Mobile.Player.TimelineBufferedTrackHeight),
         )
 
         // Foreground layer: played progress, kept at the Material 3 active-track height.
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(TimelineActiveTrackHeight),
+                .height(StreamCoreDimens.Mobile.Player.TimelineActiveTrackHeight),
         ) {
             // Map the current slider value to this track's physical width.
             val playedFraction = (sliderState.value / durationMillis).coerceIn(0f, 1f)
@@ -449,17 +465,28 @@ private fun Filmstrip(state: PlayerUiState) {
     ) {
         Text(
             text = formatTime(state.scrubPositionMillis),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPlayerSurface,
             style = MaterialTheme.typography.labelLarge,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
             frames.forEachIndexed { index, frame ->
                 val isCenter = index == frames.lastIndex / 2
                 Box(
                     modifier = Modifier
-                        .size(width = if (isCenter) 116.dp else 96.dp, height = if (isCenter) 70.dp else 58.dp)
+                        .size(
+                            width = if (isCenter) {
+                                StreamCoreDimens.Mobile.Player.FilmstripFocusedFrameWidth
+                            } else {
+                                StreamCoreDimens.Mobile.Player.FilmstripFrameWidth
+                            },
+                            height = if (isCenter) {
+                                StreamCoreDimens.Mobile.Player.FilmstripFocusedFrameHeight
+                            } else {
+                                StreamCoreDimens.Mobile.Player.FilmstripFrameHeight
+                            },
+                        )
                         .clip(MaterialTheme.shapes.small)
-                        .background(Color.DarkGray),
+                        .background(MaterialTheme.colorScheme.playerThumbnailPlaceholder),
                 ) {
                     frame.image?.let { bitmap ->
                         Image(
@@ -478,20 +505,24 @@ private fun Filmstrip(state: PlayerUiState) {
 @Composable
 private fun BoxScope.PlayerError(message: String, onAction: (PlayerAction) -> Unit) {
     Surface(
-        color = Color.Black.copy(alpha = 0.9f),
+        color = MaterialTheme.colorScheme.playerSurface.copy(alpha = 0.9f),
         modifier = Modifier
             .testTag(PlayerTestTags.Error)
             .align(Alignment.Center)
-            .widthIn(max = 420.dp),
+            .widthIn(max = StreamCoreDimens.Mobile.Player.ErrorMaxWidth),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
         ) {
-            Text("Playback unavailable", color = Color.White, style = MaterialTheme.typography.titleLarge)
-            Text(message, color = Color.White.copy(alpha = 0.8f))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "Playback unavailable",
+                color = MaterialTheme.colorScheme.onPlayerSurface,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(message, color = MaterialTheme.colorScheme.onPlayerSurface.copy(alpha = 0.8f))
+            Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
                 StreamCoreButton("Back", { onAction(PlayerAction.BackSelected) }, true)
                 StreamCoreButton("Retry", { onAction(PlayerAction.Retry) }, true)
             }
@@ -511,15 +542,29 @@ private fun PlayerIconButton(
         contentDescription = description,
         onClick = onClick,
         enabled = enabled,
-        modifier = if (large) Modifier.size(64.dp) else Modifier,
+        modifier = if (large) Modifier.size(StreamCoreDimens.Mobile.Player.LargeControlSize) else Modifier,
     ) {
         if (icon == null) {
-            StreamCorePlayIcon(Modifier.size(if (large) 36.dp else 24.dp))
+            StreamCorePlayIcon(
+                Modifier.size(
+                    if (large) {
+                        StreamCoreDimens.Mobile.Player.LargeControlIconSize
+                    } else {
+                        StreamCoreDimens.Icon.Standard
+                    },
+                ),
+            )
         } else {
             Image(
                 painter = painterResource(icon),
                 contentDescription = null,
-                modifier = Modifier.size(if (large) 36.dp else 24.dp),
+                modifier = Modifier.size(
+                    if (large) {
+                        StreamCoreDimens.Mobile.Player.LargeControlIconSize
+                    } else {
+                        StreamCoreDimens.Icon.Standard
+                    },
+                ),
             )
         }
     }
@@ -537,7 +582,6 @@ private const val ControlsAnimationMillis = 200
 private const val OverlayAlpha = 0.68f
 private const val SeekIntervalMillis = 10_000L
 private const val ConstrainedWidthDp = 600
-private val TimelineActiveTrackHeight = 16.dp
 
 @Preview(widthDp = 800, heightDp = 360)
 @Composable
@@ -560,6 +604,6 @@ private fun MobilePlayerScreenPreview() {
 private object PreviewVideoSurface : PlaybackVideoSurface {
     @Composable
     override fun Render(modifier: Modifier) {
-        Box(modifier.background(Color.Black))
+        Box(modifier.background(MaterialTheme.colorScheme.playerSurface))
     }
 }

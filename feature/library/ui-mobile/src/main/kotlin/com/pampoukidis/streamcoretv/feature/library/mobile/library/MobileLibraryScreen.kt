@@ -378,10 +378,10 @@ private fun contentTag(content: ContentModel): String {
 }
 
 private val HeaderHeight = StreamCoreDimens.Icon.TouchTarget + StreamCoreDimens.Spacing.Small
-private val TitleSkeletonWidth = 132.dp
-private val TitleSkeletonHeight = 20.dp
-private val PosterSkeletonHeight = 180.dp
-private val LandscapeSkeletonHeight = 108.dp
+private val TitleSkeletonWidth = StreamCoreDimens.Mobile.Library.LoadingTitleWidth
+private val TitleSkeletonHeight = StreamCoreDimens.Mobile.Library.LoadingTitleHeight
+private val PosterSkeletonHeight = StreamCoreDimens.Mobile.Library.LoadingPosterHeight
+private val LandscapeSkeletonHeight = StreamCoreDimens.Mobile.Library.LoadingLandscapeHeight
 private const val LoadingCardCount = 3
 
 @PreviewMobile

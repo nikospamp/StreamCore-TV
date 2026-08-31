@@ -115,18 +115,29 @@ abstract class VerifyDesignTokensTask : DefaultTask() {
 
 val designTokenRootDir = layout.projectDirectory.asFile
 
-// FileTree inputs keep the verifier scoped to source files only.
-// This avoids depending on compile/resource task outputs while still letting
-// Gradle track changes incrementally.
+// Root each FileTree at an explicit production source set. The task therefore
+// receives individual Kotlin files without overlapping generated build outputs,
+// while Gradle still detects added/removed files incrementally.
+val designTokenSourceSetPaths = listOf(
+    "src/main/kotlin",
+    "src/main/java",
+    "src/commonMain/kotlin",
+    "src/androidMain/kotlin",
+    "src/wasmJsMain/kotlin",
+)
+val designTokenProjects = subprojects.filter { subproject ->
+    subproject.path == ":app" ||
+            subproject.path.startsWith(":core:") ||
+            subproject.path.startsWith(":feature:")
+}
 val designTokenSourceFiles = files(
-    fileTree("core") {
-        include("**/src/main/kotlin/**/*.kt")
-    },
-    fileTree("feature") {
-        include("**/src/main/kotlin/**/*.kt")
-    },
-    fileTree("app") {
-        include("**/src/main/kotlin/**/*.kt")
+    designTokenProjects.flatMap { subproject ->
+        designTokenSourceSetPaths.map { sourceSetPath ->
+            subproject.fileTree(sourceSetPath) {
+                include("**/*.kt")
+                exclude("**/build/**", "**/generated/**", "**/test/**", "**/androidTest/**")
+            }
+        }
     },
 )
 val allowedDesignTokenFiles = setOf(

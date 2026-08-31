@@ -83,7 +83,7 @@ internal fun TvProfileTile(
         modifier = modifier
             .size(
                 width = StreamCoreDimens.Tv.Profiles.TileWidth,
-                height = 184.dp,
+                height = StreamCoreDimens.Tv.Profiles.TileHeight,
             )
             .scale(scale)
             .semantics(mergeDescendants = true) {
@@ -101,7 +101,7 @@ internal fun TvProfileTile(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.AvatarSize + 12.dp),
+            modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.FocusContainerSize),
         ) {
             Surface(
                 shape = CircleShape,
@@ -152,7 +152,7 @@ internal fun TvProfileTile(
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = StreamCoreDimens.Stroke.Progress,
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.SelectionProgressSize),
                 )
             }
             TvProfileKidsChip(
@@ -187,7 +187,10 @@ private fun BoxScope.TvProfileKidsChip(
         tonalElevation = StreamCoreDimens.Elevation.Low,
         modifier = Modifier
             .align(Alignment.TopEnd)
-            .offset(x = (-4).dp, y = 2.dp)
+            .offset(
+                x = -StreamCoreDimens.Tv.Profiles.BadgeOffsetX,
+                y = StreamCoreDimens.Tv.Profiles.BadgeOffsetY,
+            )
             .testTag(ProfilesTestTags.KidsChipPrefix + profileId),
     ) {
         Text(
@@ -210,17 +213,22 @@ private fun BoxScope.TvProfileEditBadge(visible: Boolean) {
         exit = fadeOut() + scaleOut(),
         modifier = Modifier
             .align(Alignment.BottomEnd)
-            .offset(x = (-4).dp, y = (-2).dp),
+            .offset(
+                x = -StreamCoreDimens.Tv.Profiles.BadgeOffsetX,
+                y = -StreamCoreDimens.Tv.Profiles.BadgeOffsetY,
+            ),
     ) {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             tonalElevation = StreamCoreDimens.Elevation.Low,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.BadgeSize),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                StreamCoreEditIcon(modifier = Modifier.size(18.dp))
+                StreamCoreEditIcon(
+                    modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.EditIconSize),
+                )
             }
         }
     }

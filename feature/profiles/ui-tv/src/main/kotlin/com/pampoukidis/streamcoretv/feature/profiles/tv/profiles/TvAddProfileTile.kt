@@ -55,7 +55,7 @@ internal fun TvAddProfileTile(
         modifier = modifier
             .size(
                 width = StreamCoreDimens.Tv.Profiles.TileWidth,
-                height = 184.dp,
+                height = StreamCoreDimens.Tv.Profiles.TileHeight,
             )
             .scale(scale)
             .semantics(mergeDescendants = true) {
@@ -73,7 +73,7 @@ internal fun TvAddProfileTile(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.AvatarSize + 12.dp),
+            modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.FocusContainerSize),
         ) {
             Surface(
                 shape = CircleShape,
