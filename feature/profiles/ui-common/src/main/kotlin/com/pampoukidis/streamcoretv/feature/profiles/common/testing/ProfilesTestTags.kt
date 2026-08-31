@@ -14,8 +14,12 @@ object ProfilesTestTags {
     const val EditorAvatarDialog = "profiles:editor:avatar-dialog"
     const val EditorAvatarOptionPrefix = "profiles:editor:avatar-option:"
     const val EditorDisplayNameField = "profiles:editor:display-name"
+    const val EditorParentalLevelOptionPrefix = "profiles:editor:parental-level:"
+    const val EditorCancelButton = "profiles:editor:cancel"
     const val EditorKidsSwitch = "profiles:editor:kids-switch"
     const val EditorSubmitButton = "profiles:editor:submit"
     const val EditorDeleteButton = "profiles:editor:delete"
+    const val EditorDeleteConfirmation = "profiles:editor:delete-confirmation"
+    const val EditorCancelDeleteButton = "profiles:editor:cancel-delete"
     const val KidsChipPrefix = "profiles:kids-chip:"
 }

@@ -19,6 +19,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiS
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,6 +27,11 @@ class TvProfilesScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Before
+    fun clearFocusRestoration() {
+        TvProfilesFocusRestorationStore.clear()
+    }
 
     @Test
     fun selectionMode_initialProfileIsFocusedAndClickDispatchesSelection() {
@@ -138,6 +144,41 @@ class TvProfilesScreenTest {
             .performClick()
 
         assertEquals(1, createClicks)
+    }
+
+    @Test
+    fun deletedProfileRestoresFocusToNextProfileAtSameIndex() {
+        val deletedProfile = ProfilesPreviewData.profiles[1]
+        val nextProfile = ProfilesPreviewData.profiles[2]
+        TvProfilesFocusRestorationStore.prepare(
+            profileId = deletedProfile.id,
+            profileIndex = 1,
+        )
+
+        setScreen(
+            state = contentState.copy(
+                profiles = ProfilesPreviewData.profiles.filterNot { it.id == deletedProfile.id },
+            ),
+        )
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.ProfileCardPrefix + nextProfile.id)
+            .assertIsFocused()
+    }
+
+    @Test
+    fun deletingOnlyProfileRestoresFocusToAddProfile() {
+        val deletedProfile = ProfilesPreviewData.profiles.first()
+        TvProfilesFocusRestorationStore.prepare(
+            profileId = deletedProfile.id,
+            profileIndex = 0,
+        )
+
+        setScreen(state = contentState.copy(profiles = emptyList()))
+
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.AddProfileButton)
+            .assertIsFocused()
     }
 
     @Test

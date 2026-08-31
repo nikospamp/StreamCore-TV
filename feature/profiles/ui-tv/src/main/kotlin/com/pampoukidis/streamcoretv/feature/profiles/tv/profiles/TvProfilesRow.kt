@@ -25,13 +25,22 @@ internal fun TvProfilesRow(
     onSelectProfile: (String) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
+    initialFocusTarget: TvProfilesFocusTarget?,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val initialFocusRequester = remember { FocusRequester() }
-    val firstProfileId = profiles.firstOrNull()?.id
+    val initialProfileIndex = initialFocusTarget?.let { target ->
+        val matchingIndex = profiles.indexOfFirst { it.id == target.profileId }
+        if (matchingIndex >= 0) {
+            matchingIndex
+        } else {
+            target.profileIndex.coerceIn(0, profiles.lastIndex.coerceAtLeast(0))
+        }
+    } ?: 0
+    val initialFocusKey = profiles.getOrNull(initialProfileIndex)?.id ?: AddProfileFocusKey
 
-    LaunchedEffect(firstProfileId, interactionsEnabled) {
+    LaunchedEffect(initialFocusKey, interactionsEnabled) {
         if (interactionsEnabled) {
             initialFocusRequester.requestFocus()
         }
@@ -61,10 +70,14 @@ internal fun TvProfilesRow(
                     if (mode == ProfilesMode.Selection) {
                         onSelectProfile(profile.id)
                     } else {
+                        TvProfilesFocusRestorationStore.prepare(
+                            profileId = profile.id,
+                            profileIndex = index,
+                        )
                         onEditProfile(profile.id)
                     }
                 },
-                modifier = if (index == 0) {
+                modifier = if (index == initialProfileIndex) {
                     Modifier.focusRequester(initialFocusRequester)
                 } else {
                     Modifier
@@ -87,3 +100,5 @@ internal fun TvProfilesRow(
         }
     }
 }
+
+private const val AddProfileFocusKey = "add-profile"
