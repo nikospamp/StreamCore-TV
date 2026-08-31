@@ -256,6 +256,16 @@ object StreamCoreDimens {
             val RecommendationCardWidth = 248.dp
         }
 
+        object Player {
+            val FilmstripFocusedFrameWidth = 176.dp
+            val FilmstripFrameWidth = 144.dp
+            val FilmstripFocusedFrameHeight = 100.dp
+            val FilmstripFrameHeight = 84.dp
+            val SettingsPanelWidth = 560.dp
+            val SettingsPanelMaxHeight = 760.dp
+            val ErrorMaxWidth = 520.dp
+        }
+
         object Profiles {
             val AvatarSize = 128.dp
             val TileWidth = 168.dp

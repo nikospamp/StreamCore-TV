@@ -7,6 +7,7 @@ sealed interface PlayerAction {
     data class Load(val request: PlaybackRequestModel, val isPipSupported: Boolean) : PlayerAction
     data object BackSelected : PlayerAction
     data object ToggleControls : PlayerAction
+    data object UserInteraction : PlayerAction
     data object TogglePlayPause : PlayerAction
     data class SeekBy(val deltaMillis: Long, val showFeedback: Boolean = false) : PlayerAction
     data object ScrubStarted : PlayerAction

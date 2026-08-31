@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +68,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -98,15 +100,19 @@ fun TvDetailsScreen(
         playFocusRequester,
         likeFocusRequester,
         myListFocusRequester,
+        trailerFocusRequester,
         recommendationsFocusRequester,
         actionsFocusRequester,
     ) = remember { FocusRequester.createRefs() }
     val contentId = state.content?.id
 
-    LaunchedEffect(contentId) {
+    LifecycleResumeEffect(contentId) {
         if (contentId == null) {
             backFocusRequester.requestFocus()
+        } else {
+            playFocusRequester.requestFocus()
         }
+        onPauseOrDispose { }
     }
 
     Surface(
@@ -141,6 +147,7 @@ fun TvDetailsScreen(
                     backFocusRequester = backFocusRequester,
                     playFocusRequester = playFocusRequester,
                     actionsFocusRequester = actionsFocusRequester,
+                    trailerFocusRequester = trailerFocusRequester,
                     likeFocusRequester = likeFocusRequester,
                     myListFocusRequester = myListFocusRequester,
                     recommendationsFocusRequester = recommendationsFocusRequester,
@@ -213,6 +220,7 @@ private fun DetailsBody(
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     actionsFocusRequester: FocusRequester,
+    trailerFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
     recommendationsFocusRequester: FocusRequester,
@@ -249,6 +257,7 @@ private fun DetailsBody(
                     backFocusRequester = backFocusRequester,
                     playFocusRequester = playFocusRequester,
                     actionsFocusRequester = actionsFocusRequester,
+                    trailerFocusRequester = trailerFocusRequester,
                     likeFocusRequester = likeFocusRequester,
                     myListFocusRequester = myListFocusRequester,
                     recommendationsFocusRequester = recommendationsFocusRequester,
@@ -276,6 +285,7 @@ private fun SummarySection(
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     actionsFocusRequester: FocusRequester,
+    trailerFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
     recommendationsFocusRequester: FocusRequester,
@@ -301,6 +311,7 @@ private fun SummarySection(
             backFocusRequester = backFocusRequester,
             playFocusRequester = playFocusRequester,
             actionsFocusRequester = actionsFocusRequester,
+            trailerFocusRequester = trailerFocusRequester,
             likeFocusRequester = likeFocusRequester,
             myListFocusRequester = myListFocusRequester,
             recommendationsFocusRequester = recommendationsFocusRequester,
@@ -347,6 +358,7 @@ private fun DetailsMetadata(
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     actionsFocusRequester: FocusRequester,
+    trailerFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
     recommendationsFocusRequester: FocusRequester,
@@ -399,6 +411,7 @@ private fun DetailsMetadata(
         DetailsActions(
             contentId = content.id,
             hasResumableProgress = state.hasResumableProgress,
+            hasTrailer = content.trailers.isNotEmpty(),
             isLibraryAvailable = state.isLibraryAvailable,
             isLiked = state.isLiked,
             isInMyList = state.isInMyList,
@@ -408,10 +421,12 @@ private fun DetailsMetadata(
             backFocusRequester = backFocusRequester,
             playFocusRequester = playFocusRequester,
             actionsFocusRequester = actionsFocusRequester,
+            trailerFocusRequester = trailerFocusRequester,
             likeFocusRequester = likeFocusRequester,
             myListFocusRequester = myListFocusRequester,
             recommendationsFocusRequester = recommendationsFocusRequester,
             onPlayClick = { onAction(DetailsAction.PlaySelected) },
+            onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
             onLikeClick = { onAction(DetailsAction.LikeToggled) },
             onMyListClick = { onAction(DetailsAction.MyListToggled) },
         )
@@ -438,6 +453,7 @@ private fun DetailsMetadata(
 private fun DetailsActions(
     contentId: String,
     hasResumableProgress: Boolean,
+    hasTrailer: Boolean,
     isLibraryAvailable: Boolean,
     isLiked: Boolean,
     isInMyList: Boolean,
@@ -447,10 +463,12 @@ private fun DetailsActions(
     backFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     actionsFocusRequester: FocusRequester,
+    trailerFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
     recommendationsFocusRequester: FocusRequester,
     onPlayClick: () -> Unit,
+    onTrailerClick: () -> Unit,
     onLikeClick: () -> Unit,
     onMyListClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -487,11 +505,34 @@ private fun DetailsActions(
                 .focusProperties {
                     up = backFocusRequester
                     left = FocusRequester.Cancel
-                    right = if (isLibraryAvailable) likeFocusRequester else FocusRequester.Cancel
+                    right = when {
+                        hasTrailer -> trailerFocusRequester
+                        isLibraryAvailable -> likeFocusRequester
+                        else -> FocusRequester.Cancel
+                    }
                     down = downFocusRequester
                 }
                 .testTag(DetailsTestTags.PlayButton),
         )
+        if (hasTrailer) {
+            StreamCoreTvButton(
+                text = stringResource(R.string.details_action_trailer),
+                onClick = onTrailerClick,
+                enabled = true,
+                variant = StreamCoreTvButtonVariant.Secondary,
+                leadingIcon = { StreamCoreTrailerIcon() },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(trailerFocusRequester)
+                    .focusProperties {
+                        up = backFocusRequester
+                        left = playFocusRequester
+                        right = if (isLibraryAvailable) likeFocusRequester else FocusRequester.Cancel
+                        down = downFocusRequester
+                    }
+                    .testTag(DetailsTestTags.TrailerAction),
+            )
+        }
         DetailsLibraryButton(
             label = stringResource(
                 if (isLiked) R.string.details_action_liked else R.string.details_action_like,
@@ -509,7 +550,7 @@ private fun DetailsActions(
                 .focusProperties {
                     canFocus = isLibraryAvailable
                     up = backFocusRequester
-                    left = playFocusRequester
+                    left = if (hasTrailer) trailerFocusRequester else playFocusRequester
                     right = myListFocusRequester
                     down = downFocusRequester
                 }
