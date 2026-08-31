@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
@@ -53,6 +54,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
@@ -314,12 +316,14 @@ private fun DetailsMetadata(
                 )
                 DetailsActions(
                     hasResumableProgress = state.hasResumableProgress,
+                    isTrailerAvailable = content.trailers.isNotEmpty(),
                     isLibraryAvailable = state.isLibraryAvailable,
                     isLiked = state.isLiked,
                     isInMyList = state.isInMyList,
                     isLikeMutationPending = state.isLikeMutationPending,
                     isMyListMutationPending = state.isMyListMutationPending,
                     onPlayClick = { onAction(DetailsAction.PlaySelected) },
+                    onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
                     onLikeClick = { onAction(DetailsAction.LikeToggled) },
                     onMyListClick = { onAction(DetailsAction.MyListToggled) },
                 )
@@ -342,12 +346,14 @@ private fun DetailsMetadata(
 @Composable
 private fun DetailsActions(
     hasResumableProgress: Boolean,
+    isTrailerAvailable: Boolean,
     isLibraryAvailable: Boolean,
     isLiked: Boolean,
     isInMyList: Boolean,
     isLikeMutationPending: Boolean,
     isMyListMutationPending: Boolean,
     onPlayClick: () -> Unit,
+    onTrailerClick: () -> Unit,
     onLikeClick: () -> Unit,
     onMyListClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -408,6 +414,18 @@ private fun DetailsActions(
                     .testTag(DetailsTestTags.MyListAction),
             ) {
                 StreamCoreBookmarkIcon(filled = isInMyList)
+            }
+            if (isTrailerAvailable) {
+                StreamCoreButton(
+                    text = stringResource(R.string.details_action_trailer),
+                    onClick = onTrailerClick,
+                    enabled = true,
+                    variant = StreamCoreButtonVariant.Secondary,
+                    leadingIcon = { StreamCoreTrailerIcon() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(DetailsTestTags.TrailerAction),
+                )
             }
         }
     }
@@ -632,6 +650,30 @@ private fun TabletDetailsScreenUnavailableActionsPreview() {
                 content = DetailsPreviewData.content,
                 recommendations = DetailsPreviewData.recommendations,
                 isLibraryAvailable = false,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTablet
+@Composable
+private fun TabletDetailsScreenTrailerPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TabletDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content.copy(
+                    trailers = listOf(
+                        TrailerModel(
+                            id = "official-trailer",
+                            title = "Official trailer",
+                            url = "https://example.test/trailer",
+                        ),
+                    ),
+                ),
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
             ),
             onAction = {},
         )

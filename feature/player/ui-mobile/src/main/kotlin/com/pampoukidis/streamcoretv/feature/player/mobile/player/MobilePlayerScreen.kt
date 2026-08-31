@@ -601,6 +601,31 @@ private fun MobilePlayerScreenPreview() {
     }
 }
 
+@Preview(
+    name = "Tablet landscape",
+    widthDp = 1024,
+    heightDp = 600,
+    showBackground = true,
+)
+@Composable
+private fun MobilePlayerScreenTabletPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        MobilePlayerScreen(
+            state = PlayerUiState(
+                title = "Sintel",
+                phase = PlaybackPhase.Ready,
+                isPlaying = true,
+                durationMillis = 888_000L,
+                positionMillis = 321_000L,
+                bufferedPositionMillis = 480_000L,
+                isPipSupported = true,
+            ),
+            videoSurface = PreviewVideoSurface,
+            onAction = {},
+        )
+    }
+}
+
 private object PreviewVideoSurface : PlaybackVideoSurface {
     @Composable
     override fun Render(modifier: Modifier) {

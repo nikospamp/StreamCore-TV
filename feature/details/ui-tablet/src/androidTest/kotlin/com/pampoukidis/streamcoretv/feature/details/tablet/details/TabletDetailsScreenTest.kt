@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -44,6 +45,34 @@ class TabletDetailsScreenTest {
 
         state = state.copy(hasResumableProgress = true)
         composeRule.onNodeWithText("Resume").assertExists()
+        actions.clear()
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).performClick()
+        assertEquals(listOf(DetailsAction.PlaySelected), actions)
+    }
+
+    @Test
+    fun trailerActionRendersOnlyWhenAvailableAndDispatchesExactlyOnce() {
+        val actions = mutableListOf<DetailsAction>()
+        var state by mutableStateOf(contentState())
+
+        setContent(stateProvider = { state }, actions = actions)
+
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).assertDoesNotExist()
+
+        state = state.copy(
+            content = state.content?.copy(
+                trailers = listOf(
+                    TrailerModel(
+                        id = "official-trailer",
+                        title = "Official trailer",
+                        url = "https://example.test/trailer",
+                    ),
+                ),
+            ),
+        )
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).performClick()
+
+        assertEquals(listOf(DetailsAction.TrailerSelected), actions)
     }
 
     @Test
