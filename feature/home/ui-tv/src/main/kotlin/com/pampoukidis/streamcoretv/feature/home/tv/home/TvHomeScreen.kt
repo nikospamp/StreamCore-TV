@@ -36,7 +36,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
@@ -506,8 +505,8 @@ private fun TvHomeLoadingContent() {
         )
         Box(
             modifier = Modifier
-                .width(180.dp)
-                .height(24.dp)
+                .width(StreamCoreDimens.Tv.Loading.TitleWidth)
+                .height(StreamCoreDimens.Tv.Loading.TitleHeight)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         )

@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
@@ -127,7 +125,7 @@ private fun ProfilesTopBar(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(StreamCoreDimens.Mobile.Profiles.HeaderHeight)
             .padding(horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding),
     ) {
         Text(
@@ -142,7 +140,9 @@ private fun ProfilesTopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 76.dp),
+            modifier = Modifier.padding(
+                horizontal = StreamCoreDimens.Mobile.Profiles.HeaderSideClearance,
+            ),
         )
         if (showAction) {
             StreamCoreTextButton(
@@ -174,7 +174,7 @@ private fun ProfilesLoadingGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(
             top = StreamCoreDimens.Spacing.Small,
-            bottom = 32.dp,
+            bottom = StreamCoreDimens.Mobile.Profiles.GridBottomPadding,
         ),
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
@@ -191,7 +191,7 @@ private fun ProfilesLoadingGrid(
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(148.dp),
+                    .height(StreamCoreDimens.Mobile.Profiles.TileHeight),
             ) {
                 Box(
                     modifier = Modifier
@@ -201,8 +201,11 @@ private fun ProfilesLoadingGrid(
                 )
                 Box(
                     modifier = Modifier
-                        .size(width = 72.dp, height = 14.dp)
-                        .clip(RoundedCornerShape(7.dp))
+                        .size(
+                            width = StreamCoreDimens.Mobile.Profiles.LoadingLabelWidth,
+                            height = StreamCoreDimens.Mobile.Profiles.LoadingLabelHeight,
+                        )
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 )
             }

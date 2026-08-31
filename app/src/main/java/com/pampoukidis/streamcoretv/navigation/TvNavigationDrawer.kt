@@ -40,7 +40,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -62,6 +61,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLibraryIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePersonIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreMotionDurations
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
@@ -90,7 +90,7 @@ internal fun TvNavigationDrawer(
             colors = listOf(
                 MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
                 MaterialTheme.colorScheme.scrim.copy(alpha = 0.36f),
-                Color.Transparent,
+                MaterialTheme.colorScheme.transparentContainer,
             ),
         ),
         drawerContent = { drawerValue ->
@@ -297,7 +297,7 @@ private fun TvDrawerItem(
     val containerColor = when {
         isFocused -> MaterialTheme.colorScheme.surfaceContainerHighest
         selected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
-        else -> Color.Transparent
+        else -> MaterialTheme.colorScheme.transparentContainer
     }
     val contentColor = when {
         isFocused || selected -> MaterialTheme.colorScheme.primary

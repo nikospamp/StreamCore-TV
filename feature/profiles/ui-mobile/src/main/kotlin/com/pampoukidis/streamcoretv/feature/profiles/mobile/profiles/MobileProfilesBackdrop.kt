@@ -19,12 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import kotlin.math.max
 
@@ -119,7 +119,7 @@ internal fun MobileProfilesBackdrop(
             )
             val lowerDepth = Brush.verticalGradient(
                 colors = listOf(
-                    Color.Transparent,
+                    colors.transparentContainer,
                     colors.surfaceContainerLowest.copy(alpha = lowerDepthAlpha),
                 ),
                 startY = size.height * LowerDepthStartY,

@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
@@ -76,7 +75,7 @@ private fun MobileAvatarPickerDialogContent(
         tonalElevation = StreamCoreDimens.Elevation.Medium,
         modifier = modifier
             .fillMaxWidth(0.9f)
-            .widthIn(max = AvatarPickerMaxWidth)
+            .widthIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerMaxWidth)
             .testTag(ProfilesTestTags.EditorAvatarDialog),
     ) {
         Column(
@@ -108,7 +107,7 @@ private fun MobileAvatarPickerDialogContent(
                 verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = AvatarPickerGridMaxHeight),
+                    .heightIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerGridMaxHeight),
             ) {
                 itemsIndexed(
                     items = avatars,
@@ -164,7 +163,7 @@ private fun AvatarPickerItem(
             } else {
                 null
             },
-            modifier = Modifier.size(AvatarPickerItemSize),
+            modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.AvatarPickerItemSize),
         ) {
             StreamCoreProfileArtwork(
                 avatar = avatar,
@@ -179,8 +178,11 @@ private fun AvatarPickerItem(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = SelectedBadgeOffset, y = SelectedBadgeOffset)
-                    .size(SelectedBadgeSize),
+                    .offset(
+                        x = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+                        y = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+                    )
+                    .size(StreamCoreDimens.Mobile.Profiles.SelectedBadgeSize),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     StreamCoreCheckIcon(modifier = Modifier.size(StreamCoreDimens.Icon.Small))
@@ -212,8 +214,3 @@ private fun MobileAvatarPickerDialogPreview() {
 
 private const val AvatarPickerColumnCount = 4
 private const val AvatarContentType = "avatar"
-private val AvatarPickerMaxWidth = 400.dp
-private val AvatarPickerGridMaxHeight = 420.dp
-private val AvatarPickerItemSize = 64.dp
-private val SelectedBadgeSize = 22.dp
-private val SelectedBadgeOffset = 2.dp

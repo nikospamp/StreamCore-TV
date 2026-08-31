@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
@@ -343,7 +344,7 @@ private fun SettingsNavigationRow(
 ) {
     Surface(
         onClick = onClick,
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.transparentContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxWidth()
@@ -511,7 +512,7 @@ private fun SelectionRow(
     val containerColor = if (selected) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = SelectedRowAlpha)
     } else {
-        Color.Transparent
+        MaterialTheme.colorScheme.transparentContainer
     }
     val contentColor = if (selected) {
         MaterialTheme.colorScheme.onPrimaryContainer
@@ -604,12 +605,12 @@ private const val SettingsScrimAlpha = 0.46f
 private const val SettingsDividerAlpha = 0.5f
 private const val SettingsIconContainerAlpha = 0.72f
 private const val SelectedRowAlpha = 0.72f
-private val SettingsHeaderHeight = 96.dp
-private val SettingsRowHeight = 72.dp
-private val SettingsSelectionRowHeight = 68.dp
-private val SettingsIconContainerSize = 40.dp
-private val SettingsIconSize = 24.dp
-private val SettingsDividerStartPadding = 80.dp
+private val SettingsHeaderHeight = StreamCoreDimens.Mobile.Player.SettingsHeaderHeight
+private val SettingsRowHeight = StreamCoreDimens.Mobile.Player.SettingsRowHeight
+private val SettingsSelectionRowHeight = StreamCoreDimens.Mobile.Player.SettingsSelectionRowHeight
+private val SettingsIconContainerSize = StreamCoreDimens.Mobile.Player.SettingsIconContainerSize
+private val SettingsIconSize = StreamCoreDimens.Mobile.Player.SettingsIconSize
+private val SettingsDividerStartPadding = StreamCoreDimens.Mobile.Player.SettingsDividerStartPadding
 private val PlaybackSpeedOptions = listOf(
     "0.5×" to 0.5f,
     "0.75×" to 0.75f,

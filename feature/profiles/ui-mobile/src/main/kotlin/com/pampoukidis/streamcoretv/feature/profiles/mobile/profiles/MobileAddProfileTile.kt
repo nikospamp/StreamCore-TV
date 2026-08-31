@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreAddIcon
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -56,7 +55,10 @@ internal fun MobileAddProfileTile(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minWidth = 136.dp, minHeight = 148.dp)
+            .defaultMinSize(
+                minWidth = StreamCoreDimens.Mobile.Profiles.TileMinWidth,
+                minHeight = StreamCoreDimens.Mobile.Profiles.TileHeight,
+            )
             .semantics(mergeDescendants = true) {
                 contentDescription = "Add profile"
             }

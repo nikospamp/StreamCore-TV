@@ -42,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
@@ -82,7 +81,10 @@ internal fun MobileProfileTile(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minWidth = 136.dp, minHeight = 148.dp)
+            .defaultMinSize(
+                minWidth = StreamCoreDimens.Mobile.Profiles.TileMinWidth,
+                minHeight = StreamCoreDimens.Mobile.Profiles.TileHeight,
+            )
             .semantics(mergeDescendants = true) {
                 contentDescription = semanticLabel
             }
@@ -139,7 +141,7 @@ internal fun MobileProfileTile(
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = StreamCoreDimens.Stroke.Progress,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.SelectionProgressSize),
                 )
             }
             ProfileKidsChip(
@@ -174,7 +176,10 @@ private fun BoxScope.ProfileKidsChip(
         shadowElevation = StreamCoreDimens.Elevation.Low,
         modifier = Modifier
             .align(Alignment.TopEnd)
-            .offset(x = 8.dp, y = (-4).dp)
+            .offset(
+                x = StreamCoreDimens.Mobile.Profiles.TileActionOffsetX,
+                y = -StreamCoreDimens.Mobile.Profiles.TileActionOffsetY,
+            )
             .testTag(ProfilesTestTags.KidsChipPrefix + profileId),
     ) {
         Text(
@@ -197,17 +202,22 @@ private fun BoxScope.ProfileEditBadge(visible: Boolean) {
         exit = fadeOut() + scaleOut(),
         modifier = Modifier
             .align(Alignment.BottomEnd)
-            .offset(x = 2.dp, y = 2.dp),
+            .offset(
+                x = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+                y = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
+            ),
     ) {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             shadowElevation = StreamCoreDimens.Elevation.Low,
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.TileActionSize),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                StreamCoreEditIcon(modifier = Modifier.size(16.dp))
+                StreamCoreEditIcon(
+                    modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.TileEditIconSize),
+                )
             }
         }
     }

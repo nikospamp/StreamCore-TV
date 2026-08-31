@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -93,7 +92,7 @@ internal fun StreamCoreNavHost(
     val currentTopLevelProfileId = currentBackStackEntry?.topLevelProfileId()
     val mobileBottomContentPadding = WindowInsets.navigationBars
         .asPaddingValues()
-        .calculateBottomPadding() + MobileBottomContentClearance
+        .calculateBottomPadding() + StreamCoreDimens.Mobile.Navigation.BottomContentClearance
     var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
     var selectedContentKey by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedProfile by remember { mutableStateOf<ProfileModel?>(null) }
@@ -599,7 +598,6 @@ private fun ContentModel.withSourceRow(sourceRow: String?): ContentModel {
 
 private const val TopLevelTransitionMillis = 180
 private const val MobileBarVisibilityMillis = 160
-private val MobileBottomContentClearance = 108.dp
 
 internal fun startDestinationForAuthState(
     authState: AuthStateModel,

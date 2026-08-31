@@ -13,3 +13,27 @@ val ColorScheme.onArtwork: Color
     get() {
         return Color.White
     }
+
+/** Fully transparent container role for controls, gradients, and overlays. */
+val ColorScheme.transparentContainer: Color
+    get() {
+        return Color.Transparent
+    }
+
+/** Opaque video-player background and overlay base. */
+val ColorScheme.playerSurface: Color
+    get() {
+        return Color.Black
+    }
+
+/** Foreground content rendered over [playerSurface]. */
+val ColorScheme.onPlayerSurface: Color
+    get() {
+        return Color.White
+    }
+
+/** Placeholder shown while a player filmstrip frame is unavailable. */
+val ColorScheme.playerThumbnailPlaceholder: Color
+    get() {
+        return Color.DarkGray
+    }
