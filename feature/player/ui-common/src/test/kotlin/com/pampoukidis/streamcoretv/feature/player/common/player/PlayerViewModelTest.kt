@@ -284,6 +284,34 @@ class PlayerViewModelTest {
         assertFalse(subject.uiState.value.controlsVisible)
     }
 
+    @Test
+    fun `explicit user interaction restarts controls auto hide`() = runTest {
+        val factory = FakeSessionFactory()
+        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+        factory.sessions.single().emit(
+            PlaybackEngineState(
+                phase = PlaybackPhase.Ready,
+                isPlaying = true,
+                durationMillis = 100_000L,
+            ),
+        )
+        runCurrent()
+
+        advanceTimeBy(9_000L)
+        subject.onAction(PlayerAction.UserInteraction)
+        advanceTimeBy(9_000L)
+        runCurrent()
+
+        assertTrue(subject.uiState.value.controlsVisible)
+
+        advanceTimeBy(1_000L)
+        runCurrent()
+
+        assertFalse(subject.uiState.value.controlsVisible)
+    }
+
     private fun request(): PlaybackRequestModel {
         return PlaybackRequestModel("profile", "content", content())
     }

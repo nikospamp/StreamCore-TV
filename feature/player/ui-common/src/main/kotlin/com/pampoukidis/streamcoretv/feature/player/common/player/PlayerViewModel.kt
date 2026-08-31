@@ -63,6 +63,7 @@ class PlayerViewModel @Inject constructor(
             is PlayerAction.Load -> load(action.request, action.isPipSupported)
             PlayerAction.BackSelected -> back()
             PlayerAction.ToggleControls -> toggleControls()
+            PlayerAction.UserInteraction -> userInteraction()
             PlayerAction.TogglePlayPause -> togglePlayPause()
             is PlayerAction.SeekBy -> seekBy(action.deltaMillis, action.showFeedback)
             PlayerAction.ScrubStarted -> startScrubbing()
@@ -188,6 +189,13 @@ class PlayerViewModel @Inject constructor(
 
     private fun toggleControls() {
         _uiState.update { state -> state.copy(controlsVisible = !state.controlsVisible) }
+        scheduleControlsHideIfEligible()
+    }
+
+    private fun userInteraction() {
+        controlsJob?.cancel()
+        controlsJob = null
+        _uiState.update { state -> state.copy(controlsVisible = true) }
         scheduleControlsHideIfEligible()
     }
 

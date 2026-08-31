@@ -13,12 +13,14 @@ import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRouteE
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 
 @Composable
 fun TvDetailsRoute(
     profileId: String,
     contentId: String,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
@@ -46,7 +48,7 @@ fun TvDetailsRoute(
     DetailsRouteEventEffect(
         viewModel = viewModel,
         onRecommendationSelected = onRecommendationSelected,
-        onPlaySelected = {},
+        onPlaySelected = onPlaySelected,
         onBack = onBack,
         onError = onError,
     )

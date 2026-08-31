@@ -2,6 +2,7 @@
 <resources>
     <string name="details_action_play">Play</string>
     <string name="details_action_resume">Resume</string>
+    <string name="details_action_trailer">Trailer</string>
     <string name="details_action_like">Like</string>
     <string name="details_action_liked">Liked</string>
     <string name="details_action_my_list">My List</string>

@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
+import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -62,6 +63,42 @@ class TvDetailsScreenTest {
 
         composeRule.onNodeWithText("Resume").assertExists()
         composeRule.onNodeWithTag(DetailsTestTags.PlayButton).assertIsFocused()
+    }
+
+    @Test
+    fun trailerIsShownOnlyWhenAvailableAndDispatchesExactlyOnce() {
+        val actions = mutableListOf<DetailsAction>()
+
+        setContent(
+            stateProvider = {
+                contentState().copy(
+                    content = contentState().content?.copy(
+                        trailers = listOf(
+                            TrailerModel(
+                                id = "trailer-1",
+                                title = "Official trailer",
+                                url = "https://example.com/trailer",
+                            ),
+                        ),
+                    ),
+                )
+            },
+            actions = actions,
+        )
+
+        composeRule.onNodeWithTag(DetailsTestTags.PlayButton).press(Key.DirectionRight)
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction)
+            .assertIsFocused()
+            .press(Key.Enter)
+
+        assertEquals(listOf(DetailsAction.TrailerSelected), actions)
+    }
+
+    @Test
+    fun trailerIsAbsentWhenContentHasNoTrailer() {
+        setContent(stateProvider = ::contentState)
+
+        composeRule.onNodeWithTag(DetailsTestTags.TrailerAction).assertDoesNotExist()
     }
 
     @Test
