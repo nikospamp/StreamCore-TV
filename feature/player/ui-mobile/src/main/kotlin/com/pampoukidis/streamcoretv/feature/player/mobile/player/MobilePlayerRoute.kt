@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Looper
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -14,7 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -29,6 +37,8 @@ import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerRouteEven
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun MobilePlayerRoute(
@@ -37,29 +47,82 @@ fun MobilePlayerRoute(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val activity = context.findActivity()
     val lifecycleOwner = LocalLifecycleOwner.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val videoSurface by viewModel.videoSurface.collectAsStateWithLifecycle()
     val isPipSupported = rememberPipSupport(context)
+    val currentBack by rememberUpdatedState(onBack)
+    var explicitExitPending by remember(activity) { mutableStateOf(false) }
+    val currentConfigurationOrientation by rememberUpdatedState(configuration.orientation)
+
+    val windowSession = remember(activity) {
+        activity?.let { currentActivity ->
+            MobilePlayerWindowSession(
+                sourceConfigurationOrientation = configuration.orientation,
+                previousRequestedOrientation = currentActivity.requestedOrientation,
+                requestOrientation = { orientation ->
+                    check(Looper.myLooper() == Looper.getMainLooper())
+                    currentActivity.requestedOrientation = orientation
+                },
+            )
+        }
+    }
+    val exitCoordinator = remember(activity, windowSession) {
+        MobilePlayerExitCoordinator(
+            disableAutoEnterPip = {
+                if (activity != null && isPipSupported && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    activity.setPictureInPictureParams(pipParams(autoEnter = false))
+                }
+            },
+            restoreOrientation = { windowSession?.restoreOrientation() },
+            onExitStarted = { explicitExitPending = true },
+            navigateBack = { currentBack() },
+        )
+    }
 
     LaunchedEffect(request, viewModel, isPipSupported) {
         viewModel.onAction(PlayerAction.Load(request, isPipSupported))
     }
 
-    DisposableEffect(activity) {
+    DisposableEffect(activity, windowSession) {
         if (activity == null) {
             return@DisposableEffect onDispose {}
         }
-        val previousOrientation = activity.requestedOrientation
         val controller = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
         activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
         onDispose {
-            activity.requestedOrientation = previousOrientation
+            windowSession?.restoreOrientation()
             controller.show(WindowInsetsCompat.Type.systemBars())
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    LaunchedEffect(exitCoordinator, explicitExitPending) {
+        if (!explicitExitPending) {
+            return@LaunchedEffect
+        }
+
+        val sourceOrientation = windowSession?.sourceConfigurationOrientation
+        if (!requiresOrientationSettlement(sourceOrientation, currentConfigurationOrientation)) {
+            withFrameNanos { }
+            exitCoordinator.configurationSettled()
+            return@LaunchedEffect
+        }
+
+        val settled = withTimeoutOrNull(OrientationSettlementTimeoutMillis) {
+            snapshotFlow { currentConfigurationOrientation }
+                .first { orientation -> orientation == sourceOrientation }
+            withFrameNanos { }
+            true
+        } == true
+        if (settled) {
+            exitCoordinator.configurationSettled()
+        } else {
+            exitCoordinator.timeout()
         }
     }
 
@@ -92,13 +155,13 @@ fun MobilePlayerRoute(
         onDispose {}
     }
 
-    DisposableEffect(activity, state.isPlaying, isPipSupported) {
+    DisposableEffect(activity, state.isPlaying, isPipSupported, explicitExitPending) {
         if (activity != null && isPipSupported && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             activity.setPictureInPictureParams(
                 pipParams(
                     autoEnter = MobilePipPolicy.shouldEnableAutoEnter(
                         apiLevel = Build.VERSION.SDK_INT,
-                        isPlaying = state.isPlaying,
+                        isPlaying = state.isPlaying && !explicitExitPending,
                     ),
                 ),
             )
@@ -124,7 +187,7 @@ fun MobilePlayerRoute(
 
     PlayerRouteEventEffect(
         viewModel = viewModel,
-        onBack = onBack,
+        onBack = { exitCoordinator.requestExit() },
         onEnterPictureInPicture = {
             if (activity != null && MobilePipPolicy.supportsExplicitEntry(Build.VERSION.SDK_INT)) {
                 activity.enterPictureInPictureMode(pipParams(autoEnter = false))
@@ -140,6 +203,8 @@ fun MobilePlayerRoute(
         onAction = viewModel::onAction,
     )
 }
+
+private const val OrientationSettlementTimeoutMillis = 1_500L
 
 @Composable
 private fun rememberPipSupport(context: Context): Boolean {

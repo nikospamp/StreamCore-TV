@@ -1,5 +1,9 @@
 package com.pampoukidis.streamcoretv.feature.home.common.home
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkCounter
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkTrace
+import com.pampoukidis.streamcoretv.core.tracing.BenchmarkTracingEnabled
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
@@ -40,6 +44,7 @@ class HomeViewModel @Inject constructor(
     private var progressJob: Job? = null
     private var backendRows: List<RowModel> = emptyList()
     private var progressEntries: List<PlaybackProgressEntryModel> = emptyList()
+    private var publicationGeneration = 0
 
     fun onAction(action: HomeAction) {
         when (action) {
@@ -58,10 +63,14 @@ class HomeViewModel @Inject constructor(
         }
 
         activeProfileId = profileId
+        if (BenchmarkTracingEnabled) {
+            publicationGeneration += 1
+            benchmarkCounter("SC.Home.publicationGeneration", publicationGeneration)
+        }
         observeProgress(profileId)
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            publish("loading") { state -> state.copy(isLoading = true) }
 
             when (val result = loadHomeRows(profileId)) {
                 is AppResult.Success -> {
@@ -70,8 +79,8 @@ class HomeViewModel @Inject constructor(
                     }
 
                     backendRows = result.value
-                    _uiState.update {
-                        it.copy(
+                    publish("backend") { state ->
+                        state.copy(
                             isLoading = false,
                             rows = mergedRows(),
                         )
@@ -83,7 +92,7 @@ class HomeViewModel @Inject constructor(
                         return@launch
                     }
 
-                    _uiState.update { it.copy(isLoading = false) }
+                    publish("loading") { state -> state.copy(isLoading = false) }
                     emitError(result.error)
                 }
             }
@@ -109,7 +118,7 @@ class HomeViewModel @Inject constructor(
                     return@collect
                 }
                 progressEntries = entries
-                _uiState.update { state -> state.copy(rows = mergedRows()) }
+                publish("progress") { state -> state.copy(rows = mergedRows()) }
             }
         }
     }
@@ -139,6 +148,27 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun emitError(error: AppError) {
         effectsChannel.send(HomeEffect.ShowError(error))
+    }
+
+    private inline fun publish(
+        reason: String,
+        crossinline transform: (HomeUiState) -> HomeUiState,
+    ) {
+        benchmarkTrace("SC.Home.publish.$reason") {
+            _uiState.update(transform)
+            if (BenchmarkTracingEnabled) {
+                val state = _uiState.value
+                benchmarkCounter("SC.Home.rowCount", state.rows.size)
+                benchmarkCounter(
+                    "SC.Home.visibleContentCount",
+                    state.rows.sumOf { row -> row.content.size },
+                )
+                benchmarkCounter(
+                    "SC.Home.continueWatchingCount",
+                    state.rows.firstOrNull { row -> row.type == RowType.ContinueWatching }?.content?.size ?: 0,
+                )
+            }
+        }
     }
 
     private companion object {

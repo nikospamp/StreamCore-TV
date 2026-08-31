@@ -21,6 +21,7 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -235,6 +236,24 @@ class PlayerViewModelTest {
 
         assertEquals(1, progress.upsertAttemptCount)
         assertEquals(PlayerEffect.NavigateBack, subject.effects.first())
+    }
+
+    @Test
+    fun `back closes settings without persisting or navigating`() = runTest {
+        val progress = FakeProgressRepository()
+        val subject = PlayerViewModel(FakeSourceRepository(), progress, FakeSessionFactory())
+        val effects = mutableListOf<PlayerEffect>()
+        backgroundScope.launch { subject.effects.collect(effects::add) }
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+        subject.onAction(PlayerAction.OpenSettings())
+
+        subject.onAction(PlayerAction.BackSelected)
+        runCurrent()
+
+        assertEquals(null, subject.uiState.value.settingsPage)
+        assertEquals(0, progress.upsertAttemptCount)
+        assertTrue(effects.isEmpty())
     }
 
     @Test

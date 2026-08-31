@@ -324,3 +324,6 @@ hs_err_pid*
 /docs/guidelines/
 /docs/ui/
 /docs/mobbin-previews/
+/benchmark-results/
+/tools/performance/.tools/
+/tools/performance/__pycache__/

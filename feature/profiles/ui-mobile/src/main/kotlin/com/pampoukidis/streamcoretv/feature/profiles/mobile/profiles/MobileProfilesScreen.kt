@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,6 +55,8 @@ fun MobileProfilesScreen(
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
+    ReportDrawnWhen { !state.isLoading }
+
     val interactionsEnabled = !state.isLoading &&
             !state.isSaving &&
             state.pendingSelectionProfileId == null

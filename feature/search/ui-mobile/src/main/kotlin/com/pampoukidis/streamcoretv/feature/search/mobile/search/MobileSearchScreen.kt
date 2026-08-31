@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.search.mobile.search
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
+
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -71,7 +73,8 @@ fun MobileSearchScreen(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier
             .fillMaxSize()
-            .testTag(SearchTestTags.Screen),
+            .testTag(SearchTestTags.Screen)
+            .benchmarkReadiness("search", state.trending.isNotEmpty()),
     ) {
         Column(
             modifier = Modifier

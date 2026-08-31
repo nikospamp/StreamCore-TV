@@ -1,5 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.details.mobile.details
 
+import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -86,7 +88,8 @@ fun MobileDetailsScreen(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier
             .fillMaxSize()
-            .testTag(DetailsTestTags.Root),
+            .testTag(DetailsTestTags.Root)
+            .benchmarkReadiness("details", !state.isLoading && state.content != null),
     ) {
         val content = state.content
 

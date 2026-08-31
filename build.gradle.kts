@@ -1,14 +1,18 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
+import com.android.build.api.dsl.LibraryExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Top-level build file where you can add configuration options common to all subprojects/modules.
 
 plugins {
+    alias(libs.plugins.androidx.baselineprofile) apply false
     // Adds root lifecycle tasks such as `check` and `build`.
     // The root project does not compile code itself, but we need `check`
     // so the design-token verifier can be part of the normal verification flow.
     base
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.android.test) apply false
     alias(libs.plugins.dagger.hilt) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -178,6 +182,62 @@ tasks.named("check") {
 }
 
 subprojects {
+    // Benchmark variants propagate through Android libraries, so trace calls compile away
+    // in production and become active only in the isolated measurement app.
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure<LibraryExtension> {
+            buildTypes {
+                create("benchmark") {
+                    initWith(getByName("release"))
+                    matchingFallbacks += "release"
+                }
+                create("benchmarkR8") {
+                    initWith(getByName("benchmark"))
+                    matchingFallbacks += listOf("benchmark", "release")
+                }
+                create("profile") {
+                    initWith(getByName("benchmark"))
+                    matchingFallbacks += listOf("benchmark", "release")
+                }
+                create("nonMinifiedProfile") {
+                    initWith(getByName("profile"))
+                    matchingFallbacks += listOf("profile", "benchmark", "release")
+                }
+            }
+        }
+    }
+    val traceModules = setOf(
+        ":app",
+        ":feature:home:ui-common", ":feature:home:ui-mobile",
+        ":feature:details:ui-mobile", ":feature:details:ui-tablet",
+        ":feature:search:ui-mobile",
+        ":feature:player:ui-mobile",
+    )
+    if (path in traceModules) {
+        listOf("com.android.application", "com.android.library").forEach { androidPlugin ->
+            pluginManager.withPlugin(androidPlugin) {
+                dependencies.add("implementation", project(":core:tracing"))
+            }
+        }
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.plugin.compose") {
+        if (providers.gradleProperty("composeCompilerReports").orNull == "true") {
+            tasks.withType<KotlinCompile>().configureEach {
+                if (name.contains("Release") || name.contains("Benchmark")) {
+                    // Incremental compiler reports can describe only the changed files.
+                    // This explicit diagnostic mode must report the whole module.
+                    incremental = false
+                    outputs.upToDateWhen { false }
+                    outputs.cacheIf { false }
+                    val reportDirectory = layout.buildDirectory.dir("reports/compose/$name")
+                    compilerOptions.freeCompilerArgs.addAll(
+                        "-P", "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${reportDirectory.get().asFile}",
+                        "-P", "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${reportDirectory.get().asFile}",
+                    )
+                }
+            }
+        }
+    }
     val isLiveEditableUiModule =
         path == ":app" ||
                 path == ":core:ui" ||

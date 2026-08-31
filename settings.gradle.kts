@@ -28,6 +28,10 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "StreamCoreTV"
 include(":app")
+include(":benchmark")
+include(":benchmark:ui-driver")
+include(":baselineprofile")
+include(":core:tracing")
 
 // Core
 include(":core:data")
