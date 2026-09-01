@@ -20,6 +20,12 @@ class DetailsTrailerLauncherTest {
         }
         openDetailsTrailer(trailer, handler) { error("Unexpected error: $it") }
         assertEquals(listOf(trailer.url), opened)
+
+        openDetailsTrailer(
+            trailer.copy(url = "https://example.com/path%20with%20spaces?next=%2Fcatalog"),
+            handler,
+        ) { error("Unexpected error: $it") }
+        assertEquals(2, opened.size)
     }
 
     @Test
@@ -44,10 +50,24 @@ class DetailsTrailerLauncherTest {
                 error("Must not open $uri")
             }
         }
-        listOf("intent://trailer", "file:///private", "not a URL", "https:/missing-host").forEach { url ->
+        val invalidUrls = listOf(
+            "intent://trailer",
+            "file:///private",
+            "not a URL",
+            "https:/missing-host",
+            "https://%",
+            "https://:443/path",
+            "https://example.com:not-a-port/path",
+            "https://example.com:70000/path",
+            "https://example.com/%ZZ",
+            "https:///path",
+            "https://-invalid.example/path",
+            "https://999.999.999.999/path",
+        )
+        invalidUrls.forEach { url ->
             openDetailsTrailer(trailer.copy(url = url), handler, errors::add)
         }
-        assertEquals(4, errors.size)
+        assertEquals(invalidUrls.size, errors.size)
         assertTrue(errors.all { it is AppError.Unknown })
     }
 }
