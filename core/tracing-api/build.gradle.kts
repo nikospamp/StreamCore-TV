@@ -1,6 +1,5 @@
 plugins {
     id("streamcore.kmp.library")
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -9,10 +8,6 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.kotlinx.serialization.json)
-        }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }

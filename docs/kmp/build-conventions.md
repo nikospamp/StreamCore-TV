@@ -1,0 +1,84 @@
+# KMP build conventions
+
+KMP-02 establishes Android-only Kotlin Multiplatform foundations. The target architecture remains backend-agnostic, and no Wasm, JS, native, JVM
+desktop, or web application target exists in Phase 1.
+
+## Convention usage
+
+Plain shared module:
+
+```kotlin
+plugins {
+    id("streamcore.kmp.library")
+}
+
+kotlin {
+    android {}
+}
+```
+
+Shared module with common tests:
+
+```kotlin
+kotlin {
+    android {
+        withHostTest {}
+    }
+
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
+}
+```
+
+Shared Compose module:
+
+```kotlin
+plugins {
+    id("streamcore.kmp.compose.library")
+}
+```
+
+The plain convention owns the official `com.android.kotlin.multiplatform.library` plugin, an `android` target, compile SDK 36, minimum SDK 24, and
+JVM 11. The Compose convention additionally applies Compose Multiplatform 1.12.0, the Kotlin Compose compiler plugin, Compose resources support, and
+Android-target-only `-Xlambdas=class`.
+
+Test compilations are intentionally not enabled by either convention. A module containing `src/commonTest/kotlin/**/*.kt` must opt in with
+`withHostTest {}`. Root `verifyKmpTestTargets` compares common test sources with actual `testAndroidHostTest` tasks. `:core:domain` is compile-only: it
+removes the unused default `commonTest` source set, has no test directory, and enables no host test.
+
+## Source placement
+
+| Source | Placement |
+|---|---|
+| Portable production Kotlin | `src/commonMain/kotlin` |
+| Android implementation Kotlin | `src/androidMain/kotlin` |
+| Portable tests | `src/commonTest/kotlin` plus explicit `withHostTest {}` |
+| Android host-only tests | `src/androidHostTest/kotlin` |
+| Android device tests | `src/androidDeviceTest/kotlin` plus explicit `withDeviceTest {}` |
+| Browser implementation Kotlin | `src/wasmJsMain/kotlin`, after WEB-01 adds the target |
+
+Common sources cannot import Android or JVM APIs. Platform implementations and provider models stay behind shared interfaces.
+
+## Root ownership and task behavior
+
+- The version catalog owns Kotlin 2.3.21, AGP 9.1.1, Compose Multiplatform 1.12.0, and every locked library version.
+- `build-logic` owns reusable plain/Compose KMP configuration; KMP-03 and KMP-04 must not edit root build logic or the catalog.
+- The existing `com.android.library` hook still creates benchmark/profile build types only for Android-only libraries. The Android-KMP plugin has a
+  different ID and remains single-variant.
+- Until KMP-03/KMP-04 migrate the remaining JVM feature/domain modules, a one-way attribute compatibility rule lets those JVM consumers select the
+  portable Android-KMP core jar. It does not add a JVM target and is safe only because core common code is guarded against Android/JVM imports.
+- Existing Android trace dependency injection remains scoped to Android application/library plugins. Shared modules use `:core:tracing-api` when
+  migrated; Android UI/platform modules use `:core:tracing`.
+- Compose compiler reports/metrics continue on release/benchmark Android-only Kotlin compile tasks. For future Compose KMP modules, the replacement
+  single-variant task is `compileAndroidMain`; KMP-06 owns the first nonzero report/flag proof.
+- AGP 9.1.1 exposes `compileAndroidMain`, `compileAndroidHostTest`, and `testAndroidHostTest`. With this Android-only target graph, KGP 2.3.21 names the
+  common metadata lifecycle task `compileKotlinMetadata`; it is skipped when no separately publishable metadata compilation is required, while the
+  same `commonMain` sources compile as part of `compileAndroidMain`.
+- Root `check` depends on `verifyDesignTokens`, `verifyKmpTestTargets`, `verifyKmpAndroidCompilerFlags`, and
+  `verifyKmpDependencyCompatibility`.
+
+The design-token verifier scans Kotlin production files under `main/kotlin`, Kotlin-under-`main/java`, `commonMain/kotlin`, `androidMain/kotlin`, and
+`wasmJsMain/kotlin`, and fails if the configured production set is empty.

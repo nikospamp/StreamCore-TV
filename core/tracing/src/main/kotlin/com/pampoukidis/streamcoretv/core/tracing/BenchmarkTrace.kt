@@ -10,6 +10,29 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 
 const val BenchmarkTracingEnabled: Boolean = BuildConfig.ENABLED
 
+/** Android tracer controlled by the existing benchmark/profile-specific BuildConfig field. */
+object AndroidPerformanceTracer : PerformanceTracer {
+    override val enabled: Boolean = BuildConfig.ENABLED
+
+    override fun beginSection(name: String) {
+        if (enabled) {
+            Trace.beginSection(name)
+        }
+    }
+
+    override fun endSection() {
+        if (enabled) {
+            Trace.endSection()
+        }
+    }
+
+    override fun counter(name: String, value: Long) {
+        if (enabled && Build.VERSION.SDK_INT >= 29) {
+            Trace.setCounter(name, value)
+        }
+    }
+}
+
 /** No user data in trace labels. The disabled branches inline out of normal app builds. */
 inline fun <T> benchmarkTrace(name: String, block: () -> T): T {
     if (!BuildConfig.ENABLED) return block()
