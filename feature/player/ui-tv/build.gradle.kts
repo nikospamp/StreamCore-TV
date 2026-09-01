@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv.feature.player.tv"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24

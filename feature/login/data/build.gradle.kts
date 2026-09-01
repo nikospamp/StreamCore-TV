@@ -1,7 +1,9 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    id("streamcore.kmp.library")
 }
 
 kotlin {
-    jvmToolchain(11)
+    sourceSets {
+        remove(getByName("commonTest"))
+    }
 }

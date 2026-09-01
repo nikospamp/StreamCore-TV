@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv.core.tracing"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 24
         buildConfigField("boolean", "ENABLED", "false")

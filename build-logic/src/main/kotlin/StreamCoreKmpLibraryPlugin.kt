@@ -17,7 +17,7 @@ class StreamCoreKmpLibraryPlugin : Plugin<Project> {
                 .named("android")
                 .get()
             androidTarget.namespace = streamCoreNamespace()
-            androidTarget.compileSdk = 36
+            androidTarget.compileSdk = 37
             androidTarget.minSdk = 24
             androidTarget.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
 

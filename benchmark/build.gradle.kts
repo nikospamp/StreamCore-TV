@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv.benchmark.driver"
-    compileSdk = 36
+    compileSdk = 37
     targetProjectPath = ":app"
     defaultConfig {
         minSdk = 29
