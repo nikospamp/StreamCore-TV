@@ -1,11 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
-import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
-import org.gradle.api.attributes.java.TargetJvmEnvironment
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Top-level build file where you can add configuration options common to all subprojects/modules.
@@ -415,38 +412,6 @@ tasks.named("check") {
 }
 
 subprojects {
-    val transitionalJvmCoreConsumers = setOf(
-        ":feature:login:domain",
-        ":feature:profiles:domain",
-        ":feature:home:domain",
-        ":feature:search:domain",
-        ":feature:details:data",
-        ":feature:details:domain",
-    )
-    val transitionalJvmCoreConsumerConfigurations = setOf(
-        "compileClasspath",
-        "runtimeClasspath",
-        "testCompileClasspath",
-        "testRuntimeClasspath",
-    )
-    if (path in transitionalJvmCoreConsumers) {
-        pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-            configurations
-                .matching { configuration -> configuration.name in transitionalJvmCoreConsumerConfigurations }
-                .configureEach {
-                    attributes.attribute(KotlinPlatformType.attribute, KotlinPlatformType.androidJvm)
-                    attributes.attribute(
-                        TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
-                        objects.named("android"),
-                    )
-                    attributes.attribute(
-                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                        ArtifactTypeDefinition.JAR_TYPE,
-                    )
-                }
-        }
-    }
-
     // Only Android-only libraries receive the app's benchmark/profile build types.
     // Official Android-KMP libraries stay single-variant and resolve from every app build type.
     pluginManager.withPlugin("com.android.library") {

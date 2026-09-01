@@ -62,7 +62,7 @@ Current feature areas are `login`, `profiles`, `home`, `details`, and `player`.
 - Compose for TV
 - Coroutines, Flow, and StateFlow
 - Navigation Compose
-- Hilt with KSP
+- Koin 4.2.2 with constructor injection
 - Ktor and Kotlinx Serialization
 - AndroidX Media3
 - DataStore
@@ -75,7 +75,7 @@ Current feature areas are `login`, `profiles`, `home`, `details`, and `player`.
 
 - Android Studio with support for Android Gradle Plugin 9.1.1
 - JDK 17 or newer (the Android Studio bundled runtime is recommended)
-- Android SDK 36.1
+- Android SDK 37 (the shipping application continues to target SDK 36)
 - An emulator or device running Android 8.0 / API 26 or newer
 
 Clone the repository and open its root directory in Android Studio. Gradle uses the checked-in wrapper (`9.3.1`) and version catalog.
@@ -118,8 +118,8 @@ On Windows, replace `./gradlew` with `.\gradlew.bat`.
 # Build the reference application
 ./gradlew :app:assembleTmdbDebug
 
-# Run a focused feature test suite
-./gradlew :feature:home:domain:test
+# Run a focused migrated feature test suite
+./gradlew :feature:home:domain:testAndroidHostTest
 
 # Run the design-system token guard directly
 ./gradlew verifyDesignTokens

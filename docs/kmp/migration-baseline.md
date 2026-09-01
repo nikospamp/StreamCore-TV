@@ -1,7 +1,7 @@
 # Android migration baseline
 
 > **Status: Accepted.** Candidate `c2f90825bd336489f98361c8ba3a124800a51d04` passed the complete KMP-00H host and device gate with
-> 215 passing host tests, 284 checked design-token source files, both provider graphs, and green phone/tablet/TV journeys. This is the frozen
+> 214 passing host tests, 284 checked design-token source files, both provider graphs, and green phone/tablet/TV journeys. This is the frozen
 > Android comparison baseline for KMP-01 through KMP-07.
 
 Accepted Android baseline evidence for the KMP migration. The target architecture is
@@ -226,7 +226,9 @@ Android baseline failures.
 
 ### Green host test inventory
 
-Counts were read from the XML reports produced by the committed root `check`. Generated reports from non-included stale modules are excluded.
+Counts were read from the XML reports produced by the committed root `check`. The original inventory accidentally included one stale generated
+XML test from the non-included `:feature:player:ui-tablet` module. That module was absent from `settings.gradle.kts`, so Gradle did not execute its
+test task for the accepted candidate; the stale row is excluded from the corrected accepted total below.
 
 | Module | Task | Tests | Failures | Errors | Skipped |
 |---|---|---:|---:|---:|---:|
@@ -248,13 +250,12 @@ Counts were read from the XML reports produced by the committed root `check`. Ge
 | `:feature:player:data` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
 | `:feature:player:ui-common` | `testDebugUnitTest` | 11 | 0 | 0 | 0 |
 | `:feature:player:ui-mobile` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
-| `:feature:player:ui-tablet` | `testDebugUnitTest` | 1 | 0 | 0 | 0 |
 | `:feature:player:ui-tv` | `testDebugUnitTest` | 2 | 0 | 0 | 0 |
 | `:feature:profiles:ui-common` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
 | `:feature:search:data` | `testDebugUnitTest` | 2 | 0 | 0 | 0 |
 | `:feature:search:domain` | `test` | 2 | 0 | 0 | 0 |
 | `:feature:search:ui-common` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
-| **Total** |  | **215** | **0** | **0** | **0** |
+| **Total** |  | **214** | **0** | **0** | **0** |
 
 ## Device smoke baseline
 
