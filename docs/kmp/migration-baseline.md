@@ -6,12 +6,12 @@
 
 ## KMP-07 Phase 1 closure
 
-> **Status: Pending authenticated TMDB device completion and controlled physical-device campaign.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
+> **Status: Pending authenticated TMDB TV completion and controlled physical-device campaign.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
 > gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
-> accepted phone/tablet/TV matrix. ClientB manual parity and the exact installed KMP-00 auth/Search/Library/Playback upgrade are green. The remaining
-> gates are recorded in [`KMP-07-evidence.md`](KMP-07-evidence.md): the existing token is locally recoverable but the account ID requires an
-> explicitly approved TMDB lookup or user input, and no Android 14+ physical device is connected for the required new controlled campaign. Phase 1 is not marked accepted
-> and WEB-01 must not start until both gates pass.
+> accepted phone/tablet/TV matrix. ClientB manual parity, authenticated TMDB phone/tablet parity, and the exact installed KMP-00
+> auth/Search/Library/Playback upgrade are green. TMDB runtime configuration is present only in approved ignored local configuration and validated
+> by a redacted linked-worktree preflight. TMDB TV awaits explicit emulator-login authorization; no Android 14+ physical device is connected for the
+> required new controlled campaign. Phase 1 is not marked accepted and WEB-01 must not start until both gates pass.
 
 KMP-07 preserves compile SDK 37 and target SDK 36 and adds no Wasm target. The generated Baseline Profiles are byte-for-byte unchanged and are
 consumed by the release APK. The accepted physical-device campaign remains the before reference, not same-commit after evidence.
