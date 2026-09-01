@@ -144,10 +144,13 @@ class MobileProfilesScreenTest {
     @Test
     fun kidsProfile_showsKidsChipOnAvatar() {
         val kidsProfile = ProfilesPreviewData.profiles.first { it.isKidsProfile }
-        setScreen()
+        setScreen(state = contentState.copy(profiles = listOf(kidsProfile)))
 
         composeRule
-            .onAllNodesWithTag(ProfilesTestTags.KidsChipPrefix + kidsProfile.id)
+            .onAllNodesWithTag(
+                testTag = ProfilesTestTags.KidsChipPrefix + kidsProfile.id,
+                useUnmergedTree = true,
+            )
             .assertCountEquals(1)
     }
 
