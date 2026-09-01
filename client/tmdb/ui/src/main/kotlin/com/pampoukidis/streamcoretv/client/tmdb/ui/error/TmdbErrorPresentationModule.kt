@@ -1,17 +1,14 @@
 package com.pampoukidis.streamcoretv.client.tmdb.ui.error
 
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
+import com.pampoukidis.streamcoretv.core.ui.error.DEFAULT_ERROR_PRESENTATION_MAPPER_QUALIFIER
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class TmdbErrorPresentationModule {
-
-    @Binds
-    abstract fun bindErrorPresentationMapper(
-        impl: TmdbErrorPresentationMapper,
-    ): ErrorPresentationMapper
+val tmdbErrorPresentationModule = module {
+    single<ErrorPresentationMapper> {
+        TmdbErrorPresentationMapper(
+            defaultMapper = get(named(DEFAULT_ERROR_PRESENTATION_MAPPER_QUALIFIER)),
+        )
+    }
 }

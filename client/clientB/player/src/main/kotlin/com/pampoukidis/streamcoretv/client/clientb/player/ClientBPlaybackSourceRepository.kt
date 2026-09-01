@@ -3,9 +3,8 @@ package com.pampoukidis.streamcoretv.client.clientb.player
 import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
-import javax.inject.Inject
 
-internal class ClientBPlaybackSourceRepository @Inject constructor() : PlaybackSourceRepository {
+internal class ClientBPlaybackSourceRepository constructor() : PlaybackSourceRepository {
     override suspend fun resolve(request: PlaybackRequestModel): PlaybackMediaModel {
         return PlaybackMediaModel(
             assetId = request.contentId,

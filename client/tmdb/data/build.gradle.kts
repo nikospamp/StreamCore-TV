@@ -3,8 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.dagger.hilt)
-    alias(libs.plugins.ksp)
 }
 
 val localProperties = Properties()
@@ -73,14 +71,14 @@ dependencies {
     // Libraries
     implementation(libs.androidx.annotation.experimental)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.dagger.hilt.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    ksp(libs.dagger.hilt.compiler)
+    implementation(libs.koin.android)
+
 
     // Testing
     testImplementation(libs.junit)

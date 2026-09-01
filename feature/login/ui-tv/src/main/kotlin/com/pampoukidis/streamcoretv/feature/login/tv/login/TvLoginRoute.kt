@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.feature.login.tv.login
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginRouteEventEffect
@@ -15,7 +15,7 @@ fun TvLoginRoute(
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
     onError: (AppError) -> Unit,
-    viewModel: LoginViewModel = hiltViewModel(),
+    viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 

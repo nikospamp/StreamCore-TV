@@ -4,11 +4,8 @@ import com.pampoukidis.streamcoretv.client.tmdb.ui.R
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
-import javax.inject.Inject
-import javax.inject.Named
 
-class TmdbErrorPresentationMapper @Inject constructor(
-    @param:Named("defaultErrorPresentationMapper")
+class TmdbErrorPresentationMapper constructor(
     private val defaultMapper: ErrorPresentationMapper,
 ) : ErrorPresentationMapper {
 

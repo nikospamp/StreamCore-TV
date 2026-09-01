@@ -4,9 +4,8 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileFieldError
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileValidationResult
-import javax.inject.Inject
 
-class ValidateProfileDraftUseCase @Inject constructor() {
+class ValidateProfileDraftUseCase constructor() {
 
     operator fun invoke(
         draft: ProfileDraftModel,

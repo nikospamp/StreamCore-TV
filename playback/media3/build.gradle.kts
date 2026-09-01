@@ -26,5 +26,4 @@ dependencies {
     implementation(libs.androidx.media3.inspector.frame)
     implementation(libs.androidx.media3.effect)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.javax.inject)
 }

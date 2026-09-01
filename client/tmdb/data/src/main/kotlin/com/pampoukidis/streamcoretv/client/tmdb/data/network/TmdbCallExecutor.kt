@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.client.tmdb.data.network
 
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -10,7 +9,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * Repositories use this to translate provider/network failures to [AppResult.Failure]
  * while preserving coroutine cancellation.
  */
-internal class TmdbCallExecutor @Inject constructor(
+internal class TmdbCallExecutor constructor(
     private val errorMapper: TmdbErrorMapper,
 ) {
 

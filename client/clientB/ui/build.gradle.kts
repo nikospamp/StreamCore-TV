@@ -1,7 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.dagger.hilt)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -24,11 +22,9 @@ android {
 }
 
 dependencies {
+    implementation(libs.koin.core)
     implementation(projects.core.data)
     implementation(projects.core.ui)
-
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.compiler)
 
     testImplementation(libs.junit)
 }

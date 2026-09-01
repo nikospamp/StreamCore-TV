@@ -11,11 +11,8 @@ import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.feature.search.domain.SearchQueryNormalizer
 import com.pampoukidis.streamcoretv.feature.search.domain.SearchRepository
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ClientBSearchRepository @Inject constructor(
+class ClientBSearchRepository constructor(
     private val catalogSource: ClientBCatalogSource,
     private val profileRepository: ProfileRepository,
 ) : SearchRepository {

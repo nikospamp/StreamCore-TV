@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.details.tv.details
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -27,7 +27,7 @@ fun TvDetailsRoute(
     returnFocusKey: String? = null,
     onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
-    viewModel: DetailsViewModel = hiltViewModel(),
+    viewModel: DetailsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val displayState = state.withInitialContent(

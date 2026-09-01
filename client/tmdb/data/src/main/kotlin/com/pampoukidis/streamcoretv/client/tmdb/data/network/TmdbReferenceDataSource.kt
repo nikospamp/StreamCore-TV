@@ -2,8 +2,6 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.network
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Loads and caches TMDB reference data for the process lifetime.
@@ -11,8 +9,7 @@ import javax.inject.Singleton
  * The first caller fetches configuration and movie genres. Concurrent callers wait
  * on [mutex], then reuse the same cached value once loading completes.
  */
-@Singleton
-internal class TmdbReferenceDataSource @Inject constructor(
+internal class TmdbReferenceDataSource constructor(
     private val tmdbApi: TmdbApi,
 ) {
 

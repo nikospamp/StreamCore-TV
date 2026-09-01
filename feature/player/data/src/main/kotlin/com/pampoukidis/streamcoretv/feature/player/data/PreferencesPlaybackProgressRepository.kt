@@ -13,12 +13,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PreferencesPlaybackProgressRepository @Inject constructor(
-    @PlaybackProgressStore private val dataStore: DataStore<Preferences>,
+class PreferencesPlaybackProgressRepository constructor(
+    private val dataStore: DataStore<Preferences>,
     private val json: Json,
 ) : PlaybackProgressRepository {
 

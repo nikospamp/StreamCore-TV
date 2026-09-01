@@ -15,7 +15,6 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -25,10 +24,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class HomeViewModel @Inject constructor(
+class HomeViewModel constructor(
     private val loadHomeRows: LoadHomeRowsUseCase,
     private val progressRepository: PlaybackProgressRepository,
 ) : ViewModel() {

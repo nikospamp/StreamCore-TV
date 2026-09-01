@@ -12,7 +12,6 @@ import com.pampoukidis.streamcoretv.feature.search.domain.ObserveRecentSearchesU
 import com.pampoukidis.streamcoretv.feature.search.domain.RemoveRecentSearchUseCase
 import com.pampoukidis.streamcoretv.feature.search.domain.SearchContentUseCase
 import com.pampoukidis.streamcoretv.feature.search.domain.SearchQueryNormalizer
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -30,11 +29,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
-import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class SearchViewModel @Inject constructor(
+class SearchViewModel constructor(
     private val searchContent: SearchContentUseCase,
     private val loadSearchDiscovery: LoadSearchDiscoveryUseCase,
     private val observeRecentSearches: ObserveRecentSearchesUseCase,

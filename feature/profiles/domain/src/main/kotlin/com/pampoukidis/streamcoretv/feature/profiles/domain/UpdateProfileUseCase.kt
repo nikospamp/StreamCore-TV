@@ -6,9 +6,8 @@ import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import javax.inject.Inject
 
-class UpdateProfileUseCase @Inject constructor(
+class UpdateProfileUseCase constructor(
     private val profileRepository: ProfileRepository,
 ) {
 

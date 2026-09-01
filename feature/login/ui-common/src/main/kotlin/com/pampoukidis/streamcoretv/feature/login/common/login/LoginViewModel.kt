@@ -7,7 +7,6 @@ import com.pampoukidis.streamcoretv.feature.login.data.LoginCredentials
 import com.pampoukidis.streamcoretv.feature.login.data.LoginValidationResult
 import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
 import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class LoginViewModel @Inject constructor(
+class LoginViewModel constructor(
     private val validateCredentials: ValidateLoginCredentialsUseCase,
     private val loginWithCredentials: LoginWithCredentialsUseCase,
 ) : ViewModel() {

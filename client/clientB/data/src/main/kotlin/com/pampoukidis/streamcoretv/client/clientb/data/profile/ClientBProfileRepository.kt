@@ -11,11 +11,8 @@ import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ClientBProfileRepository @Inject constructor() : ProfileRepository {
+class ClientBProfileRepository constructor() : ProfileRepository {
 
     private val avatars = ClientBProfileAvatarCatalog.avatars
 

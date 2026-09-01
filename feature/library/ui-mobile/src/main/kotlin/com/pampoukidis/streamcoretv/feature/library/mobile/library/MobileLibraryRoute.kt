@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.library.mobile.library
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
@@ -22,7 +22,7 @@ fun MobileLibraryRoute(
     onError: (AppError) -> Unit,
     activeProfile: ProfileModel? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
-    viewModel: LibraryViewModel = hiltViewModel(),
+    viewModel: LibraryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 

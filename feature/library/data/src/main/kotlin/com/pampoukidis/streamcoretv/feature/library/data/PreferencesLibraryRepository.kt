@@ -17,13 +17,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PreferencesLibraryRepository @Inject constructor(
-    @param:LibraryStore private val dataStore: DataStore<Preferences>,
-    @param:LibraryJson private val json: Json,
+class PreferencesLibraryRepository constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val json: Json,
 ) : LibraryRepository {
 
     override fun observe(profileId: String): Flow<AppResult<List<LibraryEntryModel>>> {

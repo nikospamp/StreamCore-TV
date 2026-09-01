@@ -13,7 +13,6 @@ import com.pampoukidis.streamcoretv.feature.library.domain.SetContentLikedUseCas
 import com.pampoukidis.streamcoretv.feature.player.domain.PlaybackProgressPolicy
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -23,10 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class DetailsViewModel @Inject constructor(
+class DetailsViewModel constructor(
     private val loadDetails: LoadDetailsUseCase,
     private val progressRepository: PlaybackProgressRepository,
     private val observeContentLibraryState: ObserveContentLibraryStateUseCase,

@@ -27,7 +27,7 @@ import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -44,7 +44,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 fun MobilePlayerRoute(
     request: PlaybackRequestModel,
     onBack: () -> Unit,
-    viewModel: PlayerViewModel = hiltViewModel(),
+    viewModel: PlayerViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current

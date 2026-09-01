@@ -8,9 +8,8 @@ import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import javax.inject.Inject
 
-class ClientBAuthenticateRepository @Inject internal constructor(
+class ClientBAuthenticateRepository internal constructor(
     private val authStore: ClientBAuthStore,
 ) : AuthenticateRepository {
 

@@ -14,7 +14,6 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -27,10 +26,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class PlayerViewModel @Inject constructor(
+class PlayerViewModel constructor(
     private val sourceRepository: PlaybackSourceRepository,
     private val progressRepository: PlaybackProgressRepository,
     private val sessionFactory: PlaybackSessionFactory,

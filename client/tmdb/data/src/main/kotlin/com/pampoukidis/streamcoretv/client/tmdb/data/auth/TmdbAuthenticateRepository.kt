@@ -16,14 +16,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Named
 
-class TmdbAuthenticateRepository @Inject internal constructor(
+class TmdbAuthenticateRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val callExecutor: TmdbCallExecutor,
     private val authStore: TmdbAuthStore,
-    @param:Named(TMDB_ACCOUNT_ID)
     private val accountId: String,
 ) : AuthenticateRepository {
 
@@ -262,7 +259,6 @@ class TmdbAuthenticateRepository @Inject internal constructor(
 
     private companion object {
         const val CLIENT = "tmdb"
-        const val TMDB_ACCOUNT_ID = "tmdbAccountId"
         const val BOOTSTRAP_OPERATION = "bootstrapAuth"
         const val LOGIN_OPERATION = "loginUser"
         const val LOGOUT_OPERATION = "logoutUser"

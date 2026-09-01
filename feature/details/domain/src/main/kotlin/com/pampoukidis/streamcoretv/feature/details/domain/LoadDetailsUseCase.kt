@@ -4,9 +4,8 @@ import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsModel
 import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
-import javax.inject.Inject
 
-class LoadDetailsUseCase @Inject constructor(
+class LoadDetailsUseCase constructor(
     private val detailsRepository: DetailsRepository,
 ) {
 

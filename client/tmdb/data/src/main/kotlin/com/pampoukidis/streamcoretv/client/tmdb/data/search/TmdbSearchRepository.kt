@@ -13,11 +13,8 @@ import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.feature.search.domain.SearchRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class TmdbSearchRepository @Inject internal constructor(
+class TmdbSearchRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val referenceDataSource: TmdbReferenceDataSource,
     private val callExecutor: TmdbCallExecutor,

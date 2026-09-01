@@ -10,7 +10,6 @@ import io.ktor.client.plugins.ServerResponseException
 import kotlinx.serialization.SerializationException
 import java.io.IOException
 import java.net.SocketTimeoutException
-import javax.inject.Inject
 
 /**
  * Converts Ktor, serialization, and IO failures into backend-agnostic [AppError] values.
@@ -18,7 +17,7 @@ import javax.inject.Inject
  * The mapper keeps HTTP status details in [ErrorSource] so UI/domain layers can stay
  * independent of Ktor and TMDB response types.
  */
-internal class TmdbErrorMapper @Inject constructor() {
+internal class TmdbErrorMapper constructor() {
 
     fun map(
         operation: String,

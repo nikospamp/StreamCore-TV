@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.tv.editor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
@@ -18,7 +18,7 @@ fun TvProfileEditorRoute(
     onProfileSaved: () -> Unit,
     onClose: () -> Unit,
     onError: (AppError) -> Unit,
-    viewModel: ProfileEditorViewModel = hiltViewModel(),
+    viewModel: ProfileEditorViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 

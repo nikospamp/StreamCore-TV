@@ -2,9 +2,8 @@ package com.pampoukidis.streamcoretv.client.clientb.ui.avatar
 
 import com.pampoukidis.streamcoretv.client.clientb.ui.R
 import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
-import javax.inject.Inject
 
-class ClientBProfileAvatarArtworkResolver @Inject constructor() : ProfileAvatarArtworkResolver {
+class ClientBProfileAvatarArtworkResolver constructor() : ProfileAvatarArtworkResolver {
     private val artworkByAvatarId = mapOf(
         "client-b-avatar-01" to R.drawable.clientb_profile_avatar_01,
         "client-b-avatar-02" to R.drawable.clientb_profile_avatar_02,

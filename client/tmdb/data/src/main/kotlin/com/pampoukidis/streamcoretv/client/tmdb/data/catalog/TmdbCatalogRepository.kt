@@ -14,11 +14,8 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class TmdbCatalogRepository @Inject internal constructor(
+class TmdbCatalogRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val referenceDataSource: TmdbReferenceDataSource,
     private val callExecutor: TmdbCallExecutor,

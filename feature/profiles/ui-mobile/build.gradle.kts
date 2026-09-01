@@ -44,7 +44,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.koin.compose.viewmodel)
 
     // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))

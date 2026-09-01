@@ -7,8 +7,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.koin.core)
     implementation(projects.core.data)
-    implementation(libs.javax.inject)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)

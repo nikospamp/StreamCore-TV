@@ -1,9 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.search.domain
 
 import kotlinx.coroutines.flow.Flow
-import javax.inject.Inject
 
-class ObserveRecentSearchesUseCase @Inject constructor(
+class ObserveRecentSearchesUseCase constructor(
     private val repository: RecentSearchRepository,
 ) {
 

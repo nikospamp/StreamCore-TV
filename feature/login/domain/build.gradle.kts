@@ -15,7 +15,8 @@ dependencies {
     implementation(projects.feature.login.data)
 
     // Libraries
-    implementation(libs.javax.inject)
+    implementation(libs.koin.core)
+
 
     // Testing
     testImplementation(libs.junit)
