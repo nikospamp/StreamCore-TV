@@ -12,8 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import com.pampoukidis.streamcoretv.core.ui.R
+import org.jetbrains.compose.resources.stringResource
+import streamcoretv.core.ui.generated.resources.Res
+import streamcoretv.core.ui.generated.resources.*
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
@@ -56,11 +57,11 @@ fun TabletLoginScreen(
                     modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
                 ) {
                     Text(
-                        text = stringResource(R.string.login_title),
+                        text = stringResource(Res.string.login_title),
                         style = MaterialTheme.typography.headlineSmall,
                     )
                     Text(
-                        text = stringResource(R.string.login_subtitle),
+                        text = stringResource(Res.string.login_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(

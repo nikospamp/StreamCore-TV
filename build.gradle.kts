@@ -307,11 +307,11 @@ val designTokenSourceFiles = files(
     },
 )
 val allowedDesignTokenFiles = setOf(
-    "core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/extensions/ColorSchemeExtensions.kt",
-    "core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Color.kt",
-    "core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Dimens.kt",
-    "core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Shape.kt",
-    "core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Type.kt",
+    "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/extensions/ColorSchemeExtensions.kt",
+    "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Color.kt",
+    "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Dimens.kt",
+    "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Shape.kt",
+    "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Type.kt",
 )
 val rawDimensionRegexPatternValue = """(?<![A-Za-z0-9_])(?:[1-9]\d*(?:\.\d+)?|0\.\d+)\.(?:dp|sp)\b"""
 val roundedCornerShapeRegexPatternValue = """RoundedCornerShape\s*\([^)]*(?:[1-9]\d*(?:\.\d+)?|0\.\d+)\.dp"""
@@ -438,7 +438,7 @@ subprojects {
     }
     val traceModules = setOf(
         ":app",
-        ":feature:home:ui-common", ":feature:home:ui-mobile",
+        ":feature:home:ui-mobile",
         ":feature:details:ui-mobile", ":feature:details:ui-tablet",
         ":feature:search:ui-mobile",
         ":feature:player:ui-mobile",
