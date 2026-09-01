@@ -1,26 +1,22 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("streamcore.kmp.compose.library")
 }
 
-android {
-    namespace = "com.pampoukidis.streamcoretv.client.tmdb.ui"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 24
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+streamCoreKmp {
+    withHostTest()
 }
 
-dependencies {
-    implementation(libs.koin.core)
-    implementation(projects.core.data)
-    implementation(projects.core.ui)
-
-    testImplementation(libs.junit)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.koin.core)
+            implementation(projects.core.data)
+            implementation(projects.core.ui)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.components.resources)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
 }

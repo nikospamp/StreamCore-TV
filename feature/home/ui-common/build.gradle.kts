@@ -1,47 +1,28 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
+    id("streamcore.kmp.compose.library")
 }
 
-android {
-    namespace = "com.pampoukidis.streamcoretv.feature.home.common"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 24
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    buildFeatures {
-        compose = true
-    }
+streamCoreKmp {
+    withHostTest()
 }
 
-dependencies {
-    // Core
-    implementation(projects.core.domain)
-    implementation(projects.core.data)
-
-    // Features
-    api(projects.feature.home.domain)
-    implementation(projects.playback.api)
-
-    // Libraries
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.runtime)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.koin.core)
-    implementation(libs.koin.android)
-
-
-    // Testing
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.core.domain)
+            implementation(projects.core.data)
+            implementation(projects.core.tracingApi)
+            api(projects.feature.home.domain)
+            implementation(projects.playback.api)
+            implementation(libs.compose.runtime)
+            implementation(libs.jetbrains.lifecycle.runtime.compose)
+            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }

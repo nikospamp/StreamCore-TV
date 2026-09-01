@@ -18,9 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import com.pampoukidis.streamcoretv.core.ui.R
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import streamcoretv.core.ui.generated.resources.Res
+import streamcoretv.core.ui.generated.resources.*
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
@@ -52,13 +53,13 @@ fun MobileLoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Image(
-                painter = painterResource(id = R.drawable.logo),
+                painter = painterResource(resource = Res.drawable.logo),
                 contentScale = ContentScale.FillWidth,
                 contentDescription = null,
                 modifier = Modifier.width(StreamCoreDimens.Mobile.Login.LogoWidth),
             )
             Text(
-                text = stringResource(R.string.app_name),
+                text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -74,12 +75,12 @@ fun MobileLoginScreen(
                     modifier = Modifier.padding(StreamCoreDimens.Mobile.Screen.HorizontalPadding),
                 ) {
                     Text(
-                        text = stringResource(R.string.login_title),
+                        text = stringResource(Res.string.login_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = stringResource(R.string.login_subtitle),
+                        text = stringResource(Res.string.login_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
