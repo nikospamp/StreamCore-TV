@@ -124,7 +124,7 @@ class PlayerViewModel constructor(
                     controlsVisible = true,
                     error = PlaybackErrorModel(
                         code = "SOURCE_RESOLUTION_FAILED",
-                        message = throwable.localizedMessage ?: "Unable to load this video.",
+                        message = throwable.message ?: "Unable to load this video.",
                         isRecoverable = true,
                     ),
                 )

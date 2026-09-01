@@ -146,13 +146,13 @@ the remaining gate:
 
 ## Handoff Checklist
 
-- [ ] Modules receiving wasm targets listed.
-- [ ] Runtime config schema and security properties documented.
-- [ ] Storage names and adapters documented.
-- [ ] Persistent-to-session storage fallback and failure tests documented.
-- [ ] Web graph contents documented.
-- [ ] Compose UI Test/Playwright selector strategy documented in `docs/kmp/web-testing.md`.
-- [ ] `HtmlElementView` and Shaka ESM interop spike results included.
-- [ ] Development and production build results included.
-- [ ] Android regression compilation results included.
-- [ ] Final working tree is clean after committing this ticket.
+- [x] Modules receiving wasm targets listed.
+- [x] Runtime config schema and security properties documented.
+- [x] Storage names and adapters documented.
+- [x] Persistent-to-session storage fallback and failure tests documented.
+- [x] Web graph contents documented.
+- [x] Compose UI Test/Playwright selector strategy documented in `docs/kmp/web-testing.md`.
+- [x] `HtmlElementView` and Shaka ESM interop spike results included.
+- [x] Development and production build results included.
+- [x] Android regression compilation results included.
+- [x] Final working tree is clean after committing this ticket.

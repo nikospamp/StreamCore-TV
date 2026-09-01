@@ -1,0 +1,5 @@
+{
+  "tmdbBaseUrl": "https://api.themoviedb.org/3/",
+  "tmdbReadAccessToken": "replace-with-browser-visible-read-access-token",
+  "tmdbAccountId": "replace-with-account-id"
+}

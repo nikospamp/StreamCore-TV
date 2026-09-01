@@ -5,6 +5,7 @@ plugins {
 
 streamCoreKmp {
     withHostTest()
+    withWasmJs()
 }
 
 kotlin {
@@ -27,6 +28,9 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.androidx.datastore.core.okio.web)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

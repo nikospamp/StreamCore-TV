@@ -19,10 +19,22 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
+        ivy("https://github.com/WebAssembly/binaryen/releases/download") {
+            name = "KotlinBinaryenDistributions"
+            patternLayout {
+                artifact("version_[revision]/binaryen-version_[revision]-[classifier].[ext]")
+            }
+            metadataSources {
+                artifact()
+            }
+            content {
+                includeModule("com.github.webassembly", "binaryen")
+            }
+        }
     }
 }
 
@@ -33,6 +45,7 @@ include(":app")
 include(":benchmark")
 include(":benchmark:ui-driver")
 include(":baselineprofile")
+include(":webApp")
 include(":core:tracing")
 include(":core:tracing-api")
 include(":kmp-convention-fixtures:plain")

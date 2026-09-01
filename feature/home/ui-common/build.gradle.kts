@@ -4,6 +4,7 @@ plugins {
 
 streamCoreKmp {
     withHostTest()
+    withWasmJs()
 }
 
 kotlin {
@@ -15,6 +16,8 @@ kotlin {
             api(projects.feature.home.domain)
             implementation(projects.playback.api)
             implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.koin.core)
