@@ -152,6 +152,9 @@ For Compose Multiplatform modules:
 - Keep Android manifest/theme compatibility resources in `androidMain/res` only when Android packaging cannot
   consume a Compose Resource directly. Enable Android resource processing explicitly for the owning Android-KMP
   target and do not use the compatibility copy from shared Compose rendering code.
+- Android-KMP modules that own Compose Resources must enable Android resource processing so their generated `composeResources` assets are present
+  in the published AAR and consuming APK. Common vector XML must use literal Compose-supported colors; Android framework resource references such
+  as `@android:color/*` are not portable.
 
 Prefer stateless composables.
 
@@ -301,9 +304,14 @@ Prefer:
 - Compile every Android application, library, test, and Android-KMP target against API 37. Compose Multiplatform 1.12 Android artifacts publish
   that minimum compile SDK requirement. Keep the shipping application, benchmark, and baseline-profile `targetSdk` at 36 until a dedicated runtime
   behavior migration changes it.
+- Authenticated TMDB builds must run `:app:verifyTmdbRuntimeConfig` with `-PrequireTmdbRuntimeConfig=true`. A linked worktree reads the primary
+  ignored file through `-PstreamcoreLocalPropertiesPath=<absolute local.properties path>` or `STREAMCORE_LOCAL_PROPERTIES`; never copy credentials
+  into the worktree or print their values.
 
 ## Kotlin Multiplatform Rules
 
+- New shared dependencies must publish compatible Kotlin Multiplatform metadata and Android variants. Add them to the dependency compatibility
+  gate before production use; an Android-only artifact belongs in `androidMain` or an Android-only module.
 - Use `streamcore.kmp.library` for plain shared libraries and `streamcore.kmp.compose.library` for shared Compose libraries. Both conventions use
   `org.jetbrains.kotlin.multiplatform` with the official `com.android.kotlin.multiplatform.library` plugin and register the `android` target. Do not
   recreate the Android target in module build scripts.
@@ -311,6 +319,8 @@ Prefer:
   same Android-KMP variant.
 - Put portable production code in `src/commonMain/kotlin`, Android implementations in `src/androidMain/kotlin`, and browser implementations in
   `src/wasmJsMain/kotlin` only after the owning web ticket adds that target.
+- New feature state, actions, effects, route-effect helpers, and ViewModels start in `:feature:<name>:ui-common`. Keep them platform-neutral; place
+  touch, adaptive-window, Android lifecycle integration, D-pad focus, and TV Material behavior in the platform UI module.
 - `commonMain` must not import `android.*`, `java.*`, `androidx.annotation.*`, or `androidx.core.*`. Keep provider SDKs, DTOs, API responses, and
   client-specific models out of shared/core/feature contracts so the target architecture remains backend-agnostic.
 - Android host and device tests use `androidHostTest` and `androidDeviceTest`. A module with Kotlin files in `commonTest` must explicitly call
@@ -319,6 +329,8 @@ Prefer:
   `:core:domain` is the current explicit compile-only exemption.
 - Compose KMP Android compilations receive `-Xlambdas=class` from the Compose KMP convention only. Never apply that JVM-only flag to common metadata
   or Wasm compilations.
+- KMP membership does not imply browser support. A module is web-ready only after WEB-01 or a later web ticket adds `wasmJs`, resolves its shared
+  dependencies, compiles the target, and verifies browser-specific implementations.
 
 Do not add new production dependencies without a clear reason.
 

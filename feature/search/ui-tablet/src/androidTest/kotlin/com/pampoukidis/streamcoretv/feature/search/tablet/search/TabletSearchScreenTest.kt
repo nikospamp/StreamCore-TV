@@ -11,7 +11,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchAction
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchUiState
@@ -35,7 +35,7 @@ class TabletSearchScreenTest {
             .onNodeWithTag(SearchTestTags.Field)
             .assertIsDisplayed()
             .assertContentDescriptionEquals("Search titles")
-            .performTextInput(" station")
+            .performTextReplacement("orbit station")
         composeRule
             .onNodeWithTag(SearchTestTags.ClearQuery)
             .assertContentDescriptionEquals("Clear search")

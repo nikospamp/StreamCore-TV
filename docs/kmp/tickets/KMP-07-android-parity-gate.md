@@ -21,7 +21,7 @@ the final Phase 1 commit/tag.
 - Root/app/platform integration fixes caused by completed migration tickets.
 - Both Android providers and relevant build types.
 - Common/unit/device tests, lint, benchmark/baseline-profile buildability.
-- Mobile/tablet/TV smoke flows and recorded performance comparison.
+- Mobile/tablet/TV smoke flows and optional informational performance comparison.
 - KMP architecture and contribution documentation.
 
 ## Non-Goals
@@ -44,8 +44,9 @@ the final Phase 1 commit/tag.
 7. Verify mobile/tablet/TV previews and device tests, especially TV D-pad focus and player cleanup.
 8. Assemble debug and R8 variants for both clients.
 9. Build benchmark/baseline-profile modules and confirm existing generated profiles are still consumed by the intended variants.
-10. Run the existing controlled benchmark workflow and record before/after evidence. There is no numerical failure threshold, but repeatable
-    regressions must be documented with likely cause and follow-up recommendation.
+10. Optionally run the existing controlled benchmark workflow and record before/after evidence when a suitable physical device is available. The
+    campaign is informational and non-blocking for Phase 1 acceptance; do not substitute emulator timing or fabricate a same-commit result. If run,
+    document repeatable regressions with likely cause and follow-up recommendation.
 11. Update `AGENTS.md`, `MODULE_DEPENDENCY_GRAPH.md`, and `DESIGN.md` with the final DI, source-set, preview, resource, testing, module, and web-readiness
     rules:
     - Shared dependencies require KMP support.
@@ -80,7 +81,18 @@ No new API changes are authorized. This ticket integrates and validates the expl
 rg -n "dagger\.|hilt|javax\.inject|dagger-hilt|hilt-android" app core client feature playback build.gradle.kts settings.gradle.kts gradle/libs.versions.toml -g "*.kt" -g "*.kts" -g "*.toml"
 ```
 
-Run all connected device tests available for the test device matrix, followed by the same controlled performance campaign recorded in KMP-00.
+Run all connected device tests available for the test device matrix. A same-protocol physical performance campaign may follow as optional
+informational evidence; its absence does not block Phase 1 acceptance.
+
+## Performance governance decision
+
+On 2026-09-01 the project owner explicitly chose to skip the new physical before/after campaign and proceed. This amends KMP-07 acceptance only:
+
+- benchmark and Baseline Profile infrastructure must still build;
+- existing generated profiles must still be consumed and must not be regenerated merely for this gate;
+- the accepted historical physical-device campaign remains informational context;
+- no new performance result is claimed, inferred from emulator timing, or fabricated;
+- a future campaign may use the documented protocol with a new run identity, but it is not a Phase 1 blocker.
 
 ## Required Smoke Journeys
 
@@ -104,20 +116,20 @@ Run all connected device tests available for the test device matrix, followed by
 - `verifyDesignTokens` checks migrated `commonMain`/`androidMain` UI sources and does not pass with zero checked files.
 - Pre-migration persisted data is readable.
 - Every baseline smoke journey passes on its relevant platform.
-- Benchmark/baseline-profile infrastructure builds and the non-blocking comparison is recorded.
+- Benchmark/baseline-profile infrastructure builds. Any new controlled comparison is optional, informational, and non-blocking.
 - No Hilt/Dagger production dependency remains.
 - No wasm target exists.
 - The accepted Phase 1 commit is clean and ready for WEB-01.
 
 ## Handoff Checklist
 
-- [ ] Baseline-vs-current matrix attached.
-- [ ] Both provider/debug/R8 results included.
-- [ ] Unit/common/device/lint results included.
-- [ ] Executed test counts and design-token checked-file counts compared with KMP-00.
-- [ ] Persistence migration evidence included.
-- [ ] Performance comparison location included.
-- [ ] Remaining known issues and owners documented.
-- [ ] Phase 1 green commit recorded.
-- [ ] `AGENTS.md`, `MODULE_DEPENDENCY_GRAPH.md`, and `DESIGN.md` updated.
-- [ ] Final working tree is clean after committing this ticket.
+- [x] Baseline-vs-current matrix attached.
+- [x] Both provider/debug/R8 results included.
+- [x] Unit/common/device/lint results included.
+- [x] Executed test counts and design-token checked-file counts compared with KMP-00.
+- [x] Persistence migration evidence included.
+- [x] Historical performance context and owner-approved optional campaign decision included.
+- [x] Remaining known issues and owners documented.
+- [x] Phase 1 green production commit recorded.
+- [x] `AGENTS.md`, `MODULE_DEPENDENCY_GRAPH.md`, and `DESIGN.md` updated.
+- [x] Final working tree is clean after committing this ticket.

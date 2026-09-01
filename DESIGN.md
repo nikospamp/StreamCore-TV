@@ -312,6 +312,8 @@ social-feed layouts, device mockups inside the UI, busy chrome, and provider-spe
 - Restrained accent: StreamCore orange is for primary action, focus, selected state, and loading emphasis, not decoration.
 - Platform-fit composition: touch surfaces stay compact; TV surfaces increase spacing, type scale, and focus affordance.
 - Backend-agnostic neutrality: UI language must not expose provider DTOs, SDKs, copy, or client identities.
+- Shared-resource delivery: common strings, vectors, and artwork use Compose Resources and must be packaged by every resource-owning Android-KMP
+  module; provider avatar/resource assets are verified in the consuming flavor APK.
 
 The shared spacing scale is `4dp`, `8dp`, `12dp`, `16dp`, and `24dp`. Platform layout tokens intentionally add `20dp` mobile horizontal padding and
 `32dp` tablet/TV horizontal padding; these are screen-layout values, not additional shared spacing steps.
@@ -483,6 +485,9 @@ identity and clip shape; never attach the transition to every duplicate content 
 - **Shape:** shape comes from the consuming card or shared transition clip. Poster cards use `StreamCoreDimens.Artwork.PosterAspectRatio` (`2:3`);
   landscape and hero artwork use `StreamCoreDimens.Artwork.LandscapeAspectRatio` (`16:9`). Current poster sizes are `120dp x 180dp` on mobile and
   `92dp x 138dp` on tablet; TV poster cards use a `220dp` width with the shared `2:3` ratio.
+- **KMP resource format:** common vector XML uses literal Compose-supported colors and generated `DrawableResource` handles. Do not reference
+  Android framework colors or Android `R` identifiers from `commonMain`. Resource-owning Android-KMP modules enable Android resource processing so
+  their `composeResources` assets are present in AARs and flavor APKs.
 
 ### Mobile Browse
 
@@ -530,6 +535,9 @@ platform-specific components, never by adding boolean tablet/TV flags to the mob
 - **Do** use stable lazy keys and content types for content rows and grids.
 - **Do** use TV-specific focus states with a `2dp` primary border and enough spacing for D-pad movement.
 - **Do** preserve preview-friendly composables wrapped in `StreamCoreTheme`.
+- **Do** start portable feature state, actions, effects, ViewModels, and neutral composables in `ui-common`; keep platform input/layout assumptions
+  in mobile, tablet, or TV modules.
+- **Do** treat web support as explicit target work. Shared Android-KMP code is not web-ready until a later ticket adds and verifies `wasmJs`.
 
 ### Don't:
 

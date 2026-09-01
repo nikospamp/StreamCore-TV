@@ -4,6 +4,19 @@
 > 214 passing host tests, 284 checked design-token source files, both provider graphs, and green phone/tablet/TV journeys. This is the frozen
 > Android comparison baseline for KMP-01 through KMP-07.
 
+## KMP-07 Phase 1 closure
+
+> **Status: Accepted.** Verified production/build/test commit `b8236b7` passes both debug/R8 providers, the full root
+> gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
+> accepted phone/tablet/TV matrix. ClientB manual parity, authenticated TMDB phone/tablet/TV parity, and the exact installed KMP-00
+> auth/Search/Library/Playback upgrade are green. TMDB runtime configuration is present only in approved ignored local configuration and validated
+> by a redacted linked-worktree preflight. The project owner explicitly amended KMP-07 to make a new physical performance campaign optional and
+> non-blocking; no new result is claimed. The acceptance documentation is isolated in the dedicated
+> `docs(kmp): accept Phase 1 Android parity gate` commit and its exact hash is reported in the final handoff.
+
+KMP-07 preserves compile SDK 37 and target SDK 36 and adds no Wasm target. The generated Baseline Profiles are byte-for-byte unchanged and are
+consumed by the release APK. The historical physical-device campaign remains informational context, not same-commit proof or a threshold.
+
 Accepted Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of
 provider SDKs, DTOs, API responses, and client-specific models.
@@ -80,9 +93,9 @@ only `tmdb`.
 ## Direct project dependency graph
 
 This snapshot was extracted from the module build scripts at the baseline
-commit. It is authoritative for KMP-00; the older root
-`MODULE_DEPENDENCY_GRAPH.md` uses superseded module names and is not a reliable
-migration gate.
+commit. It is authoritative only for the historical KMP-00 comparison. The root
+`MODULE_DEPENDENCY_GRAPH.md` was superseded at that baseline commit, then replaced
+by KMP-07 with the current post-migration graph extracted from the final build scripts.
 
 `api` edges expose a contract transitively. Unlabelled edges below are
 `implementation` unless another configuration is shown.
@@ -407,5 +420,6 @@ explicitly approves thresholds.
 - Accepted controlled performance evidence predates the baseline commit; it is
   retained as contextual evidence, not same-commit proof.
 - The Baseline Profile `Require` run is partial and non-reportable.
-- `MODULE_DEPENDENCY_GRAPH.md` is stale; use this report and the build scripts.
+- At the KMP-00 commit, `MODULE_DEPENDENCY_GRAPH.md` was stale. KMP-07 replaces it with the current graph; this section remains the immutable
+  historical comparison snapshot.
 - KMP-01 must start only from the `codex/kmp-migration` branch created by the KMP-00H documentation acceptance commit.
