@@ -1,8 +1,28 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.isFile) {
+    localPropertiesFile.inputStream().use { input ->
+        localProperties.load(input)
+    }
+}
+
+fun propertyOrLocalValue(name: String): String {
+    return providers.gradleProperty(name).orNull
+        ?: localProperties.getProperty(name)
+        ?: ""
+}
+
+fun String.asBuildConfigString(): String {
+    return "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 }
 
 android {
@@ -59,6 +79,21 @@ android {
     productFlavors {
         create("tmdb") {
             dimension = "client"
+            buildConfigField(
+                "String",
+                "TMDB_BASE_URL",
+                "https://api.themoviedb.org".asBuildConfigString(),
+            )
+            buildConfigField(
+                "String",
+                "TMDB_READ_ACCESS_TOKEN",
+                propertyOrLocalValue("tmdbReadAccessToken").asBuildConfigString(),
+            )
+            buildConfigField(
+                "String",
+                "TMDB_ACCOUNT_ID",
+                propertyOrLocalValue("tmdbAccountId").asBuildConfigString(),
+            )
         }
         create("clientB") {
             dimension = "client"
@@ -70,6 +105,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -133,6 +169,7 @@ dependencies {
     implementation(projects.feature.player.uiMobile)
     implementation(projects.feature.player.uiTv)
     implementation(projects.playback.api)
+    implementation(projects.playback.media3)
 
     // Libraries
     implementation(libs.androidx.core.ktx)

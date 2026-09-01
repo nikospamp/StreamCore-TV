@@ -1,35 +1,29 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("streamcore.kmp.library")
 }
 
-android {
-    namespace = "com.pampoukidis.streamcoretv.client.clientb.data"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 24
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+streamCoreKmp {
+    withHostTest()
 }
 
-dependencies {
-    // Core
-    implementation(projects.core.domain)
-    implementation(projects.core.data)
-    implementation(projects.feature.search.domain)
-
-    // Libraries
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.koin.android)
-
-
-    // Testing
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.core.domain)
+            implementation(projects.core.data)
+            implementation(projects.feature.search.domain)
+            implementation(libs.androidx.datastore.core)
+            implementation("androidx.datastore:datastore-preferences-core:1.2.1")
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.koin.core)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.koin.android)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }
