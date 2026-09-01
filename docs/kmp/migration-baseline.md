@@ -1,11 +1,10 @@
 # Android migration baseline
 
-> **Status: PROVISIONAL — KMP-01 is blocked.** Remediation commit `8bc11dc4300e55822bbae689dfdad271ef3fe769`
-> has a green host gate, 185 passing tests, and 266 checked design-token source files. Phone/tablet/TV execution replaced every provisional
-> `Not run`, but exposed functional Android baseline failures listed below. The report must not be marked `Accepted` until those failures are fixed
-> and the complete device matrix is rerun.
+> **Status: Accepted.** Candidate `c2f90825bd336489f98361c8ba3a124800a51d04` passed the complete KMP-00H host and device gate with
+> 215 passing host tests, 284 checked design-token source files, both provider graphs, and green phone/tablet/TV journeys. This is the frozen
+> Android comparison baseline for KMP-01 through KMP-07.
 
-Provisional Android baseline evidence for the KMP migration. The target architecture is
+Accepted Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of
 provider SDKs, DTOs, API responses, and client-specific models.
 
@@ -13,12 +12,13 @@ provider SDKs, DTOs, API responses, and client-specific models.
 
 | Item | Value |
 |---|---|
-| Status | `PROVISIONAL` — do not start KMP-01 |
-| Date | 2026-08-31 (Europe/Athens) |
-| Tested remediation commit | `8bc11dc4300e55822bbae689dfdad271ef3fe769` |
+| Status | `Accepted` |
+| Date | 2026-09-01 (Europe/Athens) |
+| Tested candidate commit | `c2f90825bd336489f98361c8ba3a124800a51d04` |
+| Host remediation commit | `8bc11dc4300e55822bbae689dfdad271ef3fe769` |
 | Planning checkpoint | `10276fe776e3ad616895ce7237c2c79ab47bcea9` |
 | Branch | `codex/kmp-00-android-baseline` |
-| Commit subject | `fix: establish green Android migration baseline` |
+| Commit subject | `test(player): focus TV timeline before scrubbing` |
 | Tested working tree | Clean (`git status --short` produced no output) |
 | Host | Windows 11 10.0 amd64 |
 | Gradle | 9.3.1 (`gradle-wrapper.properties`) |
@@ -35,14 +35,14 @@ provider SDKs, DTOs, API responses, and client-specific models.
 | Java source/target compatibility | 11 |
 | Connected devices | `Medium_Phone_API_36.1`, `Medium_Tablet`, and `Television_1080p`, run locally and sequentially except for the opaque session transfer |
 
-The remediation clears production Login credential defaults, isolates `verifyDesignTokens` to explicit production source-set file trees, and applies
-the separately authorized KMP-00A semantic-token compliance cleanup. It adds no dependency, KMP/Koin/Wasm configuration, source-set migration,
-performance threshold, generated Baseline Profile, or unrelated behavior change.
+KMP-00A through KMP-00G clear Login defaults, repair the design-token verifier, add the complete auth/logout lifecycle, restore tablet navigation and
+details/player parity, restore TV profile deletion/details/player parity, and make TV return focus deterministic. The accepted candidate adds no
+KMP/Koin/Wasm configuration, performance threshold, generated Baseline Profile, or provider coupling to the backend-agnostic feature contracts.
 
 ## Gradle module inventory
 
 The inventory was derived from `settings.gradle.kts` and each included
-module's applied plugin. There are 53 included modules.
+module's applied plugin. There are 56 included modules.
 
 | Classification | Count | Modules |
 |---|---:|---|
@@ -50,7 +50,7 @@ module's applied plugin. There are 53 included modules.
 | Benchmark Android test | 1 | `:benchmark` |
 | Baseline-profile Android test | 1 | `:baselineprofile` |
 | JVM library | 10 | `:core:data`, `:core:domain`, `:feature:login:data`, `:feature:login:domain`, `:feature:profiles:data`, `:feature:profiles:domain`, `:feature:home:domain`, `:feature:search:domain`, `:feature:details:data`, `:feature:details:domain` |
-| Android library | 40 | `:benchmark:ui-driver`, `:core:tracing`, `:core:ui`, `:client:tmdb:data`, `:client:tmdb:ui`, `:client:clientB:data`, `:client:clientB:ui`, `:feature:login:ui-common`, `:feature:login:ui-mobile`, `:feature:login:ui-tablet`, `:feature:login:ui-tv`, `:feature:profiles:ui-common`, `:feature:profiles:ui-mobile`, `:feature:profiles:ui-tablet`, `:feature:profiles:ui-tv`, `:feature:home:ui-common`, `:feature:home:ui-mobile`, `:feature:home:ui-tablet`, `:feature:home:ui-tv`, `:feature:search:data`, `:feature:search:ui-common`, `:feature:search:ui-mobile`, `:feature:search:ui-tv`, `:feature:details:ui-common`, `:feature:details:ui-mobile`, `:feature:details:ui-tablet`, `:feature:details:ui-tv`, `:feature:library:data`, `:feature:library:domain`, `:feature:library:ui-common`, `:feature:library:ui-mobile`, `:feature:library:ui-tv`, `:playback:api`, `:playback:media3`, `:feature:player:data`, `:feature:player:domain`, `:feature:player:ui-common`, `:feature:player:ui-mobile`, `:client:tmdb:player`, `:client:clientB:player` |
+| Android library | 43 | `:benchmark:ui-driver`, `:core:tracing`, `:core:ui`, `:client:tmdb:data`, `:client:tmdb:ui`, `:client:clientB:data`, `:client:clientB:ui`, `:feature:login:ui-common`, `:feature:login:ui-mobile`, `:feature:login:ui-tablet`, `:feature:login:ui-tv`, `:feature:profiles:ui-common`, `:feature:profiles:ui-mobile`, `:feature:profiles:ui-tablet`, `:feature:profiles:ui-tv`, `:feature:home:ui-common`, `:feature:home:ui-mobile`, `:feature:home:ui-tablet`, `:feature:home:ui-tv`, `:feature:search:data`, `:feature:search:ui-common`, `:feature:search:ui-mobile`, `:feature:search:ui-tablet`, `:feature:search:ui-tv`, `:feature:details:ui-common`, `:feature:details:ui-mobile`, `:feature:details:ui-tablet`, `:feature:details:ui-tv`, `:feature:library:data`, `:feature:library:domain`, `:feature:library:ui-common`, `:feature:library:ui-mobile`, `:feature:library:ui-tablet`, `:feature:library:ui-tv`, `:playback:api`, `:playback:media3`, `:feature:player:data`, `:feature:player:domain`, `:feature:player:ui-common`, `:feature:player:ui-mobile`, `:feature:player:ui-tv`, `:client:tmdb:player`, `:client:clientB:player` |
 
 There are no standalone generic Android-test modules beyond `:benchmark` and
 `:baselineprofile`.
@@ -96,10 +96,10 @@ migration gate.
   -> :feature:login:{ui-mobile,ui-tablet,ui-tv}
   -> :feature:profiles:{ui-mobile,ui-tablet,ui-tv}
   -> :feature:home:{ui-mobile,ui-tablet,ui-tv}
-  -> :feature:search:{data,ui-mobile,ui-tv}
+  -> :feature:search:{data,ui-mobile,ui-tablet,ui-tv}
   -> :feature:details:{ui-mobile,ui-tablet,ui-tv}
-  -> :feature:library:{data,ui-mobile,ui-tv}
-  -> :feature:player:{data,ui-mobile}
+  -> :feature:library:{data,ui-mobile,ui-tablet,ui-tv}
+  -> :feature:player:{data,ui-mobile,ui-tv}
   -> :playback:api
 
 :benchmark -> :benchmark:ui-driver
@@ -143,7 +143,7 @@ migration gate.
 :feature:search:ui-common
   api -> :feature:search:domain
   -> :core:data
-:feature:search:{ui-mobile,ui-tv}
+:feature:search:{ui-mobile,ui-tablet,ui-tv}
   api -> :feature:search:ui-common
   -> :core:{data,ui}
 
@@ -162,7 +162,7 @@ migration gate.
 :feature:library:ui-common
   api -> :feature:library:domain
   -> :core:data
-:feature:library:{ui-mobile,ui-tv}
+:feature:library:{ui-mobile,ui-tablet,ui-tv}
   api -> :feature:library:ui-common
   -> :core:{data,ui}
 
@@ -176,7 +176,7 @@ migration gate.
   api -> :playback:api
 :feature:player:ui-common
   api -> :feature:player:domain, :playback:api
-:feature:player:ui-mobile
+:feature:player:{ui-mobile,ui-tv}
   api -> :feature:player:ui-common
   -> :core:ui
 ```
@@ -185,8 +185,8 @@ Modules absent from this graph have no project-to-project dependency.
 
 ## Host build and test baseline
 
-Commands were run independently from the repository root on 2026-08-31 at exact remediation commit
-`8bc11dc4300e55822bbae689dfdad271ef3fe769`. Wrapper-only sandbox network denials were rerun with approved wrapper/dependency access and are not
+Commands were run independently from the repository root on 2026-09-01 at exact candidate commit
+`c2f90825bd336489f98361c8ba3a124800a51d04`. Wrapper-only sandbox network denials were rerun with approved wrapper/dependency access and are not
 Android baseline failures.
 
 | Command | Result | Evidence |
@@ -198,12 +198,15 @@ Android baseline failures.
 | `.\gradlew.bat :app:compileTmdbDebugKotlin` | Pass | `BUILD SUCCESSFUL`; 366 actionable tasks |
 | `.\gradlew.bat :app:compileClientBDebugKotlin` | Pass | `BUILD SUCCESSFUL`; 365 actionable tasks |
 | `.\gradlew.bat :feature:login:ui-common:testDebugUnitTest --tests "*LoginViewModelTest"` | Pass | 5 tests; 0 failures/errors/skipped; 42 actionable tasks |
-| `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass | 266 production Kotlin files checked; zero violations; configuration cache reused |
+| `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass | 284 production Kotlin files checked; zero violations; configuration cache reused |
 | `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --console=plain` | Pass | `BUILD SUCCESSFUL`; 1,921 actionable tasks; all unit tests and Android lint tasks green |
 | `.\gradlew.bat :feature:home:ui-mobile:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 62 actionable tasks |
 | `.\gradlew.bat :feature:home:ui-tablet:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 62 actionable tasks |
 | `.\gradlew.bat :feature:login:ui-tv:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 45 actionable tasks |
 | `.\gradlew.bat :feature:search:ui-tv:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL`; 40 actionable tasks |
+| `.\gradlew.bat :feature:search:ui-tablet:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL` |
+| `.\gradlew.bat :feature:library:ui-tablet:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL` |
+| `.\gradlew.bat :feature:player:ui-tv:compileDebugAndroidTestKotlin` | Pass | `BUILD SUCCESSFUL` |
 | `.\gradlew.bat :benchmark:assemble` | Pass | `BUILD SUCCESSFUL`; 98 actionable tasks |
 | `.\gradlew.bat :baselineprofile:assemble` | Pass | `BUILD SUCCESSFUL`; 160 actionable tasks; profiles not regenerated |
 
@@ -215,7 +218,8 @@ Android baseline failures.
   production source sets for `app`/`core`/`feature`, excluding build/generated/test trees. Gradle 9 input validation and configuration-cache reuse pass.
 - KMP-00A classified 96 pre-edit violations semantically and replaced them without changing numeric/color values or adding suppressions, allow-lists,
   exclusions, or behavior changes. Missing roles live only in approved token files; shape/color reads are stable and allocation-safe.
-- The verifier's authoritative checked count is **266** after its five approved token-definition files. Representative checked paths include
+- The verifier's authoritative checked count is **284**, an increase of 18 attributable to the expected tablet Search/Library/navigation, TV
+  player/profile/focus, and supporting app-shell production files added by KMP-00B through KMP-00G. Representative checked paths include
   `app/src/main/java/com/pampoukidis/streamcoretv/navigation/StreamCoreNavHost.kt`,
   `core/ui/src/main/kotlin/com/pampoukidis/streamcoretv/core/ui/components/StreamCorePagerCarousel.kt`, and
   `feature/player/ui-mobile/src/main/kotlin/com/pampoukidis/streamcoretv/feature/player/mobile/player/MobilePlayerScreen.kt`.
@@ -226,11 +230,11 @@ Counts were read from the XML reports produced by the committed root `check`. Ge
 
 | Module | Task | Tests | Failures | Errors | Skipped |
 |---|---|---:|---:|---:|---:|
-| `:app` | `testClientBDebugUnitTest` | 15 | 0 | 0 | 0 |
-| `:app` | `testTmdbDebugUnitTest` | 15 | 0 | 0 | 0 |
-| `:client:clientB:data` | `testDebugUnitTest` | 20 | 0 | 0 | 0 |
+| `:app` | `testClientBDebugUnitTest` | 23 | 0 | 0 | 0 |
+| `:app` | `testTmdbDebugUnitTest` | 23 | 0 | 0 | 0 |
+| `:client:clientB:data` | `testDebugUnitTest` | 25 | 0 | 0 | 0 |
 | `:client:clientB:ui` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
-| `:client:tmdb:data` | `testDebugUnitTest` | 36 | 0 | 0 | 0 |
+| `:client:tmdb:data` | `testDebugUnitTest` | 38 | 0 | 0 | 0 |
 | `:client:tmdb:ui` | `testDebugUnitTest` | 4 | 0 | 0 | 0 |
 | `:feature:details:domain` | `test` | 2 | 0 | 0 | 0 |
 | `:feature:details:ui-common` | `testDebugUnitTest` | 14 | 0 | 0 | 0 |
@@ -242,43 +246,45 @@ Counts were read from the XML reports produced by the committed root `check`. Ge
 | `:feature:login:domain` | `test` | 3 | 0 | 0 | 0 |
 | `:feature:login:ui-common` | `testDebugUnitTest` | 5 | 0 | 0 | 0 |
 | `:feature:player:data` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
-| `:feature:player:ui-common` | `testDebugUnitTest` | 10 | 0 | 0 | 0 |
+| `:feature:player:ui-common` | `testDebugUnitTest` | 11 | 0 | 0 | 0 |
 | `:feature:player:ui-mobile` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
+| `:feature:player:ui-tablet` | `testDebugUnitTest` | 1 | 0 | 0 | 0 |
+| `:feature:player:ui-tv` | `testDebugUnitTest` | 2 | 0 | 0 | 0 |
+| `:feature:profiles:ui-common` | `testDebugUnitTest` | 3 | 0 | 0 | 0 |
 | `:feature:search:data` | `testDebugUnitTest` | 2 | 0 | 0 | 0 |
 | `:feature:search:domain` | `test` | 2 | 0 | 0 | 0 |
 | `:feature:search:ui-common` | `testDebugUnitTest` | 12 | 0 | 0 | 0 |
-| **Total** |  | **185** | **0** | **0** | **0** |
+| **Total** |  | **215** | **0** | **0** | **0** |
 
 ## Device smoke baseline
 
-The matrix ran locally against remediation commit `8bc11dc4300e55822bbae689dfdad271ef3fe769`. Serial values are scoped to each
-isolated form-factor run; the phone temporarily used `emulator-5556` only while its opaque 58-byte TMDB session DataStore was streamed directly into
-tablet/TV app sandboxes. The token was never decoded, printed, or written to the host. Under the explicitly approved combined-coverage exception,
-TMDB credential submission is proven on phone, TMDB session restoration and post-auth behavior are proven on all form factors, and ClientB generated-
-input login submission is proven on phone/tablet/TV.
+The matrix ran locally against candidate `c2f90825bd336489f98361c8ba3a124800a51d04`. Serial values are scoped to each isolated form-factor run;
+the phone temporarily used `emulator-5556` while its explicitly authorized opaque 58-byte TMDB session DataStore was streamed directly into the TV
+app sandbox. The payload was never decoded, printed, logged, or written to the host. TMDB credential submission is covered on phone, TMDB restored
+session and post-auth behavior are covered on every form factor, and the authorized generated ClientB fixture was submitted on phone/tablet/TV.
 
 | AVD | Serial | API | Resolution | Orientation | Variants | Tested commit |
 |---|---|---:|---:|---|---|---|
-| `Medium_Phone_API_36.1` | `emulator-5554` | 36 | 1080x2400 | Portrait; player landscape | TMDB + ClientB debug | `8bc11dc` |
-| `Medium_Tablet` | `emulator-5554` | 36 | 2560x1600 | Landscape | TMDB + ClientB debug | `8bc11dc` |
-| `Television_1080p` | `emulator-5554` | 31 | 1920x1080 | Landscape | TMDB + ClientB debug | `8bc11dc` |
+| `Medium_Phone_API_36.1` | `emulator-5554` | 36.1 | 1080x2400 | Portrait; player 2400x1080 landscape | TMDB + ClientB debug | `c2f90825` |
+| `Medium_Tablet` | `emulator-5554` | 36.1 | 2560x1600 | Landscape | TMDB + ClientB debug | `c2f90825` |
+| `Television_1080p` | `emulator-5554` | 31 | 1920x1080 | Landscape | TMDB + ClientB debug | `c2f90825` |
 
 | Surface/journey | Mobile | Tablet | TV | Outcome |
 |---|---|---|---|---|
-| Login, logout, session restoration | **Fail**: TMDB login/session pass; logout UI absent | **Fail**: TMDB session + ClientB login pass; logout UI absent | **Fail**: TMDB session + ClientB login pass; logout UI absent | Global production logout action/call site is absent |
-| Profile selection, creation, editing, deletion | Pass | Pass | **Fail**: selection/create/edit pass; delete inaccessible | TV exposes no delete trigger |
-| Home loading, refresh, navigation | Pass | **Fail**: load/refresh pass; Search/Library top-level navigation absent | Pass | Tablet top-level navigation is missing |
-| Search discovery, query, recents, result selection | Pass | **Fail**: no navigation entry | Pass | Tablet Search is unreachable |
-| Library states, details mutations | Pass | **Fail**: mutations pass in Details; Library has no navigation entry | Pass | Tablet Library is unreachable |
-| Details, trailer, recommendations, back | Pass | **Fail**: details/recommendations/back pass; trailer absent | **Fail**: details/recommendations pass; trailer absent and selected Search result focus is not restored after Back | Platform details surfaces omit trailer |
-| Player start, seek, pause/resume, settings, exit, restoration | Pass | **Fail**: Play is a no-op | **Fail**: Play is a no-op | Tablet/TV routes discard `onPlaySelected` |
-| D-pad focus traversal and restoration | N/A | N/A | **Fail**: drawer order, visible focus, drawer Back, and drawer/content restoration pass; Details-to-Search selected-result restoration fails | Partial TV focus coverage is insufficient |
+| Login, logout, session restoration | Pass | Pass | Pass | Confirmation, cancel/Back restoration, reset, login-again, and restored-session paths green |
+| Profile selection, creation, editing, deletion | Pass | Pass | Pass | Eligible-only delete and nearest-profile/Add fallback covered; protected profile cannot delete |
+| Home loading, refresh, navigation | Pass | Pass | Pass | Adaptive tablet rail and TV drawer navigation green |
+| Search discovery, query, recents, result selection | Pass | Pass | Pass | Result selection/state and return-focus coverage green |
+| Library states, details mutations | Pass | Pass | Pass | Empty/content/mutation/profile-scoped states green |
+| Details, trailer, recommendations, back | Pass | Pass | Pass | Trailer intent/actions, recommendations, mutations, and Back green |
+| Player start, seek, pause/resume, settings, exit, restoration | Pass | Pass | Pass | Phone 7/7 and TV 9/9 connected suites; manual progress/resume/seek/exit green |
+| D-pad focus traversal and restoration | N/A | N/A | Pass | Drawer Left/Right/Back, profile/delete dialogs, timeline and exact-item return focus green |
 
-ClientB phone provider smoke passed boot/auth/profile/home/details/player. Tablet and TV additionally passed ClientB generated-input login submission
-and profile transition. All journeys have a Pass/Fail/N/A result; none remain `Not run`.
+ClientB boot/auth/profile/Home/Details/player smoke passed on phone/tablet/TV, including phone and TV logout/login-again. All applicable journeys pass;
+there is no expected-failure, Blocked, or `Not run` result.
 
-Local ignored evidence is under `build/kmp-00-evidence/`, including phone home/details/player/trailer captures, tablet profiles/home/attempted-player
-captures, and TV profile focus, expanded drawer focus, and Play-no-op captures. The evidence remains local and is not committed as production input.
+Local ignored evidence is under `build/kmp-00-evidence/` and `build/kmp-00h-evidence/`. Current connected reports include phone player 7/7, TV Home
+9/9, Profiles 18/18, Player 9/9, and green Search/Library/Details/Login suites. The evidence remains local and is not committed as production input.
 
 ## Existing performance and Baseline Profile evidence
 
@@ -393,19 +399,12 @@ dataset, device, or commit requires a new run identity. Performance remains an
 evidence comparison, not an acceptance threshold, unless a later ticket
 explicitly approves thresholds.
 
-## Current provisional blockers and durable limitations
+## Accepted limitations and follow-up context
 
-- Host remediation is complete and green at `8bc11dc4300e55822bbae689dfdad271ef3fe769`; there is no host expected-failure allow-list.
-- [KMP-00B](tickets/KMP-00B-auth-session-lifecycle.md): no production logout action/UI exists on any platform.
-- [KMP-00C](tickets/KMP-00C-tablet-top-level-navigation.md) and [KMP-00D](tickets/KMP-00D-tablet-details-player-parity.md): tablet has no top-level
-  Search/Library navigation or trailer action, and `TabletDetailsRoute` discards `onPlaySelected`.
-- [KMP-00E](tickets/KMP-00E-tv-profile-deletion.md), [KMP-00F](tickets/KMP-00F-tv-details-player-parity.md), and
-  [KMP-00G](tickets/KMP-00G-tv-return-focus-restoration.md): TV profile deletion is inaccessible, trailer is absent, `TvDetailsRoute` discards
-  `onPlaySelected`, and selected Search result focus is not restored after Details.
-- The combined TMDB-session/ClientB-login exception is documented evidence, not a substitute for fixing these functional failures.
+- Host remediation and KMP-00B through KMP-00G are complete; there is no expected-failure allow-list.
+- The combined TMDB-session/ClientB-login credential-handling contract is documented evidence, not production behavior or a provider abstraction.
 - Accepted controlled performance evidence predates the baseline commit; it is
   retained as contextual evidence, not same-commit proof.
 - The Baseline Profile `Require` run is partial and non-reportable.
 - `MODULE_DEPENDENCY_GRAPH.md` is stale; use this report and the build scripts.
-- KMP-01 and `codex/kmp-migration` remain blocked. [KMP-00H](tickets/KMP-00H-android-baseline-reacceptance.md) owns the complete rerun,
-  documentation-only acceptance commit, and integration branch after B-G pass.
+- KMP-01 must start only from the `codex/kmp-migration` branch created by the KMP-00H documentation acceptance commit.
