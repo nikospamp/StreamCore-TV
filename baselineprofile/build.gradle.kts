@@ -5,11 +5,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv.baselineprofile"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
     targetProjectPath = ":app"
 
     defaultConfig {
