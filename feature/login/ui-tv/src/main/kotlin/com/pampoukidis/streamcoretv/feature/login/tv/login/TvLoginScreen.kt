@@ -29,13 +29,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import com.pampoukidis.streamcoretv.core.ui.R
+import streamcoretv.core.ui.generated.resources.Res
+import streamcoretv.core.ui.generated.resources.*
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -91,12 +92,12 @@ fun TvLoginScreen(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = stringResource(R.string.login_title),
+                        text = stringResource(Res.string.login_title),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Small),
                     )
                     Text(
-                        text = stringResource(R.string.login_subtitle),
+                        text = stringResource(Res.string.login_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(
@@ -141,7 +142,7 @@ private fun TvLoginForm(
         OutlinedTextField(
             value = state.identifier,
             onValueChange = { onAction(LoginAction.IdentifierChanged(it)) },
-            label = { Text(text = stringResource(R.string.login_identifier_label)) },
+            label = { Text(text = stringResource(Res.string.login_identifier_label)) },
             singleLine = true,
             isError = state.identifierError != null,
             supportingText = state.identifierError?.let { { Text(text = it.text()) } },
@@ -161,7 +162,7 @@ private fun TvLoginForm(
         OutlinedTextField(
             value = state.password,
             onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
-            label = { Text(text = stringResource(R.string.login_password_label)) },
+            label = { Text(text = stringResource(Res.string.login_password_label)) },
             singleLine = true,
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { { Text(text = it.passwordText()) } },
@@ -172,9 +173,9 @@ private fun TvLoginForm(
             },
             trailingIcon = {
                 val contentDescription = if (isPasswordVisible) {
-                    stringResource(R.string.login_password_hide)
+                    stringResource(Res.string.login_password_hide)
                 } else {
-                    stringResource(R.string.login_password_show)
+                    stringResource(Res.string.login_password_show)
                 }
                 IconButton(
                     onClick = { isPasswordVisible = !isPasswordVisible },
@@ -182,10 +183,10 @@ private fun TvLoginForm(
                 ) {
                     Icon(
                         painter = painterResource(
-                            id = if (isPasswordVisible) {
-                                R.drawable.ic_visibility_off_24
+                            resource = if (isPasswordVisible) {
+                                Res.drawable.ic_visibility_off_24
                             } else {
-                                R.drawable.ic_visibility_24
+                                Res.drawable.ic_visibility_24
                             },
                         ),
                         contentDescription = contentDescription,
@@ -210,7 +211,7 @@ private fun TvLoginForm(
                 .testTag(LoginTestTags.PasswordField),
         )
         StreamCoreTvButton(
-            text = stringResource(R.string.login_continue),
+            text = stringResource(Res.string.login_continue),
             enabled = state.isSubmitEnabled && !state.isLoading,
             loading = state.isLoading,
             onClick = { onAction(LoginAction.Submit) },
@@ -227,7 +228,7 @@ private fun TvLoginForm(
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         ) {
             StreamCoreTvButton(
-                text = stringResource(R.string.login_forgot_password),
+                text = stringResource(Res.string.login_forgot_password),
                 enabled = !state.isLoading,
                 onClick = { onAction(LoginAction.ForgotPassword) },
                 modifier = Modifier
@@ -240,7 +241,7 @@ private fun TvLoginForm(
                     .testTag(LoginTestTags.ForgotPasswordButton),
             )
             StreamCoreTvButton(
-                text = stringResource(R.string.login_create_account),
+                text = stringResource(Res.string.login_create_account),
                 enabled = !state.isLoading,
                 onClick = { onAction(LoginAction.CreateAccount) },
                 modifier = Modifier
@@ -254,7 +255,7 @@ private fun TvLoginForm(
             )
         }
         StreamCoreTvButton(
-            text = stringResource(R.string.login_help),
+            text = stringResource(Res.string.login_help),
             enabled = !state.isLoading,
             onClick = { onAction(LoginAction.Help) },
             modifier = Modifier

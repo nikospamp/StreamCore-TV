@@ -18,11 +18,11 @@ import com.pampoukidis.streamcoretv.auth.AppAuthAction
 import com.pampoukidis.streamcoretv.auth.AppAuthUiState
 import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
 import com.pampoukidis.streamcoretv.auth.AppLogoutConfirmationDialog
-import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
-import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
+import com.pampoukidis.streamcoretv.core.ui.error.ErrorPresentationMapper
+import com.pampoukidis.streamcoretv.core.ui.error.ErrorUiModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
 import com.pampoukidis.streamcoretv.navigation.startDestinationForAuthState
@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                 StreamCoreTheme {
                     val appAuthViewModel: AppAuthViewModel = koinViewModel()
                     val appAuthUiState by appAuthViewModel.uiState.collectAsStateWithLifecycle()
-                    var activeError by remember { mutableStateOf<ErrorModel?>(null) }
+                    var activeError by remember { mutableStateOf<ErrorUiModel?>(null) }
 
                     LaunchedEffect(appAuthViewModel) {
                         appAuthViewModel.effects.collect { effect ->
