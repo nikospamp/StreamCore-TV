@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.home.tablet.home
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -97,7 +96,7 @@ class TabletHomeScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Search").assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription("Search").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Choose profile").performClick()
         composeRule.onNodeWithTag(HomeTestTags.HeroDetails).performClick()
         composeRule
