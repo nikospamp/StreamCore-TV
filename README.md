@@ -5,6 +5,10 @@ Compose-first Android VOD application for mobile, tablet, and TV. StreamCore TV 
 > [!NOTE]
 > This project is under active development. The `tmdb` flavor is the reference integration; `clientB` demonstrates how another provider can be connected without leaking provider types into shared modules.
 
+> [!IMPORTANT]
+> Android/KMP Phase 1 is Accepted at verified production commit `b8236b7`. The historical physical-device performance campaign remains
+> informational; a new campaign is optional and was owner-skipped for this gate. WEB-01 has not started and no Wasm target exists.
+
 ## Highlights
 
 - One application targeting Android phones, tablets, and Android TV

@@ -8,10 +8,13 @@
   - `74d65cd` — common vector runtime compatibility and coordinated AndroidX Test alignment.
   - `a3eacb6` — provider Compose Resource packaging in TMDB and ClientB UI AARs/APKs.
   - `4c7cdaf` — deterministic tablet parity assertions matching the accepted app-shell/source-set mapping.
+  - `b8236b7` — final verified production/build tree with redacted TMDB runtime preflight and linked-worktree configuration.
 - Verification date: 2026-09-01 (Europe/Athens).
 - Target architecture: backend-agnostic Android/KMP Phase 1. No Wasm/web target or WEB-01 implementation is present.
-- Acceptance status: pending only the ticket-required controlled physical-device before/after benchmark campaign. Host/release, installed
-  persistence, automated phone/tablet/TV gates, and authenticated TMDB/ClientB phone/tablet/TV journeys are green.
+- Acceptance status: **Accepted**. Host/release, installed persistence, automated phone/tablet/TV gates, and authenticated TMDB/ClientB
+  phone/tablet/TV journeys are green. The project owner explicitly made a new physical campaign optional/non-blocking for this Phase 1 gate.
+- Acceptance documentation is isolated in the dedicated `docs(kmp): accept Phase 1 Android parity gate` commit; its exact hash is reported in the
+  final handoff because a commit cannot self-reference its own hash.
 
 ## Integration remediations
 
@@ -209,21 +212,22 @@ provider AARs and the corresponding flavor APKs. Profile generation was intentio
 
 ## Performance comparison
 
-The ticket-required controlled before/after campaign remains blocking because no physical Android 14+ device is connected. Emulator timing is not
-performance evidence and was not substituted. The accepted physical-device campaign remains `docs/performance/samsung-controlled-v2-final.md`
-(320/320 journeys, 32/32 cells); it is the before reference but predates KMP-07. The interrupted `BaselineProfileMode.Require` diagnostic remains
-non-reportable and was not reused.
+The project owner explicitly skipped the new physical before/after campaign on 2026-09-01 and amended KMP-07 so it is optional, informational, and
+non-blocking for Phase 1. No result is fabricated and emulator timing is not performance evidence. The accepted historical physical-device
+campaign remains `docs/performance/samsung-controlled-v2-final.md` (320/320 journeys, 32/32 cells); it predates KMP-07 and is retained only as
+context. The interrupted `BaselineProfileMode.Require` diagnostic remains non-reportable and was not reused.
 
-Safest completion path: connect an Android 14+ physical device, authenticate the isolated benchmark app, pin one exact content tag after preflight,
-and run new, non-overwriting identities through `tools/performance/run-navigation.ps1` and `run-campaign.ps1`. Record APK/driver hashes, device
-fingerprint, 32/32 cells, 320/320 journeys, and the informational before/after comparison. Do not use an emulator or append to the accepted run.
+If a future informational campaign is desired, connect an Android 14+ physical device, authenticate the isolated benchmark app, pin one exact
+content tag after preflight, and run new non-overwriting identities through `tools/performance/run-navigation.ps1` and `run-campaign.ps1`. Do not
+use an emulator or append to the accepted run.
 
-## Remaining stop condition
+## Acceptance conclusion
 
 The existing TMDB token was recovered locally and the account ID was retrieved through the explicitly authorized TMDB login/session flow. Both
 temporary sessions were deleted. Only the token/account ID are present in ignored primary `local.properties`, with `sdk.dir` preserved; no values,
 hashes, or paths are committed or recorded. `:app:verifyTmdbRuntimeConfig` passes when referencing that ignored file and fails value-safely when
-configuration is absent. Authenticated phone and tablet journeys are green.
+configuration is absent. Authenticated phone, tablet, and TV journeys are green.
 
-The TMDB manual matrix is complete. The controlled physical-device campaign above is now the sole remaining acceptance item and is explicitly
-deferred, not waived. KMP-07 remains Pending; do not merge or begin WEB-01 until the campaign completes or the ticket is explicitly amended.
+The complete baseline-vs-current matrix, installed KMP-00 persistence upgrade, configured provider variants, host/device counts, static boundaries,
+resource/profile proof, and manual journeys are green. There is no remaining KMP-07 acceptance blocker. This task does not merge the branch or begin
+WEB-01; those are separate follow-up actions.

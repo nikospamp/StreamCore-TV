@@ -6,15 +6,16 @@
 
 ## KMP-07 Phase 1 closure
 
-> **Status: Pending controlled physical-device campaign.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
+> **Status: Accepted.** Verified production/build/test commit `b8236b7` passes both debug/R8 providers, the full root
 > gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
-> accepted phone/tablet/TV matrix. ClientB manual parity, authenticated TMDB phone/tablet parity, and the exact installed KMP-00
+> accepted phone/tablet/TV matrix. ClientB manual parity, authenticated TMDB phone/tablet/TV parity, and the exact installed KMP-00
 > auth/Search/Library/Playback upgrade are green. TMDB runtime configuration is present only in approved ignored local configuration and validated
-> by a redacted linked-worktree preflight. Authenticated TMDB phone/tablet/TV parity is green. No Android 14+ physical device is connected for the
-> required new controlled campaign. Phase 1 is not marked accepted and WEB-01 must not start until that campaign passes or the ticket is amended.
+> by a redacted linked-worktree preflight. The project owner explicitly amended KMP-07 to make a new physical performance campaign optional and
+> non-blocking; no new result is claimed. The acceptance documentation is isolated in the dedicated
+> `docs(kmp): accept Phase 1 Android parity gate` commit and its exact hash is reported in the final handoff.
 
 KMP-07 preserves compile SDK 37 and target SDK 36 and adds no Wasm target. The generated Baseline Profiles are byte-for-byte unchanged and are
-consumed by the release APK. The accepted physical-device campaign remains the before reference, not same-commit after evidence.
+consumed by the release APK. The historical physical-device campaign remains informational context, not same-commit proof or a threshold.
 
 Accepted Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of

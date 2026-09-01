@@ -39,9 +39,8 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current start gate:** KMP-00 host remediation is green at `8bc11dc4300e55822bbae689dfdad271ef3fe769`, but the device matrix exposed functional
-blockers. `docs/kmp/migration-baseline.md` remains provisional until KMP-00B through KMP-00G pass and KMP-00H records a fully green rerun. KMP-01 must
-not start before the report status is `Accepted` and `codex/kmp-migration` exists.
+**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. The dedicated KMP-07 acceptance documentation
+commit is identified in the ticket handoff. WEB-01 is dependency-unblocked but has not started in this task; no Wasm target exists yet.
 
 WEB-03 may use several agents internally after WEB-02 freezes the shared web component APIs. Each agent must own disjoint feature modules; one
 integration owner owns `:webApp`, navigation, and shared web design-system changes.
@@ -64,7 +63,7 @@ integration owner owns `:webApp`, navigation, and shared web design-system chang
 | [KMP-04](KMP-04-feature-logic-group-b.md)        | Search/library/player/persistence/playback contracts migrated | KMP-02                 | With KMP-03                      |
 | [KMP-05](KMP-05-provider-migration.md)           | TMDB/ClientB provider implementations migrated                | KMP-03, KMP-04         | No                               |
 | [KMP-06](KMP-06-shared-compose-and-resources.md) | Shared presentation, UI, and resources migrated               | KMP-05                 | No                               |
-| [KMP-07](KMP-07-android-parity-gate.md)          | Android parity and Phase 1 release gate                       | KMP-06                 | No                               |
+| [KMP-07](KMP-07-android-parity-gate.md)          | Accepted Android parity and Phase 1 release gate              | KMP-06                 | No                               |
 | [WEB-01](WEB-01-wasm-runtime.md)                 | Wasm runtime and platform adapters                            | KMP-07                 | No                               |
 | [WEB-02](WEB-02-login-and-profiles.md)           | Web login and profile flows                                   | WEB-01                 | No                               |
 | [WEB-03](WEB-03-browse-surfaces.md)              | Web browse milestone                                          | WEB-02                 | Per feature, with one integrator |
