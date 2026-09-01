@@ -140,6 +140,19 @@ Previews must:
 - Use the standard `@Preview` annotation for reusable or non-screen components.
 - Wrap content in `StreamCoreTVTheme { ... }`, or the equivalent project theme wrapper
 
+For Compose Multiplatform modules:
+
+- Put backend-free, platform-neutral composable previews in `commonMain` and use
+  `androidx.compose.ui.tooling.preview.Preview` from the Compose Multiplatform tooling-preview artifact.
+- Keep `@PreviewMobile`, `@PreviewTablet`, and `@PreviewTV` in Android source sets only. Their
+  `Configuration`-based annotations and TV Material preview content must never enter `commonMain`.
+- Put shared strings, vectors, and raster artwork in `src/commonMain/composeResources`. Access them through
+  generated `Res.string` / `Res.drawable` values and `org.jetbrains.compose.resources` APIs, never Android `R`
+  IDs or `androidx.compose.ui.res` from common code.
+- Keep Android manifest/theme compatibility resources in `androidMain/res` only when Android packaging cannot
+  consume a Compose Resource directly. Enable Android resource processing explicitly for the owning Android-KMP
+  target and do not use the compatibility copy from shared Compose rendering code.
+
 Prefer stateless composables.
 
 Hoist state to ViewModels or plain state holders.
