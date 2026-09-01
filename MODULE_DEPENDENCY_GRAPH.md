@@ -1,143 +1,97 @@
 # Gradle Module Dependency Graph
 
-Backend-agnostic module graph for project-to-project Gradle dependencies.
+Phase 1 Android/KMP graph at the KMP-07 parity candidate. The target architecture is backend-agnostic: app, core, feature, and playback contracts do not depend on provider DTOs or SDKs.
 
 ```mermaid
 flowchart LR
-    app[":app"]
+    App[":app\nAndroid application"]
+    PlatformUI["feature ui-mobile / ui-tablet / ui-tv\nAndroid-only"]
+    CommonUI["feature ui-common\nCompose KMP"]
+    FeatureDomain["feature data / domain\nKMP"]
+    Core["core data / domain / tracing-api\nKMP"]
+    CoreUI[":core:ui\nCompose KMP"]
+    Providers["client TMDB / ClientB\ndata + ui + player\nKMP"]
+    Media3[":playback:media3\nAndroid-only"]
+    Playback[":playback:api\nCompose KMP"]
+    Benchmark[":benchmark / :baselineprofile\nAndroid test infrastructure"]
 
-    subgraph clients["Client data modules"]
-        dataTmdb[":data:tmdb"]
-        dataClientB[":data:clientB"]
-    end
-
-    subgraph login["Feature: login"]
-        loginMobile[":feature:login:ui-mobile"]
-        loginTablet[":feature:login:ui-tablet"]
-        loginTv[":feature:login:ui-tv"]
-        loginCommon[":feature:login:ui-common"]
-        loginDomain[":feature:login:domain"]
-    end
-
-    subgraph core["Core"]
-        coreUi[":core:ui"]
-        coreDomain[":core:domain"]
-        coreModel[":core:model"]
-    end
-
-    app -->|"tmdbImplementation"| dataTmdb
-    app -->|"clientBImplementation"| dataClientB
-    app -->|"implementation"| coreModel
-    app -->|"implementation"| coreUi
-    app -->|"implementation"| loginMobile
-    app -->|"implementation"| loginTablet
-    app -->|"implementation"| loginTv
-
-    dataTmdb -->|"implementation"| coreDomain
-    dataTmdb -->|"implementation"| coreModel
-    dataTmdb -->|"implementation"| coreUi
-    dataClientB -->|"implementation"| coreDomain
-    dataClientB -->|"implementation"| coreModel
-    dataClientB -->|"implementation"| coreUi
-
-    loginMobile -->|"implementation"| coreModel
-    loginMobile -->|"implementation"| coreUi
-    loginMobile -->|"api"| loginCommon
-    loginTablet -->|"implementation"| coreModel
-    loginTablet -->|"implementation"| coreUi
-    loginTablet -->|"api"| loginCommon
-    loginTv -->|"implementation"| coreModel
-    loginTv -->|"implementation"| coreUi
-    loginTv -->|"api"| loginCommon
-
-    loginCommon -->|"implementation"| coreDomain
-    loginCommon -->|"implementation"| coreModel
-    loginCommon -->|"implementation"| coreUi
-    loginCommon -->|"api"| loginDomain
-
-    loginDomain -->|"implementation"| coreDomain
-    loginDomain -->|"implementation"| coreModel
-
-    coreUi -->|"implementation"| coreModel
-    coreDomain -->|"implementation"| coreModel
+    App --> PlatformUI
+    PlatformUI --> CommonUI
+    PlatformUI --> CoreUI
+    CommonUI --> FeatureDomain
+    CommonUI --> Core
+    CommonUI --> CoreUI
+    FeatureDomain --> Core
+    App -->|exactly one flavor graph| Providers
+    Providers --> Core
+    Providers --> Playback
+    App --> Media3
+    Media3 --> Playback
+    CommonUI --> Playback
+    Benchmark --> App
 ```
 
-## Linear Import View
+## Module classes
+
+| Class | Modules | Target/source-set rule |
+|---|---|---|
+| Android application | `:app` | Android application; navigation, activity, platform composition root, flavor selection |
+| Android UI | `:feature:*:ui-mobile`, `ui-tablet`, `ui-tv` | Android library; touch/adaptive/TV focus behavior remains platform-owned |
+| Plain KMP | `:core:data`, `:core:domain`, `:core:tracing-api`, feature data/domain, provider data/player | `commonMain` first; Android construction such as DataStore/engine setup in `androidMain` |
+| Compose KMP | `:core:ui`, every `:feature:*:ui-common`, provider UI, `:playback:api` | Portable state/ViewModels/resources/components in `commonMain`; Android-only TV/configuration APIs in `androidMain` |
+| Android engine | `:playback:media3`, `:core:tracing` | Media3 and Android tracing implementations |
+| Test infrastructure | `:benchmark`, `:benchmark:ui-driver`, `:baselineprofile` | TMDB-only Android benchmark/profile producers; generated profiles merge into app main |
+
+There is no `wasmJs` or web target in Phase 1. KMP status means Android-hosted common code only; browser support begins only when WEB-01 adds and verifies a Wasm target.
+
+## Application and provider composition
+
+`:app` depends on all platform UI surfaces, `:core:{data,domain,ui}`, `:feature:{search,library,player}:data`, `:playback:{api,media3}`, and one mutually exclusive provider graph:
 
 ```text
-:app
-  tmdbImplementation -> :data:tmdb
-    implementation -> :core:domain
-      implementation -> :core:model
-    implementation -> :core:model
-    implementation -> :core:ui
-      implementation -> :core:model
-  clientBImplementation -> :data:clientB
-    implementation -> :core:domain
-      implementation -> :core:model
-    implementation -> :core:model
-    implementation -> :core:ui
-      implementation -> :core:model
-  implementation -> :core:model
-  implementation -> :core:ui
-    implementation -> :core:model
-  implementation -> :feature:login:ui-mobile
-    implementation -> :core:model
-    implementation -> :core:ui
-      implementation -> :core:model
-    api -> :feature:login:ui-common
-      implementation -> :core:domain
-        implementation -> :core:model
-      implementation -> :core:model
-      implementation -> :core:ui
-        implementation -> :core:model
-      api -> :feature:login:domain
-        implementation -> :core:domain
-          implementation -> :core:model
-        implementation -> :core:model
-  implementation -> :feature:login:ui-tablet
-    implementation -> :core:model
-    implementation -> :core:ui
-      implementation -> :core:model
-    api -> :feature:login:ui-common
-  implementation -> :feature:login:ui-tv
-    implementation -> :core:model
-    implementation -> :core:ui
-      implementation -> :core:model
-    api -> :feature:login:ui-common
+tmdbImplementation    -> :client:tmdb:{data,ui,player}
+clientBImplementation -> :client:clientB:{data,ui,player}
 ```
 
-## Direct Project Edges
+The common Android Koin composition root combines process modules with exactly one flavor module list. Provider data modules implement backend-agnostic core/search contracts. Provider player modules bind only `PlaybackSourceRepository`; `:playback:media3` owns `PlaybackSessionFactory`.
 
-| Source | Configuration | Target |
-|---|---:|---|
-| `:app` | `tmdbImplementation` | `:data:tmdb` |
-| `:app` | `clientBImplementation` | `:data:clientB` |
-| `:app` | `implementation` | `:core:model` |
-| `:app` | `implementation` | `:core:ui` |
-| `:app` | `implementation` | `:feature:login:ui-mobile` |
-| `:app` | `implementation` | `:feature:login:ui-tablet` |
-| `:app` | `implementation` | `:feature:login:ui-tv` |
-| `:core:domain` | `implementation` | `:core:model` |
-| `:core:ui` | `implementation` | `:core:model` |
-| `:data:tmdb` | `implementation` | `:core:domain` |
-| `:data:tmdb` | `implementation` | `:core:model` |
-| `:data:tmdb` | `implementation` | `:core:ui` |
-| `:data:clientB` | `implementation` | `:core:domain` |
-| `:data:clientB` | `implementation` | `:core:model` |
-| `:data:clientB` | `implementation` | `:core:ui` |
-| `:feature:login:domain` | `implementation` | `:core:domain` |
-| `:feature:login:domain` | `implementation` | `:core:model` |
-| `:feature:login:ui-common` | `implementation` | `:core:domain` |
-| `:feature:login:ui-common` | `implementation` | `:core:model` |
-| `:feature:login:ui-common` | `implementation` | `:core:ui` |
-| `:feature:login:ui-common` | `api` | `:feature:login:domain` |
-| `:feature:login:ui-mobile` | `implementation` | `:core:model` |
-| `:feature:login:ui-mobile` | `implementation` | `:core:ui` |
-| `:feature:login:ui-mobile` | `api` | `:feature:login:ui-common` |
-| `:feature:login:ui-tablet` | `implementation` | `:core:model` |
-| `:feature:login:ui-tablet` | `implementation` | `:core:ui` |
-| `:feature:login:ui-tablet` | `api` | `:feature:login:ui-common` |
-| `:feature:login:ui-tv` | `implementation` | `:core:model` |
-| `:feature:login:ui-tv` | `implementation` | `:core:ui` |
-| `:feature:login:ui-tv` | `api` | `:feature:login:ui-common` |
+## Feature pattern
+
+For Login, Profiles, Home, Search, Details, and Library:
+
+```text
+:feature:<name>:ui-{mobile,tablet,tv}
+  api -> :feature:<name>:ui-common
+  -> :core:{data,ui}
+
+:feature:<name>:ui-common
+  -> feature data/domain contracts
+  -> backend-agnostic core/playback contracts as required
+
+:feature:<name>:domain/data
+  -> :core:{data,domain} as required
+```
+
+Player uses `ui-mobile` and `ui-tv`; both expose `:feature:player:ui-common`, which exposes `:feature:player:domain` and `:playback:api`. Details additionally consumes Library and Player domain policies.
+
+## Direct infrastructure edges
+
+```text
+:core:domain -> :core:data
+:core:ui -> :core:data
+:core:tracing -> api(:core:tracing-api)
+:playback:api -> api(:core:data)
+:playback:media3 -> api(:playback:api)
+:benchmark -> :benchmark:ui-driver
+:baselineprofile -> :benchmark:ui-driver
+```
+
+## Boundary gates
+
+- Koin 4.2.2 classic constructor DSL only; no Hilt/Dagger or service location in business code.
+- Provider DTOs remain internal to their client data module and never cross into core/domain/feature UI.
+- Shared dependencies must publish compatible KMP metadata and Android variants; `verifyKmpDependencyCompatibility` enforces the locked set.
+- Common tests opt into `testAndroidHostTest`; `verifyKmpTestTargets` prevents source/task drift or zero-test suites.
+- Compose KMP Android compilation uses `-Xlambdas=class`; `verifyKmpAndroidCompilerFlags` checks every production compile task.
+- Compose Resources live under `commonMain/composeResources`. Resource-owning Android-KMP modules must package them through Android resource processing; provider UI AAR/APK assets are part of the Android parity gate.
+- Compile SDK is 37 throughout. App, benchmark, and baseline-profile target SDK remains 36.
