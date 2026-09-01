@@ -4,12 +4,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.espresso.Espresso.pressBack
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
@@ -133,26 +135,46 @@ class TvPlayerScreenTest {
     @Test
     fun timelineDpadStartsScrubbingAndShowsFilmstripState() {
         val actions = mutableListOf<PlayerAction>()
-        setContent(stateProvider = ::readyState, actions = actions)
+        var state by mutableStateOf(readyState())
+        setContent(
+            stateProvider = { state },
+            onAction = { action ->
+                actions += action
+                state = when (action) {
+                    PlayerAction.ScrubStarted -> state.copy(
+                        isScrubbing = true,
+                        scrubPositionMillis = state.positionMillis,
+                    )
+
+                    is PlayerAction.ScrubChanged -> state.copy(
+                        scrubPositionMillis = action.positionMillis,
+                    )
+
+                    PlayerAction.ScrubFinished -> state.copy(
+                        isScrubbing = false,
+                        positionMillis = state.scrubPositionMillis,
+                    )
+
+                    else -> state
+                }
+            },
+        )
 
         composeRule.onNodeWithTag(PlayerTestTags.Timeline)
-            .performKeyInput {
-                keyDown(Key.DirectionRight)
-                keyUp(Key.DirectionRight)
-            }
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+            .performKeyInput { keyDown(Key.DirectionRight) }
 
         assertTrue(actions.any { it == PlayerAction.ScrubStarted })
         assertTrue(actions.any { it is PlayerAction.ScrubChanged })
-
-        setContent(
-            stateProvider = {
-                readyState().copy(
-                    isScrubbing = true,
-                    scrubPositionMillis = 70_000L,
-                )
-            },
-        )
         composeRule.onNodeWithTag(PlayerTestTags.Filmstrip).assertIsDisplayed()
+
+        composeRule.onNodeWithTag(PlayerTestTags.Timeline)
+            .assertIsFocused()
+            .performKeyInput { keyUp(Key.DirectionRight) }
+
+        assertTrue(actions.any { it == PlayerAction.ScrubFinished })
+        assertTrue(state.positionMillis > 60_000L)
     }
 
     @Test
