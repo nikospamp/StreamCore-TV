@@ -10,8 +10,8 @@
   - `4c7cdaf` — deterministic tablet parity assertions matching the accepted app-shell/source-set mapping.
 - Verification date: 2026-09-01 (Europe/Athens).
 - Target architecture: backend-agnostic Android/KMP Phase 1. No Wasm/web target or WEB-01 implementation is present.
-- Acceptance status: pending authenticated TMDB TV completion and the ticket-required controlled physical-device before/after benchmark campaign.
-  Host/release, installed persistence, automated phone/tablet/TV gates, and authenticated TMDB phone/tablet journeys are green.
+- Acceptance status: pending only the ticket-required controlled physical-device before/after benchmark campaign. Host/release, installed
+  persistence, automated phone/tablet/TV gates, and authenticated TMDB/ClientB phone/tablet/TV journeys are green.
 
 ## Integration remediations
 
@@ -49,6 +49,10 @@ No repository memory setting changed.
 | required mobile/tablet/TV Android-test compilation tasks | Pass |
 | `:benchmark:assemble` | Pass; benchmark and benchmarkR8 producer APKs built |
 | `:baselineprofile:assemble` | Pass; profiles were not regenerated |
+
+After the durable linked-worktree preflight change, the configured TMDB debug and releaseR8 builds also pass with
+`-PrequireTmdbRuntimeConfig=true`; the releaseR8 rerun reported 1,385 actionable tasks. The final credential-free root check passed in 1m 15s with
+1,663 actionable tasks. Combined final `:benchmark:assemble :baselineprofile:assemble` passed with 262 up-to-date tasks and no regeneration.
 
 Root guards report:
 
@@ -132,6 +136,15 @@ ClientB passed on phone, tablet, and TV:
 - TV form/profile D-pad order, drawer Left/Right transfer, Search, two-stage Back handling, exact Home Details-focus restoration, Details/player focus graph,
   focused Back exit, and persisted Resume state.
 
+Authenticated TMDB also passed on phone, tablet, and TV:
+
+- cold login, restored-session relaunch, profile selection/focus, and logout cancel/Back/confirm;
+- remote Home content/artwork, cold/warm phone artwork, Search, Library, Details, recommendations, Like/My List, and trailer handlers;
+- phone player prepare/pause/seek/settings/exit/Resume and system-confirmed/visually captured PiP;
+- tablet adaptive rail, portrait/landscape state round-trip, Details, and player;
+- TV drawer Left/Right transfer, deterministic profile/content/player focus, exact Home Details return focus, trailer/YouTube return, seek/timeline,
+  settings, focused Back exit, Resume, and restored-session/logout paths.
+
 Ignored local screenshots are under `build/kmp-07-evidence/{phone,tablet,tv}` and contain no credentials. The deterministic Coil test proves the
 Coil Ktor3 cold-network/warm-disk path. Authenticated phone screenshots prove remote cold/warm artwork and successful PiP without exposing local
 configuration values.
@@ -140,16 +153,16 @@ configuration values.
 
 | Journey | KMP-00 | ClientB phone | ClientB tablet | ClientB TV | TMDB phone | TMDB tablet | TMDB TV |
 |---|---|---|---|---|---|---|---|
-| Login, logout, restored session | Pass | Pass | Pass | Pass | Pass | Pass (pre-migration restored auth) | Pending login authorization |
-| Profile select/create/edit/delete | Pass | Pass/connected | Pass/connected | Pass/connected | Pass/connected | Pass/connected | Pending login authorization |
-| Home load/content/refresh/navigation | Pass | Pass | Pass | Pass | Pass | Pass | Pending login authorization |
-| Search discovery/query/recents/result | Pass | Pass | Pass/connected | Pass | Pass | Pass | Pending login authorization |
-| Library empty/content/mutation/isolation | Pass | Pass | Pass/connected | Pass/connected | Pass | Pass | Pending login authorization |
-| Details/refresh/recommendations/mutations/trailer/back | Pass | Pass | Pass | Pass | Pass | Pass | Pending login authorization |
-| Player prepare/play/pause/seek/settings/exit/resume/PiP | Pass | Pass except visible PiP confirmation | Pass | Pass | Pass including system-confirmed PiP | Pass | Pending login authorization |
-| TV drawer/D-pad/focus/return restoration | Pass | N/A | N/A | Pass | N/A | N/A | Pending login authorization |
+| Login, logout, restored session | Pass | Pass | Pass | Pass | Pass | Pass (pre-migration restored auth) | Pass |
+| Profile select/create/edit/delete | Pass | Pass/connected | Pass/connected | Pass/connected | Pass/connected | Pass/connected | Pass/connected |
+| Home load/content/refresh/navigation | Pass | Pass | Pass | Pass | Pass | Pass | Pass |
+| Search discovery/query/recents/result | Pass | Pass | Pass/connected | Pass | Pass | Pass | Pass |
+| Library empty/content/mutation/isolation | Pass | Pass | Pass/connected | Pass/connected | Pass | Pass | Pass |
+| Details/refresh/recommendations/mutations/trailer/back | Pass | Pass | Pass | Pass | Pass | Pass | Pass |
+| Player prepare/play/pause/seek/settings/exit/resume/PiP | Pass | Pass except visible PiP confirmation | Pass | Pass | Pass including system-confirmed PiP | Pass | Pass (PiP N/A) |
+| TV drawer/D-pad/focus/return restoration | Pass | N/A | N/A | Pass | N/A | N/A | Pass |
 | Phone/tablet adaptive/orientation | Pass | Pass | Pass | N/A | Pass | Pass | N/A |
-| Remote cold/warm artwork after Coil migration | N/A | Deterministic loopback cache pass | Provider-local artwork pass | Provider-local artwork pass | Pass | Remote artwork pass | Pending login authorization |
+| Remote cold/warm artwork after Coil migration | N/A | Deterministic loopback cache pass | Provider-local artwork pass | Provider-local artwork pass | Pass | Pass | Pass |
 
 ## Persistence compatibility
 
@@ -205,13 +218,12 @@ Safest completion path: connect an Android 14+ physical device, authenticate the
 and run new, non-overwriting identities through `tools/performance/run-navigation.ps1` and `run-campaign.ps1`. Record APK/driver hashes, device
 fingerprint, 32/32 cells, 320/320 journeys, and the informational before/after comparison. Do not use an emulator or append to the accepted run.
 
-## Remaining stop conditions
+## Remaining stop condition
 
 The existing TMDB token was recovered locally and the account ID was retrieved through the explicitly authorized TMDB login/session flow. Both
 temporary sessions were deleted. Only the token/account ID are present in ignored primary `local.properties`, with `sdk.dir` preserved; no values,
 hashes, or paths are committed or recorded. `:app:verifyTmdbRuntimeConfig` passes when referencing that ignored file and fails value-safely when
 configuration is absent. Authenticated phone and tablet journeys are green.
 
-TMDB TV is installed at Login. Managed security review requires a separate explicit authorization for entering the ignored username/password into
-the emulator app; no retry or workaround is attempted. After TV completion, the controlled physical-device campaign above remains the sole planned
-acceptance item and is explicitly deferred, not waived. KMP-07 remains Pending; do not merge or begin WEB-01.
+The TMDB manual matrix is complete. The controlled physical-device campaign above is now the sole remaining acceptance item and is explicitly
+deferred, not waived. KMP-07 remains Pending; do not merge or begin WEB-01 until the campaign completes or the ticket is explicitly amended.
