@@ -4,6 +4,9 @@
 
 - Branch: `codex/kmp-04-feature-logic-b`.
 - Start commit: `b08e30599a5b9cd4a0c366fc864aee979300fe11`.
+- KMP-04 implementation commit: `98032346534e444404c062af4ba999954ace7992`.
+- Integrated SDK 37 foundation commit: `c11bd0834a07e1b74faf33d4639b1a72e994b2d2`.
+- Tested merge commit: `aa70b0a7773963eabea06cf6ae46e39ccd361965`.
 - Verification date: 2026-09-01 (Europe/Athens).
 - Target architecture: backend-agnostic Android-only KMP; no Wasm target, web storage, browser playback, provider migration, or player UI migration.
 
@@ -23,8 +26,8 @@ conventions were not edited.
 | `:feature:player:domain` | Resume policy to `commonMain` | Compile-only; no filler test | `streamcore.kmp.library` |
 | `:playback:api` | All provider-neutral contracts/models, Compose video surface, and filmstrip model to `commonMain` | Compile-only; no filler test | `streamcore.kmp.compose.library` |
 
-The compile-only modules remove their unused default `commonTest` source set. `verifyKmpTestTargets` reports seven repository-wide common-test
-modules and seven executable Android host-test targets.
+The compile-only modules remove their unused default `commonTest` source set. KMP-04 contributes five common-test modules and five executable
+Android host-test targets; after KMP-03 integration, `verifyKmpTestTargets` reports 11 repository-wide common-test modules and 11 host-test targets.
 
 ## Persistence compatibility
 
@@ -122,30 +125,35 @@ rg -n "^import (android|java|androidx\.annotation|androidx\.core)\." `
 Result: no matches. A separate scan found no `System.currentTimeMillis`, `java.io.IOException`, `PreferenceDataStoreFactory`, or
 `preferencesDataStoreFile` in the migrated common source sets. `git diff --check` passed.
 
-### Root verification and foundation blocker
+### Integrated root verification
 
 ```powershell
-.\gradlew.bat :feature:library:data:testAndroidHostTest verifyKmpTestTargets `
-  check -PverifyDesignTokensLogFiles=true --continue --console=plain
+.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --no-parallel `
+  '-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8' --console=plain
 ```
 
-The root run completed 1,695 actionable tasks. The feature test rerun passed; `verifyKmpTestTargets` passed with 7/7 common-test/host-test modules;
-`verifyKmpAndroidCompilerFlags` verified `-Xlambdas=class` on the new production Compose-KMP task; dependency/convention verifiers passed; and
-`verifyDesignTokens` checked 300 production Kotlin files.
+Result on tested merge commit `aa70b0a7773963eabea06cf6ae46e39ccd361965`: `BUILD SUCCESSFUL` in 3m 2s; 1,977 actionable tasks (728 executed,
+230 from cache, 1,019 up-to-date). The SDK 37 integration raises compile SDK only; target SDK remains 36. All prior Compose 1.12 AAR metadata
+failures are absent, including Player data, Playback API/Media3, both provider players, Android UI consumers, and both app variants.
 
-The root command is blocked in frozen KMP-02 ownership: required Compose Multiplatform `1.12.0` resolves Android Compose UI/runtime `1.12.0`, whose
-AAR metadata requires compile SDK 37, while the frozen KMP convention and Android graph compile against SDK 36/36.1. It produced 24 cascading AAR
-metadata failures across `:feature:player:data`, Media3, app, and Android UI consumers. KMP-04 did not change `build-logic`, root build files, the
-catalog, compile SDK, or dependency versions. The initial root run also exposed direct test constructors missing the new clock; the compatible
-default clock fix is verified separately above, leaving only the shared compile-SDK/Compose incompatibility for integration ownership.
+- `verifyKmpTestTargets`: 11 common-test modules and 11 Android host-test targets; `:core:domain` remains the compile-only exemption.
+- `verifyKmpAndroidCompilerFlags`: one production Compose-KMP Android task with `-Xlambdas=class`.
+- `verifyKmpConventionPlugins`: two convention fixtures green.
+- `verifyKmpDependencyCompatibility`: 14 locked common and Android component selections green.
+- `verifyDesignTokens`: 300 production Kotlin files checked.
+- XML inventory: 254 tests across 26 executed test tasks; zero failures, errors, or skips. KMP-04's five host-test tasks remain 23/23 green.
+- `:playback:media3:compileDebugKotlin`, `:app:compileTmdbDebugKotlin`, and `:app:compileClientBDebugKotlin` executed successfully in the root graph.
+
+The earlier pre-integration root attempt is retained as diagnostic history: it exposed the Compose 1.12/compile-SDK 36 AAR metadata conflict and a
+direct-constructor clock compatibility issue. The reviewed SDK 37 foundation integration fixed the former without changing target SDK; KMP-04's
+default `SystemLibraryClock` fixed the latter without editing KMP-03 files.
 
 ## Bridge-removal candidate and deferred work
 
 - `:feature:search:domain` is ready for removal from the root transitional JVM-core consumer list after integration. KMP-04 intentionally preserved
   the bridge entry. No other KMP-04 module is in that list.
-- The Compose 1.12/compile-SDK 36 AAR metadata conflict requires a KMP foundation/integration decision; it cannot be repaired within KMP-04 module
-  ownership without changing a frozen convention or downgrading a locked dependency.
 - KMP-05 owns provider migration. KMP-06 owns Player UI migration and replacing its Android wall-clock call. WEB-01/WEB-04 own web storage/playback.
 
-No KMP-03-owned production/test file, provider file, root build file, convention, version catalog, generated output, credential, or unrelated user
-file was modified.
+The KMP-04 implementation commit modified no KMP-03-owned production/test file, provider file, root build file, convention, version catalog,
+generated output, credential, or unrelated user file. The later merge commit brings in the separately reviewed KMP-03 and SDK 37 integration
+changes without an owned-file conflict.
