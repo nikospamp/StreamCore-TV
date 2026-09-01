@@ -1,24 +1,28 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("streamcore.kmp.library")
     alias(libs.plugins.kotlin.serialization)
 }
 
-android {
-    namespace = "com.pampoukidis.streamcoretv.feature.player.data"
-    compileSdk = 36
-    defaultConfig { minSdk = 24 }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+streamCoreKmp {
+    withHostTest()
 }
 
-dependencies {
-    implementation(libs.koin.android)
-    api(projects.playback.api)
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.serialization.json)
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.playback.api)
+            implementation(libs.androidx.datastore.core)
+            implementation("androidx.datastore:datastore-preferences-core:1.2.1")
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.koin.android)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }

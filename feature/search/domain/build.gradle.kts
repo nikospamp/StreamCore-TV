@@ -1,16 +1,21 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    id("streamcore.kmp.library")
+}
+
+streamCoreKmp {
+    withHostTest()
 }
 
 kotlin {
-    jvmToolchain(11)
-}
-
-dependencies {
-    implementation(libs.koin.core)
-    implementation(projects.core.data)
-    implementation(libs.kotlinx.coroutines.core)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.koin.core)
+            implementation(projects.core.data)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }
