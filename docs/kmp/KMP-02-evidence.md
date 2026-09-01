@@ -145,17 +145,19 @@ Result: `BUILD SUCCESSFUL` in 2m 32s; 2,001 actionable tasks (1,444 executed, 15
 - `verifyKmpTestTargets`: two common-test modules plus two host-test targets verified.
 - `verifyKmpAndroidCompilerFlags`: zero production Compose-KMP Android tasks, as expected until KMP-06. The Compose convention fixture verifies the
   flag itself without being counted as a production module.
-- Full generated XML inventory: 234 tests, zero failures/errors/skips. The frozen KMP-00 suites remain present; KMP-02 contributes 11 core-data and
-  four tracing-api tests.
+- The generated XML directory inventory was reported as 234 tests with zero failures/errors/skips. One result was stale ignored XML from the
+  non-included `:feature:player:ui-tablet` module, not a task executed by this candidate. The clean included-module inventory is therefore 233;
+  KMP-02 contributes 11 core-data and four tracing-api tests.
 
 ### Accepted baseline comparison
 
-The accepted KMP-00 baseline contains 215 passing tests. The current KMP-02 inventory contains 234 passing tests, a net increase of 19 with no
+The corrected accepted KMP-00 baseline contains 214 passing tests. The clean KMP-02 inventory contains 233 passing tests, a net increase of 19 with no
 missing expected suite:
 
 - KMP-01 increased the two app variants from 23 to 25 tests each: +4 total.
 - KMP-02 adds 11 `:core:data` host tests and four `:core:tracing-api` host tests: +15 total.
-- Every other accepted baseline module/task retains its recorded test count.
+- Every other accepted baseline module/task retains its recorded test count. The originally reported 234-file total included one stale XML test
+  from the non-included `:feature:player:ui-tablet` module; it was not executed by the KMP-02 root gate.
 - `:core:domain` is compile-only by ticket contract and therefore has no zero-test failure or test-count requirement.
 
 ## Static scans
