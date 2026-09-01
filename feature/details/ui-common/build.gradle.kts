@@ -22,6 +22,7 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.koin.core)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.ktor.http)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

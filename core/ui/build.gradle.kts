@@ -40,6 +40,7 @@ kotlin {
             implementation(libs.androidx.junit)
             implementation(libs.androidx.espresso.core)
             implementation("androidx.compose.ui:ui-test-junit4:${libs.versions.composeMultiplatform.get()}")
+            runtimeOnly(libs.androidx.compose.ui.test.manifest)
         }
     }
 }
