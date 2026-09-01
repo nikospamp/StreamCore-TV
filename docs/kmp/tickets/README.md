@@ -39,8 +39,9 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. The dedicated KMP-07 acceptance documentation
-commit is identified in the ticket handoff. WEB-01 is dependency-unblocked but has not started in this task; no Wasm target exists yet.
+**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. WEB-01 is implemented on
+`codex/web-01-wasm-runtime` from accepted integration commit `d6f9396`; its verification evidence is in `docs/kmp/WEB-01-evidence.md`. WEB-02 must
+start only after the WEB-01 candidate is reviewed and integrated.
 
 WEB-03 may use several agents internally after WEB-02 freezes the shared web component APIs. Each agent must own disjoint feature modules; one
 integration owner owns `:webApp`, navigation, and shared web design-system changes.

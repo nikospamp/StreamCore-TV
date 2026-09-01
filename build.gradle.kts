@@ -4,6 +4,8 @@ import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootEnvSpec
 
 // Top-level build file where you can add configuration options common to all subprojects/modules.
 
@@ -502,6 +504,17 @@ subprojects {
 }
 
 gradle.projectsEvaluated {
+    allprojects.forEach { project ->
+        project.extensions.findByType(WasmNodeJsEnvSpec::class.java)?.apply {
+            download.set(false)
+            command.set("node")
+        }
+        project.extensions.findByType(WasmYarnRootEnvSpec::class.java)?.apply {
+            download.set(false)
+            command.set("yarn")
+        }
+    }
+
     val kmpProjects = subprojects.filter { subproject ->
         subproject.pluginManager.hasPlugin("com.android.kotlin.multiplatform.library")
     }

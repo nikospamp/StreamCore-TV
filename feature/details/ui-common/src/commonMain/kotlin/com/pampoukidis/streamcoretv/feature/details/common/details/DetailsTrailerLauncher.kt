@@ -18,9 +18,7 @@ internal fun openDetailsTrailer(
     try {
         require(isValidHttpsUrl(trailer.url))
         uriHandler.openUri(trailer.url)
-    } catch (_: IllegalArgumentException) {
-        onError(trailerLaunchError())
-    } catch (_: SecurityException) {
+    } catch (_: Exception) {
         onError(trailerLaunchError())
     }
 }

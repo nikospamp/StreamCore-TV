@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+streamCoreKmp {
+    withWasmJs()
+}
+
 kotlin {
     sourceSets {
         remove(getByName("commonTest"))
