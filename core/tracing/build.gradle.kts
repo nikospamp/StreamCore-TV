@@ -23,6 +23,7 @@ android {
 }
 
 dependencies {
+    api(projects.core.tracingApi)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
 }

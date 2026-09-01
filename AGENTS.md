@@ -285,6 +285,23 @@ Prefer:
 - Build cache
 - Parallel execution
 
+## Kotlin Multiplatform Rules
+
+- Use `streamcore.kmp.library` for plain shared libraries and `streamcore.kmp.compose.library` for shared Compose libraries. Both conventions use
+  `org.jetbrains.kotlin.multiplatform` with the official `com.android.kotlin.multiplatform.library` plugin.
+- Android-KMP libraries are single-variant. Do not add Android build types or product flavors to them; Android application build types consume the
+  same Android-KMP variant.
+- Put portable production code in `src/commonMain/kotlin`, Android implementations in `src/androidMain/kotlin`, and browser implementations in
+  `src/wasmJsMain/kotlin` only after the owning web ticket adds that target.
+- `commonMain` must not import `android.*`, `java.*`, `androidx.annotation.*`, or `androidx.core.*`. Keep provider SDKs, DTOs, API responses, and
+  client-specific models out of shared/core/feature contracts so the target architecture remains backend-agnostic.
+- Android host and device tests use `androidHostTest` and `androidDeviceTest`. A module with Kotlin files in `commonTest` must explicitly call
+  `withHostTest {}`; `testAndroidHostTest` is its Phase 1 executable test task.
+- Do not enable host/device test compilations in a convention plugin. Compile-only modules must not add `commonTest` sources or filler tests;
+  `:core:domain` is the current explicit compile-only exemption.
+- Compose KMP Android compilations receive `-Xlambdas=class` from the Compose KMP convention only. Never apply that JVM-only flag to common metadata
+  or Wasm compilations.
+
 Do not add new production dependencies without a clear reason.
 
 ## Code Style

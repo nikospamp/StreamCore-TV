@@ -1,5 +1,13 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
+import org.gradle.api.attributes.Category
+import org.gradle.api.attributes.AttributeCompatibilityRule
+import org.gradle.api.attributes.CompatibilityCheckDetails
+import org.gradle.api.attributes.Usage
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Top-level build file where you can add configuration options common to all subprojects/modules.
@@ -13,7 +21,10 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.android.kotlin.multiplatform.library) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.jvm) apply false
 }
@@ -92,6 +103,13 @@ abstract class VerifyDesignTokensTask : DefaultTask() {
             }
         }
 
+        if (checkedFiles.isEmpty()) {
+            throw GradleException(
+                "Design-token verification checked zero production Kotlin files. " +
+                        "Verify the configured main/commonMain/androidMain/wasmJsMain source roots.",
+            )
+        }
+
         if (violations.isNotEmpty()) {
             throw GradleException(
                 buildString {
@@ -107,6 +125,118 @@ abstract class VerifyDesignTokensTask : DefaultTask() {
         resultMarker.orNull?.asFile?.let { markerFile ->
             markerFile.parentFile.mkdirs()
             markerFile.writeText("OK\n")
+        }
+    }
+}
+
+abstract class VerifyKmpTestTargetsTask : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val commonTestSourceFiles: ConfigurableFileCollection
+
+    @get:Input
+    abstract val commonTestModules: ListProperty<String>
+
+    @get:Input
+    abstract val hostTestModules: ListProperty<String>
+
+    @get:Input
+    abstract val compileOnlyModules: ListProperty<String>
+
+    @TaskAction
+    fun verify() {
+        val commonModules = commonTestModules.get().toSet()
+        val hostModules = hostTestModules.get().toSet()
+        val compileOnly = compileOnlyModules.get().toSet()
+        val missingHostTests = commonModules - hostModules
+        val invalidCompileOnlyTests = commonModules intersect compileOnly
+        val invalidCompileOnlyTargets = hostModules intersect compileOnly
+
+        if (missingHostTests.isNotEmpty() || invalidCompileOnlyTests.isNotEmpty() || invalidCompileOnlyTargets.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    if (missingHostTests.isNotEmpty()) {
+                        appendLine("KMP modules with commonTest Kotlin files but no Android host-test compilation:")
+                        missingHostTests.sorted().forEach { module -> appendLine(" - $module") }
+                    }
+                    if (invalidCompileOnlyTests.isNotEmpty()) {
+                        appendLine("Compile-only KMP modules must not contain commonTest Kotlin files:")
+                        invalidCompileOnlyTests.sorted().forEach { module -> appendLine(" - $module") }
+                    }
+                    if (invalidCompileOnlyTargets.isNotEmpty()) {
+                        appendLine("Compile-only KMP modules must not enable Android host tests:")
+                        invalidCompileOnlyTargets.sorted().forEach { module -> appendLine(" - $module") }
+                    }
+                },
+            )
+        }
+
+        logger.lifecycle(
+            "$path verified ${commonModules.size} KMP common-test module(s); " +
+                    "${hostModules.size} Android host-test target(s); " +
+                    "compile-only exemptions: ${compileOnly.sorted().joinToString()}",
+        )
+    }
+}
+
+abstract class VerifyKmpAndroidCompilerFlagsTask : DefaultTask() {
+    @get:Input
+    abstract val applicableCompileTasks: ListProperty<String>
+
+    @get:Input
+    abstract val missingFlagCompileTasks: ListProperty<String>
+
+    @TaskAction
+    fun verify() {
+        val applicable = applicableCompileTasks.get()
+        val missing = missingFlagCompileTasks.get()
+        if (missing.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    appendLine("Compose KMP Android compilations missing -Xlambdas=class:")
+                    missing.sorted().forEach { taskPath -> appendLine(" - $taskPath") }
+                },
+            )
+        }
+
+        logger.lifecycle(
+            if (applicable.isEmpty()) {
+                "$path found zero Compose KMP Android compile tasks; first nonzero proof is owned by KMP-06."
+            } else {
+                "$path verified -Xlambdas=class for ${applicable.size} Compose KMP Android compile task(s)."
+            },
+        )
+    }
+}
+
+abstract class VerifyKmpDependencyCompatibilityTask : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val resolvedArtifacts: ConfigurableFileCollection
+
+    @get:Input
+    abstract val lockedCoordinates: ListProperty<String>
+
+    @TaskAction
+    fun verify() {
+        val artifacts = resolvedArtifacts.files.filter(File::isFile)
+        if (artifacts.isEmpty()) {
+            throw GradleException("Locked KMP compatibility configuration resolved zero artifacts.")
+        }
+        logger.lifecycle(
+            "$path resolved ${lockedCoordinates.get().size} locked KMP coordinates " +
+                    "to ${artifacts.size} common metadata artifact(s).",
+        )
+    }
+}
+
+abstract class JvmConsumerAndroidKmpCompatibilityRule : AttributeCompatibilityRule<KotlinPlatformType> {
+    override fun execute(details: CompatibilityCheckDetails<KotlinPlatformType>) {
+        if (
+            details.consumerValue == KotlinPlatformType.jvm &&
+            details.producerValue == KotlinPlatformType.androidJvm
+        ) {
+            details.compatible()
         }
     }
 }
@@ -184,15 +314,111 @@ val verifyDesignTokensLogFiles by tasks.registering(VerifyDesignTokensTask::clas
     logCheckedFiles.set(true)
 }
 
+val kmpCommonTestSourceFiles = files(
+    subprojects.map { subproject ->
+        subproject.fileTree("src/commonTest/kotlin") {
+            include("**/*.kt")
+        }
+    },
+)
+val verifyKmpTestTargets by tasks.registering(VerifyKmpTestTargetsTask::class) {
+    group = "verification"
+    description = "Fails when common KMP tests have no executable Android host-test target."
+    commonTestSourceFiles.from(kmpCommonTestSourceFiles)
+    compileOnlyModules.set(listOf(":core:domain"))
+}
+val verifyKmpAndroidCompilerFlags by tasks.registering(VerifyKmpAndroidCompilerFlagsTask::class) {
+    group = "verification"
+    description = "Checks Compose KMP Android compilations for the live-edit lambda compiler mode."
+}
+val kmpCompatibilityMetadata by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named("kotlin-metadata"))
+        attribute(KotlinPlatformType.attribute, KotlinPlatformType.common)
+    }
+}
+val lockedKmpCompatibilityCoordinates = listOf(
+    libs.androidx.datastore.core.okio,
+    libs.coil.network.ktor3,
+    libs.compose.components.resources,
+    libs.compose.foundation,
+    libs.compose.runtime,
+    libs.compose.ui,
+    libs.jetbrains.lifecycle.runtime.compose,
+    libs.jetbrains.lifecycle.viewmodel.compose,
+    libs.koin.compose,
+    libs.koin.compose.viewmodel,
+    libs.ktor.client.core,
+    libs.ktor.client.content.negotiation,
+    libs.ktor.serialization.kotlinx.json,
+    libs.kotlinx.datetime,
+)
+val lockedKmpCompatibilityCoordinateNames = listOf(
+    "androidx.datastore:datastore-core-okio:1.2.1",
+    "io.coil-kt.coil3:coil-network-ktor3:3.4.0",
+    "org.jetbrains.compose.components:components-resources:1.12.0",
+    "org.jetbrains.compose.foundation:foundation:1.12.0",
+    "org.jetbrains.compose.runtime:runtime:1.12.0",
+    "org.jetbrains.compose.ui:ui:1.12.0",
+    "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.10.0",
+    "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0",
+    "io.insert-koin:koin-compose:4.2.2",
+    "io.insert-koin:koin-compose-viewmodel:4.2.2",
+    "io.ktor:ktor-client-core:3.5.0",
+    "io.ktor:ktor-client-content-negotiation:3.5.0",
+    "io.ktor:ktor-serialization-kotlinx-json:3.5.0",
+    "org.jetbrains.kotlinx:kotlinx-datetime:0.8.0",
+)
+dependencies {
+    lockedKmpCompatibilityCoordinates.forEach { dependencyProvider ->
+        add(kmpCompatibilityMetadata.name, dependencyProvider)
+    }
+}
+val verifyKmpDependencyCompatibility by tasks.registering(VerifyKmpDependencyCompatibilityTask::class) {
+    group = "verification"
+    description = "Resolves the locked common KMP dependency matrix without adding a web target."
+    resolvedArtifacts.from(kmpCompatibilityMetadata)
+    lockedCoordinates.set(lockedKmpCompatibilityCoordinateNames)
+}
+val testAndroidHostTest by tasks.registering {
+    group = "verification"
+    description = "Runs every enabled KMP Android host-test suite."
+}
+
 // Root `check` and every subproject `check` should enforce the design-system
 // rule before code is considered verified.
 tasks.named("check") {
-    dependsOn(verifyDesignTokens)
+    dependsOn(
+        verifyDesignTokens,
+        verifyKmpTestTargets,
+        verifyKmpAndroidCompilerFlags,
+        verifyKmpDependencyCompatibility,
+    )
 }
 
 subprojects {
-    // Benchmark variants propagate through Android libraries, so trace calls compile away
-    // in production and become active only in the isolated measurement app.
+    // Phase-1 bridge: still-JVM feature/domain modules consume portable Android-KMP core bytecode.
+    // This is intentionally one-way and disappears as KMP-03/KMP-04 migrate those consumers.
+    dependencies.attributesSchema.attribute(KotlinPlatformType.attribute) {
+        compatibilityRules.add(JvmConsumerAndroidKmpCompatibilityRule::class.java)
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+        configurations.configureEach {
+            if (isCanBeResolved) {
+                attributes.attribute(
+                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                    ArtifactTypeDefinition.JAR_TYPE,
+                )
+            }
+        }
+    }
+
+    // Only Android-only libraries receive the app's benchmark/profile build types.
+    // Official Android-KMP libraries stay single-variant and resolve from every app build type.
     pluginManager.withPlugin("com.android.library") {
         extensions.configure<LibraryExtension> {
             buildTypes {
@@ -232,7 +458,9 @@ subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.plugin.compose") {
         if (providers.gradleProperty("composeCompilerReports").orNull == "true") {
             tasks.withType<KotlinCompile>().configureEach {
-                if (name.contains("Release") || name.contains("Benchmark")) {
+                val isSingleVariantKmpAndroidMain =
+                    pluginManager.hasPlugin("com.android.kotlin.multiplatform.library") && name == "compileAndroidMain"
+                if (name.contains("Release") || name.contains("Benchmark") || isSingleVariantKmpAndroidMain) {
                     // Incremental compiler reports can describe only the changed files.
                     // This explicit diagnostic mode must report the whole module.
                     incremental = false
@@ -268,6 +496,64 @@ subprojects {
     }
 
     tasks.matching { task -> task.name == "check" }.configureEach {
-        dependsOn(rootProject.tasks.named("verifyDesignTokens"))
+        dependsOn(
+            rootProject.tasks.named("verifyDesignTokens"),
+            rootProject.tasks.named("verifyKmpTestTargets"),
+            rootProject.tasks.named("verifyKmpAndroidCompilerFlags"),
+            rootProject.tasks.named("verifyKmpDependencyCompatibility"),
+        )
+    }
+}
+
+gradle.projectsEvaluated {
+    val kmpProjects = subprojects.filter { subproject ->
+        subproject.pluginManager.hasPlugin("com.android.kotlin.multiplatform.library")
+    }
+    val commonTestModules = kmpProjects.filter { subproject ->
+        !subproject.fileTree("src/commonTest/kotlin") { include("**/*.kt") }.isEmpty
+    }.map(Project::getPath)
+    val hostTestModules = kmpProjects.filter { subproject ->
+        "testAndroidHostTest" in subproject.tasks.names
+    }.map(Project::getPath)
+
+    verifyKmpTestTargets.configure {
+        this.commonTestModules.set(commonTestModules)
+        this.hostTestModules.set(hostTestModules)
+    }
+    testAndroidHostTest.configure {
+        dependsOn(
+            kmpProjects.mapNotNull { subproject ->
+                subproject.tasks.findByName("testAndroidHostTest")
+            },
+        )
+    }
+
+    val applicableCompileTasks = mutableListOf<String>()
+    val missingFlagCompileTasks = mutableListOf<String>()
+    kmpProjects
+        .filter { subproject -> subproject.pluginManager.hasPlugin("org.jetbrains.compose") }
+        .forEach { subproject ->
+            val androidTarget = subproject.extensions
+                .getByType(KotlinMultiplatformExtension::class.java)
+                .targets
+                .withType(KotlinMultiplatformAndroidLibraryTarget::class.java)
+                .single()
+            subproject.tasks.names
+                .filter { taskName ->
+                    taskName == "compileAndroidMain" ||
+                            taskName == "compileAndroidHostTest" ||
+                            taskName == "compileAndroidDeviceTest"
+                }
+                .forEach { taskName ->
+                    val taskPath = "${subproject.path}:$taskName"
+                    applicableCompileTasks += taskPath
+                    if ("-Xlambdas=class" !in androidTarget.compilerOptions.freeCompilerArgs.get()) {
+                        missingFlagCompileTasks += taskPath
+                    }
+                }
+        }
+    verifyKmpAndroidCompilerFlags.configure {
+        this.applicableCompileTasks.set(applicableCompileTasks)
+        this.missingFlagCompileTasks.set(missingFlagCompileTasks)
     }
 }

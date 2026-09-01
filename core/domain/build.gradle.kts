@@ -1,13 +1,16 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    id("streamcore.kmp.library")
 }
 
 kotlin {
-    jvmToolchain(11)
-}
+    android {}
 
-dependencies {
-    implementation(projects.core.data)
+    sourceSets {
+        remove(getByName("commonTest"))
 
-    implementation(libs.kotlinx.coroutines.core)
+        commonMain.dependencies {
+            implementation(projects.core.data)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+    }
 }

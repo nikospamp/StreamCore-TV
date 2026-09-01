@@ -12,6 +12,8 @@ pluginManagement {
     }
 }
 
+includeBuild("build-logic")
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
@@ -32,6 +34,7 @@ include(":benchmark")
 include(":benchmark:ui-driver")
 include(":baselineprofile")
 include(":core:tracing")
+include(":core:tracing-api")
 
 // Core
 include(":core:data")
