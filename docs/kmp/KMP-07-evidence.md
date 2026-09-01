@@ -217,6 +217,8 @@ connected in-app, Chrome, or Edge session. The required non-secret user action i
 TMDB, and resume KMP-07. No secret was printed, logged, copied, staged, or committed. KMP-07 must not be marked accepted and WEB-01 must not start
 until the existing values are retrieved into ignored local configuration and the TMDB manual matrix passes.
 
-Local-only recovery has since found prior non-empty token artifacts and prior non-empty account-ID assignments without emitting their values,
-hashes, or paths. External use and ignored configuration writes remain paused pending explicit approval of the exact transmission/destination.
-The controlled physical-device campaign above is independently blocking even after TMDB credentials are restored.
+Local-only recovery found prior non-empty token artifacts without emitting their values, hashes, or paths. Broader generated-source, APK, Gradle
+cache/log, and build-evidence scans found no positive numeric account ID. The preserved 58-byte pre-migration TMDB auth DataStore was inspected only
+in process memory; it contains no `account_id` key. Recovering the account ID therefore requires the separately requested explicit approval to
+submit existing credentials/token to TMDB (or a user-supplied account ID). External use and ignored configuration writes remain paused. The
+controlled physical-device campaign above is independently blocking even after TMDB credentials are restored.
