@@ -1,28 +1,23 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("streamcore.kmp.library")
 }
 
-android {
-    namespace = "com.pampoukidis.streamcoretv.feature.library.domain"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 24
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+streamCoreKmp {
+    withHostTest()
 }
 
-dependencies {
-    implementation(libs.koin.core)
-    api(projects.core.data)
-    api(projects.core.domain)
-    api(projects.playback.api)
-    implementation(libs.kotlinx.coroutines.core)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.koin.core)
+            api(projects.core.data)
+            api(projects.core.domain)
+            api(projects.playback.api)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }
