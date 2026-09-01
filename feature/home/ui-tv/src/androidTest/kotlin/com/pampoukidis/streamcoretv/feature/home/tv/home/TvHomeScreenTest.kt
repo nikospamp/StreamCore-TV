@@ -67,15 +67,12 @@ class TvHomeScreenTest {
     }
 
     @Test
-    fun firstShelfCardReceivesFocusWhenFeaturedIsMissing() {
+    fun firstPopulatedRowBecomesFallbackHeroAndReceivesFocus() {
         val row = HomePreviewData.rows.first { it.type == RowType.ContinueWatching }
-        val content = row.content.first()
 
         setScreen(state = HomeUiState(isLoading = false, rows = listOf(row)))
 
-        composeRule
-            .onNodeWithTag(HomeTestTags.ContentCardPrefix + row.id + ":" + content.id)
-            .assertIsFocused()
+        composeRule.onNodeWithTag(HomeTestTags.HeroDetails).assertIsFocused()
     }
 
     @Test
@@ -127,12 +124,20 @@ class TvHomeScreenTest {
 
     @Test
     fun focusedContinueWatchingCardKeepsSectionTitleVisible() {
+        val featured = HomePreviewData.rows.first { it.type == RowType.Featured }
         val row = HomePreviewData.rows.first { it.type == RowType.ContinueWatching }
         val content = row.content.first()
-        setScreen(state = HomeUiState(isLoading = false, rows = listOf(row)))
+        setScreen(state = HomeUiState(isLoading = false, rows = listOf(featured, row)))
 
-        composeRule
-            .onNodeWithTag(HomeTestTags.ContentCardPrefix + row.id + ":" + content.id)
+        val card = composeRule.onNodeWithTag(
+            HomeTestTags.ContentCardPrefix + row.id + ":" + content.id,
+        )
+        card.performSemanticsAction(SemanticsActions.RequestFocus) { requestFocus ->
+            requestFocus()
+        }
+        composeRule.waitForIdle()
+
+        card
             .assertIsFocused()
             .assertIsDisplayed()
         composeRule.onNodeWithText(row.title).assertIsDisplayed()
@@ -140,16 +145,25 @@ class TvHomeScreenTest {
 
     @Test
     fun horizontalFocusMoveDoesNotShiftShelfVertically() {
+        val featured = HomePreviewData.rows.first { it.type == RowType.Featured }
         val row = HomePreviewData.rows.first { it.type == RowType.ContinueWatching }
         val firstContent = row.content[0]
         val secondContent = row.content[1]
-        setScreen(state = HomeUiState(isLoading = false, rows = listOf(row)))
+        setScreen(state = HomeUiState(isLoading = false, rows = listOf(featured, row)))
+        val firstCard = composeRule.onNodeWithTag(
+            HomeTestTags.ContentCardPrefix + row.id + ":" + firstContent.id,
+        )
+        firstCard.performSemanticsAction(SemanticsActions.RequestFocus) { requestFocus ->
+            requestFocus()
+        }
+        composeRule.waitForIdle()
+        firstCard.assertIsFocused()
+
         val rowNode = composeRule.onNodeWithTag(HomeTestTags.RowPrefix + row.id)
         val initialTop = rowNode.getUnclippedBoundsInRoot().top
 
-        composeRule
-            .onNodeWithTag(HomeTestTags.ContentCardPrefix + row.id + ":" + firstContent.id)
-            .performKeyInput { pressKey(Key.DirectionRight) }
+        firstCard.performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.waitForIdle()
 
         composeRule
             .onNodeWithTag(HomeTestTags.ContentCardPrefix + row.id + ":" + secondContent.id)
