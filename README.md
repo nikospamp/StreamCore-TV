@@ -92,6 +92,17 @@ tmdbAccountId=YOUR_TMDB_ACCOUNT_ID
 
 Do not commit credentials. `local.properties` is already ignored by Git.
 
+Linked worktrees can read the primary ignored file without copying secrets:
+
+```powershell
+.\gradlew.bat :app:verifyTmdbRuntimeConfig :app:assembleTmdbDebug `
+  -PstreamcoreLocalPropertiesPath="<primary-checkout>\local.properties" `
+  -PrequireTmdbRuntimeConfig=true
+```
+
+`STREAMCORE_LOCAL_PROPERTIES` provides the same path through the environment. The preflight reports only pass/fail and never logs values. Keep
+`requireTmdbRuntimeConfig` enabled for authenticated device/release verification; ordinary credential-free graph/unit-test builds remain supported.
+
 The `clientB` flavor uses local placeholder implementations and does not require TMDB credentials.
 
 ## Build and run
