@@ -6,15 +6,15 @@
 
 ## KMP-07 Phase 1 closure
 
-> **Status: Pending authenticated TMDB device completion.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
+> **Status: Pending authenticated TMDB device completion and controlled physical-device campaign.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
 > gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
-> accepted phone/tablet/TV matrix. ClientB manual parity is green on every form factor. The exact remaining stop condition is recorded in
-> [`KMP-07-evidence.md`](KMP-07-evidence.md): local TMDB username/password are available, but the required uncommitted API token/account build
-> properties were not present locally and no browser session was connected for the authorized existing-credential retrieval. Phase 1 is not
-> marked accepted and WEB-01 must not start until those manual journeys pass.
+> accepted phone/tablet/TV matrix. ClientB manual parity and the exact installed KMP-00 auth/Search/Library/Playback upgrade are green. The remaining
+> gates are recorded in [`KMP-07-evidence.md`](KMP-07-evidence.md): local token/account values are recoverable but external use/configuration writes
+> await exact approval, and no Android 14+ physical device is connected for the required new controlled campaign. Phase 1 is not marked accepted
+> and WEB-01 must not start until both gates pass.
 
-KMP-07 preserves compile SDK 37 and target SDK 36, adds no Wasm target, and retains the accepted physical-device performance campaign as
-informational evidence. The generated Baseline Profiles are byte-for-byte unchanged and are consumed by the release APK.
+KMP-07 preserves compile SDK 37 and target SDK 36 and adds no Wasm target. The generated Baseline Profiles are byte-for-byte unchanged and are
+consumed by the release APK. The accepted physical-device campaign remains the before reference, not same-commit after evidence.
 
 Accepted Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of
@@ -92,9 +92,9 @@ only `tmdb`.
 ## Direct project dependency graph
 
 This snapshot was extracted from the module build scripts at the baseline
-commit. It is authoritative for KMP-00; the older root
-`MODULE_DEPENDENCY_GRAPH.md` uses superseded module names and is not a reliable
-migration gate.
+commit. It is authoritative only for the historical KMP-00 comparison. The root
+`MODULE_DEPENDENCY_GRAPH.md` was superseded at that baseline commit, then replaced
+by KMP-07 with the current post-migration graph extracted from the final build scripts.
 
 `api` edges expose a contract transitively. Unlabelled edges below are
 `implementation` unless another configuration is shown.
@@ -419,5 +419,6 @@ explicitly approves thresholds.
 - Accepted controlled performance evidence predates the baseline commit; it is
   retained as contextual evidence, not same-commit proof.
 - The Baseline Profile `Require` run is partial and non-reportable.
-- `MODULE_DEPENDENCY_GRAPH.md` is stale; use this report and the build scripts.
+- At the KMP-00 commit, `MODULE_DEPENDENCY_GRAPH.md` was stale. KMP-07 replaces it with the current graph; this section remains the immutable
+  historical comparison snapshot.
 - KMP-01 must start only from the `codex/kmp-migration` branch created by the KMP-00H documentation acceptance commit.

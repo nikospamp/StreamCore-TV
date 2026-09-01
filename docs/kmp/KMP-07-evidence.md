@@ -10,7 +10,8 @@
   - `4c7cdaf` — deterministic tablet parity assertions matching the accepted app-shell/source-set mapping.
 - Verification date: 2026-09-01 (Europe/Athens).
 - Target architecture: backend-agnostic Android/KMP Phase 1. No Wasm/web target or WEB-01 implementation is present.
-- Acceptance status: pending completion of authenticated TMDB manual device journeys. Host/release and automated phone/tablet/TV gates are green.
+- Acceptance status: pending completion of authenticated TMDB manual device journeys and the ticket-required controlled physical-device
+  before/after benchmark campaign. Host/release, installed persistence, and automated phone/tablet/TV gates are green.
 
 ## Integration remediations
 
@@ -66,6 +67,38 @@ The clean root XML inventory is 64 suites and **265 tests**, with zero failures,
 corrected accepted KMP-00 total of 214. Migrated suites execute as `testAndroidHostTest`; app flavor tests and the Android-only Player platform UI
 suites retain their Android unit-test task names. No expected task executes zero tests.
 
+| Owning module | Current task | KMP-00 | KMP-07 | Delta |
+|---|---|---:|---:|---:|
+| `:app` ClientB | `testClientBDebugUnitTest` | 23 | 25 | +2 |
+| `:app` TMDB | `testTmdbDebugUnitTest` | 23 | 25 | +2 |
+| `:client:clientB:data` | `testAndroidHostTest` | 25 | 25 | 0 |
+| `:client:clientB:player` | `testAndroidHostTest` | 0 | 1 | +1 |
+| `:client:clientB:ui` | `testAndroidHostTest` | 3 | 3 | 0 |
+| `:client:tmdb:data` | `testAndroidHostTest` | 38 | 46 | +8 |
+| `:client:tmdb:player` | `testAndroidHostTest` | 0 | 1 | +1 |
+| `:client:tmdb:ui` | `testAndroidHostTest` | 4 | 4 | 0 |
+| `:core:data` | `testAndroidHostTest` | 0 | 11 | +11 |
+| `:core:tracing-api` | `testAndroidHostTest` | 0 | 4 | +4 |
+| `:feature:details:domain` | `testAndroidHostTest` | 2 | 3 | +1 |
+| `:feature:details:ui-common` | `testAndroidHostTest` | 14 | 14 | 0 |
+| `:feature:home:domain` | `testAndroidHostTest` | 1 | 3 | +2 |
+| `:feature:home:ui-common` | `testAndroidHostTest` | 14 | 15 | +1 |
+| `:feature:library:data` | `testAndroidHostTest` | 5 | 7 | +2 |
+| `:feature:library:domain` | `testAndroidHostTest` | 4 | 5 | +1 |
+| `:feature:library:ui-common` | `testAndroidHostTest` | 3 | 3 | 0 |
+| `:feature:login:domain` | `testAndroidHostTest` | 3 | 5 | +2 |
+| `:feature:login:ui-common` | `testAndroidHostTest` | 5 | 5 | 0 |
+| `:feature:player:data` | `testAndroidHostTest` | 3 | 5 | +2 |
+| `:feature:player:ui-common` | `testAndroidHostTest` | 11 | 11 | 0 |
+| `:feature:player:ui-mobile` | `testDebugUnitTest` | 12 | 12 | 0 |
+| `:feature:player:ui-tv` | `testDebugUnitTest` | 2 | 2 | 0 |
+| `:feature:profiles:domain` | `testAndroidHostTest` | 0 | 9 | +9 |
+| `:feature:profiles:ui-common` | `testAndroidHostTest` | 3 | 3 | 0 |
+| `:feature:search:data` | `testAndroidHostTest` | 2 | 4 | +2 |
+| `:feature:search:domain` | `testAndroidHostTest` | 2 | 2 | 0 |
+| `:feature:search:ui-common` | `testAndroidHostTest` | 12 | 12 | 0 |
+| **Total** |  | **214** | **265** | **+51** |
+
 ## Device matrix
 
 Only one emulator ran at a time.
@@ -102,6 +135,21 @@ ClientB passed on phone, tablet, and TV:
 Ignored local screenshots are under `build/kmp-07-evidence/{phone,tablet,tv}` and contain no credentials. The deterministic Coil test proves the
 Coil Ktor3 cold-network/warm-disk path. Remote authenticated TMDB cold/warm artwork remains part of the pending TMDB manual journeys.
 
+### Baseline journey comparison
+
+| Journey | KMP-00 | KMP-07 ClientB phone | ClientB tablet | ClientB TV | TMDB KMP-07 |
+|---|---|---|---|---|---|
+| Login, logout, restored session | Pass | Pass | Pass | Pass | Pending authenticated run |
+| Profile select/create/edit/delete | Pass | Pass/connected | Pass/connected | Pass/connected | Pending authenticated run |
+| Home load/content/refresh/navigation | Pass | Pass | Pass | Pass | Pending authenticated run |
+| Search discovery/query/recents/result | Pass | Pass | Pass/connected | Pass | Pending authenticated run |
+| Library empty/content/mutation/isolation | Pass | Pass | Pass/connected | Pass/connected | Pending authenticated run |
+| Details/refresh/recommendations/mutations/trailer/back | Pass | Pass | Pass | Pass | Pending authenticated run |
+| Player prepare/play/pause/seek/settings/exit/resume/PiP | Pass | Pass except visible PiP confirmation remains pending | Pass | Pass | Pending authenticated run |
+| TV drawer/D-pad/focus/return restoration | Pass | N/A | N/A | Pass | Pending authenticated run |
+| Phone/tablet adaptive/orientation | Pass | Pass | Pass | N/A | Pending authenticated run |
+| Remote cold/warm artwork after Coil migration | N/A | Deterministic loopback cache pass | Provider-local artwork pass | Provider-local artwork pass | Pending authenticated run |
+
 ## Persistence compatibility
 
 Executable common tests seed and recreate the exact pre-migration stores/keys for:
@@ -112,8 +160,22 @@ Executable common tests seed and recreate the exact pre-migration stores/keys fo
 - Library (`library.preferences_pb`, `library_json`);
 - Playback (`playback_progress.preferences_pb`, `entries_json`).
 
-The tablet manual run additionally launched directly into ClientB profiles using auth persisted by the pre-KMP installation, then preserved active
-Home state across orientation and exercised Details/player. Phone Library showed persisted playback, Liked, and My List entries after player exit.
+The installed compatibility campaign additionally rebuilt the exact accepted KMP-00 commit
+`c2f90825bd336489f98361c8ba3a124800a51d04`, installed its ClientB debug APK on a disposable API-36 phone AVD, and populated all four persisted
+surfaces through the legacy UI:
+
+- logged-in ClientB auth;
+- recent Search query `Archive`;
+- Liked and My List membership for `The Last Archive`;
+- playback progress observed at 0:55 before exit.
+
+Before upgrade, the app sandbox contained the auth, Search, Library, and Playback DataStore files (20, 87, 555, and 807 bytes respectively). The
+current KMP-07 ClientB APK was installed in place with `adb install -r`; first-install time remained unchanged and last-update time advanced. The
+current app launched directly to profiles, showed `Archive` under Recent searches, and showed `The Last Archive` in Continue Watching, Liked, and
+My List. All four files retained the same sizes after readback. The disposable AVD and detached KMP-00 worktree were removed after evidence capture.
+
+Separately, the preserved tablet launched directly into ClientB profiles using pre-existing auth, then retained Home state across orientation and
+exercised Details/player.
 
 ## APK and Baseline Profile evidence
 
@@ -136,11 +198,16 @@ provider AARs and the corresponding flavor APKs. Profile generation was intentio
 
 ## Performance comparison
 
-No physical Android 14+ device was connected, so no new controlled campaign was run. Emulator timing is not performance evidence. The accepted
-physical-device campaign remains `docs/performance/samsung-controlled-v2-final.md` (320/320 journeys, 32/32 cells); it is informational and
-predates KMP-07. The interrupted `BaselineProfileMode.Require` diagnostic remains non-reportable and was not reused.
+The ticket-required controlled before/after campaign remains blocking because no physical Android 14+ device is connected. Emulator timing is not
+performance evidence and was not substituted. The accepted physical-device campaign remains `docs/performance/samsung-controlled-v2-final.md`
+(320/320 journeys, 32/32 cells); it is the before reference but predates KMP-07. The interrupted `BaselineProfileMode.Require` diagnostic remains
+non-reportable and was not reused.
 
-## Remaining stop condition
+Safest completion path: connect an Android 14+ physical device, authenticate the isolated benchmark app, pin one exact content tag after preflight,
+and run new, non-overwriting identities through `tools/performance/run-navigation.ps1` and `run-campaign.ps1`. Record APK/driver hashes, device
+fingerprint, 32/32 cells, 320/320 journeys, and the informational before/after comparison. Do not use an emulator or append to the accepted run.
+
+## Remaining stop conditions
 
 Authenticated TMDB phone/tablet/TV manual journeys cannot run from an empty runtime API configuration. The authorized ignored
 `docs/credentials/tmdb.txt` contains interactive credentials only; `tmdbReadAccessToken` and `tmdbAccountId` were absent from the worktree,
@@ -149,3 +216,7 @@ available tool. The authorized account-settings retrieval then stopped before cr
 connected in-app, Chrome, or Edge session. The required non-secret user action is to connect a browser session, preferably already signed into
 TMDB, and resume KMP-07. No secret was printed, logged, copied, staged, or committed. KMP-07 must not be marked accepted and WEB-01 must not start
 until the existing values are retrieved into ignored local configuration and the TMDB manual matrix passes.
+
+Local-only recovery has since found prior non-empty token artifacts and prior non-empty account-ID assignments without emitting their values,
+hashes, or paths. External use and ignored configuration writes remain paused pending explicit approval of the exact transmission/destination.
+The controlled physical-device campaign above is independently blocking even after TMDB credentials are restored.
