@@ -90,7 +90,8 @@ by avatar ID, avoiding per-recomposition lookup/allocation.
 - `DetailsTrailerLauncher` replaces `java.net.URI` with common HTTPS validation and retains malformed/non-HTTPS/security failure behavior.
 - The validator uses Ktor 3.5.0 `ktor-http` (`parseUrl`, `URLProtocol`, percent decoding, and IP parsing), plus strict raw-authority and DNS-label
   postconditions. This is the only new catalog alias/dependency. It rejects blank authorities/hosts, invalid ports, malformed percent escapes,
-  `https://%`, `https://:443/path`, invalid host labels/IPv4 addresses, and every non-HTTPS URL without invoking `UriHandler`.
+  `https://%`, `https://:443/path`, invalid host labels/IPv4 addresses, raw whitespace, ISO control characters, backslashes, and every non-HTTPS
+  URL without invoking `UriHandler`. Valid DNS, IPv4, bracketed IPv6, explicit ports, queries/fragments, and encoded spaces remain accepted.
 - Search comparison normalization uses common invariant `lowercase()` instead of `Locale.ROOT`.
 - `PlayerViewModel` receives `PlayerClock`; `SystemPlayerClock` uses `kotlin.time.Clock.System`. A focused test injects epoch `1234` and verifies the
   persisted progress timestamp without changing playback/resume policy.
@@ -161,6 +162,7 @@ The AGP 9.1.1/KGP 2.3.21 Android-only target names the metadata lifecycle task `
 | `verifyKmpAndroidCompilerFlags` | Pass; 21 Compose-KMP Android compile tasks, Android-only `-Xlambdas=class` |
 | `verifyDesignTokensLogFiles` | Pass; 303 production Kotlin files checked, including `commonMain` and `androidMain` |
 | `check :app:assembleTmdbDebug :app:assembleClientBDebug -PverifyDesignTokensLogFiles=true --continue --no-parallel ...` | Final exact-tree combined gate passed in 52s; 1,823 actionable tasks (114 executed, 1,709 up-to-date) |
+| Final raw-URL hardening `check -PverifyDesignTokensLogFiles=true --continue --no-parallel ...` | Pass in 51s; 1,651 actionable tasks (109 executed, 1,542 up-to-date); both provider app compiles included |
 | Common forbidden-import/resource scan | No matches |
 | `coil-network-okhttp` scan | No matches |
 | `git diff --check` | Pass |
@@ -198,6 +200,10 @@ the replacement connected report is 10/10 green. No suite was hidden, excluded, 
 The review also replaced the first permissive trailer regex with the Ktor structured parser and explicit validation described above, expanded the
 malformed matrix to invalid named/out-of-range ports and host labels, and narrowed debug cleartext from a global opt-in to the loopback-only network
 security config. Both connected suites and the final root gate were rerun after these fixes.
+
+A final validator review added a pre-parse raw-input guard for all whitespace, C0/C1 ISO controls, and backslashes. Focused tests cover internal and
+trailing spaces, tab, newline, low/high control characters, and backslash rejection while preserving valid HTTPS DNS/IPv4/IPv6/port/query and
+percent-encoded paths. The 14-test Details host suite and root/app compile graph were rerun after this final change.
 
 ## Static boundaries and remaining KMP-07 work
 

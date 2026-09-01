@@ -18,14 +18,16 @@ class DetailsTrailerLauncherTest {
                 opened += uri
             }
         }
-        openDetailsTrailer(trailer, handler) { error("Unexpected error: $it") }
-        assertEquals(listOf(trailer.url), opened)
-
-        openDetailsTrailer(
-            trailer.copy(url = "https://example.com/path%20with%20spaces?next=%2Fcatalog"),
-            handler,
-        ) { error("Unexpected error: $it") }
-        assertEquals(2, opened.size)
+        val validUrls = listOf(
+            trailer.url,
+            "https://example.com/path%20with%20spaces?next=%2Fcatalog",
+            "https://127.0.0.1:8443/path?quality=1080p",
+            "https://[2001:db8::1]:443/trailer#preview",
+        )
+        validUrls.forEach { url ->
+            openDetailsTrailer(trailer.copy(url = url), handler) { error("Unexpected error: $it") }
+        }
+        assertEquals(validUrls, opened)
     }
 
     @Test
@@ -63,6 +65,13 @@ class DetailsTrailerLauncherTest {
             "https:///path",
             "https://-invalid.example/path",
             "https://999.999.999.999/path",
+            "https://example.com/path with spaces",
+            "https://example.com\\path",
+            "https://example.com/path ",
+            "https://example.com/\tpath",
+            "https://example.com/path\nnext",
+            "https://example.com/path\u0001control",
+            "https://example.com/path\u0085control",
         )
         invalidUrls.forEach { url ->
             openDetailsTrailer(trailer.copy(url = url), handler, errors::add)

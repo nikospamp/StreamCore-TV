@@ -26,6 +26,9 @@ internal fun openDetailsTrailer(
 }
 
 private fun isValidHttpsUrl(url: String): Boolean {
+    if (url.any(Char::isForbiddenInRawUrl)) {
+        return false
+    }
     if (!url.startsWith("https://", ignoreCase = true)) {
         return false
     }
@@ -44,6 +47,13 @@ private fun isValidHttpsUrl(url: String): Boolean {
     }
     val parsedUrl = parseUrl(url) ?: return false
     return parsedUrl.protocol == URLProtocol.HTTPS && isValidHost(parsedUrl.host)
+}
+
+private fun Char.isForbiddenInRawUrl(): Boolean {
+    return isWhitespace() ||
+        this == '\\' ||
+        code in IsoControlLowRange ||
+        code in IsoControlHighRange
 }
 
 private fun isValidHost(host: String): Boolean {
@@ -83,3 +93,5 @@ private const val MaximumHostLabelLength = 63
 private const val HttpsPrefixLength = 8
 private const val Ipv4SegmentCount = 4
 private val Ipv4SegmentRange = 0..255
+private val IsoControlLowRange = 0x00..0x1F
+private val IsoControlHighRange = 0x7F..0x9F
