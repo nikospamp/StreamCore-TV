@@ -68,10 +68,9 @@ Common sources cannot import Android or JVM APIs. Platform implementations and p
 - `build-logic` owns reusable plain/Compose KMP configuration; KMP-03 and KMP-04 must not edit root build logic or the catalog.
 - The existing `com.android.library` hook still creates benchmark/profile build types only for Android-only libraries. The Android-KMP plugin has a
   different ID and remains single-variant.
-- A temporary bridge is limited to `compileClasspath`, `runtimeClasspath`, `testCompileClasspath`, and `testRuntimeClasspath` in exactly six JVM
-  consumers: Login, Profiles, Home, Search domain plus Details data/domain. Those configurations request `androidJvm`/Android/JAR only so portable
-  core bytecode remains consumable without adding a JVM target. KMP-03 removes the four group-A entries; KMP-04 removes Search; the bridge itself is
-  deleted when Details and the last listed JVM consumer have migrated.
+- The temporary JVM-to-Android-KMP compatibility bridge was removed after KMP-03/04 integration migrated all six transitional consumers: Login,
+  Profiles, Home, and Search domain plus Details data/domain. No root configuration now overrides their platform, environment, or artifact-type
+  attributes.
 - Existing Android trace dependency injection remains scoped to Android application/library plugins. Shared modules use `:core:tracing-api` when
   migrated; Android UI/platform modules use `:core:tracing`.
 - Compose compiler reports/metrics continue on release/benchmark Android-only Kotlin compile tasks. For future Compose KMP modules, the replacement
