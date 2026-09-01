@@ -285,6 +285,10 @@ Prefer:
 - Build cache
 - Parallel execution
 
+- Compile every Android application, library, test, and Android-KMP target against API 37. Compose Multiplatform 1.12 Android artifacts publish
+  that minimum compile SDK requirement. Keep the shipping application, benchmark, and baseline-profile `targetSdk` at 36 until a dedicated runtime
+  behavior migration changes it.
+
 ## Kotlin Multiplatform Rules
 
 - Use `streamcore.kmp.library` for plain shared libraries and `streamcore.kmp.compose.library` for shared Compose libraries. Both conventions use

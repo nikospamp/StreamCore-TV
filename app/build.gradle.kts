@@ -7,11 +7,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.pampoukidis.streamcoretv"
