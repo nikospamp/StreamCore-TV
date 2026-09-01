@@ -13,13 +13,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import java.io.IOException
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PreferencesRecentSearchRepository @Inject constructor(
-    @param:SearchHistoryStore private val dataStore: DataStore<Preferences>,
-    @param:SearchHistoryJson private val json: Json,
+class PreferencesRecentSearchRepository constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val json: Json,
 ) : RecentSearchRepository {
 
     private val preferences: Flow<RecentSearchPreferences> = dataStore.data

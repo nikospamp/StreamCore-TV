@@ -2,9 +2,8 @@ package com.pampoukidis.streamcoretv.client.tmdb.ui.avatar
 
 import com.pampoukidis.streamcoretv.client.tmdb.ui.R
 import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
-import javax.inject.Inject
 
-class TmdbProfileAvatarArtworkResolver @Inject constructor() : ProfileAvatarArtworkResolver {
+class TmdbProfileAvatarArtworkResolver constructor() : ProfileAvatarArtworkResolver {
     private val artworkByAvatarId = mapOf(
         "tmdb-avatar-01" to R.drawable.tmdb_profile_avatar_01,
         "tmdb-avatar-02" to R.drawable.tmdb_profile_avatar_02,

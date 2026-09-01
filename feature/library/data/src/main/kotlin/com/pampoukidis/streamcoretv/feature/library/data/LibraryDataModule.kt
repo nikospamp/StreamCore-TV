@@ -1,50 +1,33 @@
 package com.pampoukidis.streamcoretv.feature.library.data
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pampoukidis.streamcoretv.core.domain.LibraryRepository
-import dagger.Binds
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
-import javax.inject.Singleton
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class LibraryDataModule {
-
-    @Binds
-    @Singleton
-    abstract fun bindLibraryRepository(
-        implementation: PreferencesLibraryRepository,
-    ): LibraryRepository
-
-    companion object {
-        @Provides
-        @Singleton
-        @LibraryStore
-        fun provideLibraryDataStore(
-            @ApplicationContext context: Context,
-        ): DataStore<Preferences> {
-            return PreferenceDataStoreFactory.create(
-                produceFile = { context.preferencesDataStoreFile("library.preferences_pb") },
-            )
+val libraryDataModule = module {
+    single<DataStore<Preferences>>(named(LIBRARY_STORE_QUALIFIER)) {
+        PreferenceDataStoreFactory.create(
+            produceFile = {
+                androidContext().preferencesDataStoreFile("library.preferences_pb")
+            },
+        )
+    }
+    single<Json>(named(LIBRARY_JSON_QUALIFIER)) {
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
         }
-
-        @Provides
-        @Singleton
-        @LibraryJson
-        fun provideLibraryJson(): Json {
-            return Json {
-                ignoreUnknownKeys = true
-                encodeDefaults = true
-            }
-        }
+    }
+    single<LibraryRepository> {
+        PreferencesLibraryRepository(
+            dataStore = get(named(LIBRARY_STORE_QUALIFIER)),
+            json = get(named(LIBRARY_JSON_QUALIFIER)),
+        )
     }
 }

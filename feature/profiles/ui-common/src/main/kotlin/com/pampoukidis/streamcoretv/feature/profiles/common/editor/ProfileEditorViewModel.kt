@@ -15,7 +15,6 @@ import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOpt
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.UpdateProfileUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.ValidateProfileDraftUseCase
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,10 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ProfileEditorViewModel @Inject constructor(
+class ProfileEditorViewModel constructor(
     private val loadProfiles: LoadProfilesUseCase,
     private val loadProfileEditorOptions: LoadProfileEditorOptionsUseCase,
     private val validateProfileDraft: ValidateProfileDraftUseCase,

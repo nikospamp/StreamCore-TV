@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -22,7 +22,7 @@ fun MobileProfilesRoute(
     onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
-    viewModel: ProfilesViewModel = hiltViewModel(),
+    viewModel: ProfilesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 

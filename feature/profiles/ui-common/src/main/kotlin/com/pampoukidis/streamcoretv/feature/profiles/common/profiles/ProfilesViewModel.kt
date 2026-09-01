@@ -7,7 +7,6 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.feature.profiles.domain.DeleteProfileUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
 import com.pampoukidis.streamcoretv.feature.profiles.domain.SelectProfileUseCase
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ProfilesViewModel @Inject constructor(
+class ProfilesViewModel constructor(
     private val loadProfiles: LoadProfilesUseCase,
     private val deleteProfile: DeleteProfileUseCase,
     private val selectProfile: SelectProfileUseCase,

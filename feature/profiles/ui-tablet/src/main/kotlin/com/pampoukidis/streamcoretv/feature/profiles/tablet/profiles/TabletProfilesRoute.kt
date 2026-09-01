@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.tablet.profiles
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -17,7 +17,7 @@ fun TabletProfilesRoute(
     isLogoutInProgress: Boolean,
     onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
-    viewModel: ProfilesViewModel = hiltViewModel(),
+    viewModel: ProfilesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 

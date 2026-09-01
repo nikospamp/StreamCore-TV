@@ -22,7 +22,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.path
-import javax.inject.Inject
 
 /**
  * Ktor implementation of [TmdbApi].
@@ -31,7 +30,7 @@ import javax.inject.Inject
  * timeout policy, and non-2xx validation. This class only declares endpoint paths
  * and query parameters.
  */
-internal class KtorTmdbApi @Inject constructor(
+internal class KtorTmdbApi constructor(
     private val httpClient: HttpClient,
 ) : TmdbApi {
 

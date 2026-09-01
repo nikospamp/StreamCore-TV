@@ -5,11 +5,8 @@ import com.pampoukidis.streamcoretv.client.clientb.data.model.ClientBContentDto
 import com.pampoukidis.streamcoretv.client.clientb.data.model.ClientBContributorDto
 import com.pampoukidis.streamcoretv.client.clientb.data.model.ClientBHomeLaneDto
 import com.pampoukidis.streamcoretv.client.clientb.data.model.ClientBLaneTemplateDto
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ClientBCatalogSource @Inject constructor() {
+class ClientBCatalogSource constructor() {
 
     private val catalog = listOf(
         content(

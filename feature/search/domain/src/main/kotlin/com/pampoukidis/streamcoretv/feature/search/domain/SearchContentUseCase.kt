@@ -2,9 +2,8 @@ package com.pampoukidis.streamcoretv.feature.search.domain
 
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import javax.inject.Inject
 
-class SearchContentUseCase @Inject constructor(
+class SearchContentUseCase constructor(
     private val repository: SearchRepository,
 ) {
 

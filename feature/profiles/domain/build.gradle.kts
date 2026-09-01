@@ -15,7 +15,8 @@ dependencies {
     implementation(projects.feature.profiles.data)
 
     // Libraries
-    implementation(libs.javax.inject)
+    implementation(libs.koin.core)
+
 
     // Testing
     testImplementation(libs.junit)

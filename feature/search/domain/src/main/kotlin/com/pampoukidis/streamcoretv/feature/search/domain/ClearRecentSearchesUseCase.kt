@@ -1,8 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.search.domain
 
-import javax.inject.Inject
 
-class ClearRecentSearchesUseCase @Inject constructor(
+class ClearRecentSearchesUseCase constructor(
     private val repository: RecentSearchRepository,
 ) {
 

@@ -5,11 +5,8 @@ import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ClientBCatalogRepository @Inject constructor(
+class ClientBCatalogRepository constructor(
     private val catalogSource: ClientBCatalogSource,
 ) : HomeRepository {
 

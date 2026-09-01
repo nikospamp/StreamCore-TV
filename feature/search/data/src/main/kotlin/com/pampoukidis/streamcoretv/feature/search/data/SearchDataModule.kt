@@ -1,50 +1,33 @@
 package com.pampoukidis.streamcoretv.feature.search.data
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pampoukidis.streamcoretv.feature.search.domain.RecentSearchRepository
-import dagger.Binds
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
-import javax.inject.Singleton
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class SearchDataModule {
-
-    @Binds
-    @Singleton
-    abstract fun bindRecentSearchRepository(
-        implementation: PreferencesRecentSearchRepository,
-    ): RecentSearchRepository
-
-    companion object {
-        @Provides
-        @Singleton
-        @SearchHistoryStore
-        fun provideSearchHistoryDataStore(
-            @ApplicationContext context: Context,
-        ): DataStore<Preferences> {
-            return PreferenceDataStoreFactory.create(
-                produceFile = { context.preferencesDataStoreFile("search_history.preferences_pb") },
-            )
+val searchDataModule = module {
+    single<DataStore<Preferences>>(named(SEARCH_HISTORY_STORE_QUALIFIER)) {
+        PreferenceDataStoreFactory.create(
+            produceFile = {
+                androidContext().preferencesDataStoreFile("search_history.preferences_pb")
+            },
+        )
+    }
+    single<Json>(named(SEARCH_HISTORY_JSON_QUALIFIER)) {
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
         }
-
-        @Provides
-        @Singleton
-        @SearchHistoryJson
-        fun provideSearchHistoryJson(): Json {
-            return Json {
-                ignoreUnknownKeys = true
-                encodeDefaults = true
-            }
-        }
+    }
+    single<RecentSearchRepository> {
+        PreferencesRecentSearchRepository(
+            dataStore = get(named(SEARCH_HISTORY_STORE_QUALIFIER)),
+            json = get(named(SEARCH_HISTORY_JSON_QUALIFIER)),
+        )
     }
 }

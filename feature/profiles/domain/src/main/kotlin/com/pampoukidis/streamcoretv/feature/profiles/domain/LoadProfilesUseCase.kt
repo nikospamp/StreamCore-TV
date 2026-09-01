@@ -3,9 +3,8 @@ package com.pampoukidis.streamcoretv.feature.profiles.domain
 import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import javax.inject.Inject
 
-class LoadProfilesUseCase @Inject constructor(
+class LoadProfilesUseCase constructor(
     private val profileRepository: ProfileRepository,
 ) {
 

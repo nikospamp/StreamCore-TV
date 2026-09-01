@@ -12,7 +12,8 @@ dependencies {
     implementation(projects.core.data)
 
     // Libraries
-    implementation(libs.javax.inject)
+    implementation(libs.koin.core)
+
 
     // Testing
     testImplementation(libs.junit)

@@ -2,7 +2,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.tv.profiles
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -19,7 +19,7 @@ fun TvProfilesRoute(
     isLogoutInProgress: Boolean,
     onLogoutRequested: () -> Unit,
     onError: (AppError) -> Unit,
-    viewModel: ProfilesViewModel = hiltViewModel(),
+    viewModel: ProfilesViewModel = koinViewModel(),
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

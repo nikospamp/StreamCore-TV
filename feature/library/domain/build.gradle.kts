@@ -17,11 +17,10 @@ android {
 }
 
 dependencies {
+    implementation(libs.koin.core)
     api(projects.core.data)
     api(projects.core.domain)
     api(projects.playback.api)
-
-    implementation(libs.javax.inject)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)

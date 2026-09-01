@@ -4,9 +4,8 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.model.error.ErrorModel
 import com.pampoukidis.streamcoretv.core.ui.R
-import javax.inject.Inject
 
-class DefaultErrorPresentationPresentationMapper @Inject constructor() : ErrorPresentationMapper {
+class DefaultErrorPresentationPresentationMapper constructor() : ErrorPresentationMapper {
 
     override fun map(error: AppError): ErrorModel = when (error) {
         is AppError.Authentication -> ErrorModel(

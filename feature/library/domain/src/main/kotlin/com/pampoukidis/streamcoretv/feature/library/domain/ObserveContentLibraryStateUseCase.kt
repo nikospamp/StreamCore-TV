@@ -5,9 +5,8 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.library.ContentLibraryStateModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 
-class ObserveContentLibraryStateUseCase @Inject constructor(
+class ObserveContentLibraryStateUseCase constructor(
     private val libraryRepository: LibraryRepository,
 ) {
 

@@ -14,9 +14,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
 
-class ObserveLibraryUseCase @Inject constructor(
+class ObserveLibraryUseCase constructor(
     private val libraryRepository: LibraryRepository,
     private val playbackProgressRepository: PlaybackProgressRepository,
 ) {

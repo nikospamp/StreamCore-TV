@@ -12,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.auth.AppAuthEffect
 import com.pampoukidis.streamcoretv.auth.AppAuthAction
@@ -27,17 +26,14 @@ import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
 import com.pampoukidis.streamcoretv.navigation.startDestinationForAuthState
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
+import org.koin.compose.viewmodel.koinViewModel
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var errorPresentationMapper: ErrorPresentationMapper
+    private val errorPresentationMapper: ErrorPresentationMapper by inject()
 
-    @Inject
-    lateinit var profileAvatarArtworkResolver: ProfileAvatarArtworkResolver
+    private val profileAvatarArtworkResolver: ProfileAvatarArtworkResolver by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +44,7 @@ class MainActivity : ComponentActivity() {
                 LocalProfileAvatarArtworkResolver provides profileAvatarArtworkResolver,
             ) {
                 StreamCoreTheme {
-                    val appAuthViewModel: AppAuthViewModel = hiltViewModel()
+                    val appAuthViewModel: AppAuthViewModel = koinViewModel()
                     val appAuthUiState by appAuthViewModel.uiState.collectAsStateWithLifecycle()
                     var activeError by remember { mutableStateOf<ErrorModel?>(null) }
 
