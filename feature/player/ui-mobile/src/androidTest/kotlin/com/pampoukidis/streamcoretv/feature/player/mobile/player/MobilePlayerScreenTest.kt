@@ -9,16 +9,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.WindowSize
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
@@ -104,15 +111,19 @@ class MobilePlayerScreenTest {
         composeRule.onNodeWithTag(PlayerTestTags.Settings).assertExists()
         composeRule.onNodeWithText("Playback preferences").assertExists()
         composeRule.onNodeWithText("1080p").assertExists()
-        composeRule.onNodeWithContentDescription("Dismiss playback settings").performClick()
+        composeRule.onNodeWithContentDescription("Dismiss playback settings")
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertTrue(actions.contains(PlayerAction.BackSelected))
 
-        composeRule.onNodeWithText("Quality").performClick()
+        composeRule.onNodeWithText("Quality")
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertTrue(actions.contains(PlayerAction.OpenSettings(PlayerSettingsPage.Quality)))
 
         state = state.copy(settingsPage = PlayerSettingsPage.Quality)
         composeRule.onNodeWithText("Video resolution and data usage").assertExists()
-        composeRule.onNodeWithText("1080p").assertIsSelected().performClick()
+        composeRule.onNodeWithText("1080p")
+            .assertIsSelected()
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertTrue(actions.contains(PlayerAction.SelectVideoTrack(videoTrack.id)))
     }
 
@@ -146,6 +157,56 @@ class MobilePlayerScreenTest {
     }
 
     @Test
+    fun phoneLandscapeRealTouchTargetsDispatchPlayerActions() {
+        val actions = mutableListOf<PlayerAction>()
+        var state by mutableStateOf(
+            readyState(isPlaying = true).copy(controlsVisible = false),
+        )
+        setPhoneLandscapePlayerContent(
+            state = { state },
+            onAction = { action ->
+                actions += action
+                state = reduceTouchAction(state = state, action = action)
+            },
+        )
+
+        composeRule.onNodeWithTag(PlayerTestTags.Root).performTouchInput {
+            click(center)
+        }
+        composeRule.mainClock.advanceTimeBy(SurfaceTapSettleMillis)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithContentDescription("Pause")[0].performTouchInput {
+            click(center)
+        }
+        composeRule.onAllNodesWithContentDescription("Play")[0].performTouchInput {
+            click(center)
+        }
+        composeRule.onNodeWithContentDescription("Back 10 seconds").performTouchInput {
+            click(center)
+        }
+        composeRule.onNodeWithContentDescription("Forward 10 seconds").performTouchInput {
+            click(center)
+        }
+        composeRule.onNodeWithTag(PlayerTestTags.Timeline).performTouchInput {
+            click(Offset(x = width * 0.75f, y = height / 2f))
+        }
+        composeRule.onNodeWithContentDescription("Playback settings").performTouchInput {
+            click(center)
+        }
+
+        assertEquals(1, actions.count { it == PlayerAction.ToggleControls })
+        assertEquals(2, actions.count { it == PlayerAction.TogglePlayPause })
+        assertTrue(actions.contains(PlayerAction.SeekBy(deltaMillis = -10_000L)))
+        assertTrue(actions.contains(PlayerAction.SeekBy(deltaMillis = 10_000L)))
+        assertTrue(actions.contains(PlayerAction.ScrubStarted))
+        assertTrue(actions.any { it is PlayerAction.ScrubChanged })
+        assertTrue(actions.contains(PlayerAction.ScrubFinished))
+        assertTrue(actions.contains(PlayerAction.OpenSettings()))
+        assertTrue(state.positionMillis > PhoneLandscapeInitialPositionMillis)
+        assertEquals(PlayerSettingsPage.Root, state.settingsPage)
+    }
+
+    @Test
     fun tabletTouchControlsForwardPauseSeekSettingsAndExitActions() {
         val actions = mutableListOf<PlayerAction>()
         var state by mutableStateOf(readyState(isPlaying = true).copy(isPipSupported = true))
@@ -159,11 +220,16 @@ class MobilePlayerScreenTest {
             },
         )
 
-        composeRule.onAllNodesWithContentDescription("Pause")[0].performClick()
-        composeRule.onAllNodesWithContentDescription("Play")[0].performClick()
-        composeRule.onNodeWithContentDescription("Back 10 seconds").performClick()
-        composeRule.onNodeWithContentDescription("Playback settings").performClick()
-        composeRule.onNodeWithContentDescription("Back").performClick()
+        composeRule.onAllNodesWithContentDescription("Pause")[0]
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onAllNodesWithContentDescription("Play")[0]
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithContentDescription("Back 10 seconds")
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithContentDescription("Playback settings")
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithContentDescription("Back")
+            .performSemanticsAction(SemanticsActions.OnClick)
 
         assertEquals(
             listOf(
@@ -237,6 +303,67 @@ class MobilePlayerScreenTest {
         }
     }
 
+    private fun setPhoneLandscapePlayerContent(
+        state: () -> PlayerUiState,
+        onAction: (PlayerAction) -> Unit,
+    ) {
+        composeRule.setContent {
+            DeviceConfigurationOverride(
+                DeviceConfigurationOverride.WindowSize(
+                    DpSize(
+                        width = PhoneLandscapeWidthDp.dp,
+                        height = PhoneLandscapeHeightDp.dp,
+                    ),
+                ),
+            ) {
+                StreamCoreTheme(darkTheme = true) {
+                    MobilePlayerScreen(
+                        state = state(),
+                        videoSurface = FakeVideoSurface,
+                        onAction = onAction,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun reduceTouchAction(
+        state: PlayerUiState,
+        action: PlayerAction,
+    ): PlayerUiState {
+        return when (action) {
+            PlayerAction.ToggleControls -> state.copy(
+                controlsVisible = !state.controlsVisible,
+            )
+
+            PlayerAction.TogglePlayPause -> state.copy(
+                isPlaying = !state.isPlaying,
+            )
+
+            is PlayerAction.SeekBy -> state.copy(
+                positionMillis = (state.positionMillis + action.deltaMillis)
+                    .coerceIn(0L, state.durationMillis),
+            )
+
+            PlayerAction.ScrubStarted -> state.copy(
+                isScrubbing = true,
+                scrubPositionMillis = state.positionMillis,
+            )
+
+            is PlayerAction.ScrubChanged -> state.copy(
+                scrubPositionMillis = action.positionMillis,
+            )
+
+            PlayerAction.ScrubFinished -> state.copy(
+                isScrubbing = false,
+                positionMillis = state.scrubPositionMillis,
+            )
+
+            is PlayerAction.OpenSettings -> state.copy(settingsPage = action.page)
+            else -> state
+        }
+    }
+
     private fun readyState(isPlaying: Boolean = false): PlayerUiState {
         return PlayerUiState(
             title = "Sintel",
@@ -257,6 +384,10 @@ class MobilePlayerScreenTest {
     }
 
     private companion object {
+        const val PhoneLandscapeWidthDp = 914
+        const val PhoneLandscapeHeightDp = 411
+        const val PhoneLandscapeInitialPositionMillis = 30_000L
+        const val SurfaceTapSettleMillis = 500L
         const val TabletWidthDp = 1_024
         const val TabletHeightDp = 600
         const val TabletSettingsPanelWidthDp = 410
