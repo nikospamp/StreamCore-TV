@@ -10,7 +10,6 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
@@ -40,7 +39,9 @@ class TvProfileEditorScreenTest {
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
             .assertIsDisplayed()
-            .performClick()
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
 
         assertEquals(listOf(ProfileEditorAction.RequestDeleteProfile), actions)
     }
@@ -108,7 +109,9 @@ class TvProfileEditorScreenTest {
 
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
-            .performClick()
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorCancelDeleteButton)
             .assertIsFocused()
@@ -116,9 +119,11 @@ class TvProfileEditorScreenTest {
         composeRule
             .onNodeWithTag(ProfilesTestTags.ConfirmDeleteButton)
             .assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionLeft) }
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorCancelDeleteButton)
-            .performClick()
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
 
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
@@ -146,7 +151,11 @@ class TvProfileEditorScreenTest {
             },
         )
 
-        composeRule.onNodeWithTag(ProfilesTestTags.EditorDeleteButton).performClick()
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.Enter) }
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorCancelDeleteButton)
             .assertIsFocused()
