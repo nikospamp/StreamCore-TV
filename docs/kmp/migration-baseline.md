@@ -10,7 +10,8 @@
 > gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
 > accepted phone/tablet/TV matrix. ClientB manual parity is green on every form factor. The exact remaining stop condition is recorded in
 > [`KMP-07-evidence.md`](KMP-07-evidence.md): local TMDB username/password are available, but the required uncommitted API token/account build
-> properties were not present in an approved source. Phase 1 is not marked accepted and WEB-01 must not start until those manual journeys pass.
+> properties were not present locally and no browser session was connected for the authorized existing-credential retrieval. Phase 1 is not
+> marked accepted and WEB-01 must not start until those manual journeys pass.
 
 KMP-07 preserves compile SDK 37 and target SDK 36, adds no Wasm target, and retains the accepted physical-device performance campaign as
 informational evidence. The generated Baseline Profiles are byte-for-byte unchanged and are consumed by the release APK.

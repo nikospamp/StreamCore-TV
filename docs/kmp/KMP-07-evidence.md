@@ -144,6 +144,8 @@ predates KMP-07. The interrupted `BaselineProfileMode.Require` diagnostic remain
 
 Authenticated TMDB phone/tablet/TV manual journeys cannot run from an empty runtime API configuration. The authorized ignored
 `docs/credentials/tmdb.txt` contains interactive credentials only; `tmdbReadAccessToken` and `tmdbAccountId` were absent from the worktree,
-primary `local.properties`, selected Gradle user home, environment, and emulator DataStore. No secret was printed, logged, copied, staged, or
-committed. KMP-07 must not be marked accepted and WEB-01 must not start until an approved local source supplies those two Gradle properties and the
-TMDB manual matrix passes.
+primary `local.properties`, selected Gradle user home, environment, and emulator DataStore. A dedicated TMDB connector/API search returned no
+available tool. The authorized account-settings retrieval then stopped before credential submission because the browser-control runtime had no
+connected in-app, Chrome, or Edge session. The required non-secret user action is to connect a browser session, preferably already signed into
+TMDB, and resume KMP-07. No secret was printed, logged, copied, staged, or committed. KMP-07 must not be marked accepted and WEB-01 must not start
+until the existing values are retrieved into ignored local configuration and the TMDB manual matrix passes.
