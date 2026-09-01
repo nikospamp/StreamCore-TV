@@ -17,6 +17,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.domain.profilesDomainModule
 import com.pampoukidis.streamcoretv.feature.search.common.search.searchUiModule
 import com.pampoukidis.streamcoretv.feature.search.data.searchDataModule
 import com.pampoukidis.streamcoretv.feature.search.domain.searchDomainModule
+import com.pampoukidis.streamcoretv.playback.media3.media3PlaybackModule
 import org.koin.core.module.Module
 
 fun commonAndroidModules(): List<Module> {
@@ -39,5 +40,6 @@ fun commonAndroidModules(): List<Module> {
         libraryUiModule,
         playbackDataModule,
         playerUiModule,
+        media3PlaybackModule,
     )
 }

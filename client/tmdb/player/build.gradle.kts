@@ -1,17 +1,20 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("streamcore.kmp.library")
 }
-android {
-    namespace = "com.pampoukidis.streamcoretv.client.tmdb.player"
-    compileSdk = 37
-    defaultConfig { minSdk = 24 }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+
+streamCoreKmp {
+    withHostTest()
+}
+
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.playback.api)
+            implementation(libs.koin.core)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
-}
-dependencies {
-    implementation(libs.koin.android)
-    implementation(projects.playback.api)
-    implementation(projects.playback.media3)
 }
