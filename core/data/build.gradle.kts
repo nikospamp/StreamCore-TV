@@ -3,11 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-kotlin {
-    android {
-        withHostTest {}
-    }
+streamCoreKmp {
+    withHostTest()
+}
 
+kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.datetime)
