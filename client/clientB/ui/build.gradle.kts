@@ -4,11 +4,7 @@ plugins {
 
 android {
     namespace = "com.pampoukidis.streamcoretv.client.clientb.ui"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24

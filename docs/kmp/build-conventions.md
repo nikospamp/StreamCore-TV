@@ -38,7 +38,9 @@ plugins {
 ```
 
 The plain convention applies the official `com.android.kotlin.multiplatform.library` plugin, which creates and registers the single `android` target,
-then owns compile SDK 36, minimum SDK 24, and JVM 11 configuration. Module build scripts do not call `kotlin { android {} }`. The Compose convention
+then owns compile SDK 37, minimum SDK 24, and JVM 11 configuration. API 37 is required by Compose Multiplatform 1.12 Android artifacts and is
+supported by the locked AGP 9.1.1 toolchain. This compile-only integration prerequisite does not change the application's, benchmark's, or
+baseline-profile producer's target SDK 36 runtime behavior. Module build scripts do not call `kotlin { android {} }`. The Compose convention
 additionally applies Compose Multiplatform 1.12.0, the Kotlin Compose compiler plugin, Compose resources support, and Android-target-only
 `-Xlambdas=class`.
 
