@@ -4,6 +4,17 @@
 > 214 passing host tests, 284 checked design-token source files, both provider graphs, and green phone/tablet/TV journeys. This is the frozen
 > Android comparison baseline for KMP-01 through KMP-07.
 
+## KMP-07 Phase 1 closure
+
+> **Status: Pending authenticated TMDB device completion.** Production/test candidate `4c7cdaf` passes both debug/R8 providers, the full root
+> gate, 265 host tests, 303 design-checked files, 21 Compose-KMP compiler tasks, benchmark/profile assembly, and 166 connected tests across the
+> accepted phone/tablet/TV matrix. ClientB manual parity is green on every form factor. The exact remaining stop condition is recorded in
+> [`KMP-07-evidence.md`](KMP-07-evidence.md): local TMDB username/password are available, but the required uncommitted API token/account build
+> properties were not present in an approved source. Phase 1 is not marked accepted and WEB-01 must not start until those manual journeys pass.
+
+KMP-07 preserves compile SDK 37 and target SDK 36, adds no Wasm target, and retains the accepted physical-device performance campaign as
+informational evidence. The generated Baseline Profiles are byte-for-byte unchanged and are consumed by the release APK.
+
 Accepted Android baseline evidence for the KMP migration. The target architecture is
 backend-agnostic; core, domain, and feature UI code must remain independent of
 provider SDKs, DTOs, API responses, and client-specific models.

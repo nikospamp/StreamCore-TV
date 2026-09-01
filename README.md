@@ -39,9 +39,9 @@ flowchart LR
 | Group | Responsibility |
 | --- | --- |
 | `:app` | Application entry point, navigation, dependency wiring, and client flavor selection |
-| `:core:data` | Shared application models and infrastructure result/error contracts |
-| `:core:domain` | Provider-independent repository interfaces |
-| `:core:ui` | Theme, design tokens, shared components, previews, and UI utilities |
+| `:core:data` | KMP application models and infrastructure result/error contracts |
+| `:core:domain` | KMP provider-independent repository interfaces |
+| `:core:ui` | Compose KMP theme, design tokens, shared resources/components, previews, and UI utilities |
 | `:feature:<name>:domain` | Feature use cases and business rules |
 | `:feature:<name>:ui-common` | Shared UI contracts, ViewModels, and platform-neutral components |
 | `:feature:<name>:ui-mobile` | Phone-specific touch UI |
@@ -53,11 +53,12 @@ flowchart LR
 | `:playback:api` | Provider- and engine-independent playback contracts |
 | `:playback:media3` | AndroidX Media3 playback implementation |
 
-Current feature areas are `login`, `profiles`, `home`, `details`, and `player`.
+Current feature areas are `login`, `profiles`, `home`, `search`, `details`, `library`, and `player`.
 
 ## Tech stack
 
 - Kotlin 2.3
+- Kotlin Multiplatform with Android-hosted `commonMain`/`androidMain` modules
 - Jetpack Compose and Material 3
 - Compose for TV
 - Coroutines, Flow, and StateFlow
@@ -135,6 +136,7 @@ Compose instrumentation tests require a connected emulator or device and can be 
 - Lazy layouts use stable keys and content types where applicable.
 - TV implementations explicitly handle focus, D-pad navigation, spacing, and readability.
 - Raw UI values are guarded by `verifyDesignTokens`; feature code should use the shared design system.
+- KMP does not imply web support. No Wasm target exists in Phase 1; browser support begins only after its target and platform adapters are verified.
 
 ## Documentation
 
