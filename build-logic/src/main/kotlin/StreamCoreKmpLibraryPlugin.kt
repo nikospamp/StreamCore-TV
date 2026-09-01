@@ -11,20 +11,33 @@ class StreamCoreKmpLibraryPlugin : Plugin<Project> {
             pluginManager.apply("org.jetbrains.kotlin.multiplatform")
             pluginManager.apply("com.android.kotlin.multiplatform.library")
 
-            val extension = extensions.getByType(KotlinMultiplatformExtension::class.java)
-            extension.targets
+            val kotlinExtension = extensions.getByType(KotlinMultiplatformExtension::class.java)
+            val androidTarget = kotlinExtension.targets
                 .withType(KotlinMultiplatformAndroidLibraryTarget::class.java)
-                .configureEach {
-                    namespace = streamCoreNamespace()
-                    compileSdk = 36
-                    minSdk = 24
-                    compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
-                }
+                .named("android")
+                .get()
+            androidTarget.namespace = streamCoreNamespace()
+            androidTarget.compileSdk = 36
+            androidTarget.minSdk = 24
+            androidTarget.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+
+            extensions.add(
+                "streamCoreKmp",
+                StreamCoreKmpExtension(androidTarget),
+            )
 
             tasks.withType(Test::class.java).configureEach {
                 useJUnit()
             }
         }
+    }
+}
+
+class StreamCoreKmpExtension internal constructor(
+    private val androidTarget: KotlinMultiplatformAndroidLibraryTarget,
+) {
+    fun withHostTest() {
+        androidTarget.withHostTest {}
     }
 }
 

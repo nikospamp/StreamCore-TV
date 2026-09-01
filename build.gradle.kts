@@ -1,11 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
-import org.gradle.api.attributes.Category
-import org.gradle.api.attributes.AttributeCompatibilityRule
-import org.gradle.api.attributes.CompatibilityCheckDetails
-import org.gradle.api.attributes.Usage
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
+import org.gradle.api.attributes.java.TargetJvmEnvironment
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -212,32 +210,75 @@ abstract class VerifyKmpAndroidCompilerFlagsTask : DefaultTask() {
 abstract class VerifyKmpDependencyCompatibilityTask : DefaultTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
-    abstract val resolvedArtifacts: ConfigurableFileCollection
+    abstract val commonArtifacts: ConfigurableFileCollection
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val androidArtifacts: ConfigurableFileCollection
+
+    @get:Input
+    abstract val commonSelections: ListProperty<String>
+
+    @get:Input
+    abstract val androidSelections: ListProperty<String>
 
     @get:Input
     abstract val lockedCoordinates: ListProperty<String>
 
     @TaskAction
     fun verify() {
-        val artifacts = resolvedArtifacts.files.filter(File::isFile)
-        if (artifacts.isEmpty()) {
-            throw GradleException("Locked KMP compatibility configuration resolved zero artifacts.")
+        val expectedCount = lockedCoordinates.get().size
+        val common = commonArtifacts.files.filter(File::isFile)
+        val android = androidArtifacts.files.filter(File::isFile)
+        val commonVariants = commonSelections.get()
+        val androidVariants = androidSelections.get()
+        if (commonVariants.size != expectedCount || androidVariants.size != expectedCount) {
+            throw GradleException(
+                "Locked KMP compatibility resolution expected $expectedCount direct components per variant, " +
+                        "but resolved common=${commonVariants.size}, android=${androidVariants.size}.",
+            )
         }
         logger.lifecycle(
-            "$path resolved ${lockedCoordinates.get().size} locked KMP coordinates " +
-                    "to ${artifacts.size} common metadata artifact(s).",
+            "$path resolved $expectedCount locked KMP coordinates for common metadata and Android " +
+                    "(${common.size}/${android.size} artifact files).",
         )
+        commonVariants.forEach { selection -> logger.lifecycle(" - common: $selection") }
+        androidVariants.forEach { selection -> logger.lifecycle(" - android: $selection") }
     }
 }
 
-abstract class JvmConsumerAndroidKmpCompatibilityRule : AttributeCompatibilityRule<KotlinPlatformType> {
-    override fun execute(details: CompatibilityCheckDetails<KotlinPlatformType>) {
-        if (
-            details.consumerValue == KotlinPlatformType.jvm &&
-            details.producerValue == KotlinPlatformType.androidJvm
-        ) {
-            details.compatible()
+abstract class VerifyKmpConventionPluginsTask : DefaultTask() {
+    @get:Input
+    abstract val fixtureModules: ListProperty<String>
+
+    @get:Input
+    abstract val missingCompileTasks: ListProperty<String>
+
+    @get:Input
+    abstract val missingConsumableVariants: ListProperty<String>
+
+    @get:Input
+    abstract val composeFixturesMissingAndroidFlag: ListProperty<String>
+
+    @TaskAction
+    fun verify() {
+        val missingTasks = missingCompileTasks.get()
+        val missingVariants = missingConsumableVariants.get()
+        val missingFlags = composeFixturesMissingAndroidFlag.get()
+        if (missingTasks.isNotEmpty() || missingVariants.isNotEmpty() || missingFlags.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    missingTasks.forEach { value -> appendLine("Missing convention fixture compile task: $value") }
+                    missingVariants.forEach { value -> appendLine("Missing consumable Android variant: $value") }
+                    missingFlags.forEach { value -> appendLine("Compose fixture missing -Xlambdas=class: $value") }
+                },
+            )
         }
+
+        logger.lifecycle(
+            "$path verified ${fixtureModules.get().size} convention-only fixture modules with " +
+                    "registered Android targets, compileAndroidMain tasks, consumable variants, and Compose Android flags.",
+        )
     }
 }
 
@@ -331,32 +372,6 @@ val verifyKmpAndroidCompilerFlags by tasks.registering(VerifyKmpAndroidCompilerF
     group = "verification"
     description = "Checks Compose KMP Android compilations for the live-edit lambda compiler mode."
 }
-val kmpCompatibilityMetadata by configurations.creating {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-    isTransitive = false
-    attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
-        attribute(Usage.USAGE_ATTRIBUTE, objects.named("kotlin-metadata"))
-        attribute(KotlinPlatformType.attribute, KotlinPlatformType.common)
-    }
-}
-val lockedKmpCompatibilityCoordinates = listOf(
-    libs.androidx.datastore.core.okio,
-    libs.coil.network.ktor3,
-    libs.compose.components.resources,
-    libs.compose.foundation,
-    libs.compose.runtime,
-    libs.compose.ui,
-    libs.jetbrains.lifecycle.runtime.compose,
-    libs.jetbrains.lifecycle.viewmodel.compose,
-    libs.koin.compose,
-    libs.koin.compose.viewmodel,
-    libs.ktor.client.core,
-    libs.ktor.client.content.negotiation,
-    libs.ktor.serialization.kotlinx.json,
-    libs.kotlinx.datetime,
-)
 val lockedKmpCompatibilityCoordinateNames = listOf(
     "androidx.datastore:datastore-core-okio:1.2.1",
     "io.coil-kt.coil3:coil-network-ktor3:3.4.0",
@@ -373,16 +388,14 @@ val lockedKmpCompatibilityCoordinateNames = listOf(
     "io.ktor:ktor-serialization-kotlinx-json:3.5.0",
     "org.jetbrains.kotlinx:kotlinx-datetime:0.8.0",
 )
-dependencies {
-    lockedKmpCompatibilityCoordinates.forEach { dependencyProvider ->
-        add(kmpCompatibilityMetadata.name, dependencyProvider)
-    }
-}
 val verifyKmpDependencyCompatibility by tasks.registering(VerifyKmpDependencyCompatibilityTask::class) {
     group = "verification"
-    description = "Resolves the locked common KMP dependency matrix without adding a web target."
-    resolvedArtifacts.from(kmpCompatibilityMetadata)
+    description = "Resolves the locked common and Android KMP dependency matrix without adding a web target."
     lockedCoordinates.set(lockedKmpCompatibilityCoordinateNames)
+}
+val verifyKmpConventionPlugins by tasks.registering(VerifyKmpConventionPluginsTask::class) {
+    group = "verification"
+    description = "Proves each KMP convention registers a usable Android target without module-local target creation."
 }
 val testAndroidHostTest by tasks.registering {
     group = "verification"
@@ -397,23 +410,40 @@ tasks.named("check") {
         verifyKmpTestTargets,
         verifyKmpAndroidCompilerFlags,
         verifyKmpDependencyCompatibility,
+        verifyKmpConventionPlugins,
     )
 }
 
 subprojects {
-    // Phase-1 bridge: still-JVM feature/domain modules consume portable Android-KMP core bytecode.
-    // This is intentionally one-way and disappears as KMP-03/KMP-04 migrate those consumers.
-    dependencies.attributesSchema.attribute(KotlinPlatformType.attribute) {
-        compatibilityRules.add(JvmConsumerAndroidKmpCompatibilityRule::class.java)
-    }
-    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        configurations.configureEach {
-            if (isCanBeResolved) {
-                attributes.attribute(
-                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                    ArtifactTypeDefinition.JAR_TYPE,
-                )
-            }
+    val transitionalJvmCoreConsumers = setOf(
+        ":feature:login:domain",
+        ":feature:profiles:domain",
+        ":feature:home:domain",
+        ":feature:search:domain",
+        ":feature:details:data",
+        ":feature:details:domain",
+    )
+    val transitionalJvmCoreConsumerConfigurations = setOf(
+        "compileClasspath",
+        "runtimeClasspath",
+        "testCompileClasspath",
+        "testRuntimeClasspath",
+    )
+    if (path in transitionalJvmCoreConsumers) {
+        pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+            configurations
+                .matching { configuration -> configuration.name in transitionalJvmCoreConsumerConfigurations }
+                .configureEach {
+                    attributes.attribute(KotlinPlatformType.attribute, KotlinPlatformType.androidJvm)
+                    attributes.attribute(
+                        TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
+                        objects.named("android"),
+                    )
+                    attributes.attribute(
+                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                        ArtifactTypeDefinition.JAR_TYPE,
+                    )
+                }
         }
     }
 
@@ -501,6 +531,7 @@ subprojects {
             rootProject.tasks.named("verifyKmpTestTargets"),
             rootProject.tasks.named("verifyKmpAndroidCompilerFlags"),
             rootProject.tasks.named("verifyKmpDependencyCompatibility"),
+            rootProject.tasks.named("verifyKmpConventionPlugins"),
         )
     }
 }
@@ -528,10 +559,77 @@ gradle.projectsEvaluated {
         )
     }
 
+    val dependencyFixture = project(":kmp-convention-fixtures:plain")
+    val commonCompatibilityConfiguration = dependencyFixture.configurations.getByName("kmpCompatibilityCommon")
+    val androidCompatibilityConfiguration = dependencyFixture.configurations.getByName("kmpCompatibilityAndroid")
+    verifyKmpDependencyCompatibility.configure {
+        commonArtifacts.from(commonCompatibilityConfiguration)
+        androidArtifacts.from(androidCompatibilityConfiguration)
+        commonSelections.set(
+            providers.provider {
+                commonCompatibilityConfiguration.incoming.resolutionResult.root.dependencies
+                    .filterIsInstance<ResolvedDependencyResult>()
+                    .map { dependency ->
+                        "${dependency.requested.displayName} -> ${dependency.resolvedVariant.displayName}"
+                    }
+                    .sorted()
+            },
+        )
+        androidSelections.set(
+            providers.provider {
+                androidCompatibilityConfiguration.incoming.resolutionResult.root.dependencies
+                    .filterIsInstance<ResolvedDependencyResult>()
+                    .map { dependency ->
+                        "${dependency.requested.displayName} -> ${dependency.resolvedVariant.displayName}"
+                    }
+                    .sorted()
+            },
+        )
+    }
+
+    val conventionFixturePaths = listOf(
+        ":kmp-convention-fixtures:plain",
+        ":kmp-convention-fixtures:compose",
+    )
+    val conventionFixtures = conventionFixturePaths.map(::project)
+    val missingConventionCompileTasks = conventionFixtures.flatMap { fixture ->
+        listOf("compileAndroidMain", "assembleAndroidMain")
+            .filterNot(fixture.tasks.names::contains)
+            .map { taskName -> "${fixture.path}:$taskName" }
+    }
+    val missingConventionVariants = conventionFixtures.flatMap { fixture ->
+        listOf("androidApiElements", "androidRuntimeElements")
+            .filter { configurationName ->
+                fixture.configurations.findByName(configurationName)?.isCanBeConsumed != true
+            }
+            .map { configurationName -> "${fixture.path}:$configurationName" }
+    }
+    val composeFixture = project(":kmp-convention-fixtures:compose")
+    val composeFixtureAndroidTarget = composeFixture.extensions
+        .getByType(KotlinMultiplatformExtension::class.java)
+        .targets
+        .withType(KotlinMultiplatformAndroidLibraryTarget::class.java)
+        .single()
+    verifyKmpConventionPlugins.configure {
+        fixtureModules.set(conventionFixturePaths)
+        missingCompileTasks.set(missingConventionCompileTasks)
+        missingConsumableVariants.set(missingConventionVariants)
+        composeFixturesMissingAndroidFlag.set(
+            if ("-Xlambdas=class" in composeFixtureAndroidTarget.compilerOptions.freeCompilerArgs.get()) {
+                emptyList()
+            } else {
+                listOf(composeFixture.path)
+            },
+        )
+    }
+
     val applicableCompileTasks = mutableListOf<String>()
     val missingFlagCompileTasks = mutableListOf<String>()
     kmpProjects
-        .filter { subproject -> subproject.pluginManager.hasPlugin("org.jetbrains.compose") }
+        .filter { subproject ->
+            subproject.pluginManager.hasPlugin("org.jetbrains.compose") &&
+                    !subproject.path.startsWith(":kmp-convention-fixtures:")
+        }
         .forEach { subproject ->
             val androidTarget = subproject.extensions
                 .getByType(KotlinMultiplatformExtension::class.java)

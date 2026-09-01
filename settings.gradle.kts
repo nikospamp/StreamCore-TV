@@ -35,6 +35,8 @@ include(":benchmark:ui-driver")
 include(":baselineprofile")
 include(":core:tracing")
 include(":core:tracing-api")
+include(":kmp-convention-fixtures:plain")
+include(":kmp-convention-fixtures:compose")
 
 // Core
 include(":core:data")

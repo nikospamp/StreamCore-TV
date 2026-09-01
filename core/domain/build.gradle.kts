@@ -3,8 +3,6 @@ plugins {
 }
 
 kotlin {
-    android {}
-
     sourceSets {
         remove(getByName("commonTest"))
 

@@ -2,11 +2,11 @@ plugins {
     id("streamcore.kmp.library")
 }
 
-kotlin {
-    android {
-        withHostTest {}
-    }
+streamCoreKmp {
+    withHostTest()
+}
 
+kotlin {
     sourceSets {
         commonTest.dependencies {
             implementation(kotlin("test"))
