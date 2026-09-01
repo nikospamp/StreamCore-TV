@@ -62,6 +62,14 @@ default `commonTest` source set, has no test directory, and enables no host test
 
 Common sources cannot import Android or JVM APIs. Platform implementations and provider models stay behind shared interfaces.
 
+Shared dependencies must publish compatible KMP metadata and Android variants and be covered by `verifyKmpDependencyCompatibility`. Android-only
+libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility; web support is established only by a
+ticket that adds and verifies `wasmJs`.
+
+Compose Resource owners must enable Android resource processing on the official Android-KMP target. This packages generated
+`composeResources` assets into the AAR and consuming APK; KMP-07 verifies both provider UI modules this way. Common vector XML uses literal
+Compose-supported colors and never Android framework resource references such as `@android:color/*`.
+
 ## Root ownership and task behavior
 
 - The version catalog owns Kotlin 2.3.21, AGP 9.1.1, Compose Multiplatform 1.12.0, and every locked library version.
@@ -75,6 +83,8 @@ Common sources cannot import Android or JVM APIs. Platform implementations and p
   migrated; Android UI/platform modules use `:core:tracing`.
 - Compose compiler reports/metrics continue on release/benchmark Android-only Kotlin compile tasks. For future Compose KMP modules, the replacement
   single-variant task is `compileAndroidMain`; KMP-06 owns the first nonzero report/flag proof.
+- New feature state, actions, effects, route-effect helpers, and ViewModels start in `ui-common`; platform input, adaptive layout, and TV focus remain
+  in Android platform UI modules.
 - AGP 9.1.1 exposes `compileAndroidMain`, `compileAndroidHostTest`, and `testAndroidHostTest`. With this Android-only target graph, KGP 2.3.21 names the
   common metadata lifecycle task `compileKotlinMetadata`; it is skipped when no separately publishable metadata compilation is required, while the
   same `commonMain` sources compile as part of `compileAndroidMain`.
