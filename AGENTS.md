@@ -304,6 +304,9 @@ Prefer:
 - Compile every Android application, library, test, and Android-KMP target against API 37. Compose Multiplatform 1.12 Android artifacts publish
   that minimum compile SDK requirement. Keep the shipping application, benchmark, and baseline-profile `targetSdk` at 36 until a dedicated runtime
   behavior migration changes it.
+- Authenticated TMDB builds must run `:app:verifyTmdbRuntimeConfig` with `-PrequireTmdbRuntimeConfig=true`. A linked worktree reads the primary
+  ignored file through `-PstreamcoreLocalPropertiesPath=<absolute local.properties path>` or `STREAMCORE_LOCAL_PROPERTIES`; never copy credentials
+  into the worktree or print their values.
 
 ## Kotlin Multiplatform Rules
 

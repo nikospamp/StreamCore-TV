@@ -15,14 +15,56 @@ if (localPropertiesFile.isFile) {
     }
 }
 
+val linkedLocalProperties = Properties()
+val linkedLocalPropertiesFile = providers
+    .gradleProperty("streamcoreLocalPropertiesPath")
+    .orElse(providers.environmentVariable("STREAMCORE_LOCAL_PROPERTIES"))
+    .orNull
+    ?.let(rootProject::file)
+if (linkedLocalPropertiesFile?.isFile == true) {
+    linkedLocalPropertiesFile.inputStream().use { input ->
+        linkedLocalProperties.load(input)
+    }
+}
+
 fun propertyOrLocalValue(name: String): String {
     return providers.gradleProperty(name).orNull
         ?: localProperties.getProperty(name)
+        ?: linkedLocalProperties.getProperty(name)
         ?: ""
 }
 
 fun String.asBuildConfigString(): String {
     return "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+}
+
+val tmdbReadAccessToken = propertyOrLocalValue("tmdbReadAccessToken")
+val tmdbAccountId = propertyOrLocalValue("tmdbAccountId")
+val verifyTmdbRuntimeConfig = tasks.register("verifyTmdbRuntimeConfig") {
+    group = "verification"
+    description = "Fails when authenticated TMDB runtime configuration is missing. Values are never logged."
+    inputs.property("tmdbReadAccessTokenConfigured", tmdbReadAccessToken.isNotBlank())
+    inputs.property("tmdbAccountIdConfigured", tmdbAccountId.isNotBlank())
+
+    doLast {
+        check(inputs.properties["tmdbReadAccessTokenConfigured"] == true) {
+            "Missing tmdbReadAccessToken. Use ignored local.properties, " +
+                    "-PstreamcoreLocalPropertiesPath=<path>, or STREAMCORE_LOCAL_PROPERTIES."
+        }
+        check(inputs.properties["tmdbAccountIdConfigured"] == true) {
+            "Missing tmdbAccountId. Use ignored local.properties, " +
+                    "-PstreamcoreLocalPropertiesPath=<path>, or STREAMCORE_LOCAL_PROPERTIES."
+        }
+        logger.lifecycle("TMDB runtime configuration preflight passed (values redacted).")
+    }
+}
+
+if (providers.gradleProperty("requireTmdbRuntimeConfig").orNull?.toBooleanStrictOrNull() == true) {
+    tasks.configureEach {
+        if (name.startsWith("preTmdb") && name.endsWith("Build")) {
+            dependsOn(verifyTmdbRuntimeConfig)
+        }
+    }
 }
 
 android {
@@ -87,12 +129,12 @@ android {
             buildConfigField(
                 "String",
                 "TMDB_READ_ACCESS_TOKEN",
-                propertyOrLocalValue("tmdbReadAccessToken").asBuildConfigString(),
+                tmdbReadAccessToken.asBuildConfigString(),
             )
             buildConfigField(
                 "String",
                 "TMDB_ACCOUNT_ID",
-                propertyOrLocalValue("tmdbAccountId").asBuildConfigString(),
+                tmdbAccountId.asBuildConfigString(),
             )
         }
         create("clientB") {
