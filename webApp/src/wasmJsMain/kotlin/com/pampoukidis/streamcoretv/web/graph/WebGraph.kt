@@ -55,9 +55,9 @@ import com.pampoukidis.streamcoretv.web.config.WebRuntimeConfig
 import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlaybackSessionFactory
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
-import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
+import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import kotlinx.coroutines.flow.first
 
@@ -65,7 +65,7 @@ suspend fun startWebGraph(
     config: WebRuntimeConfig,
     useSessionStorage: Boolean,
 ): WebGraphHandle {
-    val application = startKoin {
+    val application = koinApplication {
         modules(webModules(config, useSessionStorage))
     }
     return try {

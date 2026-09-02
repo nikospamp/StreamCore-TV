@@ -14,5 +14,6 @@ sealed interface WebStartupState {
         val graph: WebGraphHandle,
         val navigationController: WebNavigationController,
         val storageWarning: String?,
+        val useSessionStorage: Boolean,
     ) : WebStartupState
 }

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const validConfig = {
-  tmdbBaseUrl: "https://api.example.test/3/",
+  tmdbBaseUrl: "https://api.example.test/",
   tmdbReadAccessToken: "browser-visible-token",
   tmdbAccountId: "42",
 };
@@ -17,6 +17,35 @@ test.beforeEach(async ({ page }) => {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
         "base64",
       ),
+    });
+  });
+  await page.route("https://api.example.test/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const headers = {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json",
+    };
+    if (path.endsWith("/configuration")) {
+      await route.fulfill({
+        headers,
+        json: {
+          images: {
+            secure_base_url: "https://images.example.test/",
+            poster_sizes: ["w500"],
+            backdrop_sizes: ["w780"],
+            profile_sizes: ["w185"],
+          },
+        },
+      });
+      return;
+    }
+    if (path.endsWith("/genre/movie/list")) {
+      await route.fulfill({ headers, json: { genres: [] } });
+      return;
+    }
+    await route.fulfill({
+      headers,
+      json: { page: 1, results: [], total_pages: 1, total_results: 0 },
     });
   });
 });
@@ -131,6 +160,102 @@ test("four distinct official DataStore names retain values across reload", async
     "tmdb_auth.preferences_pb",
   ]);
   expect(afterReload).toEqual(beforeReload);
+});
+
+test("corrupt persistent protobuf is replaced and remains in persistent mode", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await page.evaluate(() => {
+    localStorage.setItem("tmdb_auth.preferences_pb", "not-a-valid-preferences-protobuf");
+  });
+
+  await page.reload();
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "persistent");
+  expect(await page.evaluate(() => localStorage.getItem("tmdb_auth.preferences_pb"))).not.toBe(
+    "not-a-valid-preferences-protobuf",
+  );
+});
+
+test("persistent DataStore quota failure retries official session storage", async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key: string, value: string): void {
+      if (this === window.localStorage && key.includes("preferences_pb")) {
+        throw new DOMException("DataStore quota exceeded", "QuotaExceededError");
+      }
+      originalSetItem.call(this, key, value);
+    };
+  });
+
+  await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "session");
+  const sessionKeys = await page.evaluate(() => Object.keys(sessionStorage).sort());
+  expect(sessionKeys).toEqual([
+    "datastore_SESSION_library.preferences_pb_version",
+    "datastore_SESSION_playback_progress.preferences_pb_version",
+    "datastore_SESSION_search_history.preferences_pb_version",
+    "datastore_SESSION_tmdb_auth.preferences_pb_version",
+    "library.preferences_pb",
+    "playback_progress.preferences_pb",
+    "search_history.preferences_pb",
+    "tmdb_auth.preferences_pb",
+  ]);
+});
+
+test("Ktor Js Fetch preserves TMDB URL and headers", async ({ page }) => {
+  const requests: Array<{ url: string; authorization?: string; accept?: string }> = [];
+  page.on("request", (request) => {
+    if (request.url().startsWith("https://api.example.test/")) {
+      requests.push({
+        url: request.url(),
+        authorization: request.headers()["authorization"],
+        accept: request.headers()["accept"],
+      });
+    }
+  });
+
+  await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-network-probe", "success", {
+    timeout: 30_000,
+  });
+
+  expect(requests).toHaveLength(3);
+  expect(requests.map((request) => new URL(request.url).pathname).sort()).toEqual([
+    "/3/configuration",
+    "/3/genre/movie/list",
+    "/3/search/movie",
+  ]);
+  for (const request of requests) {
+    expect(request.authorization).toBe("Bearer browser-visible-token");
+    expect(request.accept).toBe("application/json");
+  }
+});
+
+test("Ktor Fetch server failure maps through the repository AppError boundary", async ({ page }) => {
+  await page.unroute("https://api.example.test/**");
+  await page.route("https://api.example.test/**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      headers: {
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+      },
+      json: { status_message: "unavailable" },
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-network-probe", "server-error", {
+    timeout: 30_000,
+  });
 });
 
 test("external HTTPS links cannot retain window.opener", async ({ page, context }) => {

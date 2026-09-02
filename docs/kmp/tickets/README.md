@@ -24,7 +24,9 @@ Every ticket is intended to be executable in a fresh agent/task with no hidden d
 - Compose Multiplatform `1.12.0`.
 - Official `com.android.kotlin.multiplatform.library` plugin for KMP Android library targets.
 - Koin `4.2.2`, classic constructor DSL (`singleOf`, `factoryOf`, `viewModelOf`); no Koin compiler plugin or service-locator calls in business code.
-- `kotlinx-datetime` `0.8.0`, DataStore `1.2.1`, Ktor `3.5.0`, Coil `3.4.0` with `coil-network-ktor3`.
+- `kotlinx-datetime` `0.8.0`, DataStore `1.2.1` for common/Android, Ktor `3.5.0`, Coil `3.4.0` with `coil-network-ktor3`.
+  WEB-01 has one scoped Wasm exception: `datastore-core-okio:1.3.0-alpha08` in `wasmJsMain`, because official
+  `WebLocalStorage` / `WebSessionStorage` are not published by `1.2.1`; common and Android resolution stays on `1.2.1`.
 - Shaka Player `5.2.3` for the first web DASH player.
 - TMDB is the first web provider. ClientB must remain fully operational on Android but is out of scope for the first web release.
 - Web configuration is deployment-supplied and browser-visible through `/config.json`; no real token is committed or packaged.

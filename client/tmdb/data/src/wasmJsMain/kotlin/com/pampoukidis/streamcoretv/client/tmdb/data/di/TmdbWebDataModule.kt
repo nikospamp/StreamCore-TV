@@ -3,10 +3,12 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.di
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Storage
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.core.okio.WebLocalStorage
 import androidx.datastore.core.okio.WebSessionStorage
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferencesSerializer
+import androidx.datastore.preferences.core.emptyPreferences
 import com.pampoukidis.streamcoretv.client.tmdb.data.auth.TMDB_AUTH_STORE_FILE_NAME
 import com.pampoukidis.streamcoretv.client.tmdb.data.config.TmdbRuntimeConfig
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.createTmdbHttpClient
@@ -30,6 +32,9 @@ fun tmdbWebDataModule(useSessionStorage: Boolean) = module {
                 name = TMDB_AUTH_STORE_FILE_NAME,
                 useSessionStorage = useSessionStorage,
             ),
+            corruptionHandler = ReplaceFileCorruptionHandler {
+                emptyPreferences()
+            },
         )
     }
 }

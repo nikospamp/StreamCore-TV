@@ -49,16 +49,21 @@ class StreamCoreKmpExtension internal constructor(
     }
 
     @OptIn(ExperimentalWasmDsl::class)
-    fun withWasmJs() {
+    fun withWasmJs(withTests: Boolean = true) {
         val wasmTarget = kotlinExtension.wasmJs {
             nodejs()
         }
-        wasmTarget.compilations.remove(wasmTarget.compilations.getByName("test"))
-        project.tasks.matching { task ->
-            val normalizedName = task.name.lowercase()
-            "wasmjs" in normalizedName && "test" in normalizedName
-        }.configureEach {
-            enabled = false
+        if (!withTests || project.pluginManager.hasPlugin("org.jetbrains.compose")) {
+            // Compose 1.12.0 currently registers duplicate commonTest resource tasks when a
+            // library Wasm test compilation is present. Plain KMP libraries keep tests unless
+            // their build opts out because the Node test runtime transitively requires Skiko.
+            wasmTarget.compilations.remove(wasmTarget.compilations.getByName("test"))
+            project.tasks.matching { task ->
+                val normalizedName = task.name.lowercase()
+                "wasmjs" in normalizedName && "test" in normalizedName
+            }.configureEach {
+                enabled = false
+            }
         }
         project.extensions.getByType(WasmNodeJsEnvSpec::class.java).apply {
             download.set(false)

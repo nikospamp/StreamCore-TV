@@ -5,7 +5,8 @@ plugins {
 
 streamCoreKmp {
     withHostTest()
-    withWasmJs()
+    // Transitive Compose UI types from :playback:api require Skiko's browser runtime.
+    withWasmJs(withTests = false)
 }
 
 kotlin {
