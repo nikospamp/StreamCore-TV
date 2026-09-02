@@ -200,7 +200,13 @@ private fun WebProfileEditorContent(
                 errorMessage = displayNameError,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(StreamCoreWebDimens.ControlHeight)
+                    .height(
+                        if (displayNameError == null) {
+                            StreamCoreWebDimens.ControlHeight
+                        } else {
+                            StreamCoreWebDimens.ControlHeight + StreamCoreWebDimens.HtmlInputErrorHeight
+                        },
+                    )
                     .focusRequester(nameFocus)
                     .focusProperties { down = firstAvatarFocus }
                     .onPreviewKeyEvent { event ->

@@ -1,6 +1,6 @@
 # Web testing strategy
 
-WEB-01 locks the test split for WEB-02 through WEB-04. The target architecture remains backend-agnostic: browser tests exercise the TMDB web
+WEB-01 defines the test split for WEB-02 through WEB-04. The target architecture remains backend-agnostic: browser tests exercise the TMDB web
 composition root and shared contracts without introducing provider types into core, domain, or feature UI.
 
 ## Compose UI Test v2 is the node layer
@@ -14,12 +14,39 @@ HTML `data-testid`.
 
 ## Proven Playwright selector contract
 
-Playwright `1.62.1` inspected the ready probe in Chromium, Firefox, and WebKit at 1280×720. All three engines produced the same ordinary-DOM result:
+Playwright `1.62.1` inspected the WEB-01 ready probe in Chromium, Firefox, and WebKit at 1280×720. All three engines produced the same ordinary-DOM
+result:
 
 - the Compose viewport is represented by one host `DIV`;
 - Compose buttons, text, and text fields expose no ordinary DOM nodes carrying `role`, accessible-name attributes, or `data-testid`;
 - the probe's `testTag` values are therefore not valid Playwright selectors;
 - the `HtmlElementView` video is an ordinary DOM element and its explicit `data-testid="html-video-probe"` is stable in all three engines.
+
+WEB-02 adds a narrowly scoped accessibility-projection contract for Compose Multiplatform `1.12.0` with Playwright `1.62.1`. The production matrix
+proved the following exact role/name queries in Chromium, Firefox, and WebKit at both 1280×720 and 1920×1080:
+
+- `button`, `Select Nikos profile` for the deterministic first-profile fixture;
+- `button`, `Manage profiles`;
+- `button`, `Edit Nikos profile`;
+- `button`, `Add profile`;
+- `button`, `Edit Browser profile profile` and `Edit Browser profile edited profile` for the deterministic CRUD fixtures.
+- `button`, `Show password`, `Continue`, `Forgot password?`, `Create account`, and `Need help?` for login screenshot readiness.
+
+These projected nodes are discovery/geometry contracts, not ordinary hit-testable DOM controls. Playwright may use the exact role/name to wait for a
+unique semantic node, obtain and retain its bounding box, or clip a screenshot. User interaction must then be sent to the Compose canvas with
+viewport `page.mouse`/`page.keyboard` input at those semantic bounds. Calling DOM `click()`, `fill()`, or similar interaction APIs on a projected
+Compose node is not supported; the canvas intercepts pointer input. Dynamic role/name use is allowed only when the test controls a unique profile
+display name and asserts the corresponding state/route afterward.
+
+WEB-02 also proves these ordinary DOM contracts hosted explicitly through `HtmlElementView`:
+
+- `profile-display-name`;
+- `profile-display-name-error` (visible alert text; referenced by `aria-errormessage` through its stable element ID);
+- `profile-editor-action-form`, `profile-editor-cancel`, `profile-editor-save`, and `profile-editor-delete`;
+- `profile-editor-delete-dialog`, `profile-editor-delete-cancel`, and `profile-editor-delete-confirm`.
+
+Those exact `data-testid` values may use ordinary Playwright DOM interaction. No other Compose `testTag` becomes a Playwright `data-testid` through
+this exception.
 
 Playwright may use only:
 
@@ -32,8 +59,9 @@ The diagnostic shell also exposes host-level `body[data-storage-mode]` and `body
 not inferred Compose DOM projection. Playwright uses them to prove official DataStore fallback and backend-agnostic TMDB error mapping after its
 request interception has independently asserted the real Fetch URL and headers.
 
-Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for canvas-rendered Compose children unless a later, version-specific
-spike proves those selectors in all supported engines and updates this document. Browser password-manager or autofill integration is not claimed.
+Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for any other canvas-rendered Compose child unless a later,
+version-specific all-engine matrix proves the exact selector and updates this document. The WEB-02 role/name list must be revalidated when Compose
+Multiplatform or Playwright changes. Browser password-manager or autofill integration is not claimed for canvas fields.
 
 ## Browser matrix and Windows Firefox handling
 

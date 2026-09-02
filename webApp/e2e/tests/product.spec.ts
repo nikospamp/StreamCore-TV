@@ -5,6 +5,13 @@ const validConfig = {
   tmdbReadAccessToken: "browser-visible-deployment-value",
   tmdbAccountId: "42",
 };
+const loginActionLabels = [
+  "Show password",
+  "Continue",
+  "Forgot password?",
+  "Create account",
+  "Need help?",
+] as const;
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/config.json", async (route) => {
@@ -52,6 +59,10 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
+  for (const label of loginActionLabels) {
+    await expect(page.getByRole("button", { name: label, exact: true })).toHaveCount(1);
+  }
+  await refreshLoginActionPaint(page);
   const loginFrame = await page.screenshot({
     path: `screenshots/${testInfo.project.name}-login.png`,
     animations: "disabled",
@@ -76,6 +87,11 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   const firstProfileBounds = await semanticBounds(firstProfile);
   await expect.poll(
     async () => {
+      await page.mouse.move(1, 1);
+      await page.mouse.move(
+        firstProfileBounds.x + firstProfileBounds.width / 2,
+        firstProfileBounds.y + firstProfileBounds.height / 2,
+      );
       const avatarFrame = await page.screenshot({
         clip: firstProfileBounds,
         animations: "disabled",
@@ -84,6 +100,8 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
     },
     { timeout: 30_000, intervals: [500] },
   ).toBeGreaterThan(10_000);
+  await page.mouse.move(1, 1);
+  await page.waitForTimeout(500);
   const profilesFrame = await page.screenshot({
     path: `screenshots/${testInfo.project.name}-profiles.png`,
     animations: "disabled",
@@ -159,9 +177,22 @@ test("profile create edit delete, editor arrows, modal trap and focused scrollin
   const avatarRowAfter = await page.screenshot({ animations: "disabled" });
   expect(avatarRowAfter.equals(avatarRowBefore)).toBe(false);
   const createNameField = page.locator('[data-testid="profile-display-name"]');
-  await createNameField.fill("Browser profile");
-  await page.waitForTimeout(300);
   const createSaveButton = page.locator('[data-testid="profile-editor-save"]');
+  await createSaveButton.focus();
+  await createSaveButton.press("Space");
+  await expect(page).toHaveURL(/\/profiles\/new$/);
+  const displayNameError = page.locator('[data-testid="profile-display-name-error"]');
+  await expect(displayNameError).toBeVisible();
+  await expect(displayNameError).toHaveText("Required");
+  await expect(createNameField).toHaveAttribute("aria-invalid", "true");
+  await expect(createNameField).toHaveAttribute(
+    "aria-errormessage",
+    "streamcore-profile-display-name-error",
+  );
+  await createNameField.fill("Browser profile");
+  await expect(createNameField).not.toHaveAttribute("aria-invalid");
+  await expect(createNameField).not.toHaveAttribute("aria-errormessage");
+  await expect(displayNameError).toBeHidden();
   await createSaveButton.focus();
   await createSaveButton.press("Space");
   await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
@@ -269,6 +300,16 @@ async function semanticBounds(
     throw new Error("Semantic button does not expose viewport bounds");
   }
   return resolvedBounds;
+}
+
+async function refreshLoginActionPaint(page: Page): Promise<void> {
+  for (const label of loginActionLabels) {
+    const bounds = await semanticBounds(page.getByRole("button", { name: label, exact: true }));
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.waitForTimeout(50);
+  }
+  await page.mouse.move(1, 1);
+  await page.waitForTimeout(500);
 }
 
 function firstProfileX(page: Page): number {

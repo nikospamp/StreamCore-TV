@@ -45,6 +45,7 @@ internal actual fun WebProfileNameField(
             MaterialTheme.colorScheme.error
         },
     )
+    val errorStyle = webInputErrorStyle(MaterialTheme.colorScheme.error)
     HtmlElementView(
         factory = {
             val input = (document.createElement("input") as HTMLInputElement).apply {
@@ -56,22 +57,37 @@ internal actual fun WebProfileNameField(
                 setAttribute("form", PROFILE_EDITOR_FORM_ID)
                 listeners.attach(this)
             }
+            val error = (document.createElement("div") as HTMLElement).apply {
+                id = PROFILE_DISPLAY_NAME_ERROR_ID
+                setAttribute("data-testid", "profile-display-name-error")
+                setAttribute("role", "alert")
+                setAttribute("aria-live", "polite")
+                hidden = true
+            }
             (document.createElement("div") as HTMLElement).apply {
                 setAttribute("data-testid", "profile-display-name-form")
-                style.cssText = "width:100%;height:100%;margin:0;"
+                style.cssText = "width:100%;height:100%;margin:0;display:flex;flex-direction:column;gap:6px;"
                 appendChild(input)
+                appendChild(error)
             }
         },
         update = { container ->
             val input = container.querySelector("[data-testid='profile-display-name']") as HTMLInputElement
+            val error = container.querySelector("#$PROFILE_DISPLAY_NAME_ERROR_ID") as HTMLElement
             input.style.cssText = inputStyle
             if (input.value != value) input.value = value
             input.disabled = !enabled
-            input.setAttribute("aria-invalid", (errorMessage != null).toString())
             if (errorMessage == null) {
+                input.removeAttribute("aria-invalid")
                 input.removeAttribute("aria-errormessage")
+                error.hidden = true
+                error.textContent = ""
             } else {
-                input.setAttribute("aria-errormessage", errorMessage)
+                input.setAttribute("aria-invalid", "true")
+                input.setAttribute("aria-errormessage", PROFILE_DISPLAY_NAME_ERROR_ID)
+                error.style.cssText = errorStyle
+                error.textContent = errorMessage
+                error.hidden = false
             }
         },
         onRelease = { container ->
@@ -136,6 +152,12 @@ private fun webInputStyle(
         "font:400 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;"
 }
 
+private fun webInputErrorStyle(color: Color): String {
+    return "box-sizing:border-box;min-height:26px;color:${color.cssColor()};" +
+        "font:500 14px system-ui,Segoe UI,Arial,sans-serif;line-height:20px;" +
+        "white-space:normal;overflow-wrap:anywhere;"
+}
+
 private fun Color.cssColor(): String {
     val argb = toArgb()
     val red = (argb shr 16) and 0xff
@@ -143,3 +165,5 @@ private fun Color.cssColor(): String {
     val blue = argb and 0xff
     return "rgb($red,$green,$blue)"
 }
+
+private const val PROFILE_DISPLAY_NAME_ERROR_ID = "streamcore-profile-display-name-error"
