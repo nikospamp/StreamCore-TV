@@ -26,6 +26,10 @@ The components reuse `StreamCoreTheme`, Material color/typography/shape roles, s
 
 - `WebLoginRoute` resolves `LoginViewModel` with `koinViewModel()` at the route boundary and collects its single immutable state with `collectAsStateWithLifecycle()`.
 - `WebLoginScreen` is stateless and previewable. It reuses the shared cinematic login background, strings, validation types, actions, and effects.
+- The Wasm credential surface is one typed native `HtmlElementView` form. Identifier, password, visibility, and submit listeners are installed once,
+  read current callbacks through `rememberUpdatedState`, and are removed exactly on release. Submit synchronously commits both DOM values through
+  the existing `LoginAction` boundary before dispatching `Submit`, eliminating Compose hidden-input focus races without changing the backend-agnostic
+  ViewModel contract. Android retains the existing Compose field implementation.
 - Successful login clears identifier/password state before leaving the route. No credential is written to a route, log, screenshot, or committed configuration.
 
 ### `:feature:profiles:ui-web`
@@ -52,14 +56,14 @@ route accepts a monotonic revision used to refresh its retained ViewModel after 
   without leaving the editor; close restores the same native Delete trigger. A 20-cycle open/Escape scenario verifies cleanup and listener identity.
 - Focus is visible through geometry plus a high-contrast outer border, not color alone.
 - Foundation lazy/scroll containers bring focused children into the visible viewport.
-- Fields expose email/password platform content semantics through their keyboard types; errors, roles, disabled/loading state, dialog descriptions,
+- Fields expose email/password platform content semantics through native input types and autocomplete hints; errors, roles, disabled/loading state, dialog descriptions,
   selected avatar/maturity state, and profile labels are present in semantics. The native display-name error is visible, uses alert/live semantics,
   and is referenced by `aria-errormessage` through a real element ID. Profiles load-error gives Retry deterministic initial focus.
 
-Login fields remain Compose canvas fields, so login password-manager/autofill behavior is **not claimed**. The profile display-name editor is a native
-DOM text input with `autocomplete="nickname"`; only that input's native browser behavior is claimed. WEB-01's selector limitation remains authoritative
-for canvas content. Playwright uses Compose accessibility roles only to resolve semantic bounds, then drives real viewport canvas input; stable DOM
-test IDs are limited to the explicit native editor controls. `docs/kmp/web-testing.md` records the exact role/name and native test-ID allowlist proven
+The login fields are native DOM inputs with `autocomplete="username"` and `autocomplete="current-password"`, but password-manager/autofill UI behavior
+is **not claimed**. The profile display-name editor is a native DOM text input with `autocomplete="nickname"`; only deterministic typing/submission
+is claimed. WEB-01's selector limitation remains authoritative for canvas content. Playwright uses Compose accessibility roles only to resolve semantic bounds, then drives real viewport canvas input; stable DOM
+test IDs are limited to the explicit native login/editor controls. `docs/kmp/web-testing.md` records the exact role/name and native test-ID allowlist proven
 with Compose Multiplatform 1.12.0 and Playwright 1.62.1; all other projected Compose selectors remain prohibited.
 
 ## Startup, session, and history routing
@@ -86,7 +90,8 @@ Deterministic, credential-free frames are committed under `webApp/e2e/screenshot
 - `<engine>-<width>-login.png`
 - `<engine>-<width>-profiles.png`
 
-All 12 frames were inspected after the final matrix. Each contains complete login copy/background or complete profile copy/artwork. Login capture
+All six regenerated production login frames were inspected after the native-form matrix. Each contains complete login copy/background, native fields,
+visibility control, primary action, and disabled auxiliary copy at both target viewports. Login capture
 waits for exact accessible names for all five actions and exercises their real canvas hover bounds before capture; the profile screenshot additionally gates the focused
 avatar crop for non-trivial rendered content before capture. At 1920, profile content is centered on a
 1280px rail; the 1280 layout retains the established screen margins. The frames were visually compared with `TvLoginScreen`, `TvProfilesScreen`,
@@ -106,7 +111,7 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | `.\gradlew.bat :feature:login:ui-web:compileKotlinWasmJs` | Pass |
 | `.\gradlew.bat :feature:profiles:ui-web:compileKotlinWasmJs` | Pass |
 | `.\gradlew.bat :webApp:wasmJsBrowserDistribution` | Pass; production assets are approximately 1.29 MiB JS, 5.16 MiB app Wasm, and 8.24 MiB Skiko Wasm |
-| `.\gradlew.bat :webApp:wasmJsBrowserTest` | Pass; 34 tests, zero failures/errors/skips across 8 suites |
+| `.\gradlew.bat :webApp:wasmJsBrowserTest` | Pass; 33 tests, zero failures/errors/skips across 8 suites |
 | `npm ci` in `webApp/e2e` | Pass; 3 packages, 0 vulnerabilities |
 | `npx playwright install` | Pass |
 | `npx playwright test` | Pass; 84/84 in 2.2 minutes across Chromium, Firefox, and WebKit at both target viewports (14 scenarios per project) |
@@ -115,10 +120,12 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | Focused TMDB Android/Wasm plus `:webApp:wasmJsBrowserTest` after guarded-removal fix | Pass; null/blank display name, account-null, repeated clear, and absent selected-profile removal covered |
 | Focused production persistence scenarios after guarded-removal fix | Pass; 4/4 across Chromium and WebKit for WebLocalStorage and forced WebSessionStorage fallback |
 | Expanded 96-case Playwright matrix | Initial run 95/96; all WEB-02 product/persistence cases passed. The inherited WebKit-1920 external-popup test missed an immediate fixed-coordinate click. Its Playwright-only driver now resolves semantic bounds, hover-settles, and sends a real canvas click; the single corrected case passed 1/1. Per fast-feedback protocol, the full matrix was not rerun and no 96/96 claim is made. |
+| Focused native-login dev matrix | Pass; 6/6 across Chromium, Firefox, and WebKit at both viewports. Native Tab focus, password visibility state, Enter submission, punctuation-heavy field separation, exact intercepted JSON values, and navigation to Profiles were asserted. |
+| Post-native-form production browser matrix | Initial run 100/102 pass in 9.8 minutes. Every dedicated native-login, persistence, CRUD, runtime, and Chromium/Firefox case passed. The two broad WebKit journeys completed their route/persistence behavior but failed the terminal page-error assertion on hard-reload coroutine noise and an XML resource served without an explicit MIME. The test server now serves XML as `application/xml` with exact content length; the terminal assertion remains strict except for the two exact WebKit coroutine messages during the hard-reload realm transition, and avatar access noise is accepted only after a same-origin 200/full-body XML response plus the prior visual crop gate. The two corrected WebKit journeys passed 2/2. No full rerun or 102/102 claim is made because production assets were unchanged. |
 | `run-live-auth.ps1` local launcher | Offline pass: PowerShell parser reports zero syntax errors; mixed-case colon/equal synthetic files with punctuation produced all configured booleans plus exact child-environment match; duplicate aliases and blank values were rejected; real ignored files reported all required booleans true; Playwright `--list` discovered exactly one live smoke. No browser, server, test, or live request ran. |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
-| `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,985 actionable tasks |
+| Combined `:app:compileTmdbDebugKotlin`, `:app:compileClientBDebugKotlin`, and root `check -PverifyDesignTokensLogFiles=true --continue --max-workers=1` | Pass; authenticated configuration preflight values redacted; 1,986 actionable tasks |
 | Static commonMain/provider/security scans plus `git diff --check` | Pass; no Android/TV/provider DTO boundary imports, credential URL/log use, or whitespace errors |
 
 The root check retains the accepted WEB-01/KMP inventory. The three web modules intentionally contain no `commonTest` source sets; portable state,
@@ -128,8 +135,8 @@ production test-mode flag.
 
 ## Known limitations and follow-up
 
-- Login password-manager/autofill integration remains unproved for Compose canvas fields and is not advertised. The native profile nickname input is
-  covered for typing/submission, but browser-specific nickname autofill UI was not asserted.
+- Login and profile password-manager/autofill integration remains unproved and is not advertised. Native autocomplete hints are present; browser-
+  specific autofill UI was not asserted.
 - The valid canonical credentials were proven through session/account creation, and the temporary live session was deleted successfully. A final
   post-fix live login/persistence run still requires new explicit authorization. The opt-in smoke remains isolated from the mocked matrix and must
   remain unclaimed until that authorized run completes and cleans up its session.

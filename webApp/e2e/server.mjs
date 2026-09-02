@@ -4,8 +4,11 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const e2eDirectory = fileURLToPath(new URL(".", import.meta.url));
+const distributionVariant = process.env.STREAMCORE_WEB_DISTRIBUTION === "development"
+  ? "developmentExecutable"
+  : "productionExecutable";
 const distributionDirectory = normalize(
-  join(e2eDirectory, "..", "build", "dist", "wasmJs", "productionExecutable"),
+  join(e2eDirectory, "..", "build", "dist", "wasmJs", distributionVariant),
 );
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -13,12 +16,13 @@ const mimeTypes = new Map([
   [".mjs", "text/javascript; charset=utf-8"],
   [".wasm", "application/wasm"],
   [".json", "application/json; charset=utf-8"],
+  [".xml", "application/xml; charset=utf-8"],
   [".png", "image/png"],
 ]);
 
 if (!existsSync(join(distributionDirectory, "index.html"))) {
   throw new Error(
-    "Production distribution is missing. Run :webApp:wasmJsBrowserDistribution first.",
+    `${distributionVariant} distribution is missing. Build it before running browser tests.`,
   );
 }
 
@@ -40,6 +44,7 @@ createServer((request, response) => {
 
   response.writeHead(200, {
     "Content-Type": mimeTypes.get(extname(candidate)) ?? "application/octet-stream",
+    "Content-Length": statSync(candidate).size,
     "Cache-Control": "no-store",
   });
   createReadStream(candidate).pipe(response);

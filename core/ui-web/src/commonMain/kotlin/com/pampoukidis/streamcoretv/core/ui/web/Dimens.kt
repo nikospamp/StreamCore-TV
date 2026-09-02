@@ -20,6 +20,7 @@ object StreamCoreWebDimens {
     val HtmlInputPadding = 16.dp
     val HtmlInputFontSize = 18.dp
     val HtmlInputErrorHeight = 32.dp
+    val CredentialFormHeight = 292.dp
     val ActionGap = 12.dp
     val ActionPadding = 18.dp
     val FocusBorder = 3.dp

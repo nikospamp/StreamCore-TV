@@ -9,35 +9,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -151,101 +136,28 @@ private fun WebLoginForm(
     auxiliaryActionsEnabled: Boolean,
     backendErrorMessage: String?,
 ) {
-    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
     val identifierError = state.identifierError?.text()
     val passwordError = state.passwordError?.passwordText()
     Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
-        OutlinedTextField(
-            value = state.identifier,
-            onValueChange = { onAction(LoginAction.IdentifierChanged(it)) },
-            label = { Text(stringResource(Res.string.login_identifier_label)) },
-            singleLine = true,
-            enabled = !state.isLoading,
-            isError = identifierError != null,
-            supportingText = identifierError?.let { message -> { Text(message) } },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(identifierFocus)
-                .focusProperties { down = passwordFocus }
-                .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                        passwordFocus.requestFocus()
-                        true
-                    } else {
-                        false
-                    }
-                }
-                .then(if (identifierError != null) Modifier.semantics { error(identifierError) } else Modifier)
-                .testTag(LoginTestTags.IdentifierField),
-        )
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
-            label = { Text(stringResource(Res.string.login_password_label)) },
-            singleLine = true,
-            enabled = !state.isLoading,
-            isError = passwordError != null,
-            supportingText = passwordError?.let { message -> { Text(message) } },
-            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(onDone = { onAction(LoginAction.Submit) }),
-            trailingIcon = {
-                StreamCoreWebButton(
-                    text = if (isPasswordVisible) {
-                        stringResource(Res.string.login_password_hide)
-                    } else {
-                        stringResource(Res.string.login_password_show)
-                    },
-                    onClick = { isPasswordVisible = !isPasswordVisible },
-                    variant = StreamCoreWebButtonVariant.Tertiary,
-                    modifier = Modifier.testTag(LoginTestTags.PasswordVisibilityToggle),
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(passwordFocus)
-                .focusProperties {
-                    up = identifierFocus
-                    down = submitFocus
-                }
-                .onPreviewKeyEvent { event ->
-                    when {
-                        event.type != KeyEventType.KeyDown -> false
-                        event.key == Key.DirectionUp -> {
-                            identifierFocus.requestFocus()
-                            true
-                        }
-                        event.key == Key.DirectionDown -> {
-                            submitFocus.requestFocus()
-                            true
-                        }
-                        else -> false
-                    }
-                }
-                .then(if (passwordError != null) Modifier.semantics { error(passwordError) } else Modifier)
-                .testTag(LoginTestTags.PasswordField),
-        )
-        StreamCoreWebButton(
-            text = stringResource(Res.string.login_continue),
-            onClick = { onAction(LoginAction.Submit) },
-            enabled = state.isSubmitEnabled,
-            loading = state.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(submitFocus)
-                .focusProperties {
-                    up = passwordFocus
-                    down = forgotFocus
-                }
-                .testTag(LoginTestTags.SubmitButton),
+        WebLoginCredentialForm(
+            identifier = state.identifier,
+            password = state.password,
+            identifierError = identifierError,
+            passwordError = passwordError,
+            isSubmitEnabled = state.isSubmitEnabled,
+            isLoading = state.isLoading,
+            onIdentifierChanged = { onAction(LoginAction.IdentifierChanged(it)) },
+            onPasswordChanged = { onAction(LoginAction.PasswordChanged(it)) },
+            onSubmit = { onAction(LoginAction.Submit) },
+            identifierLabel = stringResource(Res.string.login_identifier_label),
+            passwordLabel = stringResource(Res.string.login_password_label),
+            showPasswordLabel = stringResource(Res.string.login_password_show),
+            hidePasswordLabel = stringResource(Res.string.login_password_hide),
+            submitLabel = stringResource(Res.string.login_continue),
+            identifierFocus = identifierFocus,
+            passwordFocus = passwordFocus,
+            submitFocus = submitFocus,
+            modifier = Modifier.fillMaxWidth(),
         )
         backendErrorMessage?.let { message ->
             Text(

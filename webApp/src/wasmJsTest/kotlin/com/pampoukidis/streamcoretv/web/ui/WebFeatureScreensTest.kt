@@ -4,22 +4,11 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
@@ -29,10 +18,6 @@ import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebLargeScreenBackground
-import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
-import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
-import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
-import com.pampoukidis.streamcoretv.feature.login.web.login.WebLoginScreen
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
@@ -47,54 +32,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class WebFeatureScreensTest {
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun loginStartsOnIdentifierAndArrowDownMovesToPassword(): TestResult {
-        return runComposeUiTest {
-            setContent {
-                StreamCoreTheme(darkTheme = true) {
-                    WebLoginScreen(state = LoginUiState(), onAction = {})
-                }
-            }
-
-            onNodeWithTag(LoginTestTags.IdentifierField)
-                .assertIsFocused()
-                .performKeyInput { pressKey(Key.DirectionDown) }
-            onNodeWithTag(LoginTestTags.PasswordField).assertIsFocused()
-        }
-    }
-
-    @OptIn(ExperimentalTestApi::class)
-    @Test
-    fun loginValidationErrorsRemainSemanticAndPasswordIsMasked(): TestResult {
-        return runComposeUiTest {
-            setContent {
-                StreamCoreTheme(darkTheme = true) {
-                    WebLoginScreen(
-                        state = LoginUiState(
-                            identifierError = LoginFieldError.Required,
-                            passwordError = LoginFieldError.Required,
-                        ),
-                        onAction = {},
-                    )
-                }
-            }
-
-            onNodeWithTag(LoginTestTags.IdentifierField).assert(
-                SemanticsMatcher.keyIsDefined(SemanticsProperties.Error),
-            )
-            onNodeWithTag(LoginTestTags.PasswordField).assert(
-                SemanticsMatcher.keyIsDefined(SemanticsProperties.Error),
-            )
-            onNodeWithTag(LoginTestTags.PasswordField).assert(
-                SemanticsMatcher.keyIsDefined(SemanticsProperties.Password),
-            )
-            onNodeWithTag(LoginTestTags.ForgotPasswordButton).assertIsNotEnabled()
-            onNodeWithTag(LoginTestTags.CreateAccountButton).assertIsNotEnabled()
-            onNodeWithTag(LoginTestTags.HelpButton).assertIsNotEnabled()
-        }
-    }
-
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun profileArrowTraversalAndSelectionAreDeterministic(): TestResult {
