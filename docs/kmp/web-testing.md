@@ -59,6 +59,10 @@ The diagnostic shell also exposes host-level `body[data-storage-mode]` and `body
 not inferred Compose DOM projection. Playwright uses them to prove official DataStore fallback and backend-agnostic TMDB error mapping after its
 request interception has independently asserted the real Fetch URL and headers.
 
+WEB-02 adds explicit, non-sensitive error-shell attributes: `body[data-product-error-kind]`, `body[data-product-error-title]`, and
+`body[data-product-error-message]`. They expose only mapped UI classification/copy and are removed with the dialog; backend bodies, credentials,
+tokens, and session IDs must never be projected into them.
+
 Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for any other canvas-rendered Compose child unless a later,
 version-specific all-engine matrix proves the exact selector and updates this document. The WEB-02 role/name list must be revalidated when Compose
 Multiplatform or Playwright changes. Browser password-manager or autofill integration is not claimed for canvas fields.
@@ -84,3 +88,21 @@ Build the production distribution first:
 ```powershell
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
 ```
+
+## Opt-in live TMDB authentication smoke
+
+The default matrix never contacts live TMDB. `npm run test:live-auth` uses `playwright.live.config.ts`, one Chromium worker, and the production
+distribution. It requires all five process-local environment variables below; if any are absent, the single smoke is explicitly reported as
+skipped and must not be counted as a pass:
+
+```text
+STREAMCORE_LIVE_TMDB_BASE_URL
+STREAMCORE_LIVE_TMDB_READ_ACCESS_TOKEN
+STREAMCORE_LIVE_TMDB_ACCOUNT_ID
+STREAMCORE_LIVE_TMDB_USERNAME
+STREAMCORE_LIVE_TMDB_PASSWORD
+```
+
+The live config disables trace, screenshots, and video. It never logs request bodies or puts credentials/tokens/session IDs in URLs. A created
+session ID remains in test memory only and is deleted in `finally`; browser storage is also cleared. Run it only when the user deliberately supplies
+valid credentials through the process environment.

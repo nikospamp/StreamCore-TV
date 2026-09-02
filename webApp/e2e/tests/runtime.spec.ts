@@ -125,8 +125,12 @@ test("pointer navigation binds browser Back and Forward history", async ({ page 
     timeout: 30_000,
   });
 
+  await page.mouse.move(200, 165);
+  await page.waitForTimeout(300);
   await page.mouse.click(200, 165);
   await expect(page).toHaveURL(/\/details\/603$/);
+  await page.mouse.move(315, 165);
+  await page.waitForTimeout(300);
   await page.mouse.click(315, 165);
   await expect(page).toHaveURL(/\/player\/603$/);
 

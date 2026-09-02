@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -106,6 +107,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
     var profilesRevision by remember { mutableIntStateOf(0) }
     val handleProductError: (AppError) -> Unit = { error ->
         activeError = error
+        document.body?.setAttribute("data-product-error-kind", error.webErrorKind())
         scope.launch { coordinator.handleError(error) }
     }
     val profileChanged: () -> Unit = {
@@ -244,6 +246,15 @@ private fun WebErrorDialog(
     val presentation = mapper.map(error)
     val title = stringResource(presentation.title)
     val message = stringResource(presentation.message)
+    DisposableEffect(title, message) {
+        document.body?.setAttribute("data-product-error-title", title)
+        document.body?.setAttribute("data-product-error-message", message)
+        onDispose {
+            document.body?.removeAttribute("data-product-error-kind")
+            document.body?.removeAttribute("data-product-error-title")
+            document.body?.removeAttribute("data-product-error-message")
+        }
+    }
     Dialog(onDismissRequest = { if (presentation.dismissible) onDismiss() }) {
         StreamCoreWebPanel(
             modifier = Modifier.semantics {
@@ -260,5 +271,18 @@ private fun WebErrorDialog(
                 )
             }
         }
+    }
+}
+
+private fun AppError.webErrorKind(): String {
+    return when (this) {
+        is AppError.Authentication -> "authentication"
+        is AppError.Network -> "network"
+        is AppError.Parsing -> "parsing"
+        is AppError.Server -> "server"
+        is AppError.SessionExpired -> "session-expired"
+        is AppError.Timeout -> "timeout"
+        is AppError.Unauthorized -> "unauthorized"
+        is AppError.Unknown -> "unknown"
     }
 }

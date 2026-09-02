@@ -14,14 +14,18 @@ import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbSessionResponseDt
 import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbValidateLoginRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.isSuccess
 import io.ktor.http.contentType
 import io.ktor.http.path
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Ktor implementation of [TmdbApi].
@@ -47,7 +51,8 @@ internal class KtorTmdbApi constructor(
         password: String,
         requestToken: String,
     ): TmdbRequestTokenResponseDto {
-        return httpClient.post {
+        val response = httpClient.post {
+            expectSuccess = false
             url {
                 path(API_VERSION, "authentication", "token", "validate_with_login")
             }
@@ -59,7 +64,34 @@ internal class KtorTmdbApi constructor(
                     requestToken = requestToken,
                 ),
             )
-        }.body()
+        }
+        if (response.status.value in 400..499) {
+            val backendCode = try {
+                response.body<TmdbRequestTokenResponseDto>().statusCode?.toString()
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Throwable) {
+                null
+            }
+            throw TmdbAuthenticationFailureException(
+                backendCode = backendCode ?: "HTTP_${response.status.value}",
+                message = "TMDB rejected the supplied credentials.",
+            )
+        }
+        if (!response.status.isSuccess()) {
+            throw ResponseException(
+                response = response,
+                cachedResponseText = "TMDB login validation failed.",
+            )
+        }
+        val payload = response.body<TmdbRequestTokenResponseDto>()
+        if (payload.statusCode == INVALID_CREDENTIALS_STATUS_CODE) {
+            throw TmdbAuthenticationFailureException(
+                backendCode = payload.statusCode.toString(),
+                message = "TMDB rejected the supplied credentials.",
+            )
+        }
+        return payload
     }
 
     override suspend fun createSession(requestToken: String): TmdbSessionResponseDto {
@@ -225,5 +257,6 @@ internal class KtorTmdbApi constructor(
 
     private companion object {
         const val API_VERSION = "3"
+        const val INVALID_CREDENTIALS_STATUS_CODE = 30
     }
 }
