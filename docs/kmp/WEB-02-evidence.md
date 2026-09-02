@@ -14,6 +14,8 @@
 
 - `StreamCoreWebButton` and `StreamCoreWebButtonVariant`.
 - `StreamCoreWebPanel`.
+- `StreamCoreWebLargeScreenBackground` and `StreamCoreWebScrim`.
+- `StreamCoreWebContentCard`.
 - `StreamCoreWebProfileCard`.
 - `StreamCoreWebBlockingSurface`.
 - `StreamCoreWebDimens` and `Modifier.webEscape`.
@@ -30,23 +32,33 @@ The components reuse `StreamCoreTheme`, Material color/typography/shape roles, s
 
 - `WebProfilesRoute` / `WebProfilesScreen` cover loading, content, empty, error, selection, manage, delete confirmation, and unknown-avatar fallback.
 - `WebProfileEditorRoute` / `WebProfileEditorScreen` cover create/edit, avatar and maturity selection, validation, saving, deletion, and cancellation.
+- The browser editor uses typed `HtmlElementView` boundaries for the display-name input and action strip. Stable DOM listeners are installed once,
+  read current callbacks through `rememberUpdatedState`, and remove the exact listener instances on release.
+- The delete confirmation is an `expect`/`actual` boundary: Android retains the Compose dialog; Wasm uses a native `HTMLDialogElement` for top-layer
+  modality, native Tab containment, Escape cancellation, Cancel autofocus, and trigger-focus restoration (including WebKit's synchronous fallback).
 - Lazy profile content uses stable profile IDs and explicit content types.
 
-Shared screen/ViewModel contracts were not changed. Android UI public APIs were not changed.
+Android UI public APIs were not changed. The web editor route now distinguishes successful profile mutation from cancellation, and the profiles
+route accepts a monotonic revision used to refresh its retained ViewModel after create/edit/delete.
 
 ## Input, focus, and accessibility contract
 
 - Pointer hover changes lift/scale; click activates the same action as keyboard activation.
-- Tab uses Compose focus order. Login and profile routes request deterministic initial focus.
+- Tab uses Compose/native focus order. Login and profile routes request deterministic initial focus.
 - Arrow keys have explicit login field, profile row, editor action, and dialog focus edges.
 - Enter/Space activate Compose button/card semantics.
 - Escape cancels the active dialog/editor or exits profile manage mode.
-- Modal cancel/confirm controls form a focus loop; dismissal restores the originating profile card.
+- The editor modal uses the browser top layer and inert background. Cancel initially owns focus; arrows transfer between Cancel/Delete; Escape closes
+  without leaving the editor; close restores the same native Delete trigger. A 20-cycle open/Escape scenario verifies cleanup and listener identity.
 - Focus is visible through geometry plus a high-contrast outer border, not color alone.
 - Foundation lazy/scroll containers bring focused children into the visible viewport.
-- Fields expose email/password platform content semantics through their keyboard types; errors, roles, disabled/loading state, dialog descriptions, and profile labels are present in Compose semantics.
+- Fields expose email/password platform content semantics through their keyboard types; errors, roles, disabled/loading state, dialog descriptions,
+  selected avatar/maturity state, and profile labels are present in semantics. Profiles load-error gives Retry deterministic initial focus.
 
-Compose canvas fields still do not project stable ordinary DOM form controls. Browser password-manager/autofill behavior is therefore **not claimed**. WEB-01's selector limitation remains authoritative.
+Login fields remain Compose canvas fields, so login password-manager/autofill behavior is **not claimed**. The profile display-name editor is a native
+DOM text input with `autocomplete="nickname"`; only that input's native browser behavior is claimed. WEB-01's selector limitation remains authoritative
+for canvas content. Playwright uses Compose accessibility roles only to resolve semantic bounds, then drives real viewport canvas input; stable DOM
+test IDs are limited to the explicit native editor controls.
 
 ## Startup, session, and history routing
 
@@ -54,7 +66,9 @@ Compose canvas fields still do not project stable ordinary DOM form controls. Br
 - Valid session without a valid persisted profile: `/profiles`.
 - Valid session with a persisted profile ID that still exists: `/authenticated`, the temporary landing surface for WEB-03.
 - Create/edit routes are `/profiles/new` and `/profiles/{profileId}/edit`; route payloads contain IDs only.
-- Selected profile ID is stored in the existing official TMDB browser DataStore. Reload validates the TMDB session and profile membership before restoring the landing route.
+- Selected profile ID is stored in the existing official TMDB browser DataStore. Reload validates the TMDB session and profile membership before
+  restoring the landing route. Successful profile mutation increments a shell revision, refreshes the retained Profiles ViewModel, and reconciles
+  selected-profile state before `/authenticated`; cancellation does not refresh.
 - Session expiry clears TMDB auth preferences (including the selected-profile key), replaces the route with Login, and prevents Back/Forward from resurrecting authenticated state.
 - WEB-01 diagnostics remain available at `/diagnostic`; the previous Details/Player ID probes remain diagnostic-only.
 
@@ -65,7 +79,12 @@ Deterministic, credential-free frames are committed under `webApp/e2e/screenshot
 - `<engine>-<width>-login.png`
 - `<engine>-<width>-profiles.png`
 
-The frames were visually compared with `TvLoginScreen`, `TvProfilesScreen`, `TvProfileTile`, and `TvProfileEditorScreen` plus the shared design reference. The web result retains the dark cinematic canvas, shared landscape artwork, left-side login panel, restrained ember accent, large profile imagery, 10-foot typography, and pronounced TV-like focus geometry. Browser layout density and Material3 text-field rendering differ intentionally from TV Material. This is a hierarchy/input-language comparison, not a renderer-level pixel-equality claim.
+All 12 frames were inspected after the final matrix. Each contains complete login copy/background or complete profile copy/artwork; the profile
+screenshot additionally gates the focused avatar crop for non-trivial rendered content before capture. At 1920, profile content is centered on a
+1280px rail; the 1280 layout retains the established screen margins. The frames were visually compared with `TvLoginScreen`, `TvProfilesScreen`,
+`TvProfileTile`, and `TvProfileEditorScreen` plus the shared design reference. The web result retains the dark cinematic canvas, shared landscape
+artwork, left-side login panel, restrained ember accent, large profile imagery, 10-foot typography, and pronounced TV-like focus geometry. Browser
+layout density and Material3 rendering differ intentionally from TV Material. This is a hierarchy/input-language comparison, not a pixel-equality claim.
 
 ## Verification
 
@@ -76,21 +95,27 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | `.\gradlew.bat :core:ui-web:compileKotlinWasmJs` | Pass |
 | `.\gradlew.bat :feature:login:ui-web:compileKotlinWasmJs` | Pass |
 | `.\gradlew.bat :feature:profiles:ui-web:compileKotlinWasmJs` | Pass |
-| `.\gradlew.bat :webApp:wasmJsBrowserDistribution` | Pass; production assets remain approximately 1.29 MiB JS, 5.11 MiB app Wasm, and 8.24 MiB Skiko Wasm |
-| `.\gradlew.bat :webApp:wasmJsBrowserTest` | Pass; 30 tests, zero failures/errors/skips (WEB-01 23 + WEB-02 7) |
+| `.\gradlew.bat :webApp:wasmJsBrowserDistribution` | Pass; production assets are approximately 1.29 MiB JS, 5.16 MiB app Wasm, and 8.24 MiB Skiko Wasm |
+| `.\gradlew.bat :webApp:wasmJsBrowserTest` | Pass; 34 tests, zero failures/errors/skips across 8 suites |
 | `npm ci` in `webApp/e2e` | Pass; 3 packages, 0 vulnerabilities |
 | `npx playwright install` | Pass |
-| `npx playwright test` | Pass; 66/66 across Chromium, Firefox, and WebKit at both target viewports |
-| `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
-| `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 314 production files checked, zero violations |
+| `npx playwright test` | Pass; 78/78 in 2.4 minutes across Chromium, Firefox, and WebKit at both target viewports (13 scenarios per project) |
+| `.\gradlew.bat :core:ui-web:compileKotlinWasmJs :feature:login:ui-web:compileKotlinWasmJs :feature:profiles:ui-web:compileKotlinWasmJs :feature:profiles:ui-web:compileAndroidMain :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 392 actionable tasks |
+| `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
 | `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,985 actionable tasks |
 | Static commonMain/provider/security scans plus `git diff --check` | Pass; no Android/TV/provider DTO boundary imports, credential URL/log use, or whitespace errors |
 
-The root check retains the accepted WEB-01/KMP inventory: 201 common Android host tests across 24 KMP test modules and 265 complete Android XML tests when app flavor and Android-only suites are included. The three new web modules intentionally contain no `commonTest` source sets; browser semantics live in the executable `:webApp` test target, so no zero-test regression is hidden.
+The root check retains the accepted WEB-01/KMP inventory. The three web modules intentionally contain no `commonTest` source sets; portable state,
+action identity, and Compose semantics are exercised in the executable `:webApp` test target. `runComposeUiTest` does not provide the DOM interop
+container required by `HtmlElementView`, so native input/action/dialog behavior is verified in real Playwright browsers rather than hidden behind a
+production test-mode flag.
 
 ## Known limitations and follow-up
 
-- Browser password-manager/autofill integration is unproved for Compose canvas fields and is not advertised.
+- Login password-manager/autofill integration remains unproved for Compose canvas fields and is not advertised. The native profile nickname input is
+  covered for typing/submission, but browser-specific nickname autofill UI was not asserted.
 - TMDB's current profile repository is process-local provider behavior; WEB-02 persists and validates selected-profile identity, while provider-backed cross-process profile mutation persistence remains dependent on a real provider implementation.
 - WEB-01's WebKit synchronous image decoder remains in effect and retains its documented main-thread allocation cost; WEB-03 owns replacement/performance follow-up.
+- Runtime performance measurement was intentionally skipped at the user's request. Production webpack still reports its existing large-bundle
+  warnings; this ticket makes no performance-regression claim.
 - `/authenticated` is intentionally temporary. WEB-03 replaces it with Home/browse surfaces without changing the frozen `StreamCoreWeb*` interaction vocabulary.

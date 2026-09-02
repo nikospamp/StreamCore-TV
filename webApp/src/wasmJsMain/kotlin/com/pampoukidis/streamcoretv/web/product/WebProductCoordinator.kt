@@ -71,10 +71,31 @@ internal class WebProductCoordinator(
         navigation.navigate(WebRoute.Profiles)
     }
 
+    suspend fun reconcileProfiles(profiles: List<ProfileModel>) {
+        val activeProfile = selectedProfile ?: return
+        val currentProfile = profiles.firstOrNull { profile -> profile.id == activeProfile.id }
+        if (currentProfile == null) {
+            clearSelectedProfile()
+        } else if (currentProfile != activeProfile) {
+            selectedProfile = currentProfile
+        }
+    }
+
+    suspend fun reconcileProfilesFromRepository(): AppError? {
+        return when (val result = profileRepository.getProfiles()) {
+            is AppResult.Success -> {
+                reconcileProfiles(result.value)
+                null
+            }
+            is AppResult.Failure -> result.error
+        }
+    }
+
     suspend fun handleError(error: AppError) {
         if (error is AppError.SessionExpired || error is AppError.Authentication || error is AppError.Unauthorized) {
             authenticated = false
-            clearSelectedProfile()
+            selectedProfile = null
+            authStore.edit { preferences -> preferences.clear() }
             navigation.replace(WebRoute.Login)
         }
     }

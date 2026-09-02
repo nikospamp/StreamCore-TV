@@ -15,6 +15,7 @@ fun WebLoginRoute(
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
     onError: (AppError) -> Unit,
+    auxiliaryActionsEnabled: Boolean = false,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -35,5 +36,6 @@ fun WebLoginRoute(
     WebLoginScreen(
         state = state,
         onAction = viewModel::onAction,
+        auxiliaryActionsEnabled = auxiliaryActionsEnabled,
     )
 }

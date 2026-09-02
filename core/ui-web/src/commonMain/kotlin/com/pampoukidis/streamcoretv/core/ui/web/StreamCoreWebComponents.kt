@@ -10,7 +10,10 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -29,11 +32,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -48,6 +54,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import kotlinx.coroutines.launch
 
 enum class StreamCoreWebButtonVariant {
     Primary,
@@ -66,6 +73,8 @@ fun StreamCoreWebButton(
     variant: StreamCoreWebButtonVariant = StreamCoreWebButtonVariant.Primary,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
     val focused by interactionSource.collectIsFocusedAsState()
     val hovered by interactionSource.collectIsHoveredAsState()
     val scale by animateFloatAsState(
@@ -113,6 +122,13 @@ fun StreamCoreWebButton(
             .defaultMinSize(minHeight = StreamCoreWebDimens.ControlHeight)
             .scale(scale)
             .hoverable(interactionSource)
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+            }
+            .webSpaceActivation(onClick)
             .semantics { role = Role.Button },
     ) {
         if (loading) {
@@ -158,6 +174,8 @@ fun StreamCoreWebProfileCard(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
     val focused by interactionSource.collectIsFocusedAsState()
     val hovered by interactionSource.collectIsHoveredAsState()
     val scale by animateFloatAsState(
@@ -183,10 +201,104 @@ fun StreamCoreWebProfileCard(
             .widthIn(min = StreamCoreWebDimens.ProfileCardWidth)
             .scale(scale)
             .hoverable(interactionSource)
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+            }
+            .webSpaceActivation(onClick)
             .semantics { role = Role.Button },
     ) {
         Box(content = content)
     }
+}
+
+@Composable
+fun StreamCoreWebContentCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    selected: Boolean = false,
+    aspectRatio: Float = 16f / 9f,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val focused by interactionSource.collectIsFocusedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.045f else if (hovered) 1.02f else 1f,
+    )
+    val borderColor = when {
+        focused -> MaterialTheme.colorScheme.onBackground
+        selected -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = if (focused) StreamCoreWebDimens.FocusBorder else StreamCoreWebDimens.FocusOuterBorder,
+            color = borderColor,
+        ),
+        tonalElevation = if (focused || hovered) StreamCoreDimens.Elevation.Medium else 0.dp,
+        modifier = modifier
+            .aspectRatio(aspectRatio)
+            .scale(scale)
+            .hoverable(interactionSource)
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+            }
+            .webSpaceActivation(onClick)
+            .semantics { role = Role.Button },
+    ) {
+        Box(content = content)
+    }
+}
+
+@Composable
+fun StreamCoreWebLargeScreenBackground(
+    modifier: Modifier = Modifier,
+    artwork: @Composable BoxScope.() -> Unit = {},
+    scrim: @Composable BoxScope.() -> Unit = { StreamCoreWebScrim() },
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        artwork()
+        scrim()
+        content()
+    }
+}
+
+@Composable
+fun BoxScope.StreamCoreWebScrim(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .matchParentSize()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.82f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.42f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                    ),
+                ),
+            ),
+    )
 }
 
 @Composable
@@ -242,6 +354,17 @@ fun Modifier.webEscape(onEscape: () -> Unit): Modifier {
     }
 }
 
+private fun Modifier.webSpaceActivation(onClick: () -> Unit): Modifier {
+    return onPreviewKeyEvent { event ->
+        if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
+            onClick()
+            true
+        } else {
+            false
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun StreamCoreWebButtonPreview() {
@@ -249,5 +372,31 @@ private fun StreamCoreWebButtonPreview() {
         Surface(modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge)) {
             StreamCoreWebButton(text = "Continue", onClick = {})
         }
+    }
+}
+
+@Preview(widthDp = 640, heightDp = 360)
+@Composable
+private fun StreamCoreWebContentCardPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        StreamCoreWebLargeScreenBackground(
+            content = {
+                StreamCoreWebContentCard(
+                    onClick = {},
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .widthIn(max = StreamCoreWebDimens.PanelWidth),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    ) {
+                        Text("Content artwork")
+                    }
+                }
+            },
+        )
     }
 }

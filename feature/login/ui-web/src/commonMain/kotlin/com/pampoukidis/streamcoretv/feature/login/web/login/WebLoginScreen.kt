@@ -52,6 +52,7 @@ import com.pampoukidis.streamcoretv.feature.login.common.login.passwordText
 import com.pampoukidis.streamcoretv.feature.login.common.login.text
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
+import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.core.ui.generated.resources.Res
 import streamcoretv.core.ui.generated.resources.login_continue
@@ -70,6 +71,8 @@ fun WebLoginScreen(
     state: LoginUiState,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
+    auxiliaryActionsEnabled: Boolean = false,
+    backendErrorMessage: String? = null,
 ) {
     val identifierFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -126,6 +129,8 @@ fun WebLoginScreen(
                         forgotFocus = forgotFocus,
                         createFocus = createFocus,
                         helpFocus = helpFocus,
+                        auxiliaryActionsEnabled = auxiliaryActionsEnabled,
+                        backendErrorMessage = backendErrorMessage,
                     )
                 }
             }
@@ -143,6 +148,8 @@ private fun WebLoginForm(
     forgotFocus: FocusRequester,
     createFocus: FocusRequester,
     helpFocus: FocusRequester,
+    auxiliaryActionsEnabled: Boolean,
+    backendErrorMessage: String?,
 ) {
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
     val identifierError = state.identifierError?.text()
@@ -240,6 +247,14 @@ private fun WebLoginForm(
                 }
                 .testTag(LoginTestTags.SubmitButton),
         )
+        backendErrorMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { error(message) },
+            )
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier.fillMaxWidth(),
@@ -247,7 +262,7 @@ private fun WebLoginForm(
             StreamCoreWebButton(
                 text = stringResource(Res.string.login_forgot_password),
                 onClick = { onAction(LoginAction.ForgotPassword) },
-                enabled = !state.isLoading,
+                enabled = auxiliaryActionsEnabled && !state.isLoading,
                 variant = StreamCoreWebButtonVariant.Tertiary,
                 modifier = Modifier
                     .weight(1f)
@@ -262,7 +277,7 @@ private fun WebLoginForm(
             StreamCoreWebButton(
                 text = stringResource(Res.string.login_create_account),
                 onClick = { onAction(LoginAction.CreateAccount) },
-                enabled = !state.isLoading,
+                enabled = auxiliaryActionsEnabled && !state.isLoading,
                 variant = StreamCoreWebButtonVariant.Tertiary,
                 modifier = Modifier
                     .weight(1f)
@@ -278,7 +293,7 @@ private fun WebLoginForm(
         StreamCoreWebButton(
             text = stringResource(Res.string.login_help),
             onClick = { onAction(LoginAction.Help) },
-            enabled = !state.isLoading,
+            enabled = auxiliaryActionsEnabled && !state.isLoading,
             variant = StreamCoreWebButtonVariant.Tertiary,
             modifier = Modifier
                 .fillMaxWidth()
@@ -295,6 +310,62 @@ private fun WebLoginScreenPreview() {
     StreamCoreTheme(darkTheme = true) {
         WebLoginScreen(
             state = LoginUiState(),
+            onAction = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebLoginLoadingPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebLoginScreen(
+            state = LoginUiState(isLoading = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebLoginValidationErrorPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebLoginScreen(
+            state = LoginUiState(
+                identifierError = LoginFieldError.Required,
+                passwordError = LoginFieldError.Required,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebLoginBackendErrorPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebLoginScreen(
+            state = LoginUiState(
+                identifier = "subscriber@example.test",
+                password = "preview-only",
+                isSubmitEnabled = true,
+            ),
+            onAction = {},
+            backendErrorMessage = "The account service rejected these credentials. Check them and try again.",
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebLoginLongTextPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebLoginScreen(
+            state = LoginUiState(
+                identifier = "a-very-long-subscriber-identifier-used-to-verify-field-overflow@example.test",
+                password = "preview-only",
+                isSubmitEnabled = true,
+            ),
             onAction = {},
         )
     }
