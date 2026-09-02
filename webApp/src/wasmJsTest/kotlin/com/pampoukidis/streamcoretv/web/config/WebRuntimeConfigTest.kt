@@ -74,7 +74,7 @@ class WebRuntimeConfigTest {
 
     private fun validConfig(): WebRuntimeConfig {
         return WebRuntimeConfig(
-            tmdbBaseUrl = "https://api.example.test/3/",
+            tmdbBaseUrl = "https://api.example.test/",
             tmdbReadAccessToken = "browser-visible-token",
             tmdbAccountId = "42",
         )

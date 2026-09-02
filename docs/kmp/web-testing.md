@@ -28,6 +28,10 @@ Playwright may use only:
 - the browser URL/history, storage, request/response interception, popups, screenshots, and page errors;
 - fixed-viewport keyboard and pointer input against the Compose surface when a node-level selector is unavailable.
 
+The diagnostic shell also exposes host-level `body[data-storage-mode]` and `body[data-network-probe]` state. These are explicit WEB-01 contracts,
+not inferred Compose DOM projection. Playwright uses them to prove official DataStore fallback and backend-agnostic TMDB error mapping after its
+request interception has independently asserted the real Fetch URL and headers.
+
 Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for canvas-rendered Compose children unless a later, version-specific
 spike proves those selectors in all supported engines and updates this document. Browser password-manager or autofill integration is not claimed.
 

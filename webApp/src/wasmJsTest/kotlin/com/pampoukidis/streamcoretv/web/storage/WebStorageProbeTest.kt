@@ -9,7 +9,10 @@ class WebStorageProbeTest {
     fun selectsPersistentStorageAfterWriteReadRemoveProbe() {
         val local = FakeStorage()
 
-        val selection = WebStorageProbe(local = local, session = FakeStorage()).select()
+        val selection = WebStorageProbe(
+            localProvider = { local },
+            sessionProvider = { FakeStorage() },
+        ).select()
 
         assertIs<WebStorageSelection.Persistent>(selection)
         assertTrue(local.values.isEmpty())
@@ -18,8 +21,8 @@ class WebStorageProbeTest {
     @Test
     fun securityDenialFallsBackToSessionStorageWithWarning() {
         val selection = WebStorageProbe(
-            local = FailingStorage("SecurityError: access denied"),
-            session = FakeStorage(),
+            localProvider = { FailingStorage("SecurityError: access denied") },
+            sessionProvider = { FakeStorage() },
         ).select()
 
         assertIs<WebStorageSelection.SessionFallback>(selection)
@@ -31,8 +34,8 @@ class WebStorageProbeTest {
         val session = FakeStorage()
 
         val selection = WebStorageProbe(
-            local = FailingStorage("QuotaExceededError"),
-            session = session,
+            localProvider = { FailingStorage("QuotaExceededError") },
+            sessionProvider = { session },
         ).select()
 
         assertIs<WebStorageSelection.SessionFallback>(selection)
@@ -43,13 +46,36 @@ class WebStorageProbeTest {
     @Test
     fun bothStorageFailuresBlockGraphStartup() {
         val selection = WebStorageProbe(
-            local = FailingStorage("Corrupt storage"),
-            session = FailingStorage("SecurityError"),
+            localProvider = { FailingStorage("Corrupt storage") },
+            sessionProvider = { FailingStorage("SecurityError") },
         ).select()
 
         assertIs<WebStorageSelection.Blocked>(selection)
         assertTrue(selection.guidance.contains("corrupt"))
         assertTrue(selection.guidance.contains("policy denied"))
+    }
+
+    @Test
+    fun localStorageGetterFailureIsGuardedAndFallsBackToSessionStorage() {
+        val selection = WebStorageProbe(
+            localProvider = { error("SecurityError: localStorage getter denied") },
+            sessionProvider = { FakeStorage() },
+        ).select()
+
+        assertIs<WebStorageSelection.SessionFallback>(selection)
+        assertTrue(selection.warning.contains("policy denied"))
+    }
+
+    @Test
+    fun bothStorageGetterFailuresReturnBlockedSelection() {
+        val selection = WebStorageProbe(
+            localProvider = { error("SecurityError: localStorage getter denied") },
+            sessionProvider = { error("SecurityError: sessionStorage getter denied") },
+        ).select()
+
+        assertIs<WebStorageSelection.Blocked>(selection)
+        assertTrue(selection.guidance.contains("Persistent failure: browser policy denied access"))
+        assertTrue(selection.guidance.contains("session failure: browser policy denied access"))
     }
 }
 

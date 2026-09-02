@@ -1,19 +1,24 @@
 package com.pampoukidis.streamcoretv.web.storage
 
+import androidx.datastore.core.CorruptionException
 import kotlinx.browser.localStorage
 import kotlinx.browser.sessionStorage
 import kotlinx.coroutines.CancellationException
 import org.w3c.dom.Storage
 
 internal class WebStorageProbe(
-    private val local: WebKeyValueStorage = BrowserWebKeyValueStorage(localStorage),
-    private val session: WebKeyValueStorage = BrowserWebKeyValueStorage(sessionStorage),
+    private val localProvider: () -> WebKeyValueStorage = {
+        BrowserWebKeyValueStorage(localStorage)
+    },
+    private val sessionProvider: () -> WebKeyValueStorage = {
+        BrowserWebKeyValueStorage(sessionStorage)
+    },
 ) {
     fun select(): WebStorageSelection {
-        return when (val localResult = probe(local, LocalProbeKey)) {
+        return when (val localResult = probe(localProvider, LocalProbeKey)) {
             WebStorageProbeResult.Available -> WebStorageSelection.Persistent
             is WebStorageProbeResult.Unavailable -> {
-                when (val sessionResult = probe(session, SessionProbeKey)) {
+                when (val sessionResult = probe(sessionProvider, SessionProbeKey)) {
                     WebStorageProbeResult.Available -> WebStorageSelection.SessionFallback(
                         warning = "Persistent browser storage is unavailable (${localResult.failure.kind.label}). " +
                             "State will be lost when this tab closes.",
@@ -28,8 +33,13 @@ internal class WebStorageProbe(
         }
     }
 
-    private fun probe(storage: WebKeyValueStorage, key: String): WebStorageProbeResult {
+    private fun probe(
+        storageProvider: () -> WebKeyValueStorage,
+        key: String,
+    ): WebStorageProbeResult {
+        var storage: WebKeyValueStorage? = null
         return try {
+            storage = storageProvider()
             storage.setItem(key, ProbeValue)
             check(storage.getItem(key) == ProbeValue)
             storage.removeItem(key)
@@ -37,7 +47,15 @@ internal class WebStorageProbe(
         } catch (throwable: CancellationException) {
             throw throwable
         } catch (throwable: Throwable) {
-            runCatching { storage.removeItem(key) }
+            storage?.let { acquiredStorage ->
+                try {
+                    acquiredStorage.removeItem(key)
+                } catch (cleanupCancellation: CancellationException) {
+                    throw cleanupCancellation
+                } catch (_: Throwable) {
+                    // The original storage failure owns the classification.
+                }
+            }
             WebStorageProbeResult.Unavailable(throwable.toWebStorageFailure())
         }
     }
@@ -86,6 +104,7 @@ enum class WebStorageFailureKind(val label: String) {
     Security("browser policy denied access"),
     Quota("storage quota was exceeded"),
     Corruption("stored data is corrupt"),
+    Io("browser storage I/O failed"),
     Unknown("unknown storage failure"),
 }
 
@@ -94,13 +113,30 @@ private sealed interface WebStorageProbeResult {
     data class Unavailable(val failure: WebStorageFailure) : WebStorageProbeResult
 }
 
-private fun Throwable.toWebStorageFailure(): WebStorageFailure {
-    val normalized = "${this::class.simpleName.orEmpty()} ${message.orEmpty()}".lowercase()
+internal fun Throwable.toWebStorageFailure(): WebStorageFailure {
+    val normalized = buildString {
+        var current: Throwable? = this@toWebStorageFailure
+        repeat(MaxCauseDepth) {
+            val throwable = current ?: return@repeat
+            append(throwable::class.simpleName.orEmpty())
+            append(' ')
+            append(throwable.message.orEmpty())
+            append(' ')
+            current = throwable.cause
+        }
+    }.lowercase()
     val kind = when {
-        "security" in normalized || "denied" in normalized -> WebStorageFailureKind.Security
+        this is CorruptionException || "corrupt" in normalized || "serial" in normalized ||
+            "protobuf" in normalized || "invalid version" in normalized ||
+            "unsupported version" in normalized || "version mismatch" in normalized ->
+            WebStorageFailureKind.Corruption
+        "security" in normalized || "denied" in normalized || "notallowed" in normalized ->
+            WebStorageFailureKind.Security
         "quota" in normalized || "full" in normalized -> WebStorageFailureKind.Quota
-        "corrupt" in normalized || "serial" in normalized -> WebStorageFailureKind.Corruption
+        "ioexception" in normalized || "i/o" in normalized -> WebStorageFailureKind.Io
         else -> WebStorageFailureKind.Unknown
     }
     return WebStorageFailure(kind = kind, cause = this)
 }
+
+private const val MaxCauseDepth = 4

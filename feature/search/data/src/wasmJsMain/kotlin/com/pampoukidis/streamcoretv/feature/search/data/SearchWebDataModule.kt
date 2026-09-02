@@ -3,10 +3,12 @@ package com.pampoukidis.streamcoretv.feature.search.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Storage
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.core.okio.WebLocalStorage
 import androidx.datastore.core.okio.WebSessionStorage
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferencesSerializer
+import androidx.datastore.preferences.core.emptyPreferences
 import com.pampoukidis.streamcoretv.feature.search.domain.RecentSearchRepository
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
@@ -19,6 +21,9 @@ fun searchWebDataModule(useSessionStorage: Boolean) = module {
                 name = SEARCH_HISTORY_STORE_FILE,
                 useSessionStorage = useSessionStorage,
             ),
+            corruptionHandler = ReplaceFileCorruptionHandler {
+                emptyPreferences()
+            },
         )
     }
     single<Json>(named(SEARCH_HISTORY_JSON_QUALIFIER)) {

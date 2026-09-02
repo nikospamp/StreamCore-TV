@@ -63,9 +63,12 @@ default `commonTest` source set, has no test directory, and enables no host test
 Common sources cannot import Android or JVM APIs. Platform implementations and provider models stay behind shared interfaces.
 
 WEB-01-enabled libraries call `streamCoreKmp { withWasmJs() }`. The convention creates a library target with a non-browser Node environment needed
-by Kotlin 2.3.21 npm aggregation; it never creates executable binaries. Library Wasm test compilations/tasks are disabled because the Node
-environment is packaging-only and existing common tests remain owned by `testAndroidHostTest`. Executable browser tests live only in `:webApp`.
-`:webApp` is the only module with `browser()` and `binaries.executable()`.
+by Kotlin 2.3.21 npm aggregation; it never creates executable binaries. Plain KMP library common tests compile and run through `wasmJsNodeTest`.
+Compose-owning libraries omit their library Wasm test compilation because Compose `1.12.0` otherwise registers duplicate `commonTest` resource
+tasks. A plain library whose test runtime transitively requires Compose/Skiko may explicitly call `withWasmJs(withTests = false)`: WEB-01 uses that
+exception only for `:client:tmdb:player`, `:feature:library:domain`, and `:feature:player:data`, because Node cannot load Skiko's browser runtime.
+Those suites remain covered by `testAndroidHostTest`; browser integration remains owned by `:webApp`, the only module with `browser()` and
+`binaries.executable()`.
 
 Shared dependencies must publish compatible KMP metadata and Android variants and be covered by `verifyKmpDependencyCompatibility`. Android-only
 libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility; only the 28 modules enumerated in

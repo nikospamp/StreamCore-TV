@@ -24,8 +24,11 @@ The following 28 shared libraries receive `wasmJs`:
 
 Shared modules remain libraries. They do not call `browser()` or `binaries.executable()`. Kotlin 2.3.21 requires an npm-capable environment when one
 executable consumes a multi-project Wasm graph, so the library convention selects non-browser `nodejs()` without producing executable binaries.
-Library Wasm test tasks are disabled because that environment is packaging-only; existing common suites continue to execute through their 24
-Android host-test targets. `:webApp` alone calls `browser()` and `binaries.executable()` and owns browser tests.
+Ten plain KMP libraries compile and execute 94 common tests through `wasmJsNodeTest`. Compose-owning libraries omit library Wasm test compilations
+because Compose `1.12.0` creates duplicate `commonTest` resource tasks. Three plain libraries transitively exposing Compose/Skiko through
+`:playback:api` (`:client:tmdb:player`, `:feature:library:domain`, and `:feature:player:data`) also keep their 11 tests on Android host: Node cannot
+load Skiko's browser runtime. The complete 201-test common inventory continues through 24 Android host-test targets. `:webApp` alone calls
+`browser()` and `binaries.executable()` and owns 23 executable browser tests.
 
 ## Runtime and security contract
 
@@ -34,7 +37,7 @@ Blank fields, malformed JSON, missing responses, and non-HTTPS base URLs produce
 The read-access token is intentionally browser-visible deployment configuration, not a secret. Only `config.example.json` is committed; the real
 resource path is ignored.
 
-The web Koin graph contains the shared feature modules, TMDB data/UI/source modules, four web DataStore modules, the Ktor JS/Fetch client, the
+The isolated web Koin application contains the shared feature modules, TMDB data/UI/source modules, four web DataStore modules, the Ktor JS/Fetch client, the
 Ktor-backed Coil loader, secure URI handler, and `NoOpPerformanceTracer`. The diagnostic playback-session factory exists only so the Player
 ViewModel factory can be resolved; it performs no playback. The smoke resolves 9 repository contracts and 8 ViewModels (17 definitions total).
 
@@ -47,10 +50,13 @@ Stable DataStore names are:
 - `library.preferences_pb`
 - `playback_progress.preferences_pb`
 
-Startup performs write/read/remove capability probing before graph creation. Local-storage policy, quota, corruption-like, and unknown failures are
-classified without swallowing cancellation. Persistent denial selects official `WebSessionStorage` and exposes a non-blocking tab-lifetime warning;
-failure of both stores blocks startup. The diagnostic graph writes and reads one idempotent Boolean canary through each official DataStore. Playwright
-proves the four data keys and their four official version keys survive reload in all three engines.
+Startup acquires `localStorage` and `sessionStorage` lazily inside guarded write/read/remove probes, so property-getter `SecurityError` failures enter
+the same fallback policy. Each official Preferences DataStore installs `ReplaceFileCorruptionHandler { emptyPreferences() }`; Playwright proves an
+invalid persisted protobuf is replaced while persistent mode remains ready. The diagnostic graph writes and reads one idempotent Boolean canary
+through each store. A recoverable persistent open/canary security, quota, corruption, or I/O failure closes only that not-yet-ready isolated graph
+and retries once with official `WebSessionStorage`, retaining a non-blocking tab-lifetime warning. Cancellation is rethrown, non-storage graph defects
+are not masked by retry, and failure of both modes blocks startup. Playwright proves quota-driven session retry and the four distinct data/version
+keys in Chromium, Firefox, and WebKit.
 
 Android remains on stable DataStore `1.2.1`. That artifact publishes Wasm core APIs but does not contain `WebLocalStorage` or `WebSessionStorage`;
 AndroidX introduced those required explicit classes in `1.3.0-alpha08`. WEB-01 therefore pins `datastore-core-okio:1.3.0-alpha08` only in
@@ -58,7 +64,9 @@ AndroidX introduced those required explicit classes in `1.3.0-alpha08`. WEB-01 t
 
 ## Images, links, navigation, and tracing
 
-- TMDB networking uses Ktor `Js`/Fetch and the existing authenticated `createTmdbHttpClient` contract.
+- TMDB networking uses Ktor `Js`/Fetch and the existing authenticated `createTmdbHttpClient` contract. A diagnostic request through the real
+  `SearchRepository` proves `/3/configuration`, `/3/genre/movie/list`, and `/3/search/movie`, Bearer/Accept headers, and HTTP 503 mapping to
+  backend-agnostic `AppError.Server` in all three browsers.
 - Coil uses `coil-network-ktor3` with a Ktor JS client. Coil 3.4's worker decoder does not complete under Playwright WebKit even though Fetch returns
   HTTP 200, so WebKit alone uses a synchronous Skia decoder registered before Coil's worker decoder. Chromium and Firefox keep the worker path.
   This fallback avoids a hung request but allocates the encoded image and decoded bitmap on the browser main thread; replacement with a compatible
@@ -106,13 +114,14 @@ The required command was launched at `http://localhost:8080/`; with no real conf
 ## Verification summary
 
 - `:webApp:compileKotlinWasmJs`: pass.
-- `:webApp:wasmJsBrowserDistribution`: pass; final production assets include approximately 1.29 MiB JS, 4.45 MiB app Wasm, and 8.24 MiB Skiko Wasm.
-- `:webApp:wasmJsBrowserTest`: 14 tests, zero failures/errors/skips.
-- Playwright `1.62.1`: 18/18 across Chromium, Firefox, and WebKit.
-- `:app:compileTmdbDebugKotlin`: pass; 326 actionable tasks.
-- `:app:compileClientBDebugKotlin`: pass; 325 actionable tasks.
+- `:webApp:wasmJsBrowserDistribution`: pass; final production assets include approximately 1.29 MiB JS, 4.52 MiB app Wasm, and 8.24 MiB Skiko Wasm.
+- `:webApp:wasmJsBrowserTest`: 23 tests in 6 suites, zero failures/errors/skips.
+- Ten compatible library `wasmJsNodeTest` tasks: 94 tests, zero failures/errors/skips. `:client:tmdb:data` contributes 46, including request policy
+  and error mapping.
+- Playwright `1.62.1`: 30/30 across Chromium, Firefox, and WebKit.
+- Combined `:app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin`: pass; 355 actionable tasks.
 - `testAndroidHostTest`: 201/201 across 24 KMP modules, matching KMP-07's KMP-host subset; zero failures/errors/skips.
 - The complete Android XML inventory remains 265 tests across 64 suites when the two 25-test app flavor suites and 14 Android-only Player UI tests are
   included; this exactly matches KMP-07, with zero failures/errors/skips and no zero-test regression.
-- Root `check -PverifyDesignTokensLogFiles=true --continue`: pass; 1,860 actionable tasks. Design-token verification checked 307 production files
+- Root `check -PverifyDesignTokensLogFiles=true --continue --max-workers=1`: pass; 1,940 actionable tasks. Design-token verification checked 307 production files
   (KMP-07 303 + four new `core`/`feature` Wasm adapters), with zero violations.
