@@ -4,7 +4,13 @@ param(
     [string] $CredentialsPath,
 
     [Parameter()]
-    [string] $LocalPropertiesPath
+    [string] $LocalPropertiesPath,
+
+    [Parameter()]
+    [switch] $PreflightOnly,
+
+    [Parameter()]
+    [switch] $ListOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,11 +22,18 @@ $liveKeys = @(
     "STREAMCORE_LIVE_TMDB_PASSWORD"
 )
 
-function Read-LiteralProperties {
-    param([string] $Path)
+function Test-Configured {
+    param([AllowNull()][string] $Value)
+    return -not [string]::IsNullOrWhiteSpace($Value)
+}
 
-    $properties = @{}
-    if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.File]::Exists($Path)) {
+function Read-LiteralProperties {
+    param([AllowNull()][string] $Path)
+
+    $properties = [System.Collections.Generic.Dictionary[string, string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase
+    )
+    if (-not (Test-Configured $Path) -or -not [System.IO.File]::Exists($Path)) {
         return $properties
     }
 
@@ -29,20 +42,44 @@ function Read-LiteralProperties {
         if ($trimmed.Length -eq 0 -or $trimmed.StartsWith("#") -or $trimmed.StartsWith("!")) {
             continue
         }
-        $separator = $line.IndexOf("=")
-        if ($separator -lt 1) {
+        $equalsIndex = $line.IndexOf("=")
+        $colonIndex = $line.IndexOf(":")
+        $separatorIndexes = @($equalsIndex, $colonIndex) | Where-Object { $_ -ge 1 }
+        if ($separatorIndexes.Count -eq 0) {
             continue
         }
+        $separator = ($separatorIndexes | Measure-Object -Minimum).Minimum
         $key = $line.Substring(0, $separator).Trim()
-        $value = $line.Substring($separator + 1)
-        $properties[$key] = $value
+        $value = $line.Substring($separator + 1).Trim()
+        if ($properties.ContainsKey($key)) {
+            throw "Duplicate property key is not allowed."
+        }
+        if (-not (Test-Configured $value)) {
+            throw "Recognized property values must not be blank."
+        }
+        $properties.Add($key, $value)
     }
     return $properties
 }
 
-function Test-Configured {
-    param([string] $Value)
-    return -not [string]::IsNullOrWhiteSpace($Value)
+function Resolve-RecognizedValue {
+    param(
+        [System.Collections.Generic.Dictionary[string, string]] $Properties,
+        [string[]] $Aliases
+    )
+
+    $matches = @($Aliases | Where-Object { $Properties.ContainsKey($_) })
+    if ($matches.Count -gt 1) {
+        throw "Duplicate aliases for one required property are not allowed."
+    }
+    if ($matches.Count -eq 0) {
+        return $null
+    }
+    $value = $Properties[$matches[0]]
+    if (-not (Test-Configured $value)) {
+        throw "Recognized property values must not be blank."
+    }
+    return $value
 }
 
 $resolvedCredentialsPath = if (Test-Configured $CredentialsPath) {
@@ -63,15 +100,16 @@ $credentialsFileConfigured = (Test-Configured $resolvedCredentialsPath) -and
 $localPropertiesFileConfigured = (Test-Configured $resolvedLocalPropertiesPath) -and
     [System.IO.File]::Exists($resolvedLocalPropertiesPath)
 $liveEnvironment = @{
-    STREAMCORE_LIVE_TMDB_BASE_URL = if (Test-Configured $localProperties["tmdbBaseUrl"]) {
-        $localProperties["tmdbBaseUrl"]
-    } else {
-        "https://api.themoviedb.org/"
-    }
-    STREAMCORE_LIVE_TMDB_READ_ACCESS_TOKEN = $localProperties["tmdbReadAccessToken"]
-    STREAMCORE_LIVE_TMDB_ACCOUNT_ID = $localProperties["tmdbAccountId"]
-    STREAMCORE_LIVE_TMDB_USERNAME = $credentialProperties["tmdbUsername"]
-    STREAMCORE_LIVE_TMDB_PASSWORD = $credentialProperties["tmdbPassword"]
+    STREAMCORE_LIVE_TMDB_BASE_URL = Resolve-RecognizedValue $localProperties @("tmdbBaseUrl")
+    STREAMCORE_LIVE_TMDB_READ_ACCESS_TOKEN = Resolve-RecognizedValue $localProperties @("tmdbReadAccessToken")
+    STREAMCORE_LIVE_TMDB_ACCOUNT_ID = Resolve-RecognizedValue $localProperties @("tmdbAccountId")
+    STREAMCORE_LIVE_TMDB_USERNAME = Resolve-RecognizedValue $credentialProperties @(
+        "username", "identifier", "email", "tmdbUsername", "tmdbIdentifier", "tmdbEmail"
+    )
+    STREAMCORE_LIVE_TMDB_PASSWORD = Resolve-RecognizedValue $credentialProperties @("password", "tmdbPassword")
+}
+if (-not (Test-Configured $liveEnvironment["STREAMCORE_LIVE_TMDB_BASE_URL"])) {
+    $liveEnvironment["STREAMCORE_LIVE_TMDB_BASE_URL"] = "https://api.themoviedb.org/"
 }
 
 Write-Output "credentialsFileConfigured=$credentialsFileConfigured"
@@ -81,20 +119,45 @@ foreach ($key in $liveKeys) {
 }
 
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-$startInfo.FileName = "npm.cmd"
-$startInfo.ArgumentList.Add("run")
-$startInfo.ArgumentList.Add("test:live-auth")
+$nodeCommand = Get-Command node.exe -ErrorAction Stop
+$playwrightCli = Join-Path $PSScriptRoot "node_modules/@playwright/test/cli.js"
+if (-not [System.IO.File]::Exists($playwrightCli)) {
+    throw "Local Playwright CLI is missing. Run npm ci first."
+}
+$startInfo.FileName = $nodeCommand.Source
+$startInfo.ArgumentList.Add($playwrightCli)
+$startInfo.ArgumentList.Add("test")
+$startInfo.ArgumentList.Add("--config")
+$startInfo.ArgumentList.Add("playwright.live.config.ts")
+if ($ListOnly) {
+    $startInfo.ArgumentList.Add("--list")
+}
 $startInfo.WorkingDirectory = $PSScriptRoot
 $startInfo.UseShellExecute = $false
 
+try {
 foreach ($key in $liveKeys) {
     $startInfo.Environment.Remove($key) | Out-Null
     if (Test-Configured $liveEnvironment[$key]) {
         $startInfo.Environment[$key] = $liveEnvironment[$key]
     }
 }
+$childEnvironmentMatched = $true
+foreach ($key in $liveKeys) {
+    $expected = if (Test-Configured $liveEnvironment[$key]) { $liveEnvironment[$key] } else { $null }
+    $actual = if ($startInfo.Environment.ContainsKey($key)) { $startInfo.Environment[$key] } else { $null }
+    if ($actual -cne $expected) {
+        $childEnvironmentMatched = $false
+    }
+}
+Write-Output "childEnvironmentMatched=$childEnvironmentMatched"
+if (-not $childEnvironmentMatched) {
+    throw "Child environment validation failed."
+}
 
-try {
+    if ($PreflightOnly) {
+        exit 0
+    }
     $process = [System.Diagnostics.Process]::Start($startInfo)
     $process.WaitForExit()
     exit $process.ExitCode
