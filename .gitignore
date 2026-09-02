@@ -328,3 +328,10 @@ hs_err_pid*
 /benchmark-results/
 /tools/performance/.tools/
 /tools/performance/__pycache__/
+
+### Web runtime
+/webApp/src/wasmJsMain/resources/config.json
+/webApp/e2e/node_modules/
+/webApp/e2e/playwright-report/
+/webApp/e2e/test-results/
+/webApp/e2e/.playwright-browsers/

@@ -3,7 +3,9 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
 
 class StreamCoreKmpLibraryPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -23,7 +25,11 @@ class StreamCoreKmpLibraryPlugin : Plugin<Project> {
 
             extensions.add(
                 "streamCoreKmp",
-                StreamCoreKmpExtension(androidTarget),
+                StreamCoreKmpExtension(
+                    project = this,
+                    androidTarget = androidTarget,
+                    kotlinExtension = kotlinExtension,
+                ),
             )
 
             tasks.withType(Test::class.java).configureEach {
@@ -34,10 +40,35 @@ class StreamCoreKmpLibraryPlugin : Plugin<Project> {
 }
 
 class StreamCoreKmpExtension internal constructor(
+    private val project: Project,
     private val androidTarget: KotlinMultiplatformAndroidLibraryTarget,
+    private val kotlinExtension: KotlinMultiplatformExtension,
 ) {
     fun withHostTest() {
         androidTarget.withHostTest {}
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    fun withWasmJs(withTests: Boolean = true) {
+        val wasmTarget = kotlinExtension.wasmJs {
+            nodejs()
+        }
+        if (!withTests || project.pluginManager.hasPlugin("org.jetbrains.compose")) {
+            // Compose 1.12.0 currently registers duplicate commonTest resource tasks when a
+            // library Wasm test compilation is present. Plain KMP libraries keep tests unless
+            // their build opts out because the Node test runtime transitively requires Skiko.
+            wasmTarget.compilations.remove(wasmTarget.compilations.getByName("test"))
+            project.tasks.matching { task ->
+                val normalizedName = task.name.lowercase()
+                "wasmjs" in normalizedName && "test" in normalizedName
+            }.configureEach {
+                enabled = false
+            }
+        }
+        project.extensions.getByType(WasmNodeJsEnvSpec::class.java).apply {
+            download.set(false)
+            command.set("node")
+        }
     }
 }
 

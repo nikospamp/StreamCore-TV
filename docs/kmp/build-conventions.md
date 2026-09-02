@@ -1,7 +1,7 @@
 # KMP build conventions
 
-KMP-02 establishes Android-only Kotlin Multiplatform foundations. The target architecture remains backend-agnostic, and no Wasm, JS, native, JVM
-desktop, or web application target exists in Phase 1.
+KMP-02 established Android-only Kotlin Multiplatform foundations. WEB-01 adds the first Wasm graph while the target architecture remains
+backend-agnostic. No JS compatibility, native, or JVM desktop target exists.
 
 ## Convention usage
 
@@ -62,9 +62,17 @@ default `commonTest` source set, has no test directory, and enables no host test
 
 Common sources cannot import Android or JVM APIs. Platform implementations and provider models stay behind shared interfaces.
 
+WEB-01-enabled libraries call `streamCoreKmp { withWasmJs() }`. The convention creates a library target with a non-browser Node environment needed
+by Kotlin 2.3.21 npm aggregation; it never creates executable binaries. Plain KMP library common tests compile and run through `wasmJsNodeTest`.
+Compose-owning libraries omit their library Wasm test compilation because Compose `1.12.0` otherwise registers duplicate `commonTest` resource
+tasks. A plain library whose test runtime transitively requires Compose/Skiko may explicitly call `withWasmJs(withTests = false)`: WEB-01 uses that
+exception only for `:client:tmdb:player`, `:feature:library:domain`, and `:feature:player:data`, because Node cannot load Skiko's browser runtime.
+Those suites remain covered by `testAndroidHostTest`; browser integration remains owned by `:webApp`, the only module with `browser()` and
+`binaries.executable()`.
+
 Shared dependencies must publish compatible KMP metadata and Android variants and be covered by `verifyKmpDependencyCompatibility`. Android-only
-libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility; web support is established only by a
-ticket that adds and verifies `wasmJs`.
+libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility; only the 28 modules enumerated in
+`WEB-01-evidence.md` are web-ready.
 
 Compose Resource owners must enable Android resource processing on the official Android-KMP target. This packages generated
 `composeResources` assets into the AAR and consuming APK; KMP-07 verifies both provider UI modules this way. Common vector XML uses literal

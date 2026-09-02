@@ -6,6 +6,10 @@ compose.resources {
     publicResClass = true
 }
 
+streamCoreKmp {
+    withWasmJs()
+}
+
 kotlin {
     targets.withType<com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget>().configureEach {
         androidResources.enable = true
@@ -25,7 +29,7 @@ kotlin {
             implementation(compose.animation)
             implementation(compose.material3)
             api(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
+            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)

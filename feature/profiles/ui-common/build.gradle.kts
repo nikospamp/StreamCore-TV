@@ -4,6 +4,7 @@ plugins {
 
 streamCoreKmp {
     withHostTest()
+    withWasmJs()
 }
 
 kotlin {
@@ -18,7 +19,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.runtime)
             implementation(compose.ui)
-            implementation(compose.components.uiToolingPreview)
+            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.koin.core)
