@@ -18,6 +18,24 @@ test("valid TMDB login reaches profiles and restores after reload", async ({ pag
   }
 
   let sessionId: string | null = null;
+  let credentialPayloadMatched = false;
+  await page.route("**/authentication/token/validate_with_login", async (route) => {
+    const payload = route.request().postDataJSON() as {
+      username?: unknown;
+      password?: unknown;
+      request_token?: unknown;
+    };
+    if (
+      payload.username !== liveConfig.username ||
+      payload.password !== liveConfig.password ||
+      typeof payload.request_token !== "string" ||
+      payload.request_token.length === 0
+    ) {
+      throw new Error("Credential field-separation preflight failed.");
+    }
+    credentialPayloadMatched = true;
+    await route.fallback();
+  });
   await page.route("**/authentication/session/new", async (route) => {
     const response = await route.fetch();
     if (response.ok()) {
@@ -44,13 +62,20 @@ test("valid TMDB login reaches profiles and restores after reload", async ({ pag
     await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
       timeout: 30_000,
     });
-    await page.mouse.click(220, 260);
-    await page.keyboard.type(liveConfig.username);
+    await page.keyboard.type(liveConfig.username, { delay: 35 });
     await page.keyboard.press("Tab");
-    await page.keyboard.type(liveConfig.password);
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        return document.activeElement instanceof HTMLInputElement &&
+          document.activeElement.value.length === 0;
+      });
+    }).toBe(true);
+    await page.waitForTimeout(500);
+    await page.keyboard.type(liveConfig.password, { delay: 35 });
     await page.keyboard.press("Enter");
 
     await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+    expect(credentialPayloadMatched).toBe(true);
     await expect(page.locator("body")).toHaveAttribute("data-product-route", "/profiles");
     await page.reload();
     await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });

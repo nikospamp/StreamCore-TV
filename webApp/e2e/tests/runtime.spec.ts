@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const validConfig = {
   tmdbBaseUrl: "https://api.example.test/",
@@ -271,11 +271,32 @@ test("external HTTPS links cannot retain window.opener", async ({ page, context 
     timeout: 30_000,
   });
 
+  const externalLink = page.getByRole("button", { name: "External link", exact: true });
+  const bounds = await semanticBounds(externalLink);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.waitForTimeout(300);
   const popupPromise = page.waitForEvent("popup");
-  await page.mouse.click(440, 165);
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   const popup = await popupPromise;
   await popup.waitForLoadState();
 
   expect(await popup.evaluate(() => window.opener === null)).toBe(true);
   await popup.close();
 });
+
+async function semanticBounds(
+  button: Locator,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  let resolvedBounds = await button.boundingBox();
+  await expect.poll(
+    async () => {
+      resolvedBounds = await button.boundingBox();
+      return resolvedBounds !== null;
+    },
+    { timeout: 30_000, intervals: [250] },
+  ).toBe(true);
+  if (resolvedBounds === null) {
+    throw new Error("Semantic button does not expose viewport bounds");
+  }
+  return resolvedBounds;
+}
