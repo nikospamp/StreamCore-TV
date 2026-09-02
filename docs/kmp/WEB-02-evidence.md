@@ -53,12 +53,14 @@ route accepts a monotonic revision used to refresh its retained ViewModel after 
 - Focus is visible through geometry plus a high-contrast outer border, not color alone.
 - Foundation lazy/scroll containers bring focused children into the visible viewport.
 - Fields expose email/password platform content semantics through their keyboard types; errors, roles, disabled/loading state, dialog descriptions,
-  selected avatar/maturity state, and profile labels are present in semantics. Profiles load-error gives Retry deterministic initial focus.
+  selected avatar/maturity state, and profile labels are present in semantics. The native display-name error is visible, uses alert/live semantics,
+  and is referenced by `aria-errormessage` through a real element ID. Profiles load-error gives Retry deterministic initial focus.
 
 Login fields remain Compose canvas fields, so login password-manager/autofill behavior is **not claimed**. The profile display-name editor is a native
 DOM text input with `autocomplete="nickname"`; only that input's native browser behavior is claimed. WEB-01's selector limitation remains authoritative
 for canvas content. Playwright uses Compose accessibility roles only to resolve semantic bounds, then drives real viewport canvas input; stable DOM
-test IDs are limited to the explicit native editor controls.
+test IDs are limited to the explicit native editor controls. `docs/kmp/web-testing.md` records the exact role/name and native test-ID allowlist proven
+with Compose Multiplatform 1.12.0 and Playwright 1.62.1; all other projected Compose selectors remain prohibited.
 
 ## Startup, session, and history routing
 
@@ -79,12 +81,15 @@ Deterministic, credential-free frames are committed under `webApp/e2e/screenshot
 - `<engine>-<width>-login.png`
 - `<engine>-<width>-profiles.png`
 
-All 12 frames were inspected after the final matrix. Each contains complete login copy/background or complete profile copy/artwork; the profile
-screenshot additionally gates the focused avatar crop for non-trivial rendered content before capture. At 1920, profile content is centered on a
+All 12 frames were inspected after the final matrix. Each contains complete login copy/background or complete profile copy/artwork. Login capture
+waits for exact accessible names for all five actions and exercises their real canvas hover bounds before capture; the profile screenshot additionally gates the focused
+avatar crop for non-trivial rendered content before capture. At 1920, profile content is centered on a
 1280px rail; the 1280 layout retains the established screen margins. The frames were visually compared with `TvLoginScreen`, `TvProfilesScreen`,
 `TvProfileTile`, and `TvProfileEditorScreen` plus the shared design reference. The web result retains the dark cinematic canvas, shared landscape
 artwork, left-side login panel, restrained ember accent, large profile imagery, 10-foot typography, and pronounced TV-like focus geometry. Browser
 layout density and Material3 rendering differ intentionally from TV Material. This is a hierarchy/input-language comparison, not a pixel-equality claim.
+Screenshot readiness never keys, remounts, or delays the production route beyond the shared bounded visual-settle signal; test-side semantic-bound
+hover and crop polling exercise paint readiness without resetting application focus or scroll state.
 
 ## Verification
 
@@ -99,10 +104,10 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | `.\gradlew.bat :webApp:wasmJsBrowserTest` | Pass; 34 tests, zero failures/errors/skips across 8 suites |
 | `npm ci` in `webApp/e2e` | Pass; 3 packages, 0 vulnerabilities |
 | `npx playwright install` | Pass |
-| `npx playwright test` | Pass; 78/78 in 2.4 minutes across Chromium, Firefox, and WebKit at both target viewports (13 scenarios per project) |
+| `npx playwright test` | Pass; 78/78 in 1.9 minutes across Chromium, Firefox, and WebKit at both target viewports (13 scenarios per project) |
 | `.\gradlew.bat :core:ui-web:compileKotlinWasmJs :feature:login:ui-web:compileKotlinWasmJs :feature:profiles:ui-web:compileKotlinWasmJs :feature:profiles:ui-web:compileAndroidMain :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 392 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
-| `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,985 actionable tasks |
+| `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,981 actionable tasks |
 | Static commonMain/provider/security scans plus `git diff --check` | Pass; no Android/TV/provider DTO boundary imports, credential URL/log use, or whitespace errors |
 
 The root check retains the accepted WEB-01/KMP inventory. The three web modules intentionally contain no `commonTest` source sets; portable state,

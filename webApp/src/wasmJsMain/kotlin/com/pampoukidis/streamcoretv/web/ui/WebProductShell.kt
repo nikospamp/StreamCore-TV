@@ -13,7 +13,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -105,7 +104,6 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
     var initializing by remember { mutableStateOf(true) }
     var activeError by remember { mutableStateOf<AppError?>(null) }
     var profilesRevision by remember { mutableIntStateOf(0) }
-    var profilesVisualGeneration by remember { mutableIntStateOf(0) }
     val handleProductError: (AppError) -> Unit = { error ->
         activeError = error
         scope.launch { coordinator.handleError(error) }
@@ -141,19 +139,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
             repeat(VISUAL_SETTLE_FRAMES) {
                 androidx.compose.runtime.withFrameNanos { }
             }
-            delay(
-                if (route == WebRoute.Profiles) {
-                    PROFILES_VISUAL_SETTLE_DELAY_MILLIS
-                } else {
-                    VISUAL_SETTLE_DELAY_MILLIS
-                },
-            )
-            if (route == WebRoute.Profiles) {
-                profilesVisualGeneration += 1
-                repeat(VISUAL_SETTLE_FRAMES) {
-                    androidx.compose.runtime.withFrameNanos { }
-                }
-            }
+            delay(VISUAL_SETTLE_DELAY_MILLIS)
             document.body?.setAttribute("data-product-visual-state", "ready")
         }
     }
@@ -165,54 +151,52 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                 message = "Validating your account and selected profile…",
             )
         } else {
-            key(profilesVisualGeneration) {
-                when (val destination = route) {
-                    WebRoute.Root -> Unit
-                    WebRoute.Login -> WebLoginRoute(
-                        onLoginSucceeded = {
-                            scope.launch { coordinator.loginSucceeded() }
-                        },
-                        onForgotPassword = {},
-                        onCreateAccount = {},
-                        onHelp = {},
-                        onError = handleProductError,
-                    )
-                    WebRoute.Profiles -> WebProfilesRoute(
-                        profilesRevision = profilesRevision,
-                        onProfileSelected = { profile ->
-                            scope.launch { coordinator.profileSelected(profile) }
-                        },
-                        onCreateProfile = { state.navigationController.navigate(WebRoute.CreateProfile) },
-                        onEditProfile = { profileId ->
-                            state.navigationController.navigate(WebRoute.EditProfile(profileId))
-                        },
-                        onBack = {},
-                        onProfilesLoaded = { profiles ->
-                            document.body?.setAttribute("data-profile-count", profiles.size.toString())
-                            scope.launch { coordinator.reconcileProfiles(profiles) }
-                        },
-                        onError = handleProductError,
-                    )
-                    WebRoute.CreateProfile -> WebProfileEditorRoute(
-                        mode = ProfileEditorMode.Create,
-                        profileId = null,
-                        onProfileChanged = profileChanged,
-                        onClose = closeProfileEditor,
-                        onError = handleProductError,
-                    )
-                    is WebRoute.EditProfile -> WebProfileEditorRoute(
-                        mode = ProfileEditorMode.Edit,
-                        profileId = destination.profileId,
-                        onProfileChanged = profileChanged,
-                        onClose = closeProfileEditor,
-                        onError = handleProductError,
-                    )
-                    WebRoute.AuthenticatedLanding -> AuthenticatedLanding(
-                        profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                        onChangeProfile = { scope.launch { coordinator.changeProfile() } },
-                    )
-                    WebRoute.Diagnostic, is WebRoute.Details, is WebRoute.Player -> WebDiagnosticShell(state)
-                }
+            when (val destination = route) {
+                WebRoute.Root -> Unit
+                WebRoute.Login -> WebLoginRoute(
+                    onLoginSucceeded = {
+                        scope.launch { coordinator.loginSucceeded() }
+                    },
+                    onForgotPassword = {},
+                    onCreateAccount = {},
+                    onHelp = {},
+                    onError = handleProductError,
+                )
+                WebRoute.Profiles -> WebProfilesRoute(
+                    profilesRevision = profilesRevision,
+                    onProfileSelected = { profile ->
+                        scope.launch { coordinator.profileSelected(profile) }
+                    },
+                    onCreateProfile = { state.navigationController.navigate(WebRoute.CreateProfile) },
+                    onEditProfile = { profileId ->
+                        state.navigationController.navigate(WebRoute.EditProfile(profileId))
+                    },
+                    onBack = {},
+                    onProfilesLoaded = { profiles ->
+                        document.body?.setAttribute("data-profile-count", profiles.size.toString())
+                        scope.launch { coordinator.reconcileProfiles(profiles) }
+                    },
+                    onError = handleProductError,
+                )
+                WebRoute.CreateProfile -> WebProfileEditorRoute(
+                    mode = ProfileEditorMode.Create,
+                    profileId = null,
+                    onProfileChanged = profileChanged,
+                    onClose = closeProfileEditor,
+                    onError = handleProductError,
+                )
+                is WebRoute.EditProfile -> WebProfileEditorRoute(
+                    mode = ProfileEditorMode.Edit,
+                    profileId = destination.profileId,
+                    onProfileChanged = profileChanged,
+                    onClose = closeProfileEditor,
+                    onError = handleProductError,
+                )
+                WebRoute.AuthenticatedLanding -> AuthenticatedLanding(
+                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
+                    onChangeProfile = { scope.launch { coordinator.changeProfile() } },
+                )
+                WebRoute.Diagnostic, is WebRoute.Details, is WebRoute.Player -> WebDiagnosticShell(state)
             }
         }
     }
@@ -228,7 +212,6 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
 
 private const val VISUAL_SETTLE_FRAMES = 3
 private const val VISUAL_SETTLE_DELAY_MILLIS = 1_500L
-private const val PROFILES_VISUAL_SETTLE_DELAY_MILLIS = 8_000L
 
 @Composable
 private fun AuthenticatedLanding(
