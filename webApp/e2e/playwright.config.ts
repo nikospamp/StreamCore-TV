@@ -29,16 +29,29 @@ export default defineConfig({
     timeout: 30_000,
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "chromium-1280", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } } },
+    { name: "chromium-1920", use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } } },
     {
-      name: "firefox",
+      name: "firefox-1280",
       use: {
         ...devices["Desktop Firefox"],
+        viewport: { width: 1280, height: 720 },
         launchOptions: process.platform === "win32"
           ? { executablePath: relocatedFirefoxExecutable }
           : undefined,
       },
     },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    {
+      name: "firefox-1920",
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 1920, height: 1080 },
+        launchOptions: process.platform === "win32"
+          ? { executablePath: relocatedFirefoxExecutable }
+          : undefined,
+      },
+    },
+    { name: "webkit-1280", use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 720 } } },
+    { name: "webkit-1920", use: { ...devices["Desktop Safari"], viewport: { width: 1920, height: 1080 } } },
   ],
 });
