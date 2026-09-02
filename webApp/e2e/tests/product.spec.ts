@@ -5,6 +5,8 @@ const validConfig = {
   tmdbReadAccessToken: "browser-visible-deployment-value",
   tmdbAccountId: "42",
 };
+const syntheticSessionId = `fixture-session-${"s".repeat(64)}`;
+const syntheticAccountUsername = `fixture-account-${"u".repeat(48)}`;
 const loginActionLabels = [
   "Show password",
   "Continue",
@@ -32,11 +34,14 @@ test.beforeEach(async ({ page }) => {
       return;
     }
     if (url.pathname.endsWith("/authentication/session/new")) {
-      await route.fulfill({ headers, json: { success: true, session_id: "fixture-session" } });
+      await route.fulfill({ headers, json: { success: true, session_id: syntheticSessionId } });
       return;
     }
     if (url.pathname.endsWith("/account/42")) {
-      await route.fulfill({ headers, json: { id: 42, username: "web-user", name: "Web User" } });
+      await route.fulfill({
+        headers,
+        json: { id: 42, username: syntheticAccountUsername, name: null },
+      });
       return;
     }
     if (url.pathname.includes("/movie/550/account_states")) {
@@ -178,6 +183,47 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
   expect(page.url()).not.toContain(credentialInput);
 });
 
+test("blank account name persists through official session-storage fallback", async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key: string, value: string): void {
+      if (this === window.localStorage && key.includes("preferences_pb")) {
+        throw new DOMException("DataStore quota exceeded", "QuotaExceededError");
+      }
+      originalSetItem.call(this, key, value);
+    };
+  });
+  await page.route("**/account/42", async (route) => {
+    await route.fulfill({
+      headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
+      json: { id: 42, username: syntheticAccountUsername, name: "" },
+    });
+  });
+
+  await loginToProfiles(page, "session-store-user");
+  await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "session");
+  await page.reload();
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expireSession(page);
+  await page.reload();
+  await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
+});
+
+test("missing optional account still persists session in WebLocalStorage", async ({ page }) => {
+  await page.route("**/account/42", async (route) => {
+    await route.fulfill({
+      status: 503,
+      headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
+      json: { status_message: "fixture account unavailable" },
+    });
+  });
+
+  await loginToProfiles(page, "missing-account-user");
+  await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "persistent");
+  await page.reload();
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+});
+
 test("hover produces visible profile-card feedback", async ({ page }) => {
   await loginToProfiles(page, "hover-user");
   await activateSemanticButton(
@@ -297,6 +343,21 @@ async function loginToProfiles(page: Page, identifier: string): Promise<void> {
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
+}
+
+async function expireSession(page: Page): Promise<void> {
+  await page.route("**/movie/550/account_states**", async (route) => {
+    await route.fulfill({
+      status: 401,
+      headers: {
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+      },
+      json: { status_code: 3, status_message: "Session expired" },
+    });
+  });
+  await page.reload();
+  await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
 }
 
 async function openCreatedProfileEditor(page: Page, displayName: string): Promise<void> {

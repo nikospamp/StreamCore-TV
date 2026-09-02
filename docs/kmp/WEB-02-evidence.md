@@ -72,9 +72,11 @@ with Compose Multiplatform 1.12.0 and Playwright 1.62.1; all other projected Com
   restoring the landing route. Successful profile mutation increments a shell revision, refreshes the retained Profiles ViewModel, and reconciles
   selected-profile state before `/authenticated`; cancellation does not refresh.
 - Session expiry clears TMDB auth preferences (including the selected-profile key), replaces the route with Login, and prevents Back/Forward from resurrecting authenticated state.
-- The manually supplied dummy credentials were independently traced to TMDB `validate_with_login`: token creation and CORS succeeded, then TMDB
-  returned HTTP 401/status code 30 before session creation or persistence. The response is now decoded deterministically as
-  `AppError.Authentication`, with “Sign-in failed” and actionable username/password guidance instead of generic or placeholder copy.
+- A guarded live run proved the canonical browser/request credential payload and all four TMDB calls: token creation, login validation, session
+  creation, and account details returned HTTP 200. The failure occurred in the following atomic preferences transaction because TMDB's account
+  display name was absent. AndroidX Preferences 1.2.1 Wasm casts the `null` result of removing an absent key to non-null `T`; project-owned
+  Wasm-reachable removals are now guarded with a presence check. The earlier status-code-30 result came from a zero-delay automation focus race,
+  not rejected canonical credentials. Code-30 mapping remains hardened and displays deterministic “Sign-in failed” guidance.
 - WEB-01 diagnostics remain available at `/diagnostic`; the previous Details/Player ID probes remain diagnostic-only.
 
 ## Browser screenshots and Android TV comparison
@@ -110,6 +112,9 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | `npx playwright test` | Pass; 84/84 in 2.2 minutes across Chromium, Firefox, and WebKit at both target viewports (14 scenarios per project) |
 | `:client:tmdb:data:testAndroidHostTest` and `:client:tmdb:data:wasmJsNodeTest` | Pass; live-matching HTTP 401/status-code-30, malformed HTTP-401, and HTTP-200/code-30 payloads map to authentication |
 | `npm run test:live-auth` with all live variables explicitly absent | One test skipped; valid-credential smoke was not run and is not counted as pass |
+| Focused TMDB Android/Wasm plus `:webApp:wasmJsBrowserTest` after guarded-removal fix | Pass; null/blank display name, account-null, repeated clear, and absent selected-profile removal covered |
+| Focused production persistence scenarios after guarded-removal fix | Pass; 4/4 across Chromium and WebKit for WebLocalStorage and forced WebSessionStorage fallback |
+| Expanded 96-case Playwright matrix | Pending; started after focused passes and explicitly interrupted for the user's PC-shutdown pause; no pass claimed |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
 | `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,985 actionable tasks |
@@ -124,8 +129,9 @@ production test-mode flag.
 
 - Login password-manager/autofill integration remains unproved for Compose canvas fields and is not advertised. The native profile nickname input is
   covered for typing/submission, but browser-specific nickname autofill UI was not asserted.
-- Valid live TMDB login was not rerun because the user has not supplied valid credentials. The opt-in smoke contract is present, isolated from the
-  mocked matrix, and must remain unclaimed until it runs with deliberate process-local inputs and cleans up its session.
+- The valid canonical credentials were proven through session/account creation, and the temporary live session was deleted successfully. A final
+  post-fix live login/persistence run still requires new explicit authorization. The opt-in smoke remains isolated from the mocked matrix and must
+  remain unclaimed until that authorized run completes and cleans up its session.
 - TMDB's current profile repository is process-local provider behavior; WEB-02 persists and validates selected-profile identity, while provider-backed cross-process profile mutation persistence remains dependent on a real provider implementation.
 - WEB-01's WebKit synchronous image decoder remains in effect and retains its documented main-thread allocation cost; WEB-03 owns replacement/performance follow-up.
 - Runtime performance measurement was intentionally skipped at the user's request. Production webpack still reports its existing large-bundle

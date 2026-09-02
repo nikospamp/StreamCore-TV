@@ -60,6 +60,25 @@ class TmdbPreferencesAuthStoreTest {
         assertNull(TmdbPreferencesAuthStore(dataStore).currentSessionId())
     }
 
+    @Test
+    fun emptyStoreAcceptsNullBlankAndMissingAccountWithRepeatedClear() = runTest {
+        val dataStore = TestPreferencesDataStore()
+        val store = TmdbPreferencesAuthStore(dataStore)
+
+        store.saveSession(sessionId = "session-with-null-account", account = null)
+        assertEquals("session-with-null-account", store.currentSessionId())
+        store.clear()
+        store.clear()
+
+        store.saveSession(
+            sessionId = "session-with-blank-name",
+            account = AuthAccountModel(id = 7, username = "fixture-user", displayName = ""),
+        )
+        assertEquals("session-with-blank-name", store.currentSessionId())
+        store.clear()
+        assertNull(store.currentSessionId())
+    }
+
     private class TestPreferencesDataStore(
         initial: Preferences = emptyPreferences(),
     ) : DataStore<Preferences> {

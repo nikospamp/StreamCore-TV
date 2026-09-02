@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.auth
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -36,25 +37,25 @@ internal class TmdbPreferencesAuthStore(
         dataStore.edit { prefs ->
             prefs[Keys.SessionId] = sessionId
             if (account == null) {
-                prefs.remove(Keys.AccountId)
-                prefs.remove(Keys.AccountUsername)
-                prefs.remove(Keys.AccountDisplayName)
+                prefs.removeIfPresent(Keys.AccountId)
+                prefs.removeIfPresent(Keys.AccountUsername)
+                prefs.removeIfPresent(Keys.AccountDisplayName)
             } else {
                 prefs[Keys.AccountId] = account.id
                 prefs[Keys.AccountUsername] = account.username
-                account.displayName?.let { displayName ->
+                account.displayName?.takeIf { displayName -> displayName.isNotBlank() }?.let { displayName ->
                     prefs[Keys.AccountDisplayName] = displayName
-                } ?: prefs.remove(Keys.AccountDisplayName)
+                } ?: prefs.removeIfPresent(Keys.AccountDisplayName)
             }
         }
     }
 
     override suspend fun clear() {
         dataStore.edit { prefs ->
-            prefs.remove(Keys.SessionId)
-            prefs.remove(Keys.AccountId)
-            prefs.remove(Keys.AccountUsername)
-            prefs.remove(Keys.AccountDisplayName)
+            prefs.removeIfPresent(Keys.SessionId)
+            prefs.removeIfPresent(Keys.AccountId)
+            prefs.removeIfPresent(Keys.AccountUsername)
+            prefs.removeIfPresent(Keys.AccountDisplayName)
         }
     }
 
@@ -63,5 +64,11 @@ internal class TmdbPreferencesAuthStore(
         val AccountId = intPreferencesKey(TMDB_ACCOUNT_ID_KEY)
         val AccountUsername = stringPreferencesKey(TMDB_ACCOUNT_USERNAME_KEY)
         val AccountDisplayName = stringPreferencesKey(TMDB_ACCOUNT_DISPLAY_NAME_KEY)
+    }
+}
+
+private fun <T> MutablePreferences.removeIfPresent(key: Preferences.Key<T>) {
+    if (this[key] != null) {
+        remove(key)
     }
 }
