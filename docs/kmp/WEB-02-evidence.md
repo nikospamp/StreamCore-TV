@@ -123,6 +123,7 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | Focused native-login dev matrix | Pass; 6/6 across Chromium, Firefox, and WebKit at both viewports. Native Tab focus, password visibility state, Enter submission, punctuation-heavy field separation, exact intercepted JSON values, and navigation to Profiles were asserted. |
 | Post-native-form production browser matrix | Initial run 100/102 pass in 9.8 minutes. Every dedicated native-login, persistence, CRUD, runtime, and Chromium/Firefox case passed. The two broad WebKit journeys completed their route/persistence behavior but failed the terminal page-error assertion on hard-reload coroutine noise and an XML resource served without an explicit MIME. The test server now serves XML as `application/xml` with exact content length; the terminal assertion remains strict except for the two exact WebKit coroutine messages during the hard-reload realm transition, and avatar access noise is accepted only after a same-origin 200/full-body XML response plus the prior visual crop gate. The two corrected WebKit journeys passed 2/2. No full rerun or 102/102 claim is made because production assets were unchanged. |
 | `run-live-auth.ps1` local launcher | Offline pass: PowerShell parser reports zero syntax errors; mixed-case colon/equal synthetic files with punctuation produced all configured booleans plus exact child-environment match; duplicate aliases and blank values were rejected; real ignored files reported all required booleans true; Playwright `--list` discovered exactly one live smoke. No browser, server, test, or live request ran. |
+| Final authorized `run-live-auth.ps1` acceptance smoke | Pass once against wrapper commit `28d8fbf`; no retry. All preflight booleans were true. Token creation, credential validation, session creation, and account load completed with 2xx responses; Login loaded, Profiles was reached, persistence succeeded, and a hard reload restored the session. The temporary session was deleted with a 2xx response in `finally`. No credential, token, request body, session ID, or account data was printed, captured, or committed. |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
 | Combined `:app:compileTmdbDebugKotlin`, `:app:compileClientBDebugKotlin`, and root `check -PverifyDesignTokensLogFiles=true --continue --max-workers=1` | Pass; authenticated configuration preflight values redacted; 1,986 actionable tasks |
@@ -137,9 +138,9 @@ production test-mode flag.
 
 - Login and profile password-manager/autofill integration remains unproved and is not advertised. Native autocomplete hints are present; browser-
   specific autofill UI was not asserted.
-- The valid canonical credentials were proven through session/account creation, and the temporary live session was deleted successfully. A final
-  post-fix live login/persistence run still requires new explicit authorization. The opt-in smoke remains isolated from the mocked matrix and must
-  remain unclaimed until that authorized run completes and cleans up its session.
+- The final authorized live acceptance smoke passed once on `28d8fbf`: valid login reached Profiles, persisted across a hard reload, and deleted the
+  temporary session successfully. The opt-in smoke remains isolated from the mocked matrix and still requires explicit action-time authorization
+  for any future invocation.
 - TMDB's current profile repository is process-local provider behavior; WEB-02 persists and validates selected-profile identity, while provider-backed cross-process profile mutation persistence remains dependent on a real provider implementation.
 - WEB-01's WebKit synchronous image decoder remains in effect and retains its documented main-thread allocation cost; WEB-03 owns replacement/performance follow-up.
 - Runtime performance measurement was intentionally skipped at the user's request. Production webpack still reports its existing large-bundle
