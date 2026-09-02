@@ -109,11 +109,16 @@ session ID remains in test memory only and is deleted in `finally`; browser stor
 valid credentials through the process environment.
 
 `webApp/e2e/run-live-auth.ps1` is the local file-backed launcher. It accepts `-CredentialsPath` (or
-`STREAMCORE_TMDB_CREDENTIALS_FILE`) for an ignored properties file containing `tmdbUsername`/`tmdbPassword`, and `-LocalPropertiesPath` (or
+`STREAMCORE_TMDB_CREDENTIALS_FILE`) for an ignored properties file containing case-insensitive `username`/`identifier`/`email` and `password`
+keys (the `tmdb*` forms are also accepted), and `-LocalPropertiesPath` (or
 `STREAMCORE_LOCAL_PROPERTIES`) for the ignored Android `local.properties` containing `tmdbReadAccessToken`/`tmdbAccountId` and optional
-`tmdbBaseUrl`. The launcher parses files literally, prints configured/missing booleans only, removes inherited live variables, sets values only on
-the Playwright child process, and clears its in-memory maps/environment entries in `finally`. Use
+`tmdbBaseUrl`. Both `key=value` and `key: value` forms are parsed at the first separator; duplicate aliases and blank values are rejected. The
+launcher parses files literally, prints configured/missing booleans only, removes inherited live variables, invokes the local Playwright CLI with
+the resolved Node executable, sets values only on the child process, and clears its in-memory maps/environment entries in `finally`. Use
 `live-auth.credentials.example.properties` only as a key-name template and keep the real copy under the already ignored `docs/credentials/`.
+
+`-PreflightOnly` validates parsing and exact child-environment assignment without starting Node. `-ListOnly` invokes Playwright `--list` for offline
+configuration/test discovery without launching a browser, server, or test.
 
 An agent-triggered launcher invocation still requires explicit action-time credential authorization. A user running the wrapper manually in their
 own terminal needs no additional Codex approval.
