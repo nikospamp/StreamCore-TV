@@ -31,6 +31,7 @@ proved the following exact role/name queries in Chromium, Firefox, and WebKit at
 - `button`, `Add profile`;
 - `button`, `Edit Browser profile profile` and `Edit Browser profile edited profile` for the deterministic CRUD fixtures.
 - `button`, `Show password`, `Continue`, `Forgot password?`, `Create account`, and `Need help?` for login screenshot readiness.
+- `button`, `External link` for the diagnostic popup geometry/no-opener test.
 
 These projected nodes are discovery/geometry contracts, not ordinary hit-testable DOM controls. Playwright may use the exact role/name to wait for a
 unique semantic node, obtain and retain its bounding box, or clip a screenshot. User interaction must then be sent to the Compose canvas with
@@ -106,3 +107,13 @@ STREAMCORE_LIVE_TMDB_PASSWORD
 The live config disables trace, screenshots, and video. It never logs request bodies or puts credentials/tokens/session IDs in URLs. A created
 session ID remains in test memory only and is deleted in `finally`; browser storage is also cleared. Run it only when the user deliberately supplies
 valid credentials through the process environment.
+
+`webApp/e2e/run-live-auth.ps1` is the local file-backed launcher. It accepts `-CredentialsPath` (or
+`STREAMCORE_TMDB_CREDENTIALS_FILE`) for an ignored properties file containing `tmdbUsername`/`tmdbPassword`, and `-LocalPropertiesPath` (or
+`STREAMCORE_LOCAL_PROPERTIES`) for the ignored Android `local.properties` containing `tmdbReadAccessToken`/`tmdbAccountId` and optional
+`tmdbBaseUrl`. The launcher parses files literally, prints configured/missing booleans only, removes inherited live variables, sets values only on
+the Playwright child process, and clears its in-memory maps/environment entries in `finally`. Use
+`live-auth.credentials.example.properties` only as a key-name template and keep the real copy under the already ignored `docs/credentials/`.
+
+An agent-triggered launcher invocation still requires explicit action-time credential authorization. A user running the wrapper manually in their
+own terminal needs no additional Codex approval.

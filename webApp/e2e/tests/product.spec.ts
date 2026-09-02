@@ -7,6 +7,8 @@ const validConfig = {
 };
 const syntheticSessionId = `fixture-session-${"s".repeat(64)}`;
 const syntheticAccountUsername = `fixture-account-${"u".repeat(48)}`;
+const punctuationIdentifier = "fixture.user+tv@example.test";
+const punctuationPassword = "P@ss!#$%&()*+,-./:;<=>?@[\\]^_`{|}~";
 const loginActionLabels = [
   "Show password",
   "Continue",
@@ -55,7 +57,12 @@ test.beforeEach(async ({ page }) => {
 test("login, profile selection, persistence, history, keyboard and pointer contract", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const pageErrors: string[] = [];
-  const credentialInput = ["fixture", "credential"].join("-");
+  const credentialInput = punctuationPassword;
+  const assertCredentialPayload = await installCredentialPayloadAssertion(
+    page,
+    punctuationIdentifier,
+    credentialInput,
+  );
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/login");
@@ -74,19 +81,15 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   });
   expect(loginFrame.byteLength).toBeGreaterThan(20_000);
 
-  await page.mouse.move(220, 260);
-  await page.mouse.click(220, 260);
-  await page.keyboard.type("web-user");
-  await page.keyboard.press("Tab");
-  await page.keyboard.type(credentialInput);
-  await page.keyboard.press("Enter");
+  await typeCredentials(page, punctuationIdentifier, credentialInput);
 
   await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-product-route", "/profiles");
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
-  expect(page.url()).not.toContain("web-user");
+  assertCredentialPayload();
+  expect(page.url()).not.toContain(punctuationIdentifier);
   expect(page.url()).not.toContain(credentialInput);
   const firstProfile = page.getByRole("button", { name: "Select Nikos profile", exact: true });
   const firstProfileBounds = await semanticBounds(firstProfile);
@@ -162,15 +165,16 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
     });
   });
 
+  const assertCredentialPayload = await installCredentialPayloadAssertion(
+    page,
+    "fixture-user",
+    credentialInput,
+  );
   await page.goto("/login");
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
-  await page.mouse.click(220, 260);
-  await page.keyboard.type("fixture-user");
-  await page.keyboard.press("Tab");
-  await page.keyboard.type(credentialInput);
-  await page.keyboard.press("Enter");
+  await typeCredentials(page, "fixture-user", credentialInput);
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.locator("body")).toHaveAttribute("data-product-error-kind", "authentication");
@@ -179,6 +183,7 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
     "data-product-error-message",
     "Check your TMDB username and password, then try again.",
   );
+  assertCredentialPayload();
   expect(page.url()).not.toContain("fixture-user");
   expect(page.url()).not.toContain(credentialInput);
 });
@@ -330,19 +335,50 @@ test("profile create edit delete, editor arrows, modal trap and focused scrollin
 
 async function loginToProfiles(page: Page, identifier: string): Promise<void> {
   const credentialInput = [identifier, "credential"].join("-");
+  const assertCredentialPayload = await installCredentialPayloadAssertion(
+    page,
+    identifier,
+    credentialInput,
+  );
   await page.goto("/login");
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
-  await page.mouse.click(220, 260);
-  await page.keyboard.type(identifier);
-  await page.keyboard.press("Tab");
-  await page.keyboard.type(credentialInput);
-  await page.keyboard.press("Enter");
+  await typeCredentials(page, identifier, credentialInput);
   await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  assertCredentialPayload();
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
+}
+
+async function typeCredentials(page: Page, identifier: string, password: string): Promise<void> {
+  await page.keyboard.type(identifier, { delay: 35 });
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(500);
+  await page.keyboard.type(password, { delay: 35 });
+  await page.keyboard.press("Enter");
+}
+
+async function installCredentialPayloadAssertion(
+  page: Page,
+  identifier: string,
+  password: string,
+): Promise<() => void> {
+  let matchingRequests = 0;
+  await page.route("**/authentication/token/validate_with_login", async (route) => {
+    const payload = route.request().postDataJSON() as {
+      username?: unknown;
+      password?: unknown;
+      request_token?: unknown;
+    };
+    expect(payload.username).toBe(identifier);
+    expect(payload.password).toBe(password);
+    expect(payload.request_token).toBe("fixture-request");
+    matchingRequests += 1;
+    await route.fallback();
+  });
+  return () => expect(matchingRequests).toBe(1);
 }
 
 async function expireSession(page: Page): Promise<void> {

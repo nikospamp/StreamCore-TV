@@ -114,7 +114,8 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | `npm run test:live-auth` with all live variables explicitly absent | One test skipped; valid-credential smoke was not run and is not counted as pass |
 | Focused TMDB Android/Wasm plus `:webApp:wasmJsBrowserTest` after guarded-removal fix | Pass; null/blank display name, account-null, repeated clear, and absent selected-profile removal covered |
 | Focused production persistence scenarios after guarded-removal fix | Pass; 4/4 across Chromium and WebKit for WebLocalStorage and forced WebSessionStorage fallback |
-| Expanded 96-case Playwright matrix | Pending; started after focused passes and explicitly interrupted for the user's PC-shutdown pause; no pass claimed |
+| Expanded 96-case Playwright matrix | Initial run 95/96; all WEB-02 product/persistence cases passed. The inherited WebKit-1920 external-popup test missed an immediate fixed-coordinate click. Its Playwright-only driver now resolves semantic bounds, hover-settles, and sends a real canvas click; the single corrected case passed 1/1. Per fast-feedback protocol, the full matrix was not rerun and no 96/96 claim is made. |
+| `run-live-auth.ps1` local launcher | Added; PowerShell parser reports zero syntax errors. File-backed preflight reports booleans only and passes values to the isolated child process; no live invocation performed. |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
 | `.\gradlew.bat check -PverifyDesignTokensLogFiles=true --continue --max-workers=1 --console=plain` | Pass; 1,985 actionable tasks |
