@@ -138,7 +138,9 @@ internal class WebProductCoordinator(
     private suspend fun clearSelectedProfile() {
         selectedProfile = null
         authStore.edit { preferences ->
-            preferences.remove(SelectedProfileIdKey)
+            if (preferences[SelectedProfileIdKey] != null) {
+                preferences.remove(SelectedProfileIdKey)
+            }
         }
     }
 

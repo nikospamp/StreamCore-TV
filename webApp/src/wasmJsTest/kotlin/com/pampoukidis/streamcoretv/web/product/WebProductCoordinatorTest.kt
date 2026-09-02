@@ -63,6 +63,22 @@ class WebProductCoordinatorTest {
             fixture.close()
         }
     }
+
+    @Test
+    fun repeatedChangeProfileSafelyRemovesAbsentSelectionFromRealWebStore(): TestResult {
+        return runTest {
+            val fixture = coordinatorFixture()
+
+            fixture.coordinator.changeProfile()
+            fixture.coordinator.changeProfile()
+
+            val authStore = fixture.application.koin.get<DataStore<Preferences>>(
+                named(TMDB_AUTH_STORE_QUALIFIER),
+            )
+            assertNull(authStore.data.first()[stringPreferencesKey("web_selected_profile_id")])
+            fixture.close()
+        }
+    }
 }
 
 private fun coordinatorFixture(): CoordinatorFixture {
