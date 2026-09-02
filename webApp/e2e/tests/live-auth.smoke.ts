@@ -62,16 +62,13 @@ test("valid TMDB login reaches profiles and restores after reload", async ({ pag
     await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
       timeout: 30_000,
     });
-    await page.keyboard.type(liveConfig.username, { delay: 35 });
+    const identifierInput = page.getByTestId("login:identifier");
+    const passwordInput = page.getByTestId("login:password");
+    await identifierInput.focus();
+    await identifierInput.pressSequentially(liveConfig.username, { delay: 35 });
     await page.keyboard.press("Tab");
-    await expect.poll(async () => {
-      return page.evaluate(() => {
-        return document.activeElement instanceof HTMLInputElement &&
-          document.activeElement.value.length === 0;
-      });
-    }).toBe(true);
-    await page.waitForTimeout(500);
-    await page.keyboard.type(liveConfig.password, { delay: 35 });
+    await expect(passwordInput).toBeFocused();
+    await passwordInput.pressSequentially(liveConfig.password, { delay: 35 });
     await page.keyboard.press("Enter");
 
     await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });

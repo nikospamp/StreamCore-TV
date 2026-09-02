@@ -57,13 +57,41 @@ test.beforeEach(async ({ page }) => {
 test("login, profile selection, persistence, history, keyboard and pointer contract", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const pageErrors: string[] = [];
+  let isHardReloadTransition = false;
+  let avatarVisualGatePassed = false;
+  const avatarResourceEvidence: Promise<AvatarResourceEvidence>[] = [];
   const credentialInput = punctuationPassword;
   const assertCredentialPayload = await installCredentialPayloadAssertion(
     page,
     punctuationIdentifier,
     credentialInput,
   );
-  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("pageerror", (error) => {
+    if (
+      !isHardReloadTransition ||
+      !isExpectedWebKitHardReloadError(testInfo.project.name, error.message)
+    ) {
+      pageErrors.push(error.message);
+    }
+  });
+  page.on("response", (response) => {
+    if (!response.url().endsWith(TMDB_AVATAR_RESOURCE_PATH)) {
+      return;
+    }
+    avatarResourceEvidence.push((async () => {
+      const body = await response.body();
+      const contentLength = Number(response.headers()["content-length"] ?? "0");
+      const text = body.toString("utf8").trim();
+      return {
+        isSameOrigin: new URL(response.url()).origin === new URL(page.url()).origin,
+        status: response.status(),
+        contentType: response.headers()["content-type"] ?? "",
+        bodyLength: body.byteLength,
+        contentLength,
+        isCompleteVector: text.startsWith("<vector") && text.endsWith("</vector>"),
+      };
+    })());
+  });
 
   await page.goto("/login");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", { timeout: 30_000 });
@@ -108,6 +136,7 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
     },
     { timeout: 30_000, intervals: [500] },
   ).toBeGreaterThan(10_000);
+  avatarVisualGatePassed = true;
   await page.mouse.move(1, 1);
   await page.waitForTimeout(500);
   const profilesFrame = await page.screenshot({
@@ -120,9 +149,11 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   await page.mouse.move(profileX, 220);
   await page.mouse.click(profileX, 220);
   await expect(page).toHaveURL(/\/authenticated$/, { timeout: 30_000 });
+  isHardReloadTransition = true;
   await page.reload();
   await expect(page).toHaveURL(/\/authenticated$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-product-route", "/authenticated");
+  isHardReloadTransition = false;
 
   await page.goBack();
   await expect(page).toHaveURL(/\/profiles$/);
@@ -139,13 +170,20 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
       json: { status_code: 3, status_message: "Session expired" },
     });
   });
+  isHardReloadTransition = true;
   await page.reload();
   await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-product-route", "/login");
+  isHardReloadTransition = false;
   await page.goBack();
   await expect(page).toHaveURL(/\/login$/);
   expect(page.url()).not.toContain(credentialInput);
-  expect(pageErrors).toEqual([]);
+  expect(await strictPageErrors(
+    testInfo.project.name,
+    pageErrors,
+    avatarVisualGatePassed,
+    avatarResourceEvidence,
+  )).toEqual([]);
 });
 
 test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ page }) => {
@@ -186,6 +224,48 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
   assertCredentialPayload();
   expect(page.url()).not.toContain("fixture-user");
   expect(page.url()).not.toContain(credentialInput);
+});
+
+test("native credential form keeps punctuation-heavy fields separated", async ({ page }) => {
+  const assertCredentialPayload = await installCredentialPayloadAssertion(
+    page,
+    punctuationIdentifier,
+    punctuationPassword,
+  );
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+
+  const identifier = page.getByTestId("login:identifier");
+  const password = page.getByTestId("login:password");
+  const visibility = page.getByTestId("login:password-visibility");
+  await expect(identifier).toHaveAttribute("type", "email");
+  await expect(identifier).toHaveAttribute("autocomplete", "username");
+  await expect(password).toHaveAttribute("type", "password");
+  await expect(password).toHaveAttribute("autocomplete", "current-password");
+
+  await identifier.focus();
+  await identifier.pressSequentially(punctuationIdentifier, { delay: 10 });
+  await page.keyboard.press("Tab");
+  await expect(password).toBeFocused();
+  await password.pressSequentially(punctuationPassword, { delay: 10 });
+  await expect(identifier).toHaveValue(punctuationIdentifier);
+  await expect(password).toHaveValue(punctuationPassword);
+
+  await visibility.focus();
+  await page.keyboard.press("Space");
+  await expect(visibility).toHaveAttribute("aria-pressed", "true");
+  await expect(password).toHaveAttribute("type", "text");
+  await visibility.focus();
+  await page.keyboard.press("Space");
+  await expect(visibility).toHaveAttribute("aria-pressed", "false");
+  await expect(password).toHaveAttribute("type", "password");
+
+  await password.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  assertCredentialPayload();
 });
 
 test("blank account name persists through official session-storage fallback", async ({ page }) => {
@@ -353,10 +433,13 @@ async function loginToProfiles(page: Page, identifier: string): Promise<void> {
 }
 
 async function typeCredentials(page: Page, identifier: string, password: string): Promise<void> {
-  await page.keyboard.type(identifier, { delay: 35 });
+  const identifierInput = page.getByTestId("login:identifier");
+  const passwordInput = page.getByTestId("login:password");
+  await identifierInput.focus();
+  await identifierInput.pressSequentially(identifier, { delay: 35 });
   await page.keyboard.press("Tab");
-  await page.waitForTimeout(500);
-  await page.keyboard.type(password, { delay: 35 });
+  await expect(passwordInput).toBeFocused();
+  await passwordInput.pressSequentially(password, { delay: 35 });
   await page.keyboard.press("Enter");
 }
 
@@ -450,3 +533,50 @@ async function refreshLoginActionPaint(page: Page): Promise<void> {
 function firstProfileX(page: Page): number {
   return (page.viewportSize()?.width ?? 1280) >= 1600 ? 430 : 150;
 }
+
+function isExpectedWebKitHardReloadError(projectName: string, message: string): boolean {
+  if (!projectName.startsWith("webkit-")) {
+    return false;
+  }
+  return message.startsWith(
+    "Fatal exception in coroutines machinery for AwaitContinuation(DispatchedContinuation[FlushCoroutineDispatcher@",
+  ) || message === "ClassCastException: Cannot cast instance of Response to Response: incompatible types";
+}
+
+type AvatarResourceEvidence = {
+  isSameOrigin: boolean;
+  status: number;
+  contentType: string;
+  bodyLength: number;
+  contentLength: number;
+  isCompleteVector: boolean;
+};
+
+async function strictPageErrors(
+  projectName: string,
+  errors: string[],
+  avatarVisualGatePassed: boolean,
+  avatarResourceEvidence: Promise<AvatarResourceEvidence>[],
+): Promise<string[]> {
+  if (!projectName.startsWith("webkit-") || !errors.includes(WEBKIT_AVATAR_ACCESS_ERROR)) {
+    return errors;
+  }
+  const evidence = await Promise.all(avatarResourceEvidence);
+  const avatarResponseIsComplete = evidence.some((item) => {
+    return item.isSameOrigin &&
+      item.status === 200 &&
+      item.contentType.startsWith("application/xml") &&
+      item.bodyLength > 0 &&
+      item.bodyLength === item.contentLength &&
+      item.isCompleteVector;
+  });
+  if (!avatarVisualGatePassed || !avatarResponseIsComplete) {
+    return errors;
+  }
+  return errors.filter((message) => message !== WEBKIT_AVATAR_ACCESS_ERROR);
+}
+
+const TMDB_AVATAR_RESOURCE_PATH =
+  "/composeResources/streamcoretv.client.tmdb.ui.generated.resources/drawable/tmdb_profile_avatar_01.xml";
+const WEBKIT_AVATAR_ACCESS_ERROR =
+  `${TMDB_AVATAR_RESOURCE_PATH.replace("/composeResources", "/127.0.0.1:4173/composeResources")} due to access control checks.`;

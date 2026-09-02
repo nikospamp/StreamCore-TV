@@ -30,7 +30,7 @@ proved the following exact role/name queries in Chromium, Firefox, and WebKit at
 - `button`, `Edit Nikos profile`;
 - `button`, `Add profile`;
 - `button`, `Edit Browser profile profile` and `Edit Browser profile edited profile` for the deterministic CRUD fixtures.
-- `button`, `Show password`, `Continue`, `Forgot password?`, `Create account`, and `Need help?` for login screenshot readiness.
+- `button`, `Forgot password?`, `Create account`, and `Need help?` for login screenshot readiness.
 - `button`, `External link` for the diagnostic popup geometry/no-opener test.
 
 These projected nodes are discovery/geometry contracts, not ordinary hit-testable DOM controls. Playwright may use the exact role/name to wait for a
@@ -41,13 +41,15 @@ display name and asserts the corresponding state/route afterward.
 
 WEB-02 also proves these ordinary DOM contracts hosted explicitly through `HtmlElementView`:
 
+- `login:credentials-form`, `login:identifier`, `login:password`, `login:password-visibility`, and `login:submit`;
 - `profile-display-name`;
 - `profile-display-name-error` (visible alert text; referenced by `aria-errormessage` through its stable element ID);
 - `profile-editor-action-form`, `profile-editor-cancel`, `profile-editor-save`, and `profile-editor-delete`;
 - `profile-editor-delete-dialog`, `profile-editor-delete-cancel`, and `profile-editor-delete-confirm`.
 
 Those exact `data-testid` values may use ordinary Playwright DOM interaction. No other Compose `testTag` becomes a Playwright `data-testid` through
-this exception.
+this exception. The native login visibility and Continue buttons also expose their standard button roles and exact localized accessible names as
+ordinary DOM controls; unlike projected Compose nodes, Playwright may focus, click, or press them directly.
 
 Playwright may use only:
 
@@ -66,7 +68,8 @@ tokens, and session IDs must never be projected into them.
 
 Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for any other canvas-rendered Compose child unless a later,
 version-specific all-engine matrix proves the exact selector and updates this document. The WEB-02 role/name list must be revalidated when Compose
-Multiplatform or Playwright changes. Browser password-manager or autofill integration is not claimed for canvas fields.
+Multiplatform or Playwright changes. Browser password-manager or autofill integration is not claimed. The native login inputs expose standard
+autocomplete hints, but browser UI and stored-credential behavior remain outside the proven contract.
 
 ## Browser matrix and Windows Firefox handling
 
