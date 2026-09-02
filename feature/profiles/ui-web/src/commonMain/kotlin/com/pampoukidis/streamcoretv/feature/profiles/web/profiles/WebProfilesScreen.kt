@@ -3,12 +3,14 @@ package com.pampoukidis.streamcoretv.feature.profiles.web.profiles
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +47,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -106,13 +109,26 @@ fun WebProfilesScreen(
             }
             .testTag(ProfilesTestTags.Root),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-            modifier = Modifier.padding(
-                horizontal = StreamCoreWebDimens.ScreenHorizontal,
-                vertical = StreamCoreWebDimens.ScreenVertical,
-            ),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val wideLayout = maxWidth >= StreamCoreWebDimens.WideViewportThreshold
+            Column(
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+                modifier = Modifier
+                    .then(
+                        if (wideLayout) {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .widthIn(max = StreamCoreWebDimens.ProfilesContentMaxWidth)
+                                .fillMaxWidth()
+                        } else {
+                            Modifier.fillMaxWidth()
+                        },
+                    )
+                    .padding(
+                        horizontal = StreamCoreWebDimens.ScreenHorizontal,
+                        vertical = StreamCoreWebDimens.ScreenVertical,
+                    ),
+            ) {
             ProfilesHeader(
                 mode = state.mode,
                 hasProfiles = state.profiles.isNotEmpty(),
@@ -132,6 +148,7 @@ fun WebProfilesScreen(
                     onCreateProfile = onCreateProfile,
                     onEditProfile = onEditProfile,
                 )
+            }
             }
         }
     }
@@ -395,7 +412,10 @@ private fun WebAddProfileTile(
             selected = false,
             enabled = true,
             onClick = onClick,
-            modifier = modifier,
+            modifier = modifier.semantics {
+                role = Role.Button
+                contentDescription = "Add profile"
+            },
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -419,6 +439,11 @@ private fun ProfilesLoading() {
 
 @Composable
 private fun ProfilesError(onRetry: () -> Unit) {
+    val retryFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.withFrameNanos { }
+        retryFocus.requestFocus()
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
@@ -426,7 +451,11 @@ private fun ProfilesError(onRetry: () -> Unit) {
     ) {
         Text("Profiles are unavailable", style = MaterialTheme.typography.headlineMedium)
         Text("Check your connection and try again.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        StreamCoreWebButton(text = "Retry", onClick = onRetry)
+        StreamCoreWebButton(
+            text = "Retry",
+            onClick = onRetry,
+            modifier = Modifier.focusRequester(retryFocus),
+        )
     }
 }
 
@@ -524,6 +553,85 @@ private fun WebProfilesScreenPreview() {
     StreamCoreTheme(darkTheme = true) {
         WebProfilesScreen(
             state = ProfilesUiState(isLoading = false, profiles = ProfilesPreviewData.profiles),
+            onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebProfilesLoadingPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebProfilesScreen(
+            state = ProfilesUiState(isLoading = true),
+            onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebProfilesEmptyPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebProfilesScreen(
+            state = ProfilesUiState(isLoading = false),
+            onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebProfilesBackendErrorPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        WebProfilesScreen(
+            state = ProfilesUiState(isLoading = false, loadError = AppError.Network()),
+            onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebProfilesDeleteConfirmationPreview() {
+    val profile = ProfilesPreviewData.profiles.first { it.canDelete }
+    StreamCoreTheme(darkTheme = true) {
+        WebProfilesScreen(
+            state = ProfilesUiState(
+                isLoading = false,
+                profiles = ProfilesPreviewData.profiles,
+                mode = ProfilesMode.Manage,
+                pendingDeleteProfile = profile,
+            ),
+            onAction = {},
+            onCreateProfile = {},
+            onEditProfile = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 1280, heightDp = 720)
+@Composable
+private fun WebProfilesLongTextPreview() {
+    val longProfile = ProfilesPreviewData.profiles.first().copy(
+        displayName = "A very long localized subscriber profile name that must truncate safely",
+    )
+    StreamCoreTheme(darkTheme = true) {
+        WebProfilesScreen(
+            state = ProfilesUiState(isLoading = false, profiles = listOf(longProfile)),
             onAction = {},
             onCreateProfile = {},
             onEditProfile = {},

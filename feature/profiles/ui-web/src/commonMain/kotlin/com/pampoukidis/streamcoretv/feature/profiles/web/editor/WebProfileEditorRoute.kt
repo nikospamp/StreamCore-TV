@@ -15,7 +15,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WebProfileEditorRoute(
     mode: ProfileEditorMode,
     profileId: String?,
-    onFinished: () -> Unit,
+    onProfileChanged: () -> Unit,
+    onClose: () -> Unit,
     onError: (AppError) -> Unit,
     viewModel: ProfileEditorViewModel = koinViewModel(),
 ) {
@@ -27,8 +28,8 @@ fun WebProfileEditorRoute(
 
     ProfileEditorRouteEventEffect(
         viewModel = viewModel,
-        onProfileSaved = onFinished,
-        onClose = onFinished,
+        onProfileSaved = onProfileChanged,
+        onClose = onClose,
         onError = onError,
     )
 

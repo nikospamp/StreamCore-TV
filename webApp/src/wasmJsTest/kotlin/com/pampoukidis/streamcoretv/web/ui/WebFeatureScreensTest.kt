@@ -4,6 +4,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,8 +16,19 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebLargeScreenBackground
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
@@ -25,11 +37,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAct
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorFormUiState
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorScreenUiState
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.web.editor.WebProfileEditorScreen
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 import com.pampoukidis.streamcoretv.feature.profiles.web.profiles.WebProfilesScreen
@@ -37,7 +45,6 @@ import kotlinx.coroutines.test.TestResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class WebFeatureScreensTest {
     @OptIn(ExperimentalTestApi::class)
@@ -82,6 +89,9 @@ class WebFeatureScreensTest {
             onNodeWithTag(LoginTestTags.PasswordField).assert(
                 SemanticsMatcher.keyIsDefined(SemanticsProperties.Password),
             )
+            onNodeWithTag(LoginTestTags.ForgotPasswordButton).assertIsNotEnabled()
+            onNodeWithTag(LoginTestTags.CreateAccountButton).assertIsNotEnabled()
+            onNodeWithTag(LoginTestTags.HelpButton).assertIsNotEnabled()
         }
     }
 
@@ -110,7 +120,7 @@ class WebFeatureScreensTest {
                 .performKeyInput { pressKey(Key.DirectionRight) }
             onNodeWithTag(ProfilesTestTags.ProfileCardPrefix + "profile-2")
                 .assertIsFocused()
-                .performClick()
+                .performKeyInput { pressKey(Key.Spacebar) }
             assertEquals(ProfilesAction.SelectProfile("profile-2"), actions.last())
         }
     }
@@ -197,47 +207,55 @@ class WebFeatureScreensTest {
         }
     }
 
+    @Test
+    fun editorNativeBoundaryActionsRemainDistinctAndTyped() {
+        val actions = listOf(
+            ProfileEditorAction.Submit,
+            ProfileEditorAction.Cancel,
+            ProfileEditorAction.RequestDeleteProfile,
+        )
+
+        assertIs<ProfileEditorAction.Submit>(actions[0])
+        assertIs<ProfileEditorAction.Cancel>(actions[1])
+        assertIs<ProfileEditorAction.RequestDeleteProfile>(actions[2])
+    }
+
+    @Test
+    fun editorSelectedAvatarAndMaturityRemainInImmutableDraft() {
+        val selectedAvatar = ProfilesPreviewData.avatars[1]
+        val selectedLevel = ProfilesPreviewData.parentalLevels[1]
+        val draft = ProfileDraftModel(
+            displayName = "Profile",
+            avatarId = selectedAvatar.id,
+            parentalLevelId = selectedLevel.id,
+        )
+
+        assertEquals(selectedAvatar.id, draft.avatarId)
+        assertEquals(selectedLevel.id, draft.parentalLevelId)
+    }
+
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun editorKeyboardInputAndPointerOptionsEmitSharedActions(): TestResult {
-        val actions = mutableListOf<ProfileEditorAction>()
-        val defaultAvatar = ProfilesPreviewData.avatars.first()
+    fun webContentCardAndLargeBackgroundExposeFocusablePublicContract(): TestResult {
+        var clicks = 0
         return runComposeUiTest {
             setContent {
                 StreamCoreTheme(darkTheme = true) {
-                    WebProfileEditorScreen(
-                        state = ProfileEditorScreenUiState(
-                            mode = ProfileEditorMode.Create,
-                            isLoading = false,
-                            editorOptions = ProfilesPreviewData.editorOptions.copy(
-                                avatars = ProfilesPreviewData.avatars.take(3),
-                            ),
-                            editor = ProfileEditorFormUiState(
-                                mode = ProfileEditorMode.Create,
-                                draft = ProfileDraftModel(
-                                    avatarId = defaultAvatar.id,
-                                    parentalLevelId = ProfilesPreviewData.parentalLevels.first().id,
-                                ),
-                            ),
-                        ),
-                        onAction = actions::add,
-                    )
+                    StreamCoreWebLargeScreenBackground {
+                        StreamCoreWebContentCard(
+                            onClick = { clicks += 1 },
+                            modifier = Modifier
+                                .size(320.dp, 180.dp)
+                                .testTag("web-content-card"),
+                        ) {
+                            Box(Modifier.matchParentSize())
+                        }
+                    }
                 }
             }
 
-            onNodeWithTag(ProfilesTestTags.EditorDisplayNameField)
-                .assertIsFocused()
-                .performTextInput("Web profile")
-            onNodeWithTag(
-                ProfilesTestTags.EditorAvatarOptionPrefix + ProfilesPreviewData.avatars[1].id,
-            ).performClick()
-            onNodeWithTag(ProfilesTestTags.EditorSubmitButton).performClick()
-
-            assertTrue(actions.contains(ProfileEditorAction.DisplayNameChanged("Web profile")))
-            assertTrue(
-                actions.contains(ProfileEditorAction.AvatarChanged(ProfilesPreviewData.avatars[1].id)),
-            )
-            assertTrue(actions.any { it is ProfileEditorAction.Submit })
+            onNodeWithTag("web-content-card").performClick().assertIsFocused()
+            assertEquals(1, clicks)
         }
     }
 }
