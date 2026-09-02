@@ -140,6 +140,44 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   expect(pageErrors).toEqual([]);
 });
 
+test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ page }) => {
+  const credentialInput = ["fixture", "rejected", "credential"].join("-");
+  await page.route("**/authentication/token/validate_with_login", async (route) => {
+    await route.fulfill({
+      status: 401,
+      headers: {
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+      },
+      json: {
+        success: false,
+        status_code: 30,
+        status_message: "fixture rejection",
+      },
+    });
+  });
+
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+  await page.mouse.click(220, 260);
+  await page.keyboard.type("fixture-user");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type(credentialInput);
+  await page.keyboard.press("Enter");
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-kind", "authentication");
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-title", "Sign-in failed");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-product-error-message",
+    "Check your TMDB username and password, then try again.",
+  );
+  expect(page.url()).not.toContain("fixture-user");
+  expect(page.url()).not.toContain(credentialInput);
+});
+
 test("hover produces visible profile-card feedback", async ({ page }) => {
   await loginToProfiles(page, "hover-user");
   await activateSemanticButton(
