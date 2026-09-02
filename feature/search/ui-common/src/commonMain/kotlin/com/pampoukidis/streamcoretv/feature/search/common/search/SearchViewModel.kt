@@ -46,17 +46,7 @@ class SearchViewModel constructor(
     val effects: Flow<SearchEffect> = effectsChannel.receiveAsFlow()
 
     private val searchRequests = Channel<SearchRequest>(capacity = Channel.CONFLATED)
-    private val resultCache = object : LinkedHashMap<String, List<ContentModel>>(
-        MaxCachedQueries,
-        CacheLoadFactor,
-        true,
-    ) {
-        override fun removeEldestEntry(
-            eldest: MutableMap.MutableEntry<String, List<ContentModel>>?,
-        ): Boolean {
-            return size > MaxCachedQueries
-        }
-    }
+    private val resultCache = SearchResultCache(MaxCachedQueries)
 
     private var activeProfileId: String? = null
     private var recentSearchesJob: Job? = null
@@ -471,7 +461,30 @@ class SearchViewModel constructor(
         const val SkeletonDelayMillis = 150L
         const val MaxTrendingItems = 6
         const val MaxCachedQueries = 10
-        const val CacheLoadFactor = 0.75f
         const val TrendingRow = "search:trending"
+    }
+}
+
+private class SearchResultCache(
+    private val maximumSize: Int,
+) {
+    private val entries = linkedMapOf<String, List<ContentModel>>()
+
+    operator fun get(key: String): List<ContentModel>? {
+        val value = entries.remove(key) ?: return null
+        entries[key] = value
+        return value
+    }
+
+    operator fun set(key: String, value: List<ContentModel>) {
+        entries.remove(key)
+        entries[key] = value
+        if (entries.size > maximumSize) {
+            entries.remove(entries.keys.first())
+        }
+    }
+
+    fun clear() {
+        entries.clear()
     }
 }

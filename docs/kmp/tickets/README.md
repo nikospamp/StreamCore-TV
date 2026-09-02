@@ -24,7 +24,9 @@ Every ticket is intended to be executable in a fresh agent/task with no hidden d
 - Compose Multiplatform `1.12.0`.
 - Official `com.android.kotlin.multiplatform.library` plugin for KMP Android library targets.
 - Koin `4.2.2`, classic constructor DSL (`singleOf`, `factoryOf`, `viewModelOf`); no Koin compiler plugin or service-locator calls in business code.
-- `kotlinx-datetime` `0.8.0`, DataStore `1.2.1`, Ktor `3.5.0`, Coil `3.4.0` with `coil-network-ktor3`.
+- `kotlinx-datetime` `0.8.0`, DataStore `1.2.1` for common/Android, Ktor `3.5.0`, Coil `3.4.0` with `coil-network-ktor3`.
+  WEB-01 has one scoped Wasm exception: `datastore-core-okio:1.3.0-alpha08` in `wasmJsMain`, because official
+  `WebLocalStorage` / `WebSessionStorage` are not published by `1.2.1`; common and Android resolution stays on `1.2.1`.
 - Shaka Player `5.2.3` for the first web DASH player.
 - TMDB is the first web provider. ClientB must remain fully operational on Android but is out of scope for the first web release.
 - Web configuration is deployment-supplied and browser-visible through `/config.json`; no real token is committed or packaged.
@@ -39,8 +41,9 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. The dedicated KMP-07 acceptance documentation
-commit is identified in the ticket handoff. WEB-01 is dependency-unblocked but has not started in this task; no Wasm target exists yet.
+**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. WEB-01 is implemented on
+`codex/web-01-wasm-runtime` from accepted integration commit `d6f9396`; its verification evidence is in `docs/kmp/WEB-01-evidence.md`. WEB-02 must
+start only after the WEB-01 candidate is reviewed and integrated.
 
 WEB-03 may use several agents internally after WEB-02 freezes the shared web component APIs. Each agent must own disjoint feature modules; one
 integration owner owns `:webApp`, navigation, and shared web design-system changes.

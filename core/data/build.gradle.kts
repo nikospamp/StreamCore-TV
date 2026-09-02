@@ -5,6 +5,7 @@ plugins {
 
 streamCoreKmp {
     withHostTest()
+    withWasmJs()
 }
 
 kotlin {

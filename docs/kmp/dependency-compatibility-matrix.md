@@ -5,7 +5,9 @@ once with the official common metadata attributes and once with the official AGP
 non-transitive so each selected component/variant is attributable to one matrix row. Fourteen common selections produce 14 files; fourteen Android
 selections produce 12 files because published redirects may be fileless. Component and variant counts—not file count—are the gate.
 
-No `wasmJs` target is configured; WEB-01 owns the first Wasm resolution and link.
+WEB-01 resolves and compiles the exact 28-module TMDB Wasm graph. Android remains on the locked stable dependency set below. The only target-specific
+exception is `androidx.datastore:datastore-core-okio:1.3.0-alpha08` in `wasmJsMain`, because the locked `1.2.1` artifacts do not contain the required
+official `WebLocalStorage`/`WebSessionStorage` APIs.
 
 ## Locked versions and common/Android status
 
@@ -50,4 +52,5 @@ The official parent `.module` files publish the following `wasmJsApiElements-pub
 The npm registry publishes `shaka-player@5.2.3` with integrity
 `sha512-qIstmSOlCqNsRicCOA9FmwIwPxjsZ9qjfqDv2C/N57ECmw5grLoaYP4HU3PMf28t2pgY3pyQDAl64CmoWZIeBg==` and entry point
 `dist/shaka-player.compiled.js`. Its package metadata has no `module`, `type`, or `exports` field, so it does not advertise a native ESM entry.
-WEB-04 must use the compiled global-compatible distribution (or an explicitly validated wrapper) rather than assuming direct ESM import support.
+WEB-01 validates a committed ESM wrapper around the compiled distribution through `@JsModule`; WEB-04 must reuse that typed adapter rather than an
+untyped global script.

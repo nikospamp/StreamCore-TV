@@ -1,6 +1,6 @@
 # Gradle Module Dependency Graph
 
-Phase 1 Android/KMP graph at the KMP-07 parity candidate. The target architecture is backend-agnostic: app, core, feature, and playback contracts do not depend on provider DTOs or SDKs.
+Android/KMP plus WEB-01 graph. The target architecture is backend-agnostic: app, core, feature, and playback contracts do not depend on provider DTOs or SDKs.
 
 ```mermaid
 flowchart LR
@@ -14,6 +14,7 @@ flowchart LR
     Media3[":playback:media3\nAndroid-only"]
     Playback[":playback:api\nCompose KMP"]
     Benchmark[":benchmark / :baselineprofile\nAndroid test infrastructure"]
+    Web[":webApp\nWasm browser executable"]
 
     App --> PlatformUI
     PlatformUI --> CommonUI
@@ -29,6 +30,11 @@ flowchart LR
     Media3 --> Playback
     CommonUI --> Playback
     Benchmark --> App
+    Web --> CommonUI
+    Web --> FeatureDomain
+    Web --> Core
+    Web --> CoreUI
+    Web -->|TMDB only| Providers
 ```
 
 ## Module classes
@@ -41,8 +47,10 @@ flowchart LR
 | Compose KMP | `:core:ui`, every `:feature:*:ui-common`, provider UI, `:playback:api` | Portable state/ViewModels/resources/components in `commonMain`; Android-only TV/configuration APIs in `androidMain` |
 | Android engine | `:playback:media3`, `:core:tracing` | Media3 and Android tracing implementations |
 | Test infrastructure | `:benchmark`, `:benchmark:ui-driver`, `:baselineprofile` | TMDB-only Android benchmark/profile producers; generated profiles merge into app main |
+| Web executable | `:webApp` | Only browser/executable Wasm target; runtime config and web composition root |
 
-There is no `wasmJs` or web target in Phase 1. KMP status means Android-hosted common code only; browser support begins only when WEB-01 adds and verifies a Wasm target.
+WEB-01 adds library-only Wasm targets to the exact 28-module TMDB closure and makes `:webApp` the sole browser executable. ClientB, Android platform
+UI, Media3, Android tracing, benchmark, and baseline-profile modules remain outside the web graph.
 
 ## Application and provider composition
 
