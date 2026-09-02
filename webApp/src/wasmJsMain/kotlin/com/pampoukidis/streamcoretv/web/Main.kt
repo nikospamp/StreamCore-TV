@@ -10,7 +10,8 @@ import com.pampoukidis.streamcoretv.web.network.WebTmdbFetchProbe
 import com.pampoukidis.streamcoretv.web.network.WebTmdbFetchProbeResult
 import com.pampoukidis.streamcoretv.web.startup.WebStartup
 import com.pampoukidis.streamcoretv.web.startup.WebStartupState
-import com.pampoukidis.streamcoretv.web.ui.WebDiagnosticShell
+import com.pampoukidis.streamcoretv.web.ui.WebProductShell
+import com.pampoukidis.streamcoretv.web.navigation.WebRoute
 import kotlinx.browser.document
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -22,7 +23,7 @@ fun main() {
     val applicationScope = MainScope()
 
     ComposeViewport(document.body!!) {
-        WebDiagnosticShell(startupState)
+        WebProductShell(startupState)
     }
 
     applicationScope.launch {
@@ -41,13 +42,17 @@ fun main() {
                 "data-storage-mode",
                 if (readyState.useSessionStorage) "session" else "persistent",
             )
-            document.body?.setAttribute(
-                "data-network-probe",
-                when (val result = WebTmdbFetchProbe().run(readyState.graph)) {
-                    WebTmdbFetchProbeResult.Success -> "success"
-                    is WebTmdbFetchProbeResult.Failure -> result.code
-                },
-            )
+            if (readyState.navigationController.route.value is WebRoute.Diagnostic) {
+                document.body?.setAttribute(
+                    "data-network-probe",
+                    when (val result = WebTmdbFetchProbe().run(readyState.graph)) {
+                        WebTmdbFetchProbeResult.Success -> "success"
+                        is WebTmdbFetchProbeResult.Failure -> result.code
+                    },
+                )
+            } else {
+                document.body?.removeAttribute("data-network-probe")
+            }
         } else {
             document.body?.removeAttribute("data-storage-mode")
             document.body?.removeAttribute("data-network-probe")
