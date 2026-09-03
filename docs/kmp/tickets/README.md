@@ -35,18 +35,22 @@ Every ticket is intended to be executable in a fresh agent/task with no hidden d
 ## Required Merge Order
 
 ```text
-KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00G -> KMP-00H -> KMP-01 -> KMP-02 -> [KMP-03 || KMP-04] -> KMP-05 -> KMP-06 -> KMP-07 -> WEB-01 -> WEB-02 -> WEB-03 -> WEB-04
+KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00G -> KMP-00H -> KMP-01 -> KMP-02 -> [KMP-03 || KMP-04] -> KMP-05 -> KMP-06 -> KMP-07 -> WEB-01 -> WEB-02
+    -> WEB-03A -> [WEB-03B || WEB-03C || WEB-03D || WEB-03E] -> WEB-03F
+    -> WEB-04A(contract freeze) -> [WEB-04A(engine) || WEB-04B || WEB-04C] -> WEB-04D
 ```
 
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate:** Android/KMP Phase 1 is Accepted at the KMP-07 verified production commit `b8236b7`. WEB-01 is implemented on
-`codex/web-01-wasm-runtime` from accepted integration commit `d6f9396`; its verification evidence is in `docs/kmp/WEB-01-evidence.md`. WEB-02 must
-start only after the WEB-01 candidate is reviewed and integrated.
+**Current gate (2026-09-03): BLOCKED.** The accepted integration branch remains at the WEB-01 merge
+`2267306e5df827deded96addd91b6ec947e9f655`. WEB-02 review is blocked at candidate
+`8a391953ae3a77074b1d97428de32cba14a1c760` pending localized corrections; WEB-02 is unmerged. Its recorded live evidence does not constitute
+independent review or merge acceptance. No WEB-03 implementation branch may be created until the corrections are reviewed, WEB-02 is accepted and
+merged, and the root records that accepted 40-character commit as WEB-03A's immutable base.
 
-WEB-03 may use several agents internally after WEB-02 freezes the shared web component APIs. Each agent must own disjoint feature modules; one
-integration owner owns `:webApp`, navigation, and shared web design-system changes.
+WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
+concurrent feature owners while the root orchestrator remains active.
 
 ## Ticket Index
 
@@ -69,8 +73,18 @@ integration owner owns `:webApp`, navigation, and shared web design-system chang
 | [KMP-07](KMP-07-android-parity-gate.md)          | Accepted Android parity and Phase 1 release gate              | KMP-06                 | No                               |
 | [WEB-01](WEB-01-wasm-runtime.md)                 | Wasm runtime and platform adapters                            | KMP-07                 | No                               |
 | [WEB-02](WEB-02-login-and-profiles.md)           | Web login and profile flows                                   | WEB-01                 | No                               |
-| [WEB-03](WEB-03-browse-surfaces.md)              | Web browse milestone                                          | WEB-02                 | Per feature, with one integrator |
-| [WEB-04](WEB-04-playback-and-release.md)         | Web playback and production artifact                          | WEB-03                 | No                               |
+| [WEB-03](WEB-03-browse-surfaces.md)              | Non-executable browse milestone index                         | WEB-02                 | See WEB-03A through WEB-03F      |
+| [WEB-03A](WEB-03A-contracts-and-shell.md)         | Browse contracts, module shells, navigation and chrome        | Accepted WEB-02 merge  | Integration owner only           |
+| [WEB-03B](WEB-03B-home.md)                       | Web Home surface                                              | WEB-03A freeze         | Feature-local                    |
+| [WEB-03C](WEB-03C-search.md)                     | Web Search surface and native input                           | WEB-03A freeze         | Feature-local                    |
+| [WEB-03D](WEB-03D-library.md)                    | Web Library surface                                           | WEB-03A freeze         | Feature-local                    |
+| [WEB-03E](WEB-03E-details.md)                    | Web Details surface                                           | WEB-03A freeze         | Feature-local                    |
+| [WEB-03F](WEB-03F-integration-gate.md)           | Browse integration, candidate and final live gate             | WEB-03B through E      | Integration owner only           |
+| [WEB-04](WEB-04-playback-and-release.md)         | Non-executable playback/release milestone index               | WEB-03F                | See WEB-04A through WEB-04D      |
+| [WEB-04A](WEB-04A-contract-and-engine.md)         | Playback contract freeze and browser engine                   | WEB-03F                | Owns playback contract/engine    |
+| [WEB-04B](WEB-04B-player-ui.md)                  | Web player UI against the frozen fake session                 | WEB-04A freeze         | Feature-local                    |
+| [WEB-04C](WEB-04C-release-and-test.md)            | Release fixtures, tests and deployment contract               | WEB-04A freeze         | Test/docs only                   |
+| [WEB-04D](WEB-04D-final-integration.md)           | Playback integration and release acceptance                   | WEB-04A through C      | Integration owner only           |
 
 ## Execution Protocol
 
@@ -87,6 +101,55 @@ integration owner owns `:webApp`, navigation, and shared web design-system chang
 9. Merge into `codex/kmp-migration` only after the ticket's acceptance gate passes. The last accepted integration commit is the rollback point; a blocking ticket remains unmerged and is revised rather than partially landing.
 10. If KMP-07 finds a blocking regression, stop Phase 2. Keep the last green integration commit, document the regression, and fix the owning Phase 1 ticket before rerunning KMP-07.
 11. Finish with a clean working tree after the ticket commit and provide the handoff information below.
+
+## Web Orchestration Contract
+
+- The root orchestrator owns dependency decisions, immutable base SHAs, branch/worktree creation, path reservations, integration, merge order,
+  evidence classification, build queue, and status updates. It keeps one of four agent slots active; no more than three feature owners run at once.
+- Every dispatch states one immutable 40-character base SHA, owned paths, forbidden paths, expected API, focused verification, and evidence required.
+  A symbolic or unavailable base blocks implementation; agents never branch from an unreviewed candidate.
+- Feature owners change only reserved paths and do not resolve cross-module conflicts. One integration owner exclusively controls `:webApp`, web
+  navigation, root/settings/build files, and shared `:core:ui-web` contracts unless a ticket explicitly reserves a narrower test/docs subtree.
+- Reviewers are read-only and return findings with file/line evidence. A reviewer does not edit, merge, run credentials, or turn a focused rerun into
+  a complete-pass claim. Production code freezes before architecture, backend-boundary, lifecycle/leak, accessibility, and security review.
+- The root consumes completion events promptly, verifies diffs and focused evidence, and merges only reviewed commits in the ticket's declared wave.
+  WEB-03 merges B→C→D→E. WEB-04 establishes a contract-freeze checkpoint, then final integration merges A→B→C.
+- Gradle, webpack/dev-server, Playwright-server, browser test, and Binaryen/distribution jobs are serialized through one build queue against shared
+  caches. Parallelism is for reasoning, read-only review, and disjoint file edits—not concurrent build processes.
+- Core, domain, playback API, and feature UI remain backend-agnostic. Provider DTOs, SDKs, responses, client-specific models, and direct TMDB calls
+  stay outside these boundaries.
+
+## Web Fast-Feedback Tiers
+
+1. **Tier 0 — setup (target ≤5 minutes):** verify base and status, reserve paths, define the smallest acceptance journey, and name the first
+   provider/platform boundary.
+2. **Tier 1 — iteration (target ≤15 minutes):** run development Wasm, focused unit/Compose tests, and at most one Chromium 1280×720 journey. After
+   two failed hypotheses or 15 minutes, stop and assign a specialist. Do not run Binaryen, the full browser matrix, or root `check`.
+3. **Early live proof:** only when a smallest provider/network/persistence vertical slice cannot be proved by existing accepted evidence, run one
+   redacted smoke and return to mocks. WEB-03/04 do not use live credentials during feature iteration.
+4. **Tier 2 — review:** freeze production code and complete read-only architecture, boundary, lifecycle/leak, accessibility, and security reviews.
+5. **Tier 3 — candidate:** the integration owner runs one production/Binaryen distribution, one complete three-browser/two-viewport matrix, and one
+   combined Android/root regression gate. Any production change creates a new candidate and returns to focused verification.
+6. **Test-only correction:** rerun only affected cases and report the original matrix plus focused rerun separately.
+7. **Final live proof:** only after all non-live gates are ready, run the ticket's single redacted provider journey and mandatory cleanup. Never read,
+   print, copy, commit, or screenshot credentials; use the ignored wrapper defined by WEB-02 and obtain action-time approval when Codex would transmit.
+
+## Web Evidence Taxonomy
+
+Every result is one of `planned`, `observed-pass`, `observed-fail`, `blocked`, or `not-run`. Record the exact command, commit, build kind
+(`development` or `production/Binaryen`), browser and viewport, executed/passed/failed/skipped counts, focused versus complete scope, and artifact
+path where applicable.
+
+- **Focused evidence:** module compile/test or one targeted browser scenario. It proves only the named scope.
+- **Review evidence:** read-only findings tied to exact files/lines and the reviewed commit. No findings is not a build/test result.
+- **Candidate evidence:** serialized production distribution, complete browser/viewport matrix, and combined Android/root gate on one frozen commit.
+- **Visual evidence:** named screenshots plus recorded human inspection of hierarchy, clipping, focus, and long text. File existence is not visual
+  approval, and automated screenshot capture is not design acceptance.
+- **Live evidence:** redacted provider journey, wrapper exit/result, and cleanup outcome. It never reveals secret, session, account, or credential data.
+- **Correction evidence:** original failure plus focused rerun after a test-only change. It must not be reported as an unexecuted complete pass.
+
+Use checkpoint updates in this exact form: **Observed:** verified fact. **Hypothesis:** current explanation. **Next falsifier:** cheapest decisive test.
+**Stop/escalate:** explicit condition.
 
 The repository currently has no `.github/workflows` CI. Until CI is explicitly introduced, every gate is local and its command output/test counts must be retained in the ticket handoff. KMP-00 records the physical/emulated device owners used for release verification.
 
