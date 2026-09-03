@@ -79,7 +79,7 @@ remains backend-agnostic.
   targeted product cases. The listener probe, server confinement, hidden-controls keyboard path, fullscreen focus, and Details return-focus deltas
   each received a bounded P0/P1 re-review PASS.
 - Failure screenshots were inspected: the fullscreen control and Details Play action visibly retained the Compose focus ring where DOM focus
-  assertions failed. Final Candidate 3 visual acceptance remains pending.
+  assertions failed. Final Candidate 4 visual acceptance remains pending.
 
 Focused tests do not constitute the production candidate or six-project release matrix. A production source change after a development run is not
 silently promoted by an affected rerun.
@@ -105,13 +105,28 @@ silently promoted by an affected rerun.
   separate exact contracts; unknown, duplicate-signature, over-cap, wrong-source, wrong-phase, and other-browser diagnostics still fail.
 - The final affected rerun **PASS**: 4/4 in 30.6s. This is focused pre-freeze correction evidence only; it does not replace Candidate 2's failed
   183/3/0 matrix and is not a Candidate 3 complete-matrix result.
-- Candidate 2 remains failed; the bounded correction is not a replacement full-matrix pass. Candidate 3 is pending freeze and must rerun production
-  distribution, artifact validation, and the complete 186-test matrix.
+- Candidate 2 remains failed; the bounded correction is not a replacement full-matrix pass. Candidate 3 subsequently froze and executed the
+  production gates recorded below.
+
+## Candidate 3 and bounded expiry-only correction
+
+- Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; the candidate was frozen before execution.
+- Production/Binaryen distribution re-invocation **PASS** in 1s with 340 actionable tasks (59 executed, 281 up-to-date).
+- Artifact validator **PASS**: 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
+- The complete six-project matrix executed all 186 registrations with zero skips in 21.8m and **failed**: 185 passed / 1 failed / 0 skipped.
+  All 60 player registrations passed. The sole failure was the legacy product journey in WebKit 1280 retaining one terminal exact
+  `JsException: The I/O read operation failed.` during its explicitly tagged `expiry` phase after every behavioral assertion passed.
+- The correction is strict and test-only: product diagnostics may consume this exact WebKit + `JsException` + I/O-read signature once in the
+  `expiry` phase only. Non-WebKit, restoration/null/other phases, different source/name/message, and a second expiry occurrence remain fatal.
+- The affected legacy product journey then passed 2/2 across WebKit 1280 and 1920 in 34.5s; bounded test-integrity and release delta reviews both
+  returned `PASS`. This focused result is only pre-freeze evidence.
+- Candidate 3 remains failed; 185/186 is not a pass and the one-case correction is not a replacement full matrix. Candidate 4 is pending freeze and
+  must rerun production distribution, artifact validation, and all 186 registrations.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, and security/release/E2E** after the
-  bounded corrections recorded below; no review blocker remains open before Candidate 3 freeze.
+  bounded corrections recorded below; no review blocker remains open before Candidate 4 freeze.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -120,10 +135,12 @@ silently promoted by an affected rerun.
   production-video removal assertions were delta-reviewed `PASS`.
 - Failed frozen candidate: `ace71461c4914716509e1488a311110d7a20844d`; it is not eligible for acceptance.
 - Failed Candidate 2: `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`; 183/186 passed with 3 terminal-diagnostic failures and zero skips.
-- Candidate 3: `NOT YET CREATED` after the bounded test-only correction.
-- Production/Binaryen distribution and artifact validator: candidates 1 and 2 `PASS`; Candidate 3 `NOT RUN`.
-- Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `NOT RUN`.
-- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 3 visual set `NOT RUN`.
+- Failed Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; 185/186 passed with 1 terminal expiry diagnostic and zero skips.
+- Candidate 4: `NOT YET CREATED` after the strict expiry-only test correction.
+- Production/Binaryen distribution and artifact validator: candidates 1, 2, and 3 `PASS`; Candidate 4 `NOT RUN`.
+- Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
+  `NOT RUN`.
+- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 visual set `NOT RUN`.
 - Android/root compatibility gate: `NOT RUN` on a frozen WEB-04D commit.
 - Manual current Safari/macOS: `NOT RUN`; Playwright WebKit cannot substitute.
 - Final live TMDB/public-media journey and temporary-session cleanup: `NOT RUN`; it requires new action-time authorization immediately before
