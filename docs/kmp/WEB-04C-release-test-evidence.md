@@ -4,10 +4,12 @@
 
 - Ticket: `WEB-04C`
 - Immutable contract-freeze base: `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`
-- Implementation status: WEB-04C test/release input merged into WEB-04D; integration verification remains **PENDING**
-- A/B production integration: merged inputs present; integrated candidate validation remains **PENDING**
-- Production artifact validation: **NOT RUN**; the expected production output was absent during read-only inspection
-- WEB-04C standalone Playwright scenarios: **NOT RUN**; WEB-04D development Chromium integration is recorded separately below
+- Implementation status: WEB-04C test/release input merged into WEB-04D; isolated WEB-04C execution remains **NOT RUN**
+- A/B production integration: merged inputs present; integrated Candidate 1 `ace71461c4914716509e1488a311110d7a20844d` was executed and **FAILED** its
+  complete matrix
+- Production artifact validation: isolated WEB-04C **NOT RUN**; integrated Candidate 1 production/Binaryen artifact and validator **PASS**
+- WEB-04C standalone Playwright scenarios: **NOT RUN**; integrated Candidate 1 executed all 186 six-project registrations and **FAILED** with
+  144 passed / 42 failed / 0 skipped
 - Current Safari/macOS: **NOT RUN**
 - Live TMDB or public-media journey: **NOT RUN**
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
@@ -27,8 +29,10 @@ generated distribution, browser binary, node-module, or screenshot file was chan
 - No build, npm, Playwright, browser, Gradle, media, or credential command was run on the isolated WEB-04C branch; integrated WEB-04D observations
   are explicitly separated below and in `WEB-04D-evidence.md`.
 - `node --check webApp/e2e/server.mjs` and `node --check webApp/e2e/validate-release-artifact.mjs` passed; `git diff --check` passed.
+- On integrated Candidate 1, production/Binaryen distribution and artifact validation passed. The subsequent complete six-project matrix executed
+  186 registrations and failed with 144 passed / 42 failed / 0 skipped, so Candidate 1 is not an accepted release candidate.
 
-These observations are not runtime passes.
+The isolated WEB-04C observations are not runtime passes; integrated Candidate 1 results are labeled explicitly.
 
 ## Prepared deliverables
 
@@ -49,7 +53,8 @@ These observations are not runtime passes.
 
 WEB-04D removed the pre-integration skip guard after supplying the synthetic harness. All ten scenarios are now mandatory in the default suite,
 so plain `npx playwright test` registers 60 player project-tests and cannot succeed by skipping them. The exact projection is proved in one
-development Chromium project; the frozen production six-project matrix remains not run.
+development Chromium project. The complete matrix remained **NOT RUN on isolated WEB-04C**; integrated Candidate 1 later executed the production
+matrix and failed 144/42/0 as recorded above.
 
 The planned interactions use exact role/name projection plus settled semantic bounds for Compose controls; they never call DOM `click()` on a
 projected Compose node and never use fixed coordinates. The video uses the native `[data-testid="player:video"]` contract. Readiness and assertions
@@ -71,7 +76,7 @@ WEB-04D must reconcile these assumptions against accepted WEB-04A/B rather than 
   `Playback position <position> of 2:00`; it is not claimed as an HTML `slider` role.
 - Non-sensitive fixture state uses `data-player-phase`, `data-player-playing`, `data-player-activation-required`, `data-player-error-code`,
   `data-player-error-message`, `data-player-prepare-count`, `data-player-position-ms`, `data-player-speed`, `data-player-video-track`,
-  `data-player-audio-track`, `data-player-text-track`, `data-player-fullscreen`, `data-player-focused-action`, `data-player-layer`,
+  `data-player-audio-track`, `data-player-text-track`, `data-player-fullscreen`, `data-player-layer`,
   `data-player-filmstrip-count`, and `data-player-canvas-capture-count`.
 - Cleanup counters remain inspectable on the diagnostic details route through `data-player-active-sessions`, `data-player-active-listeners`,
   `data-player-active-timers`, and `data-player-close-count`; they contain counts only and reset at browser-context start. Listener balance is
@@ -105,8 +110,9 @@ npm run validate:release
 npx playwright test
 ```
 
-All build/install/validation/test commands are **NOT RUN** for the isolated WEB-04C input. The final integrated matrix must report exact
-passed/failed/skipped counts; any player fixture skip prevents a full WEB-04 player acceptance claim.
+All build/install/validation/test commands are **NOT RUN** for the isolated WEB-04C input. Integrated Candidate 1 separately passed its locked
+install, production distribution, and artifact validator, then failed the complete matrix at 144 passed / 42 failed / 0 skipped. A replacement
+candidate must rerun the complete matrix; focused corrections cannot replace that result.
 
 ### Deployment contract
 
@@ -118,17 +124,19 @@ vendor and contains no deploy credential.
 
 - Read-only security/release review: **PASS after one bounded correction**. The initial review blocked raw-token scanning, script-root confinement,
   invalid-ID proof, and profile-isolated resume; a delta-only re-review confirmed all four findings closed and introduced no new scope.
-- TypeScript/Playwright discovery: **NOT RUN**
-- Release validator against a frozen production artifact: **NOT RUN**
+- TypeScript/Playwright discovery: isolated WEB-04C **NOT RUN**; integrated default discovery **PASS**, 186 registrations in three files
+- Release validator against a frozen production artifact: isolated WEB-04C **NOT RUN**; integrated Candidate 1 **PASS**
 - Chromium 1280 development fixture journey: **PASS on the integrated development artifact** — final clean run 10/10 in 57.2s, zero skips;
   earlier bounded runs exposed and retained evidence for module-resource packaging, `HtmlElementView` pointer interception, document Escape, and
   shadow-root focus restoration before the clean rerun.
-- Six-project production matrix: **NOT RUN**
-- Screenshot inspection: **NOT RUN**; no screenshots were created by WEB-04C
+- Six-project production matrix: isolated WEB-04C **NOT RUN**; integrated Candidate 1 **FAIL**, 144 passed / 42 failed / 0 skipped
+- Screenshot inspection: isolated WEB-04C **NOT RUN**; Candidate 1 failure screenshots were inspected during WEB-04D correction triage, while the
+  replacement-candidate visual set remains **NOT RUN**
 - Current Safari/macOS checklist: **NOT RUN**; Playwright WebKit must not substitute for it
 - Final redacted live TMDB/public-media journey and cleanup: **NOT RUN**
 
-WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Artifact validation against the frozen integrated distribution, the complete
-six-project matrix, screenshots, current Safari/macOS, and live provider/media gates remain explicitly NOT RUN here. WEB-04D reconciled A/B
-fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input status alone is a
-release pass claim.
+WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidate 1 passed artifact
+validation but failed the complete matrix at 144/42/0; bounded correction reruns do not replace that failure. Replacement-candidate distribution,
+artifact validation, complete matrix, visual set, current Safari/macOS, and live provider/media gates remain explicitly NOT RUN. WEB-04D reconciled
+A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input or focused-rerun
+status is a release pass claim.

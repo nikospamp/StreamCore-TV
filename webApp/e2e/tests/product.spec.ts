@@ -812,17 +812,22 @@ test("browse routes preserve focus, library mutations, reload and logout", async
     page.getByRole("button", { name: "Play", exact: true }),
   );
   await expectProductRoute(page, "/player/603");
-  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(1);
-  await page.keyboard.press("Escape");
+  await activateSemanticButton(
+    page,
+    page.getByRole("button", { name: "Back", exact: true }),
+  );
   await expectProductRoute(page, "/details/603");
-  const returnedPlay = page.getByRole("button", { name: "Play", exact: true });
-  await expect(returnedPlay).toBeFocused();
+  await settleCanvasPaint(page, 1);
   await page.keyboard.press("Space");
   await expectProductRoute(page, "/player/603");
   await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expectProductRoute(page, "/details/603");
-  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeFocused();
+  await settleCanvasPaint(page, 1);
+  await page.keyboard.press("Space");
+  await expectProductRoute(page, "/player/603");
+  await page.keyboard.press("Escape");
+  await expectProductRoute(page, "/details/603");
 
   errorMonitor.setReloadPhase("restoration");
   await page.reload();

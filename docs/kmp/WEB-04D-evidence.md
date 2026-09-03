@@ -27,8 +27,8 @@ remains backend-agnostic.
 - The obsolete WEB-01 Shaka probe, global fallback, direct WebApp npm dependency, and adapter resource are removed. The WebApp packages the
   dependency-owned `shaka-playback-adapter.mjs` and `web-player-fullscreen.mjs` sources without duplicating their committed source of truth.
 - The native video and its generated `HtmlElementView` host are pointer-transparent. Compose controls remain sibling semantics, the hidden-controls
-  root remains focusable without becoming a parent button, document Escape dispatches exactly one layer, and fullscreen exit restores the current
-  projected control across the Compose open shadow root.
+  root remains focusable without becoming a parent button, document Escape dispatches exactly one layer, and Compose focus restoration is proved
+  by Space reactivating the returned fullscreen/Details action; DOM `activeElement` projection is not treated as the focus oracle.
 - Diagnostic fixtures use the real shared `PlayerViewModel` and real profile-isolated browser progress repository with a synthetic source and
   route-isolated fake session. No provider DTO, SDK type, account value, credential, or media URL enters the fixture graph.
 - Listener cleanup evidence comes from an actual diagnostic-only `EventTarget` registration/removal balance for relevant document and tagged-video
@@ -56,21 +56,49 @@ remains backend-agnostic.
 | Affected fullscreen focus rerun | PASS 1/1 |
 | Final clean Chromium 1280 development fixture before the later hidden-root focusability correction | PASS 10/10 in 57.2s, zero skips |
 
+## Candidate 1 and correction evidence
+
+- Candidate 1: `ace71461c4914716509e1488a311110d7a20844d`; the worktree was clean before execution.
+- Focused candidate steps passed: playback Wasm compile in 5s (12 actionable), player UI Wasm compile in 4s (39 actionable), shared player Android
+  host tests 15/15 in 20s, and WebApp browser tests 65/65 in 1m10s (342 actionable).
+- Production/Binaryen distribution passed in 3m56s with 344 actionable tasks (65 executed, 279 up-to-date): approximately 1.31 MiB JS, 6.14 MiB
+  app Wasm, and 8.24 MiB Skiko Wasm.
+- Locked install passed (3 packages installed, 4 audited, 0 vulnerabilities). Artifact validation passed with 1 HTML, 1 JS, 2 Wasm, 51 Compose
+  assets, placeholder config only, and no real config.
+- The first complete production matrix executed all 186 registrations with zero skips in 6.6m and **failed**: 144 passed / 42 failed.
+  Classification retained from the full output/artifacts: 29 player cases completed behavior and failed only terminal diagnostics, 6 fullscreen
+  cases used unreliable cross-engine DOM-focus projection, 6 product cases queried a not-yet-projected Details node despite visible focus, and 1
+  WebKit legacy reload case exceeded its existing warning count under eight-worker contention.
+- Correction scope is explicit: default browser workers are now 1; focus is asserted behaviorally; the fixture waits for its history-seed Wasm
+  route before navigating; only exact project/source/phase/count-bounded WebKit teardown and Firefox fallback diagnostics are accepted. Unknown,
+  standalone network, out-of-phase, or over-count diagnostics still fail.
+- Focused correction observations, not a replacement full-matrix claim: fullscreen behavior 6/6; Firefox/WebKit 1280 player sample 18/20 followed
+  by passing affected WebKit resume and Escape cases; Details return behavior 2/2 in Chromium/WebKit; isolated WebKit 1920 legacy reload 1/1.
+- Latest focused module results remain engine 19/19, player UI 14/14, and WebApp 65/65. Behavioral focus corrections removed the projected-DOM
+  focus oracle: Space re-entered fullscreen in all six browser/viewport projects, and Space re-entered Player from returned Details focus in the
+  targeted product cases. The listener probe, server confinement, hidden-controls keyboard path, fullscreen focus, and Details return-focus deltas
+  each received a bounded P0/P1 re-review PASS.
+- Failure screenshots were inspected: the fullscreen control and Details Play action visibly retained the Compose focus ring where DOM focus
+  assertions failed. Final replacement-candidate visual acceptance remains pending.
+
 Focused tests do not constitute the production candidate or six-project release matrix. A production source change after a development run is not
 silently promoted by an affected rerun.
 
 ## Review and release gates
 
+- Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, and security/release/E2E** after the
+  bounded corrections recorded below; no review blocker remains open before Candidate 2 freeze.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
 - Capped security/release/E2E review: initial `BLOCK` on default-skipped player registrations, stale live placeholder behavior,
   malformed/sibling-prefix server paths, application-wide Shaka fallback scanning, and mixed observed/not-run wording. All bounded corrections plus
   production-video removal assertions were delta-reviewed `PASS`.
-- Frozen integrated production commit: `NOT YET CREATED`.
-- Production/Binaryen distribution and artifact validator: `NOT RUN` on a frozen WEB-04D commit.
-- Complete Chromium/Firefox/WebKit matrix: `NOT RUN` on a frozen WEB-04D commit.
-- Player screenshot inspection: `NOT RUN` on a frozen WEB-04D commit.
+- Failed frozen candidate: `ace71461c4914716509e1488a311110d7a20844d`; it is not eligible for acceptance.
+- Replacement frozen candidate: `NOT YET CREATED` after the bounded correction.
+- Production/Binaryen distribution and artifact validator: candidate 1 `PASS`; replacement candidate `NOT RUN`.
+- Complete Chromium/Firefox/WebKit matrix: candidate 1 `FAIL` (144/186); replacement candidate `NOT RUN`.
+- Player screenshot inspection: correction screenshots inspected for focus evidence; replacement-candidate visual set `NOT RUN`.
 - Android/root compatibility gate: `NOT RUN` on a frozen WEB-04D commit.
 - Manual current Safari/macOS: `NOT RUN`; Playwright WebKit cannot substitute.
 - Final live TMDB/public-media journey and temporary-session cleanup: `NOT RUN`; it requires new action-time authorization immediately before

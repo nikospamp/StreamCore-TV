@@ -25,11 +25,7 @@ internal actual fun rememberWebPlayerFullscreenController(): WebPlayerFullscreen
 
     DisposableEffect(controller) {
         val listener: (Event) -> Unit = {
-            val wasFullscreen = fullscreenState.value
             fullscreenState.value = WebPlayerFullscreenInterop.isFullscreen()
-            if (wasFullscreen && !fullscreenState.value) {
-                WebPlayerFullscreenInterop.focusProjectedElement(WebPlayerTestTags.Fullscreen)
-            }
         }
         document.addEventListener(FullscreenChangeEvent, listener)
         onDispose {
@@ -103,7 +99,6 @@ private external object WebPlayerFullscreenInterop {
     fun isDocumentVisible(): Boolean
     fun toggleFullscreen()
     fun exitFullscreen()
-    fun focusProjectedElement(elementId: String)
 }
 
 private const val FullscreenChangeEvent = "fullscreenchange"
