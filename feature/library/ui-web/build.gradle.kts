@@ -8,6 +8,10 @@ streamCoreKmp {
 }
 
 kotlin {
+    targets.withType<com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget>().configureEach {
+        androidResources.enable = true
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.data)

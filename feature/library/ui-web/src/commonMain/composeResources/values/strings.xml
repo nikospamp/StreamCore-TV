@@ -1,0 +1,16 @@
+<resources>
+    <string name="web_library_title">Library</string>
+    <string name="web_library_subtitle">Continue where you left off and revisit your saved stories.</string>
+    <string name="web_library_refresh">Refresh</string>
+    <string name="web_library_refreshing">Refreshing</string>
+    <string name="web_library_offline_title">You’re offline</string>
+    <string name="web_library_error_title">Library unavailable</string>
+    <string name="web_library_error_message">Saved items remain visible when available. Retry to sync the latest changes.</string>
+    <string name="web_library_retry">Retry</string>
+    <string name="web_library_continue_watching">Continue Watching</string>
+    <string name="web_library_continue_watching_empty">Start watching something and it will appear here.</string>
+    <string name="web_library_liked">Liked</string>
+    <string name="web_library_liked_empty">Stories you like will be collected here.</string>
+    <string name="web_library_my_list">My List</string>
+    <string name="web_library_my_list_empty">Save something for later to build your list.</string>
+</resources>
