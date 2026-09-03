@@ -43,12 +43,11 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-03): WEB-03 ACCEPTED; WEB-04A contract freeze is ready.** WEB-02 and WEB-03A are accepted, WEB-03B through WEB-03E were
-reviewed and merged in the required order, and WEB-03F passed its backend-agnostic integration, production/Binaryen, browser, visual, Android/root,
-and final redacted live-cleanup gates. WEB-03A's immutable feature base was `4cb1bb45c2df6b230a9121bf365d96ee39259139`, merged into
-`codex/kmp-migration` at `60cb62768ef00caf81691f34b89b267790d2899c`; B–E correctly branched from that feature base. The accepted WEB-03F branch commit
-is `a81f509a7d8402f90ef5f8b5fe9dd4767e1fb346`, and the root handoff publishes this integration merge as WEB-04A's immutable base. WEB-04B and
-WEB-04C remain blocked until WEB-04A's provider-neutral playback contract-freeze checkpoint is reviewed and its exact 40-character commit is published.
+**Current gate (2026-09-03): WEB-04 parallel implementation wave is open.** WEB-03 is accepted and merged at
+`f9e13558b3fc1c68db89ba9715932e8db80813ae`. WEB-04A's provider-neutral playback contract freeze is reviewed at
+`28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`: the playback API remains unchanged and backend-agnostic, one session is reused per PlayerViewModel,
+and source/engine error copy is sanitized. WEB-04A engine, WEB-04B UI, and WEB-04C test/release work may proceed in parallel from exactly that
+checkpoint. WEB-04D remains blocked until all three reviewed inputs are accepted.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.
