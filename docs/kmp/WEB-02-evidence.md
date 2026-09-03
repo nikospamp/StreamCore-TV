@@ -158,7 +158,7 @@ All commands were run from the WEB-02 worktree unless a subdirectory is shown.
 | Tier-3 complete production matrix: `npx playwright test` | Pass; 114/114 in 3.4 minutes with zero failures/skips across all six engine/viewport projects. The live-auth config was not used. |
 | Tier-3 visual inspection | Pass. All 12 regenerated login/profile frames were opened and inspected. Content, artwork, native fields, focus geometry, and enabled Continue state were complete without clipping or sensitive values at both viewports in all engines; profile layout remained stable. This is a hierarchy/input-language acceptance, not renderer pixel equality. |
 | Tier-3 combined Android/root gate: `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin check -PverifyDesignTokensLogFiles=true -PstreamcoreLocalPropertiesPath=<primary ignored local.properties> --continue --max-workers=1 --console=plain` | Pass in 50 seconds; 1,985 actionable tasks (88 executed, 1,897 up-to-date). The primary ignored configuration path was used; no value was printed and no external provider request ran. |
-| Strengthened final live smoke | **Not run.** The attempted process launch was rejected before execution because explicit action-time authorization to transmit the ignored credentials to TMDB was not present. No credential file was read by the runner, no server/browser started, and no live request/session was created. |
+| Strengthened final live smoke | Pass once after explicit action-time authorization: 1/1 in 7.6 seconds (6.5 seconds test). All configured booleans and the exact child-environment check were true. The smoke enforced 2xx responses for request-token creation, credential validation, session creation, and configured-account details; reached Profiles; restored Profiles after hard reload; and confirmed temporary-session deletion through a 2xx JSON response with `success: true` in `finally`. Browser storage was cleared. No credential, token, request body, request URL, session ID, or account data was printed, captured, screenshotted, or committed. The earlier rejected launch started no process and transmitted nothing. |
 | `.\gradlew.bat :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin` | Pass; 355 actionable tasks |
 | `.\gradlew.bat verifyDesignTokensLogFiles --console=plain` | Pass; 324 production files checked, zero violations |
 | Combined `:app:compileTmdbDebugKotlin`, `:app:compileClientBDebugKotlin`, and root `check -PverifyDesignTokensLogFiles=true --continue --max-workers=1` | Pass; authenticated configuration preflight values redacted; 1,986 actionable tasks |
@@ -171,7 +171,7 @@ production test-mode flag.
 
 The rows above are an evidence ledger, not a cumulative current pass. Changes after each scoped run supersede that run for current-tree
 acceptance. The non-live Tier-3 candidate at `d3c7df7` passed its production/Binaryen, 114-case browser matrix, visual inspection, and combined
-Android/root gates. The strengthened live gate remains **not run**, so WEB-02 is not yet accepted or merge-authorized.
+Android/root gates. The strengthened final live smoke then passed once with confirmed cleanup. WEB-02 is accepted for integration.
 
 ### Queued falsifiers
 
@@ -188,8 +188,8 @@ Android/root gates. The strengthened live gate remains **not run**, so WEB-02 is
 
 - Login and profile password-manager/autofill integration remains unproved and is not advertised. Native autocomplete hints are present; browser-
   specific autofill UI was not asserted.
-- The historical authorized live acceptance smoke passed once on `28d8fbf` within the narrower assertions documented above. The new exact
-  four-endpoint 2xx assertion remains unrun with live credentials. The opt-in smoke remains isolated from the mocked matrix and still requires
+- The historical authorized live acceptance smoke passed once on `28d8fbf` within the narrower assertions documented above. The strengthened
+  four-endpoint smoke also passed once after the final non-live gates. The opt-in smoke remains isolated from the mocked matrix and still requires
   explicit action-time authorization for any future invocation.
 - TMDB profile CRUD is account-scoped local browser persistence across reloads. WEB-02 does not remotely synchronize those profiles with TMDB or
   another provider; remote profile synchronization remains dependent on a future provider implementation.
