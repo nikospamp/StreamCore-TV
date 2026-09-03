@@ -35,7 +35,8 @@ internal fun DetailsUiState.webDetailsDisplayState(
     contentId: String,
     initialContent: ContentModel?,
 ): DetailsUiState {
-    val routeState = if (content == null || content.id == contentId) {
+    val currentContent = content
+    val routeState = if (currentContent == null || currentContent.id == contentId) {
         this
     } else {
         DetailsUiState(isLoading = true)
