@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "test:live-auth": "playwright test --config playwright.live.config.ts"
+    "test:live-auth": "playwright test --config playwright.live.config.ts",
+    "test:player": "playwright test tests/player.spec.ts",
+    "validate:release": "node validate-release-artifact.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1"
