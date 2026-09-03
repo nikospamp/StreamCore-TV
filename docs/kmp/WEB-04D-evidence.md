@@ -79,15 +79,39 @@ remains backend-agnostic.
   targeted product cases. The listener probe, server confinement, hidden-controls keyboard path, fullscreen focus, and Details return-focus deltas
   each received a bounded P0/P1 re-review PASS.
 - Failure screenshots were inspected: the fullscreen control and Details Play action visibly retained the Compose focus ring where DOM focus
-  assertions failed. Final replacement-candidate visual acceptance remains pending.
+  assertions failed. Final Candidate 3 visual acceptance remains pending.
 
 Focused tests do not constitute the production candidate or six-project release matrix. A production source change after a development run is not
 silently promoted by an affected rerun.
 
+## Candidate 2 and bounded test-only correction
+
+- Candidate 2: `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`; the production candidate was frozen before execution.
+- Production/Binaryen distribution **PASS** in 3m49s with 340 actionable tasks (64 executed, 276 up-to-date).
+- Locked install **PASS**: 3 packages installed, 4 audited, 0 vulnerabilities.
+- Artifact validator **PASS**: 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
+- The complete six-project matrix executed all 186 registrations with zero skips in 21.7m and **failed**: 183 passed / 3 failed / 0 skipped.
+  All behavioral assertions passed. The three failed project-tests were terminal WebKit diagnostics comprising two exact hard-reload coroutine
+  teardown occurrences across the two viewports, one same-epoch player-exit blob-access plus I/O pair, and one diagnostic-seed `web-probe.png`
+  fetch abort.
+- The post-candidate correction is test-only and bounded to those observed diagnostics: exact project/source/phase/epoch/count matching remains
+  mandatory, and the diagnostic history seed must finish its existing image probe before navigating. It does not broaden suppression to unknown,
+  product-media, general configuration/network, out-of-phase, or over-count failures.
+- The first affected four-case rerun passed 3/4 after all four behaviors completed; the remaining failure exposed one exact WebKit hard-reload
+  Compose-resource access teardown diagnostic. The second affected four-case rerun again passed 3/4 after behavior completed and exposed one exact
+  WebKit hard-reload I/O teardown diagnostic.
+- The classifier was then consolidated to exact WebKit + `pageerror` + `hard-reload` signatures, per-signature uniqueness, and a total cap of two
+  accepted diagnostics per phase epoch. The already bounded same-epoch player-exit teardown pair and diagnostic-seed image readiness remain
+  separate exact contracts; unknown, duplicate-signature, over-cap, wrong-source, wrong-phase, and other-browser diagnostics still fail.
+- The final affected rerun **PASS**: 4/4 in 30.6s. This is focused pre-freeze correction evidence only; it does not replace Candidate 2's failed
+  183/3/0 matrix and is not a Candidate 3 complete-matrix result.
+- Candidate 2 remains failed; the bounded correction is not a replacement full-matrix pass. Candidate 3 is pending freeze and must rerun production
+  distribution, artifact validation, and the complete 186-test matrix.
+
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, and security/release/E2E** after the
-  bounded corrections recorded below; no review blocker remains open before Candidate 2 freeze.
+  bounded corrections recorded below; no review blocker remains open before Candidate 3 freeze.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -95,10 +119,11 @@ silently promoted by an affected rerun.
   malformed/sibling-prefix server paths, application-wide Shaka fallback scanning, and mixed observed/not-run wording. All bounded corrections plus
   production-video removal assertions were delta-reviewed `PASS`.
 - Failed frozen candidate: `ace71461c4914716509e1488a311110d7a20844d`; it is not eligible for acceptance.
-- Replacement frozen candidate: `NOT YET CREATED` after the bounded correction.
-- Production/Binaryen distribution and artifact validator: candidate 1 `PASS`; replacement candidate `NOT RUN`.
-- Complete Chromium/Firefox/WebKit matrix: candidate 1 `FAIL` (144/186); replacement candidate `NOT RUN`.
-- Player screenshot inspection: correction screenshots inspected for focus evidence; replacement-candidate visual set `NOT RUN`.
+- Failed Candidate 2: `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`; 183/186 passed with 3 terminal-diagnostic failures and zero skips.
+- Candidate 3: `NOT YET CREATED` after the bounded test-only correction.
+- Production/Binaryen distribution and artifact validator: candidates 1 and 2 `PASS`; Candidate 3 `NOT RUN`.
+- Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `NOT RUN`.
+- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 3 visual set `NOT RUN`.
 - Android/root compatibility gate: `NOT RUN` on a frozen WEB-04D commit.
 - Manual current Safari/macOS: `NOT RUN`; Playwright WebKit cannot substitute.
 - Final live TMDB/public-media journey and temporary-session cleanup: `NOT RUN`; it requires new action-time authorization immediately before
