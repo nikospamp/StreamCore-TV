@@ -66,21 +66,21 @@ import com.pampoukidis.streamcoretv.feature.library.common.testing.LibraryTestTa
 import com.pampoukidis.streamcoretv.feature.library.web.testing.WebLibraryFixtures
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import streamcoretv.feature.library.uiweb.generated.resources.Res
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_continue_watching
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_continue_watching_empty
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_error_message
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_error_title
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_liked
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_liked_empty
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_my_list
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_my_list_empty
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_offline_title
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_refresh
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_refreshing
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_retry
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_subtitle
-import streamcoretv.feature.library.uiweb.generated.resources.web_library_title
+import streamcoretv.feature.library.ui_web.generated.resources.Res
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_continue_watching
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_continue_watching_empty
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_error_message
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_error_title
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_liked
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_liked_empty
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_my_list
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_my_list_empty
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_offline_title
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_refresh
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_refreshing
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_retry
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_subtitle
+import streamcoretv.feature.library.ui_web.generated.resources.web_library_title
 
 @Composable
 fun WebLibraryScreen(
