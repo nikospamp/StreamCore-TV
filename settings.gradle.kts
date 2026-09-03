@@ -119,6 +119,7 @@ include(":feature:library:ui-web")
 // Playback
 include(":playback:api")
 include(":playback:media3")
+include(":playback:web")
 include(":feature:player:data")
 include(":feature:player:domain")
 include(":feature:player:ui-common")
