@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 4 pending freeze.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 4 non-live green; external gates blocked.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -58,9 +58,12 @@ hard-reload coroutine teardown occurrences across viewports, one same-epoch play
 `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1` passed its production distribution re-invocation and artifact validator, then failed the complete
 21.8m matrix with 185 passed / 1 failed / 0 skipped. All 60 player registrations passed; the sole failure was the legacy product WebKit-1280
 journey retaining one terminal exact `JsException` I/O-read diagnostic during its tagged expiry phase after behavior passed. Candidate 3 is not
-eligible for acceptance. Its strict one-time expiry-only test correction does not replace the failed matrix. Candidate 4 is not yet frozen; its
-production/Binaryen artifact, artifact validator, complete 186-test six-project matrix, Android/root gate, inspected visuals, manual current
-Safari/macOS, and final authorized live journey remain required before WEB-04 acceptance. The target architecture remains backend-agnostic.
+eligible for acceptance. Its strict one-time expiry-only test correction does not replace the failed matrix. Candidate 4
+`dc066a26effde71eabfc66ca590f37ea976805f7` is the first complete non-live green candidate: production/Binaryen distribution and validator passed,
+the full matrix passed 186/186 with every project at 31/31 and zero failures/skips/retries, player/product/runtime passed 60/60, 66/66, and 60/60,
+final production controls/settings visuals passed at 1280×720 and 1920×1080 with no P0/P1 finding, and the combined Android/root gate passed.
+WEB-04 acceptance remains blocked by manual current Safari/macOS and the final authorized live journey with mandatory cleanup; both are NOT RUN.
+The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.
