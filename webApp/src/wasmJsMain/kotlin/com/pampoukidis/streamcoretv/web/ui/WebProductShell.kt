@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,10 +47,13 @@ import com.pampoukidis.streamcoretv.web.product.WebProductCoordinator
 import com.pampoukidis.streamcoretv.web.product.WebProductInitialization
 import com.pampoukidis.streamcoretv.web.startup.WebStartupState
 import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.KoinIsolatedContext
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 import streamcoretv.core.ui.generated.resources.Res
 
 @Composable
@@ -244,12 +248,24 @@ private fun WebErrorDialog(
     onDismiss: () -> Unit,
 ) {
     val presentation = mapper.map(error)
+    val errorKind = error.webErrorKind()
     val title = stringResource(presentation.title)
     val message = stringResource(presentation.message)
-    DisposableEffect(title, message) {
+    val currentOnDismiss = rememberUpdatedState(onDismiss)
+    DisposableEffect(errorKind, title, message, presentation.dismissible) {
+        val escapeListener: (Event) -> Unit = { event ->
+            val keyboardEvent = event as? KeyboardEvent
+            if (presentation.dismissible && keyboardEvent?.key == "Escape") {
+                keyboardEvent.preventDefault()
+                currentOnDismiss.value()
+            }
+        }
+        document.body?.setAttribute("data-product-error-kind", errorKind)
         document.body?.setAttribute("data-product-error-title", title)
         document.body?.setAttribute("data-product-error-message", message)
+        window.addEventListener("keydown", escapeListener)
         onDispose {
+            window.removeEventListener("keydown", escapeListener)
             document.body?.removeAttribute("data-product-error-kind")
             document.body?.removeAttribute("data-product-error-title")
             document.body?.removeAttribute("data-product-error-message")

@@ -51,12 +51,18 @@ Those exact `data-testid` values may use ordinary Playwright DOM interaction. No
 this exception. The native login visibility and Continue buttons also expose their standard button roles and exact localized accessible names as
 ordinary DOM controls; unlike projected Compose nodes, Playwright may focus, click, or press them directly.
 
+Native login and profile-editor text inputs use the browser's Tab order. Left/Right must retain normal caret and selection semantics while those
+inputs own focus; arrow-key focus movement is asserted only for non-text Compose rows and native action/dialog controls.
+
 Playwright may use only:
 
 - explicit web-shell DOM contracts such as `body[data-runtime-state]` and `body[data-image-probe]`;
 - explicit attributes on content intentionally hosted through `HtmlElementView`;
 - the browser URL/history, storage, request/response interception, popups, screenshots, and page errors;
 - fixed-viewport keyboard and pointer input against the Compose surface when a node-level selector is unavailable.
+
+WEB-02 profile create/edit/delete assertions cover account-scoped browser DataStore persistence across reload and isolation between configured
+accounts. They do not claim that profile mutations synchronize to TMDB or another remote provider.
 
 The diagnostic shell also exposes host-level `body[data-storage-mode]` and `body[data-network-probe]` state. These are explicit WEB-01 contracts,
 not inferred Compose DOM projection. Playwright uses them to prove official DataStore fallback and backend-agnostic TMDB error mapping after its
@@ -107,9 +113,11 @@ STREAMCORE_LIVE_TMDB_USERNAME
 STREAMCORE_LIVE_TMDB_PASSWORD
 ```
 
-The live config disables trace, screenshots, and video. It never logs request bodies or puts credentials/tokens/session IDs in URLs. A created
-session ID remains in test memory only and is deleted in `finally`; browser storage is also cleared. Run it only when the user deliberately supplies
-valid credentials through the process environment.
+The live config disables trace, screenshots, and video. It never logs request bodies, request URLs, or configuration values. Credentials and
+request/read-access tokens are never placed in URLs. Production calls that TMDB defines as session-authenticated do use the required `session_id`
+query parameter; the runner observes only redacted endpoint labels/status classes and never prints that URL or value. A created session ID remains in
+test memory only and is deleted in `finally`; nested cleanup clears browser local/session storage even if the remote deletion request or assertion
+fails. Run it only when the user deliberately supplies valid credentials through the process environment.
 
 `webApp/e2e/run-live-auth.ps1` is the local file-backed launcher. It accepts `-CredentialsPath` (or
 `STREAMCORE_TMDB_CREDENTIALS_FILE`) for an ignored properties file containing case-insensitive `username`/`identifier`/`email` and `password`

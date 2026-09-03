@@ -8,6 +8,12 @@ type LiveTmdbConfig = {
   password: string;
 };
 
+type AuthEndpoint =
+  | "request-token"
+  | "validate-login"
+  | "create-session"
+  | "account-details";
+
 const liveConfig = readLiveConfig();
 
 test("valid TMDB login reaches profiles and restores after reload", async ({ page }) => {
@@ -19,6 +25,16 @@ test("valid TMDB login reaches profiles and restores after reload", async ({ pag
 
   let sessionId: string | null = null;
   let credentialPayloadMatched = false;
+  const authResponseStatuses = new Map<AuthEndpoint, number[]>();
+  page.on("response", (response) => {
+    const endpoint = identifyAuthEndpoint(response.url(), liveConfig);
+    if (endpoint === null) {
+      return;
+    }
+    const statuses = authResponseStatuses.get(endpoint) ?? [];
+    statuses.push(response.status());
+    authResponseStatuses.set(endpoint, statuses);
+  });
   await page.route("**/authentication/token/validate_with_login", async (route) => {
     const payload = route.request().postDataJSON() as {
       username?: unknown;
@@ -74,27 +90,40 @@ test("valid TMDB login reaches profiles and restores after reload", async ({ pag
     await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
     expect(credentialPayloadMatched).toBe(true);
     await expect(page.locator("body")).toHaveAttribute("data-product-route", "/profiles");
+    assertSuccessfulAuthResponses(authResponseStatuses);
     await page.reload();
     await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
     await expect(page.locator("body")).toHaveAttribute("data-product-route", "/profiles");
     expect(sessionId).not.toBeNull();
   } finally {
-    if (sessionId !== null) {
-      const cleanupUrl = new URL("3/authentication/session", ensureTrailingSlash(liveConfig.baseUrl));
-      const cleanup = await page.request.delete(cleanupUrl.toString(), {
-        headers: {
-          accept: "application/json",
-          authorization: `Bearer ${liveConfig.readAccessToken}`,
-          "content-type": "application/json",
-        },
-        data: { session_id: sessionId },
+    try {
+      if (sessionId !== null) {
+        const cleanupUrl = new URL("3/authentication/session", ensureTrailingSlash(liveConfig.baseUrl));
+        let cleanupConfirmed = false;
+        try {
+          const cleanup = await page.request.delete(cleanupUrl.toString(), {
+            headers: {
+              accept: "application/json",
+              authorization: `Bearer ${liveConfig.readAccessToken}`,
+              "content-type": "application/json",
+            },
+            data: { session_id: sessionId },
+          });
+          const payload = await cleanup.json() as { success?: unknown };
+          cleanupConfirmed = cleanup.ok() && payload.success === true;
+        } catch {
+          cleanupConfirmed = false;
+        }
+        if (!cleanupConfirmed) {
+          throw new Error("Temporary-session cleanup was not confirmed.");
+        }
+      }
+    } finally {
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
       });
-      expect(cleanup.ok()).toBe(true);
     }
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
   }
 });
 
@@ -114,4 +143,41 @@ function readLiveConfig(): LiveTmdbConfig | null {
 
 function ensureTrailingSlash(value: string): string {
   return value.endsWith("/") ? value : `${value}/`;
+}
+
+function identifyAuthEndpoint(urlValue: string, config: LiveTmdbConfig): AuthEndpoint | null {
+  const actualUrl = new URL(urlValue);
+  const apiBaseUrl = new URL("3/", ensureTrailingSlash(config.baseUrl));
+  if (actualUrl.origin !== apiBaseUrl.origin) {
+    return null;
+  }
+  const expectedPaths = new Map<AuthEndpoint, string>([
+    ["request-token", new URL("authentication/token/new", apiBaseUrl).pathname],
+    ["validate-login", new URL("authentication/token/validate_with_login", apiBaseUrl).pathname],
+    ["create-session", new URL("authentication/session/new", apiBaseUrl).pathname],
+    ["account-details", new URL(`account/${config.accountId}`, apiBaseUrl).pathname],
+  ]);
+  for (const [endpoint, pathname] of expectedPaths) {
+    if (actualUrl.pathname === pathname) {
+      return endpoint;
+    }
+  }
+  return null;
+}
+
+function assertSuccessfulAuthResponses(statuses: Map<AuthEndpoint, number[]>): void {
+  const endpoints: AuthEndpoint[] = [
+    "request-token",
+    "validate-login",
+    "create-session",
+    "account-details",
+  ];
+  for (const endpoint of endpoints) {
+    const observedStatuses = statuses.get(endpoint) ?? [];
+    expect(observedStatuses.length, `${endpoint} response was not observed.`).toBeGreaterThan(0);
+    expect(
+      observedStatuses.every((status) => status >= 200 && status < 300),
+      `${endpoint} returned a non-2xx status.`,
+    ).toBe(true);
+  }
 }

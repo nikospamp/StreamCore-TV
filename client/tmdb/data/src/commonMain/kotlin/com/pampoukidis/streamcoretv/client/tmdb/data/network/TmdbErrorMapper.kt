@@ -69,15 +69,15 @@ internal class TmdbErrorMapper constructor() {
         )
 
         return when {
-            operation == LOGIN_OPERATION && httpCode in 400..499 -> {
+            httpCode == 408 -> AppError.Timeout(source = errorSource)
+            httpCode == 429 -> AppError.Server(source = errorSource)
+            httpCode in 500..599 -> AppError.Server(source = errorSource)
+            operation == LOGIN_OPERATION && (httpCode == 401 || httpCode == 403) -> {
                 AppError.Authentication(source = errorSource)
             }
             httpCode == 401 || httpCode == 403 -> {
                 AppError.Unauthorized(source = errorSource)
             }
-            httpCode == 408 -> AppError.Timeout(source = errorSource)
-            httpCode == 429 -> AppError.Server(source = errorSource)
-            httpCode in 500..599 -> AppError.Server(source = errorSource)
             else -> AppError.Unknown(source = errorSource)
         }
     }

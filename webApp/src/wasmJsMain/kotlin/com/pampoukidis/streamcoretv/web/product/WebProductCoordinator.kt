@@ -4,6 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.pampoukidis.streamcoretv.client.tmdb.data.auth.clearTmdbAuthSessionPreferences
+import com.pampoukidis.streamcoretv.client.tmdb.data.config.TmdbRuntimeConfig
 import com.pampoukidis.streamcoretv.client.tmdb.data.di.TMDB_AUTH_STORE_QUALIFIER
 import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
 import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
@@ -11,32 +13,67 @@ import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.web.navigation.WebNavigationController
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import org.koin.core.Koin
 import org.koin.core.qualifier.named
 
 internal class WebProductCoordinator(
-    private val koin: Koin,
+    private val authenticateRepository: AuthenticateRepository,
+    private val profileRepository: ProfileRepository,
+    private val authStore: DataStore<Preferences>,
+    accountId: String,
     private val navigation: WebNavigationController,
 ) {
-    private val authenticateRepository = koin.get<AuthenticateRepository>()
-    private val profileRepository = koin.get<ProfileRepository>()
-    private val authStore = koin.get<DataStore<Preferences>>(named(TMDB_AUTH_STORE_QUALIFIER))
+    private val selectedProfileIdKey = selectedProfileIdKey(accountId)
+
+    constructor(
+        koin: Koin,
+        navigation: WebNavigationController,
+    ) : this(
+        authenticateRepository = koin.get<AuthenticateRepository>(),
+        profileRepository = koin.get<ProfileRepository>(),
+        authStore = koin.get<DataStore<Preferences>>(named(TMDB_AUTH_STORE_QUALIFIER)),
+        accountId = koin.get<TmdbRuntimeConfig>().accountId,
+        navigation = navigation,
+    )
 
     var selectedProfile: ProfileModel? = null
         private set
     private var authenticated: Boolean = false
 
     suspend fun initialize(): WebProductInitialization {
-        return when (val result = authenticateRepository.bootstrapAuth()) {
-            is AppResult.Success -> when (result.value) {
+        val bootstrapResult = try {
+            authenticateRepository.bootstrapAuth()
+        } catch (throwable: CancellationException) {
+            authenticated = false
+            selectedProfile = null
+            navigation.replace(WebRoute.Login)
+            throw throwable
+        } catch (_: Throwable) {
+            authenticated = false
+            selectedProfile = null
+            navigation.replace(WebRoute.Login)
+            return WebProductInitialization.ReadyWithError(authBootstrapError())
+        }
+        return when (bootstrapResult) {
+            is AppResult.Success -> when (bootstrapResult.value) {
                 AuthStateModel.LoggedOut -> {
                     authenticated = false
                     selectedProfile = null
-                    navigation.replace(WebRoute.Login)
-                    WebProductInitialization.Ready
+                    try {
+                        clearSelectedProfile()
+                        WebProductInitialization.Ready
+                    } catch (throwable: CancellationException) {
+                        throw throwable
+                    } catch (_: Throwable) {
+                        WebProductInitialization.ReadyWithError(profileSelectionStorageError())
+                    } finally {
+                        navigation.replace(WebRoute.Login)
+                    }
                 }
                 is AuthStateModel.LoggedIn -> {
                     authenticated = true
@@ -46,22 +83,34 @@ internal class WebProductCoordinator(
             is AppResult.Failure -> {
                 authenticated = false
                 selectedProfile = null
-                navigation.replace(WebRoute.Login)
-                WebProductInitialization.ReadyWithError(result.error)
+                try {
+                    if (bootstrapResult.error.invalidatesPersistedSession()) {
+                        try {
+                            invalidateSessionPersistence()
+                        } catch (throwable: CancellationException) {
+                            throw throwable
+                        } catch (_: Throwable) {
+                            // Preserve the primary bootstrap failure while remaining fail-closed.
+                        }
+                    }
+                    WebProductInitialization.ReadyWithError(bootstrapResult.error)
+                } finally {
+                    navigation.replace(WebRoute.Login)
+                }
             }
         }
     }
 
     suspend fun loginSucceeded() {
         authenticated = true
-        selectedProfile = null
+        clearSelectedProfile()
         navigation.navigate(WebRoute.Profiles)
     }
 
     suspend fun profileSelected(profile: ProfileModel) {
         selectedProfile = profile
         authStore.edit { preferences ->
-            preferences[SelectedProfileIdKey] = profile.id
+            preferences[selectedProfileIdKey] = profile.id
         }
         navigation.navigate(WebRoute.AuthenticatedLanding)
     }
@@ -95,8 +144,17 @@ internal class WebProductCoordinator(
         if (error is AppError.SessionExpired || error is AppError.Authentication || error is AppError.Unauthorized) {
             authenticated = false
             selectedProfile = null
-            authStore.edit { preferences -> preferences.clear() }
-            navigation.replace(WebRoute.Login)
+            try {
+                try {
+                    invalidateSessionPersistence()
+                } catch (throwable: CancellationException) {
+                    throw throwable
+                } catch (_: Throwable) {
+                    // The originating auth error remains primary; routing still fails closed.
+                }
+            } finally {
+                navigation.replace(WebRoute.Login)
+            }
         }
     }
 
@@ -115,11 +173,24 @@ internal class WebProductCoordinator(
     }
 
     private suspend fun restoreAuthenticatedRoute(): WebProductInitialization {
-        val selectedProfileId = authStore.data.first()[SelectedProfileIdKey]
-        selectedProfile = when (val result = profileRepository.getProfiles()) {
-            is AppResult.Success -> result.value.firstOrNull { it.id == selectedProfileId }
-            is AppResult.Failure -> null
+        val selectedProfileId = try {
+            authStore.data.first()[selectedProfileIdKey]
+        } catch (throwable: CancellationException) {
+            throw throwable
+        } catch (_: Throwable) {
+            selectedProfile = null
+            navigation.replace(safeProfileRestoreRoute())
+            return WebProductInitialization.ReadyWithError(profileSelectionStorageError())
         }
+        val profiles = when (val result = profileRepository.getProfiles()) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> {
+                selectedProfile = null
+                navigation.replace(safeProfileRestoreRoute())
+                return WebProductInitialization.ReadyWithError(result.error)
+            }
+        }
+        selectedProfile = profiles.firstOrNull { profile -> profile.id == selectedProfileId }
         if (selectedProfileId != null && selectedProfile == null) {
             clearSelectedProfile()
         }
@@ -138,15 +209,60 @@ internal class WebProductCoordinator(
     private suspend fun clearSelectedProfile() {
         selectedProfile = null
         authStore.edit { preferences ->
-            if (preferences[SelectedProfileIdKey] != null) {
-                preferences.remove(SelectedProfileIdKey)
+            if (preferences[selectedProfileIdKey] != null) {
+                preferences.remove(selectedProfileIdKey)
             }
         }
     }
 
-    private companion object {
-        val SelectedProfileIdKey = stringPreferencesKey("web_selected_profile_id")
+    private suspend fun invalidateSessionPersistence() {
+        authStore.edit { preferences ->
+            preferences.clearTmdbAuthSessionPreferences()
+            if (preferences[selectedProfileIdKey] != null) {
+                preferences.remove(selectedProfileIdKey)
+            }
+        }
     }
+
+    private fun safeProfileRestoreRoute(): WebRoute {
+        return if (navigation.route.value is WebRoute.Diagnostic) {
+            WebRoute.Diagnostic
+        } else {
+            WebRoute.Profiles
+        }
+    }
+}
+
+internal fun selectedProfileIdKey(accountId: String): Preferences.Key<String> {
+    require(accountId.isNotBlank())
+    val encodedAccountScope = accountId.encodeToByteArray().joinToString(separator = "") { byte ->
+        (byte.toInt() and 0xff).toString(radix = 16).padStart(length = 2, padChar = '0')
+    }
+    return stringPreferencesKey("web_selected_profile_id.$encodedAccountScope")
+}
+
+private fun profileSelectionStorageError(): AppError {
+    return AppError.Unknown(
+        source = ErrorSource(
+            operation = "restoreSelectedProfile",
+            backendCode = "PROFILE_SELECTION_STORAGE_FAILURE",
+        ),
+    )
+}
+
+private fun authBootstrapError(): AppError {
+    return AppError.Unknown(
+        source = ErrorSource(
+            operation = "bootstrapAuth",
+            backendCode = "AUTH_BOOTSTRAP_FAILURE",
+        ),
+    )
+}
+
+private fun AppError.invalidatesPersistedSession(): Boolean {
+    return this is AppError.Authentication ||
+        this is AppError.Unauthorized ||
+        this is AppError.SessionExpired
 }
 
 internal sealed interface WebProductInitialization {

@@ -2,11 +2,8 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.auth
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -25,7 +22,7 @@ internal class TmdbPreferencesAuthStore(
     }
 
     override suspend fun currentSessionId(): String? {
-        return preferences.first()[Keys.SessionId]?.takeIf { sessionId ->
+        return preferences.first()[TmdbAuthPreferencesKeys.SessionId]?.takeIf { sessionId ->
             sessionId.isNotBlank()
         }
     }
@@ -35,40 +32,22 @@ internal class TmdbPreferencesAuthStore(
         account: AuthAccountModel?,
     ) {
         dataStore.edit { prefs ->
-            prefs[Keys.SessionId] = sessionId
+            prefs[TmdbAuthPreferencesKeys.SessionId] = sessionId
             if (account == null) {
-                prefs.removeIfPresent(Keys.AccountId)
-                prefs.removeIfPresent(Keys.AccountUsername)
-                prefs.removeIfPresent(Keys.AccountDisplayName)
+                prefs.removeIfPresent(TmdbAuthPreferencesKeys.AccountId)
+                prefs.removeIfPresent(TmdbAuthPreferencesKeys.AccountUsername)
+                prefs.removeIfPresent(TmdbAuthPreferencesKeys.AccountDisplayName)
             } else {
-                prefs[Keys.AccountId] = account.id
-                prefs[Keys.AccountUsername] = account.username
+                prefs[TmdbAuthPreferencesKeys.AccountId] = account.id
+                prefs[TmdbAuthPreferencesKeys.AccountUsername] = account.username
                 account.displayName?.takeIf { displayName -> displayName.isNotBlank() }?.let { displayName ->
-                    prefs[Keys.AccountDisplayName] = displayName
-                } ?: prefs.removeIfPresent(Keys.AccountDisplayName)
+                    prefs[TmdbAuthPreferencesKeys.AccountDisplayName] = displayName
+                } ?: prefs.removeIfPresent(TmdbAuthPreferencesKeys.AccountDisplayName)
             }
         }
     }
 
     override suspend fun clear() {
-        dataStore.edit { prefs ->
-            prefs.removeIfPresent(Keys.SessionId)
-            prefs.removeIfPresent(Keys.AccountId)
-            prefs.removeIfPresent(Keys.AccountUsername)
-            prefs.removeIfPresent(Keys.AccountDisplayName)
-        }
-    }
-
-    private object Keys {
-        val SessionId = stringPreferencesKey(TMDB_SESSION_ID_KEY)
-        val AccountId = intPreferencesKey(TMDB_ACCOUNT_ID_KEY)
-        val AccountUsername = stringPreferencesKey(TMDB_ACCOUNT_USERNAME_KEY)
-        val AccountDisplayName = stringPreferencesKey(TMDB_ACCOUNT_DISPLAY_NAME_KEY)
-    }
-}
-
-private fun <T> MutablePreferences.removeIfPresent(key: Preferences.Key<T>) {
-    if (this[key] != null) {
-        remove(key)
+        clearTmdbAuthSessionPreferences(dataStore)
     }
 }

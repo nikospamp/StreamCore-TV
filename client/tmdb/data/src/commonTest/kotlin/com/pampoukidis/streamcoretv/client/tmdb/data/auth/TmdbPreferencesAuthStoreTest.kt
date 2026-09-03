@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
@@ -77,6 +78,29 @@ class TmdbPreferencesAuthStoreTest {
         assertEquals("session-with-blank-name", store.currentSessionId())
         store.clear()
         assertNull(store.currentSessionId())
+    }
+
+    @Test
+    fun clearPreservesProviderProfileSnapshot() = runTest {
+        val profileSnapshotKey = stringPreferencesKey("profiles_json.account-scope")
+        val dataStore = TestPreferencesDataStore(
+            mutablePreferencesOf(
+                stringPreferencesKey(TMDB_SESSION_ID_KEY) to "session",
+                intPreferencesKey(TMDB_ACCOUNT_ID_KEY) to 7,
+                stringPreferencesKey(TMDB_ACCOUNT_USERNAME_KEY) to "user",
+                stringPreferencesKey(TMDB_ACCOUNT_DISPLAY_NAME_KEY) to "User",
+                profileSnapshotKey to "profile-snapshot-sentinel",
+            ),
+        )
+
+        TmdbPreferencesAuthStore(dataStore).clear()
+
+        val preferences = dataStore.data.first()
+        assertNull(preferences[stringPreferencesKey(TMDB_SESSION_ID_KEY)])
+        assertNull(preferences[intPreferencesKey(TMDB_ACCOUNT_ID_KEY)])
+        assertNull(preferences[stringPreferencesKey(TMDB_ACCOUNT_USERNAME_KEY)])
+        assertNull(preferences[stringPreferencesKey(TMDB_ACCOUNT_DISPLAY_NAME_KEY)])
+        assertEquals("profile-snapshot-sentinel", preferences[profileSnapshotKey])
     }
 
     private class TestPreferencesDataStore(

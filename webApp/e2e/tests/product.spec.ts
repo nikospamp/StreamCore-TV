@@ -57,7 +57,9 @@ test.beforeEach(async ({ page }) => {
 test("login, profile selection, persistence, history, keyboard and pointer contract", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const pageErrors: string[] = [];
-  let isHardReloadTransition = false;
+  let hardReloadPhase: HardReloadPhase | null = null;
+  const normalizedCoroutineErrors: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
+  const responseClassCastErrors: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
   let avatarVisualGatePassed = false;
   const avatarResourceEvidence: Promise<AvatarResourceEvidence>[] = [];
   const credentialInput = punctuationPassword;
@@ -68,8 +70,14 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   );
   page.on("pageerror", (error) => {
     if (
-      !isHardReloadTransition ||
-      !isExpectedWebKitHardReloadError(testInfo.project.name, error.message)
+      hardReloadPhase === null ||
+      !recordExpectedWebKitHardReloadError(
+        testInfo.project.name,
+        hardReloadPhase,
+        error.message,
+        normalizedCoroutineErrors,
+        responseClassCastErrors,
+      )
     ) {
       pageErrors.push(error.message);
     }
@@ -145,15 +153,20 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   });
   expect(profilesFrame.byteLength).toBeGreaterThan(30_000);
 
-  const profileX = firstProfileX(page);
-  await page.mouse.move(profileX, 220);
-  await page.mouse.click(profileX, 220);
+  await page.mouse.move(
+    firstProfileBounds.x + firstProfileBounds.width / 2,
+    firstProfileBounds.y + firstProfileBounds.height / 2,
+  );
+  await page.mouse.click(
+    firstProfileBounds.x + firstProfileBounds.width / 2,
+    firstProfileBounds.y + firstProfileBounds.height / 2,
+  );
   await expect(page).toHaveURL(/\/authenticated$/, { timeout: 30_000 });
-  isHardReloadTransition = true;
+  hardReloadPhase = "restoration";
   await page.reload();
   await expect(page).toHaveURL(/\/authenticated$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-product-route", "/authenticated");
-  isHardReloadTransition = false;
+  hardReloadPhase = null;
 
   await page.goBack();
   await expect(page).toHaveURL(/\/profiles$/);
@@ -170,14 +183,20 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
       json: { status_code: 3, status_message: "Session expired" },
     });
   });
-  isHardReloadTransition = true;
+  hardReloadPhase = "expiry";
   await page.reload();
   await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-product-route", "/login");
-  isHardReloadTransition = false;
+  hardReloadPhase = null;
   await page.goBack();
   await expect(page).toHaveURL(/\/login$/);
   expect(page.url()).not.toContain(credentialInput);
+  for (const phase of HARD_RELOAD_PHASES) {
+    expect(normalizedCoroutineErrors[phase], `${phase} emitted repeated coroutine errors.`)
+      .toBeLessThanOrEqual(1);
+    expect(responseClassCastErrors[phase], `${phase} emitted repeated Response cast errors.`)
+      .toBeLessThanOrEqual(1);
+  }
   expect(await strictPageErrors(
     testInfo.project.name,
     pageErrors,
@@ -226,11 +245,157 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
   expect(page.url()).not.toContain(credentialInput);
 });
 
-test("native credential form keeps punctuation-heavy fields separated", async ({ page }) => {
+test("native credential form re-enables controls after auth failure and retries once", async ({ page }) => {
+  const identifierValue = "retry-user";
+  const passwordValue = "retry-password";
+  let validationAttempts = 0;
+  let successfulRetries = 0;
+  let sessionCreationRequests = 0;
+  await page.route("**/authentication/token/validate_with_login", async (route) => {
+    const payload = route.request().postDataJSON() as {
+      username?: unknown;
+      password?: unknown;
+      request_token?: unknown;
+    };
+    expect(payload.username).toBe(identifierValue);
+    expect(payload.password).toBe(passwordValue);
+    expect(payload.request_token).toBe("fixture-request");
+    validationAttempts += 1;
+    if (validationAttempts === 1) {
+      await route.fulfill({
+        status: 401,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "application/json",
+        },
+        json: {
+          success: false,
+          status_code: 30,
+          status_message: "fixture rejection",
+        },
+      });
+      return;
+    }
+    successfulRetries += 1;
+    await route.fallback();
+  });
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/authentication/session/new")) {
+      sessionCreationRequests += 1;
+    }
+  });
+
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+
+  const form = page.getByTestId("login:credentials-form");
+  const identifier = page.getByTestId("login:identifier");
+  const password = page.getByTestId("login:password");
+  const visibility = page.getByTestId("login:password-visibility");
+  const submit = page.getByTestId("login:submit");
+  await identifier.fill(identifierValue);
+  await password.fill(passwordValue);
+  await submit.click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator("body")).toHaveAttribute("data-product-route", "/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-kind", "authentication");
+  await expect(form).toHaveAttribute("aria-busy", "false");
+  await expect(identifier).toBeEnabled();
+  await expect(password).toBeEnabled();
+  await expect(visibility).toBeEnabled();
+  await expect(submit).toBeEnabled();
+  expect(validationAttempts).toBe(1);
+  expect(successfulRetries).toBe(0);
+  expect(sessionCreationRequests).toBe(0);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("body")).not.toHaveAttribute("data-product-error-kind");
+  await submit.click();
+
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-product-route", "/profiles");
+  expect(validationAttempts).toBe(2);
+  expect(successfulRetries).toBe(1);
+  expect(sessionCreationRequests).toBe(1);
+});
+
+test("native credential form owns initial focus and rejects invalid submissions accessibly", async ({ page }) => {
+  let authenticationRequests = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.includes("/authentication/")) {
+      authenticationRequests += 1;
+    }
+  });
+
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+
+  const identifier = page.getByTestId("login:identifier");
+  const password = page.getByTestId("login:password");
+  const submit = page.getByTestId("login:submit");
+  const identifierError = page.locator("#streamcore-login-identifier-error");
+  const passwordError = page.locator("#streamcore-login-password-error");
+
+  await expect(identifier).toBeFocused();
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(identifierError).toBeVisible();
+  await expect(identifierError).toHaveAttribute("role", "alert");
+  await expect(identifierError).toHaveText("Username or email is required");
+  await expect(passwordError).toBeVisible();
+  await expect(passwordError).toHaveAttribute("role", "alert");
+  await expect(passwordError).toHaveText("Password is required");
+  await expect(identifier).toHaveAttribute("aria-invalid", "true");
+  await expect(identifier).toHaveAttribute(
+    "aria-describedby",
+    "streamcore-login-identifier-error",
+  );
+  await expect(identifier).toHaveAttribute(
+    "aria-errormessage",
+    "streamcore-login-identifier-error",
+  );
+  await expect(password).toHaveAttribute("aria-invalid", "true");
+  await expect(password).toHaveAttribute(
+    "aria-describedby",
+    "streamcore-login-password-error",
+  );
+  await expect(password).toHaveAttribute(
+    "aria-errormessage",
+    "streamcore-login-password-error",
+  );
+  expect(authenticationRequests).toBe(0);
+
+  await identifier.fill("partial-user");
+  await submit.click();
+  await expect(identifierError).toBeHidden();
+  await expect(identifier).not.toHaveAttribute("aria-invalid");
+  await expect(identifier).not.toHaveAttribute("aria-describedby");
+  await expect(identifier).not.toHaveAttribute("aria-errormessage");
+  await expect(passwordError).toBeVisible();
+  await expect(passwordError).toHaveText("Password is required");
+  await expect(password).toHaveAttribute("aria-invalid", "true");
+  await expect(password).toHaveAttribute(
+    "aria-errormessage",
+    "streamcore-login-password-error",
+  );
+  expect(authenticationRequests).toBe(0);
+});
+
+test("native credential form keeps punctuation-heavy fields separated and submits once", async ({ page }) => {
+  let releaseValidation: () => void = () => {};
+  const validationGate = new Promise<void>((resolve) => {
+    releaseValidation = resolve;
+  });
   const assertCredentialPayload = await installCredentialPayloadAssertion(
     page,
     punctuationIdentifier,
     punctuationPassword,
+    async () => validationGate,
   );
   await page.goto("/login");
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
@@ -264,6 +429,12 @@ test("native credential form keeps punctuation-heavy fields separated", async ({
 
   await password.focus();
   await page.keyboard.press("Enter");
+  const form = page.getByTestId("login:credentials-form");
+  const submit = page.getByTestId("login:submit");
+  await expect(submit).toBeDisabled();
+  await expect(form).toHaveAttribute("aria-busy", "true");
+  await form.dispatchEvent("submit");
+  releaseValidation();
   await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
   assertCredentialPayload();
 });
@@ -278,7 +449,7 @@ test("blank account name persists through official session-storage fallback", as
       originalSetItem.call(this, key, value);
     };
   });
-  await page.route("**/account/42", async (route) => {
+  await page.route("**/account/42**", async (route) => {
     await route.fulfill({
       headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
       json: { id: 42, username: syntheticAccountUsername, name: "" },
@@ -294,8 +465,18 @@ test("blank account name persists through official session-storage fallback", as
   await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
 });
 
-test("missing optional account still persists session in WebLocalStorage", async ({ page }) => {
-  await page.route("**/account/42", async (route) => {
+test("account verification 503 keeps login protected and reports a mapped failure", async ({ page }) => {
+  let remoteSessionCleanupRequests = 0;
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      request.method() === "DELETE" &&
+      url.pathname.endsWith("/authentication/session")
+    ) {
+      remoteSessionCleanupRequests += 1;
+    }
+  });
+  await page.route("**/account/42**", async (route) => {
     await route.fulfill({
       status: 503,
       headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
@@ -303,10 +484,21 @@ test("missing optional account still persists session in WebLocalStorage", async
     });
   });
 
-  await loginToProfiles(page, "missing-account-user");
-  await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "persistent");
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+  await typeCredentials(page, "unverified-account-user", "fixture-password");
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator("body")).toHaveAttribute("data-product-route", "/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-kind", "server");
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-title", /\S+/);
+  await expect(page.locator("body")).toHaveAttribute("data-product-error-message", /\S+/);
+  await expect.poll(() => remoteSessionCleanupRequests).toBe(1);
   await page.reload();
-  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-product-route", "/login");
 });
 
 test("hover produces visible profile-card feedback", async ({ page }) => {
@@ -382,6 +574,12 @@ test("profile create edit delete, editor arrows, modal trap and focused scrollin
   await expect(page.locator("body")).toHaveAttribute("data-profile-editor-action", "save");
   await expect(page.locator("body")).toHaveAttribute("data-profile-count", "3", { timeout: 30_000 });
 
+  await page.reload();
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute("data-profile-count", "3");
   await openCreatedProfileEditor(page, "Browser profile edited");
   const deleteButton = page.locator('[data-testid="profile-editor-delete"]');
   await deleteButton.click();
@@ -411,6 +609,19 @@ test("profile create edit delete, editor arrows, modal trap and focused scrollin
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
   await expect(page.locator("body")).toHaveAttribute("data-profile-count", "2", { timeout: 30_000 });
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute("data-profile-count", "2");
+  await expect(
+    page.getByRole("button", { name: "Select Nikos profile", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Select Browser profile edited profile", exact: true }),
+  ).toHaveCount(0);
 });
 
 async function loginToProfiles(page: Page, identifier: string): Promise<void> {
@@ -447,6 +658,7 @@ async function installCredentialPayloadAssertion(
   page: Page,
   identifier: string,
   password: string,
+  beforeFallback: () => Promise<void> = async () => {},
 ): Promise<() => void> {
   let matchingRequests = 0;
   await page.route("**/authentication/token/validate_with_login", async (route) => {
@@ -459,6 +671,7 @@ async function installCredentialPayloadAssertion(
     expect(payload.password).toBe(password);
     expect(payload.request_token).toBe("fixture-request");
     matchingRequests += 1;
+    await beforeFallback();
     await route.fallback();
   });
   return () => expect(matchingRequests).toBe(1);
@@ -530,17 +743,28 @@ async function refreshLoginActionPaint(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-function firstProfileX(page: Page): number {
-  return (page.viewportSize()?.width ?? 1280) >= 1600 ? 430 : 150;
-}
+type HardReloadPhase = "restoration" | "expiry";
+type HardReloadErrorCounts = Record<HardReloadPhase, number>;
 
-function isExpectedWebKitHardReloadError(projectName: string, message: string): boolean {
+function recordExpectedWebKitHardReloadError(
+  projectName: string,
+  phase: HardReloadPhase,
+  message: string,
+  normalizedCoroutineErrors: HardReloadErrorCounts,
+  responseClassCastErrors: HardReloadErrorCounts,
+): boolean {
   if (!projectName.startsWith("webkit-")) {
     return false;
   }
-  return message.startsWith(
-    "Fatal exception in coroutines machinery for AwaitContinuation(DispatchedContinuation[FlushCoroutineDispatcher@",
-  ) || message === "ClassCastException: Cannot cast instance of Response to Response: incompatible types";
+  if (WEBKIT_HARD_RELOAD_COROUTINE_ERROR.test(message)) {
+    normalizedCoroutineErrors[phase] += 1;
+    return normalizedCoroutineErrors[phase] <= 1;
+  }
+  if (message === WEBKIT_HARD_RELOAD_RESPONSE_CLASS_CAST_ERROR) {
+    responseClassCastErrors[phase] += 1;
+    return responseClassCastErrors[phase] <= 1;
+  }
+  return false;
 }
 
 type AvatarResourceEvidence = {
@@ -580,3 +804,8 @@ const TMDB_AVATAR_RESOURCE_PATH =
   "/composeResources/streamcoretv.client.tmdb.ui.generated.resources/drawable/tmdb_profile_avatar_01.xml";
 const WEBKIT_AVATAR_ACCESS_ERROR =
   `${TMDB_AVATAR_RESOURCE_PATH.replace("/composeResources", "/127.0.0.1:4173/composeResources")} due to access control checks.`;
+const HARD_RELOAD_PHASES: readonly HardReloadPhase[] = ["restoration", "expiry"];
+const WEBKIT_HARD_RELOAD_COROUTINE_ERROR =
+  /^Fatal exception in coroutines machinery for AwaitContinuation\(DispatchedContinuation\[FlushCoroutineDispatcher@\d+, kotlinx\.coroutines\.DeferredCoroutine\.\$awaitCOROUTINE\$@\d+\]\)\{Completed\}@\d+\. Please read KDoc to 'handleFatalException' method and report this incident to maintainers$/;
+const WEBKIT_HARD_RELOAD_RESPONSE_CLASS_CAST_ERROR =
+  "ClassCastException: Cannot cast instance of Response to Response: incompatible types";
