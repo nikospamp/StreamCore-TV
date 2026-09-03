@@ -43,11 +43,10 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-03): BLOCKED.** The accepted integration branch remains at the WEB-01 merge
-`2267306e5df827deded96addd91b6ec947e9f655`. WEB-02 review is blocked at candidate
-`8a391953ae3a77074b1d97428de32cba14a1c760` pending localized corrections; WEB-02 is unmerged. Its recorded live evidence does not constitute
-independent review or merge acceptance. No WEB-03 implementation branch may be created until the corrections are reviewed, WEB-02 is accepted and
-merged, and the root records that accepted 40-character commit as WEB-03A's immutable base.
+**Current gate (2026-09-03): WEB-03 ACCEPTED; WEB-04A contract freeze is ready.** WEB-02 and WEB-03A are accepted, WEB-03B through WEB-03E were
+reviewed and merged in the required order, and WEB-03F passed its backend-agnostic integration, production/Binaryen, browser, visual, Android/root,
+and final redacted live-cleanup gates. The root handoff publishes the exact accepted WEB-03F commit as WEB-04A's immutable base. WEB-04B and WEB-04C
+remain blocked until WEB-04A's provider-neutral playback contract-freeze checkpoint is reviewed and its exact 40-character commit is published.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.
