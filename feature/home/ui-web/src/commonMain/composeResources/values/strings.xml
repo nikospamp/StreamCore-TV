@@ -1,0 +1,16 @@
+<resources>
+    <string name="web_home_title">Home</string>
+    <string name="web_home_refresh">Refresh</string>
+    <string name="web_home_more_details">More details</string>
+    <string name="web_home_previous_feature">Previous feature</string>
+    <string name="web_home_next_feature">Next feature</string>
+    <string name="web_home_feature_position">%1$d of %2$d</string>
+    <string name="web_home_open_details">Open details for %1$s</string>
+    <string name="web_home_empty_title">Nothing to watch yet</string>
+    <string name="web_home_empty_message">Refresh to load recommendations for this profile.</string>
+    <string name="web_home_loading_description">Loading Home</string>
+    <string name="web_home_offline_title">You are offline</string>
+    <string name="web_home_offline_message">Showing the last available recommendations.</string>
+    <string name="web_home_error_title">Home could not be loaded</string>
+    <string name="web_home_error_message">Try again when the connection is available.</string>
+</resources>
