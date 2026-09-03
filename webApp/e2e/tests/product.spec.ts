@@ -1307,6 +1307,7 @@ async function strictPageErrors(
   const filteredErrors = errors.filter((error) => error.message !== WEBKIT_AVATAR_ACCESS_ERROR);
   const retainedErrors: PageErrorEvidence[] = [];
   let decoderTeardownPairCount = 0;
+  let expiryIoReadErrorCount = 0;
   const composeResourceAbortCounts: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
   for (let index = 0; index < filteredErrors.length; index += 1) {
     const current = filteredErrors[index];
@@ -1331,6 +1332,13 @@ async function strictPageErrors(
     if (isDecoderTeardownPair && decoderTeardownPairCount === 0) {
       decoderTeardownPairCount += 1;
       index += 1;
+      continue;
+    }
+    const isExpiryIoReadTeardown = current.phase === "expiry" &&
+      current.name === "JsException" &&
+      current.message === WEBKIT_AVATAR_IO_READ_ERROR;
+    if (isExpiryIoReadTeardown && expiryIoReadErrorCount === 0) {
+      expiryIoReadErrorCount += 1;
       continue;
     }
     retainedErrors.push(current);
