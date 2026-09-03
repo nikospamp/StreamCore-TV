@@ -614,7 +614,7 @@ function configureVideoElement(video) {
     video.setAttribute("playsinline", "true");
     video.setAttribute("aria-label", "Video playback");
     video.setAttribute("data-testid", "playback-video");
-    video.style.cssText = "display:block;width:100%;height:100%;background:#000;object-fit:contain;";
+    video.style.cssText = "display:block;width:100%;height:100%;background:#000;object-fit:contain;pointer-events:none;";
 }
 
 function installVideoListeners(handle) {

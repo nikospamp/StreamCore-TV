@@ -98,6 +98,7 @@ private fun BlockingConfigurationShell(guidance: String) {
 @Composable
 private fun ReadyShell(state: WebStartupState.Ready) {
     val route by state.navigationController.route.collectAsState()
+    DiagnosticRouteEvidence(route)
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = Modifier
@@ -132,7 +133,6 @@ private fun ReadyShell(state: WebStartupState.Ready) {
         )
         WebImageProbe()
         WebSelectorProbe()
-        HtmlInteropProbe()
     }
 }
 
@@ -170,7 +170,10 @@ private fun NavigationProbe(
             )
             StreamCoreButton(
                 text = "Player ID",
-                onClick = { onNavigate(WebRoute.DiagnosticPlayer(DiagnosticContentId)) },
+                onClick = {
+                    prepareDiagnosticPlayerLaunchFromCurrentLocation()
+                    onNavigate(WebRoute.DiagnosticPlayer(DiagnosticContentId))
+                },
                 enabled = route !is WebRoute.DiagnosticPlayer,
                 variant = StreamCoreButtonVariant.Secondary,
                 modifier = Modifier.testTag(WebDiagnosticTags.PlayerNavigation),

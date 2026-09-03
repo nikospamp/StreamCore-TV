@@ -4,10 +4,10 @@
 
 - Ticket: `WEB-04C`
 - Immutable contract-freeze base: `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`
-- Implementation status: structurally prepared, syntax-checked, and accepted as the WEB-04C test/release input
-- A/B production integration: **NOT PRESENT** on this branch
+- Implementation status: WEB-04C test/release input merged into WEB-04D; integration verification remains **PENDING**
+- A/B production integration: merged inputs present; integrated candidate validation remains **PENDING**
 - Production artifact validation: **NOT RUN**; the expected production output was absent during read-only inspection
-- Playwright browser scenarios: **NOT RUN**
+- WEB-04C standalone Playwright scenarios: **NOT RUN**; WEB-04D development Chromium integration is recorded separately below
 - Current Safari/macOS: **NOT RUN**
 - Live TMDB or public-media journey: **NOT RUN**
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
@@ -18,11 +18,14 @@ generated distribution, browser binary, node-module, or screenshot file was chan
 ## Observed facts
 
 - `git rev-parse HEAD` returned the exact required 40-character contract-freeze base above before edits.
-- The frozen branch contains the WEB-03 player placeholder, not the WEB-04A engine or WEB-04B web player UI.
-- Source resources define `index.html`, `config.example.json`, and the module-local `shaka-adapter.mjs`.
+- The original WEB-04C input branched from the frozen WEB-03 player placeholder; WEB-04A/B/C inputs are now merged for WEB-04D integration work,
+  with no integrated pass claimed here.
+- The merged artifact contract requires `index.html`, `config.example.json`, and the module-local `shaka-playback-adapter.mjs`; the obsolete WEB-01
+  `shaka-adapter.mjs` and all global/CDN Shaka fallbacks must be absent.
 - Existing browser testing documents prove that projected Compose semantics are geometry/discovery contracts: pointer interaction must target their
   resolved bounds, while native `HtmlElementView` controls may use explicit DOM selectors.
-- No build, npm, Playwright, browser, Gradle, media, or credential command was run for this slice.
+- No build, npm, Playwright, browser, Gradle, media, or credential command was run on the isolated WEB-04C branch; integrated WEB-04D observations
+  are explicitly separated below and in `WEB-04D-evidence.md`.
 - `node --check webApp/e2e/server.mjs` and `node --check webApp/e2e/validate-release-artifact.mjs` passed; `git diff --check` passed.
 
 These observations are not runtime passes.
@@ -44,8 +47,9 @@ These observations are not runtime passes.
 9. no-filmstrip seek fallback and zero canvas frame capture;
 10. five enter/play/close cycles with zero retained session, video node, listener, or timer.
 
-The describe block is skipped unless `STREAMCORE_WEB_PLAYER_FIXTURES=enabled`. On the current placeholder branch these cases therefore cannot be
-reported as passing. WEB-04D may enable the flag only after integrating all fixture selectors/state below and proving their exact projection.
+WEB-04D removed the pre-integration skip guard after supplying the synthetic harness. All ten scenarios are now mandatory in the default suite,
+so plain `npx playwright test` registers 60 player project-tests and cannot succeed by skipping them. The exact projection is proved in one
+development Chromium project; the frozen production six-project matrix remains not run.
 
 The planned interactions use exact role/name projection plus settled semantic bounds for Compose controls; they never call DOM `click()` on a
 projected Compose node and never use fixed coordinates. The video uses the native `[data-testid="player:video"]` contract. Readiness and assertions
@@ -61,14 +65,17 @@ WEB-04D must reconcile these assumptions against accepted WEB-04A/B rather than 
   `data-player-invalid-request="true"`, and exposes zero `data-player-active-sessions` and zero `data-player-prepare-count` without creating a video.
 - `body[data-player-fixture]` and `body[data-player-fixture-ready="true"]` are set only after the fixture and UI are stable.
 - The hosted video is the one native `HtmlElementView` node with `data-testid="player:video"`.
-- Exact projected actions are unique on their active layer: `Play`, `Retry`, `Playback settings`, `Speed`, `1.5x`, `Quality`, `1080p`, `Audio`,
-  `Greek`, `Subtitles`, `English`, and `Fullscreen`; the timeline projects one `slider` named `Playback position`.
+- Exact projected actions are unique on their active layer: `Play`, `Retry`, `Playback settings`, `Speed · 1×`, `1.5×`,
+  `Back to playback settings`, `Quality · 1080p · 5.8 Mbps`, `1080p · 5.8 Mbps`, `Audio · English · Original 5.1`,
+  `Ελληνικά · Stereo`, `Subtitles · Off`, `English (CC)`, and `Enter fullscreen`. The timeline is the single adjustable generic node named
+  `Playback position <position> of 2:00`; it is not claimed as an HTML `slider` role.
 - Non-sensitive fixture state uses `data-player-phase`, `data-player-playing`, `data-player-activation-required`, `data-player-error-code`,
   `data-player-error-message`, `data-player-prepare-count`, `data-player-position-ms`, `data-player-speed`, `data-player-video-track`,
   `data-player-audio-track`, `data-player-text-track`, `data-player-fullscreen`, `data-player-focused-action`, `data-player-layer`,
   `data-player-filmstrip-count`, and `data-player-canvas-capture-count`.
 - Cleanup counters remain inspectable on the diagnostic details route through `data-player-active-sessions`, `data-player-active-listeners`,
-  `data-player-active-timers`, and `data-player-close-count`; they contain counts only and reset at browser-context start.
+  `data-player-active-timers`, and `data-player-close-count`; they contain counts only and reset at browser-context start. Listener balance is
+  measured from actual relevant document and tagged-video `EventTarget` registrations/removals rather than inferred from session count.
 - Escape from settings closes only settings; Escape from the base player returns to diagnostic details. Product-route Back/Escape behavior still
   requires WEB-04D integration coverage.
 - The resume fixture accepts synthetic `profile=profile-a` and `profile=profile-b`, exposes the active synthetic ID through
@@ -76,31 +83,30 @@ WEB-04D must reconcile these assumptions against accepted WEB-04A/B rather than 
   and exposes no inherited position for the other profile. It uses the real profile-isolated progress repository with no provider DTO or account
   value.
 
-If the accepted A/B semantics differ, update this planned test and `docs/kmp/web-testing.md` together, prove the replacement selector contract in
-all six projects, and record it as an integration-only reconciliation. Do not enable the fixture flag with missing attributes or placeholder UI.
+If the accepted A/B semantics differ, update this test and `docs/kmp/web-testing.md` together, prove the replacement selector contract in all six
+projects, and record it as an integration-only reconciliation. Missing fixture attributes or placeholder UI must fail the mandatory default suite.
 
 ### Artifact validator
 
 `webApp/e2e/validate-release-artifact.mjs` checks the configured production output without changing it. It requires HTML, JavaScript, content-hashed
-Wasm, non-empty Compose assets, placeholder config example, and the module-local Shaka adapter; decodes and confines every script reference to the
-distribution; rejects a packaged real config; scans HTML/JavaScript/modules/JSON/source maps and Wasm string content for bounded JWT/read tokens,
-bearer/session values, and concrete token/account config values; and reports only repository-relative counts/paths. Required artifacts are not
-excluded from scanning. Generated output remains ignored and uncommitted.
+Wasm, non-empty Compose assets, placeholder config example, and `shaka-playback-adapter.mjs`; verifies its static pinned-package import; rejects the
+obsolete WEB-01 adapter plus remote/CDN or global-object Shaka fallbacks; decodes and confines every script reference to the distribution; rejects
+a packaged real config; scans HTML/JavaScript/modules/JSON/source maps and Wasm string content for bounded JWT/read tokens, bearer/session values,
+and concrete token/account config values; and reports only repository-relative counts/paths. Required artifacts are not excluded from scanning.
+Generated output remains ignored and uncommitted.
 
-Planned serialized commands after A/B integration and candidate freeze:
+Planned serialized commands after the merged input is frozen as an integrated candidate:
 
 ```powershell
 .\gradlew.bat :webApp:wasmJsBrowserDistribution
 Set-Location webApp/e2e
 npm ci
 npm run validate:release
-$env:STREAMCORE_WEB_PLAYER_FIXTURES='enabled'
 npx playwright test
-Remove-Item Env:STREAMCORE_WEB_PLAYER_FIXTURES
 ```
 
-All build/install/validation/test commands are **NOT RUN** for WEB-04C. The environment flag must be removed in `finally` by an automated runner if the commands are wrapped.
-The final matrix must report exact passed/failed/skipped counts; any fixture skip prevents a full WEB-04 player acceptance claim.
+All build/install/validation/test commands are **NOT RUN** for the isolated WEB-04C input. The final integrated matrix must report exact
+passed/failed/skipped counts; any player fixture skip prevents a full WEB-04 player acceptance claim.
 
 ### Deployment contract
 
@@ -114,12 +120,15 @@ vendor and contains no deploy credential.
   invalid-ID proof, and profile-isolated resume; a delta-only re-review confirmed all four findings closed and introduced no new scope.
 - TypeScript/Playwright discovery: **NOT RUN**
 - Release validator against a frozen production artifact: **NOT RUN**
-- Chromium 1280 development fixture journey: **NOT RUN**
+- Chromium 1280 development fixture journey: **PASS on the integrated development artifact** — final clean run 10/10 in 57.2s, zero skips;
+  earlier bounded runs exposed and retained evidence for module-resource packaging, `HtmlElementView` pointer interception, document Escape, and
+  shadow-root focus restoration before the clean rerun.
 - Six-project production matrix: **NOT RUN**
 - Screenshot inspection: **NOT RUN**; no screenshots were created by WEB-04C
 - Current Safari/macOS checklist: **NOT RUN**; Playwright WebKit must not substitute for it
 - Final redacted live TMDB/public-media journey and cleanup: **NOT RUN**
 
-WEB-04C is accepted as a reviewed test/docs input. Browser scenarios, artifact validation against the frozen integrated distribution, screenshots,
-current Safari/macOS, and live provider/media gates remain explicitly NOT RUN here and are owned by WEB-04D. Integration must reconcile A/B fixture
-semantics without weakening assertions before enabling the 60 project-test registrations.
+WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Artifact validation against the frozen integrated distribution, the complete
+six-project matrix, screenshots, current Safari/macOS, and live provider/media gates remain explicitly NOT RUN here. WEB-04D reconciled A/B
+fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input status alone is a
+release pass claim.

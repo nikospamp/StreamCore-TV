@@ -2,6 +2,7 @@ package com.pampoukidis.streamcoretv.feature.player.web.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -101,7 +102,6 @@ fun WebPlayerScreen(
     val currentOnAction by rememberUpdatedState(onAction)
     val fullscreenController = LocalWebPlayerFullscreenController.current
     val isFullscreen by fullscreenController.isFullscreen
-    val rootInteractionSource = remember { MutableInteractionSource() }
     val rootFocusRequester = remember { FocusRequester() }
     val backFocusRequester = remember { FocusRequester() }
     val rewindFocusRequester = remember { FocusRequester() }
@@ -114,6 +114,14 @@ fun WebPlayerScreen(
     var previousSettingsPage by remember { mutableStateOf<PlayerSettingsPage?>(state.settingsPage) }
     var previousFullscreen by remember { mutableStateOf(isFullscreen) }
     var initialFocusAssigned by remember { mutableStateOf(false) }
+
+    WebPlayerDocumentEscapeEffect {
+        if (isFullscreen) {
+            fullscreenController.exit()
+        } else {
+            currentOnAction(PlayerAction.BackSelected)
+        }
+    }
 
     LaunchedEffect(state.controlsVisible, state.phase, state.error, state.settingsPage) {
         if (state.error != null || state.settingsPage != null) {
@@ -167,27 +175,23 @@ fun WebPlayerScreen(
                     onAction = currentOnAction,
                 )
             }
+            .focusable()
             .webPlayerPointerInteraction {
                 currentOnAction(PlayerAction.UserInteraction)
-            }
-            .hoverable(rootInteractionSource)
-            .clickable(
-                interactionSource = rootInteractionSource,
-                indication = null,
-                onClick = {
-                    currentOnAction(
-                        if (state.controlsVisible) {
-                            PlayerAction.ToggleControls
-                        } else {
-                            PlayerAction.UserInteraction
-                        },
-                    )
-                },
-            ),
+            },
     ) {
         WebPlayerVideoSurface(
             state = state,
             videoSurface = videoSurface,
+            onClick = {
+                currentOnAction(
+                    if (state.controlsVisible) {
+                        PlayerAction.ToggleControls
+                    } else {
+                        PlayerAction.UserInteraction
+                    },
+                )
+            },
         )
 
         if (state.controlsVisible) {
@@ -244,11 +248,19 @@ fun WebPlayerScreen(
 private fun WebPlayerVideoSurface(
     state: PlayerUiState,
     videoSurface: PlaybackVideoSurface?,
+    onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
+            .hoverable(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .testTag(WebPlayerTestTags.VideoSurface),
     ) {
         if (videoSurface == null) {
@@ -635,7 +647,7 @@ private fun WebPlayerFilmstrip(state: PlayerUiState) {
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.titleMedium,
         )
-        if (frameItems.isEmpty()) {
+        if (frameItems.none { item -> item.frame.image != null }) {
             Text(
                 text = stringResource(Res.string.web_player_preview_unavailable),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

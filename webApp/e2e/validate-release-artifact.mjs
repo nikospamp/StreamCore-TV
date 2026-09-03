@@ -35,13 +35,17 @@ if (!existsSync(distributionDirectory) || !statSync(distributionDirectory).isDir
 const indexPath = requireFile("index.html");
 requireFile("streamcore-web.js");
 const configExamplePath = requireFile("config.example.json");
-const shakaAdapterPath = requireFile("shaka-adapter.mjs");
+const shakaPlaybackAdapterPath = requireFile("shaka-playback-adapter.mjs");
+if (existsSync(join(distributionDirectory, "shaka-adapter.mjs"))) {
+  failures.push("obsolete WEB-01 shaka-adapter.mjs must not be packaged");
+}
 if (existsSync(join(distributionDirectory, "config.json"))) {
   failures.push("real config.json must not be packaged in the production distribution");
 }
 
 const files = listFiles(distributionDirectory);
 const jsFiles = files.filter((path) => extname(path) === ".js");
+const applicationModuleFiles = files.filter((path) => [".js", ".mjs"].includes(extname(path)));
 const wasmFiles = files.filter((path) => extname(path) === ".wasm");
 const composeAssets = files.filter((path) => {
   return relative(distributionDirectory, path).split(sep)[0] === "composeResources";
@@ -107,13 +111,38 @@ if (existsSync(configExamplePath)) {
   }
 }
 
-if (existsSync(shakaAdapterPath)) {
-  const adapter = readFileSync(shakaAdapterPath, "utf8");
-  if (!adapter.includes("shaka-player/dist/shaka-player.compiled.js")) {
-    failures.push("shaka-adapter.mjs does not use the pinned module-local Shaka package adapter");
+if (existsSync(shakaPlaybackAdapterPath)) {
+  const adapter = readFileSync(shakaPlaybackAdapterPath, "utf8");
+  const staticPackageImport = /^\s*import\s+\w+\s+from\s+["']shaka-player\/dist\/shaka-player\.compiled\.js["'];/m;
+  if (!staticPackageImport.test(adapter)) {
+    failures.push("shaka-playback-adapter.mjs does not statically import the pinned module-local Shaka package");
   }
   if (/https?:\/\//i.test(adapter)) {
-    failures.push("shaka-adapter.mjs must not load Shaka from a remote origin");
+    failures.push("shaka-playback-adapter.mjs must not load Shaka from a remote origin");
+  }
+  if (/\b(?:globalThis|window|self)\s*(?:\.\s*shaka|\[\s*["']shaka["']\s*\])/i.test(adapter)) {
+    failures.push("shaka-playback-adapter.mjs must not use a global Shaka fallback");
+  }
+}
+
+const remoteShakaLoadPatterns = [
+  /\bimport\s+(?:[^"'`\r\n;]+?\s+from\s+)?["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]/i,
+  /\bimport\s*\(\s*["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]\s*\)/i,
+  /\b(?:fetch|importScripts|loadScript|loadModule|require)\s*\(\s*["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]/i,
+  /\b(?:src|href)\s*=\s*["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]/i,
+  /\.setAttribute\s*\(\s*["'](?:src|href)["']\s*,\s*["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]/i,
+  /\bnew\s+(?:SharedWorker|Worker|URL)\s*\(\s*["'`](?:https?:)?\/\/[^"'`\r\n]*shaka[^"'`\r\n]*["'`]/i,
+];
+const globalShakaFallbackPattern =
+  /\b(?:globalThis|window|self)\s*(?:(?:\?\.|\.)\s*shaka\b|(?:\?\.)?\s*\[\s*["']shaka["']\s*\])/i;
+for (const path of applicationModuleFiles) {
+  const moduleSource = readFileSync(path, "utf8");
+  const executableMask = javascriptExecutableMask(moduleSource);
+  if (hasExecutableMatch(moduleSource, executableMask, remoteShakaLoadPatterns)) {
+    failures.push(`remote/CDN Shaka load found in ${safeRelativePath(path)}`);
+  }
+  if (hasExecutableMatch(moduleSource, executableMask, [globalShakaFallbackPattern])) {
+    failures.push(`global Shaka fallback found in ${safeRelativePath(path)}`);
   }
 }
 
@@ -191,4 +220,70 @@ function listFiles(directory) {
 
 function safeRelativePath(path) {
   return relative(distributionDirectory, path).replaceAll("\\", "/");
+}
+
+function hasExecutableMatch(source, executableMask, patterns) {
+  return patterns.some((pattern) => {
+    const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+    const matcher = new RegExp(pattern.source, flags);
+    for (const match of source.matchAll(matcher)) {
+      if (executableMask[match.index] !== " ") {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+function javascriptExecutableMask(source) {
+  const characters = source.split("");
+  let state = "code";
+  let escaped = false;
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
+    const next = characters[index + 1];
+    if (state === "code") {
+      if (character === "'" || character === '"' || character === "`") {
+        state = character;
+        characters[index] = " ";
+      } else if (character === "/" && next === "/") {
+        state = "line-comment";
+        characters[index] = " ";
+        characters[index + 1] = " ";
+        index += 1;
+      } else if (character === "/" && next === "*") {
+        state = "block-comment";
+        characters[index] = " ";
+        characters[index + 1] = " ";
+        index += 1;
+      }
+      continue;
+    }
+    if (state === "line-comment") {
+      if (character === "\n" || character === "\r") {
+        state = "code";
+      } else {
+        characters[index] = " ";
+      }
+      continue;
+    }
+    if (state === "block-comment") {
+      characters[index] = " ";
+      if (character === "*" && next === "/") {
+        characters[index + 1] = " ";
+        index += 1;
+        state = "code";
+      }
+      continue;
+    }
+    characters[index] = " ";
+    if (escaped) {
+      escaped = false;
+    } else if (character === "\\") {
+      escaped = true;
+    } else if (character === state) {
+      state = "code";
+    }
+  }
+  return characters.join("");
 }

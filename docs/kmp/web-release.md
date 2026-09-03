@@ -15,10 +15,12 @@ npm run validate:release
 
 The validator inspects `webApp/build/dist/wasmJs/productionExecutable` by default. `STREAMCORE_WEB_RELEASE_DIRECTORY` may point it at a staged copy.
 It requires `index.html`, at least one JavaScript bundle, content-versioned Wasm binaries, non-empty `composeResources`,
-`config.example.json`, and the module-local `shaka-adapter.mjs`. It verifies that local HTML script references resolve, every packaged Wasm name is
-content-versioned and referenced by the JavaScript bundle, the example config contains placeholders only, and no real `config.json`, raw JWT/read
-token, bearer value, session value, or concrete token/account config value is embedded in HTML, JavaScript, modules, JSON, source maps, or Wasm
-string content. Every HTML script source is decoded and resolved inside the validated distribution before its existence is accepted.
+`config.example.json`, and the module-local `shaka-playback-adapter.mjs`. It verifies the adapter's static
+`shaka-player/dist/shaka-player.compiled.js` package import, rejects the obsolete WEB-01 `shaka-adapter.mjs`, remote/CDN imports, and global Shaka
+fallbacks, verifies that local HTML script references resolve, and verifies that every packaged Wasm name is content-versioned and referenced by
+the JavaScript bundle. The example config must contain placeholders only, and no real `config.json`, raw JWT/read token, bearer value, session
+value, or concrete token/account config value may be embedded in HTML, JavaScript, modules, JSON, source maps, or Wasm string content. Every HTML
+script source is decoded and resolved inside the validated distribution before its existence is accepted.
 
 Deploy from an allowlist containing the validated runtime files and directories. Source maps are not required at runtime and should not be public
 unless a separate controlled symbol policy permits them. Keep license notices according to the dependency and organizational policy. Never commit
@@ -84,8 +86,9 @@ or by reflecting an unchecked `Origin` while allowing credentials.
   `Content-Length`, and `Content-Range` when emitted.
 - Redirect targets must satisfy the same CORS and CSP rules as the original media URL.
 
-The checked-in Shaka adapter is module-local and resolves the pinned package from the application build. It is served from the application origin;
-no Shaka CDN or global-script fallback belongs in `script-src`.
+The checked-in `shaka-playback-adapter.mjs` is module-local and statically imports the pinned package from the application build. It is served from
+the application origin. The obsolete WEB-01 `shaka-adapter.mjs` is not a release artifact, and no Shaka CDN, page-script, or global-object fallback
+belongs in the application or `script-src`.
 
 ## Content Security Policy
 
@@ -121,7 +124,7 @@ Use an immutable release identifier at the storage/CDN publication boundary, eve
 Upload the complete candidate to an isolated versioned release, validate it, then atomically switch the origin-root mapping or release pointer.
 
 - `index.html` and `/config.json`: `Cache-Control: no-store` (or `no-cache, must-revalidate` for HTML when operationally required).
-- `streamcore-web.js` and `shaka-adapter.mjs`: unversioned entry names; `Cache-Control: no-cache, must-revalidate` unless the hosting layer maps the
+- `streamcore-web.js` and `shaka-playback-adapter.mjs`: unversioned entry names; `Cache-Control: no-cache, must-revalidate` unless the hosting layer maps the
   entire origin root atomically to an immutable release.
 - content-hashed `*.wasm`: `Cache-Control: public, max-age=31536000, immutable`.
 - `composeResources/**`: use `no-cache, must-revalidate` because resource filenames are not guaranteed to be content hashes. They may be immutable

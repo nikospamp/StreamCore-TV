@@ -17,6 +17,7 @@ internal class WebPlaybackVideoSurface(
             factory = { videoElement },
             update = { element ->
                 element.setAttribute("aria-label", "Video playback")
+                disableHostPointerEvents(element)
             },
             onRelease = { element -> release(element) },
             modifier = modifier,
@@ -29,5 +30,13 @@ internal class WebPlaybackVideoSurface(
         }
         element.pause()
         element.remove()
+    }
+
+    private fun disableHostPointerEvents(element: HTMLVideoElement) {
+        val host = element.parentElement ?: return
+        val style = host.getAttribute("style").orEmpty()
+        if ("pointer-events" !in style) {
+            host.setAttribute("style", "$style;pointer-events:none;")
+        }
     }
 }

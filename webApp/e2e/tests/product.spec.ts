@@ -738,6 +738,21 @@ test("browse routes preserve focus, library mutations, reload and logout", async
     }
     await route.fallback();
   });
+  await page.route("**/*", async (route) => {
+    const pathname = new URL(route.request().url()).pathname.toLowerCase();
+    if (/\.(?:mpd|m3u8|mp4|m4s|webm)$/.test(pathname)) {
+      await route.fulfill({
+        status: 503,
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "application/octet-stream",
+        },
+        body: "",
+      });
+      return;
+    }
+    await route.fallback();
+  });
 
   await loginToProfiles(page, "browse-user");
   await activateSemanticButton(
@@ -797,14 +812,17 @@ test("browse routes preserve focus, library mutations, reload and logout", async
     page.getByRole("button", { name: "Play", exact: true }),
   );
   await expectProductRoute(page, "/player/603");
-  await expect(page.locator("video")).toHaveCount(0);
-  await expect(page.locator('[data-shaka-probe]')).toHaveCount(0);
-  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(1);
+  await page.keyboard.press("Escape");
   await expectProductRoute(page, "/details/603");
+  const returnedPlay = page.getByRole("button", { name: "Play", exact: true });
+  await expect(returnedPlay).toBeFocused();
   await page.keyboard.press("Space");
   await expectProductRoute(page, "/player/603");
-  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(1);
+  await page.keyboard.press("Escape");
   await expectProductRoute(page, "/details/603");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeFocused();
 
   errorMonitor.setReloadPhase("restoration");
   await page.reload();

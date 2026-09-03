@@ -1,14 +1,9 @@
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 
-const fixturesEnabled = process.env.STREAMCORE_WEB_PLAYER_FIXTURES === "enabled";
 const fixtureContentId = "603";
 const fixtureRoute = `/diagnostic/player/${fixtureContentId}`;
-const fixtureSkipReason =
-  "WEB-04 player fixtures are structural until WEB-04D integrates the A/B engine and UI.";
 
 test.describe("WEB-04 deterministic player acceptance", () => {
-  test.skip(!fixturesEnabled, fixtureSkipReason);
-
   test("successful fake playback reaches ready and plays after activation", async ({ page }, testInfo) => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "success");
@@ -55,23 +50,23 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await expectNumericBodyAttribute(page, "data-player-position-ms", 59_000, 61_000);
 
     await activateProjectedButton(page, "Playback settings");
-    await activateProjectedButton(page, "Speed");
-    await activateProjectedButton(page, "1.5x");
+    await activateProjectedButton(page, "Speed · 1×");
+    await activateProjectedButton(page, "1.5×");
     await expect(page.locator("body")).toHaveAttribute("data-player-speed", "1.5");
+    await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Playback settings");
-    await activateProjectedButton(page, "Quality");
-    await activateProjectedButton(page, "1080p");
+    await activateProjectedButton(page, "Quality · 1080p · 5.8 Mbps");
+    await activateProjectedButton(page, "1080p · 5.8 Mbps");
     await expect(page.locator("body")).toHaveAttribute("data-player-video-track", "video-1080");
+    await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Playback settings");
-    await activateProjectedButton(page, "Audio");
-    await activateProjectedButton(page, "Greek");
+    await activateProjectedButton(page, "Audio · English · Original 5.1");
+    await activateProjectedButton(page, "Ελληνικά · Stereo");
     await expect(page.locator("body")).toHaveAttribute("data-player-audio-track", "audio-el");
+    await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Playback settings");
-    await activateProjectedButton(page, "Subtitles");
-    await activateProjectedButton(page, "English");
+    await activateProjectedButton(page, "Subtitles · Off");
+    await activateProjectedButton(page, "English (CC)");
     await expect(page.locator("body")).toHaveAttribute("data-player-text-track", "text-en");
     await diagnostics.assertClean();
   });
@@ -107,10 +102,12 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "success");
 
-    await activateProjectedButton(page, "Fullscreen");
+    const fullscreenAction = page.getByRole("button", { name: "Enter fullscreen", exact: true });
+    await activateProjectedButton(page, "Enter fullscreen");
     await expect(page.locator("body")).toHaveAttribute("data-player-fullscreen", "true");
     await page.keyboard.press("Escape");
     await expect(page.locator("body")).toHaveAttribute("data-player-fullscreen", "false");
+    await expect(fullscreenAction).toBeFocused();
     await expect(page.locator("body")).toHaveAttribute("data-player-focused-action", "fullscreen");
     await diagnostics.assertClean();
   });
@@ -153,8 +150,10 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await openPlayerFixture(page, "no-filmstrip");
 
     await expect(page.locator("body")).toHaveAttribute("data-player-filmstrip-count", "0");
-    await expect(page.getByRole("slider", { name: "Playback position", exact: true })).toHaveCount(1);
-    await scrubTimeline(page, 0.25);
+    await expect(playerTimeline(page)).toHaveCount(1);
+    await scrubTimeline(page, 0.25, async () => {
+      await expect(page.getByText("Preview unavailable", { exact: true })).toBeVisible();
+    });
     await expectNumericBodyAttribute(page, "data-player-position-ms", 29_000, 31_000);
     await expect(page.locator("body")).toHaveAttribute("data-player-canvas-capture-count", "0");
     await diagnostics.assertClean();
@@ -163,14 +162,19 @@ test.describe("WEB-04 deterministic player acceptance", () => {
   test("repeated enter, play and close leaves no session, node, listener or timer", async ({ page }, testInfo) => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await installRuntimeConfig(page);
-    await page.goto(`/diagnostic/details/${fixtureContentId}`);
+    await page.goto(`/diagnostic/details/${fixtureContentId}?fixture=success`);
 
     for (let iteration = 1; iteration <= 5; iteration += 1) {
-      await page.goto(`${fixtureRoute}?fixture=success&iteration=${iteration}`);
+      await activateProjectedButton(page, "Player ID");
+      await expect(page).toHaveURL(new RegExp(`${fixtureRoute.replaceAll("/", "\\/")}$`));
       await waitForFixtureReadiness(page, "success");
+      await expect(page.locator("body")).toHaveAttribute("data-player-active-sessions", "1");
+      await expectNumericBodyAttribute(page, "data-player-active-listeners", 1, 20);
+      await expect(playerVideo(page)).toHaveCount(1);
       await activateProjectedButton(page, "Play");
+      await expect(page.locator("body")).toHaveAttribute("data-player-active-timers", "1");
       await page.keyboard.press("Escape");
-      await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
+      await expect(page).toHaveURL(/\/diagnostic\/details\/603\?fixture=success$/);
       await expect(page.locator("body")).toHaveAttribute("data-player-active-sessions", "0");
       await expect(page.locator("body")).toHaveAttribute("data-player-active-listeners", "0");
       await expect(page.locator("body")).toHaveAttribute("data-player-active-timers", "0");
@@ -275,16 +279,28 @@ async function activateProjectedButton(page: Page, name: string): Promise<void> 
   await waitForAnimationFrames(page, 2);
 }
 
-async function scrubTimeline(page: Page, fraction: number): Promise<void> {
-  const slider = page.getByRole("slider", { name: "Playback position", exact: true });
+function playerTimeline(page: Page): Locator {
+  return page.getByLabel(/^Playback position \d+:\d{2} of 2:00$/);
+}
+
+async function scrubTimeline(
+  page: Page,
+  fraction: number,
+  whileScrubbing: (() => Promise<void>) | undefined = undefined,
+): Promise<void> {
+  const slider = playerTimeline(page);
   await expect(slider).toHaveCount(1);
   const bounds = await stableSemanticBounds(slider);
   const x = bounds.x + bounds.width * fraction;
   const y = bounds.y + bounds.height / 2;
   await page.mouse.move(bounds.x + bounds.width * 0.1, y);
   await page.mouse.down();
-  await page.mouse.move(x, y, { steps: 8 });
-  await page.mouse.up();
+  try {
+    await page.mouse.move(x, y, { steps: 8 });
+    await whileScrubbing?.();
+  } finally {
+    await page.mouse.up();
+  }
 }
 
 async function stableSemanticBounds(

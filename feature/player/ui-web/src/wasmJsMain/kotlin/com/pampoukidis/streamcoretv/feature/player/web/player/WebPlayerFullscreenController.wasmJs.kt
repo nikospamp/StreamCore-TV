@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.browser.document
 import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 
 @Composable
 internal actual fun rememberWebPlayerFullscreenController(): WebPlayerFullscreenController {
@@ -24,7 +25,11 @@ internal actual fun rememberWebPlayerFullscreenController(): WebPlayerFullscreen
 
     DisposableEffect(controller) {
         val listener: (Event) -> Unit = {
+            val wasFullscreen = fullscreenState.value
             fullscreenState.value = WebPlayerFullscreenInterop.isFullscreen()
+            if (wasFullscreen && !fullscreenState.value) {
+                WebPlayerFullscreenInterop.focusProjectedElement(WebPlayerTestTags.Fullscreen)
+            }
         }
         document.addEventListener(FullscreenChangeEvent, listener)
         onDispose {
@@ -32,6 +37,27 @@ internal actual fun rememberWebPlayerFullscreenController(): WebPlayerFullscreen
         }
     }
     return controller
+}
+
+@Composable
+internal actual fun WebPlayerDocumentEscapeEffect(
+    onEscape: () -> Unit,
+) {
+    val currentOnEscape by rememberUpdatedState(onEscape)
+    DisposableEffect(Unit) {
+        val listener: (Event) -> Unit = { event ->
+            val keyboardEvent = event as? KeyboardEvent
+            if (keyboardEvent?.key == EscapeKey) {
+                keyboardEvent.preventDefault()
+                keyboardEvent.stopImmediatePropagation()
+                currentOnEscape()
+            }
+        }
+        document.addEventListener(KeyDownEvent, listener, true)
+        onDispose {
+            document.removeEventListener(KeyDownEvent, listener, true)
+        }
+    }
 }
 
 @Composable
@@ -77,7 +103,10 @@ private external object WebPlayerFullscreenInterop {
     fun isDocumentVisible(): Boolean
     fun toggleFullscreen()
     fun exitFullscreen()
+    fun focusProjectedElement(elementId: String)
 }
 
 private const val FullscreenChangeEvent = "fullscreenchange"
 private const val VisibilityChangeEvent = "visibilitychange"
+private const val KeyDownEvent = "keydown"
+private const val EscapeKey = "Escape"

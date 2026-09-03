@@ -65,8 +65,10 @@ test("records the actual Compose DOM/accessibility selector projection", async (
   });
 
   await page.goto("/diagnostic");
-  const videoProbe = page.locator('[data-testid="html-video-probe"]');
-  await expect(videoProbe).toHaveAttribute("data-shaka-probe", "linked", { timeout: 30_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.getByRole("button", { name: "Details ID", exact: true })).toHaveCount(1);
 
   const evidence = await page.evaluate(() => ({
     bodyChildren: Array.from(document.body.children).map((element) => element.tagName),
@@ -83,7 +85,7 @@ test("records the actual Compose DOM/accessibility selector projection", async (
 
   console.log(`${testInfo.project.name} selector evidence: ${JSON.stringify(evidence)}`);
   expect(evidence.roles).toEqual([]);
-  expect(evidence.testIds).toEqual(["html-video-probe"]);
+  expect(evidence.testIds).toEqual([]);
   await expect(page.locator("body")).toHaveAttribute("data-image-probe", "loaded", {
     timeout: 20_000,
   });
@@ -98,23 +100,27 @@ test("missing runtime config never starts the product graph", async ({ page }) =
 
   await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "blocking-error");
-  await expect(page.locator('[data-testid="html-video-probe"]')).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Details ID", exact: true })).toHaveCount(0);
 });
 
 test("diagnostic direct ID route and reload preserve route identity", async ({ page }) => {
   await page.goto("/diagnostic/details/603");
-  await expect(page.locator('[data-testid="html-video-probe"]')).toHaveAttribute(
-    "data-shaka-probe",
-    "linked",
-    { timeout: 30_000 },
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-product-route",
+    "/diagnostic/details/603",
   );
   expect(new URL(page.url()).pathname).toBe("/diagnostic/details/603");
 
   await page.reload();
-  await expect(page.locator('[data-testid="html-video-probe"]')).toHaveAttribute(
-    "data-shaka-probe",
-    "linked",
-    { timeout: 30_000 },
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-product-route",
+    "/diagnostic/details/603",
   );
   expect(new URL(page.url()).pathname).toBe("/diagnostic/details/603");
 });
