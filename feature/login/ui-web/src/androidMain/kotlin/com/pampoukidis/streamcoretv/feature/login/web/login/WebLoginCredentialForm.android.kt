@@ -78,7 +78,7 @@ internal actual fun WebLoginCredentialForm(
             supportingText = passwordError?.let { message -> { Text(message) } },
             visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            keyboardActions = KeyboardActions(onDone = { if (!isLoading) onSubmit() }),
             trailingIcon = {
                 StreamCoreWebButton(
                     text = if (isPasswordVisible) hidePasswordLabel else showPasswordLabel,
@@ -96,7 +96,7 @@ internal actual fun WebLoginCredentialForm(
         StreamCoreWebButton(
             text = submitLabel,
             onClick = onSubmit,
-            enabled = isSubmitEnabled,
+            enabled = !isLoading,
             loading = isLoading,
             modifier = Modifier
                 .fillMaxWidth()

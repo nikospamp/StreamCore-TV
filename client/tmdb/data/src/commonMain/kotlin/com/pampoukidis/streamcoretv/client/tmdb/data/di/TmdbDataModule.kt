@@ -61,7 +61,13 @@ val tmdbDataModule = module {
             callExecutor = get(),
         )
     } bind DetailsRepository::class
-    single { TmdbProfileRepository() } bind ProfileRepository::class
+    single {
+        TmdbProfileRepository(
+            dataStore = get(named(TMDB_AUTH_STORE_QUALIFIER)),
+            json = get(named(TMDB_JSON_QUALIFIER)),
+            accountId = get<TmdbRuntimeConfig>().accountId,
+        )
+    } bind ProfileRepository::class
     single {
         TmdbSearchRepository(
             tmdbApi = get(),

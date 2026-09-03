@@ -65,7 +65,8 @@ internal class KtorTmdbApi constructor(
                 ),
             )
         }
-        if (response.status.value in 400..499) {
+        val httpCode = response.status.value
+        if (httpCode == HTTP_UNAUTHORIZED || httpCode == HTTP_FORBIDDEN) {
             val backendCode = try {
                 response.body<TmdbRequestTokenResponseDto>().statusCode?.toString()
             } catch (exception: CancellationException) {
@@ -74,11 +75,30 @@ internal class KtorTmdbApi constructor(
                 null
             }
             throw TmdbAuthenticationFailureException(
-                backendCode = backendCode ?: "HTTP_${response.status.value}",
+                backendCode = backendCode ?: "HTTP_$httpCode",
                 message = "TMDB rejected the supplied credentials.",
             )
         }
         if (!response.status.isSuccess()) {
+            if (
+                httpCode in 400..499 &&
+                httpCode != HTTP_REQUEST_TIMEOUT &&
+                httpCode != HTTP_TOO_MANY_REQUESTS
+            ) {
+                val backendCode = try {
+                    response.body<TmdbRequestTokenResponseDto>().statusCode
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (_: Throwable) {
+                    null
+                }
+                if (backendCode == INVALID_CREDENTIALS_STATUS_CODE) {
+                    throw TmdbAuthenticationFailureException(
+                        backendCode = backendCode.toString(),
+                        message = "TMDB rejected the supplied credentials.",
+                    )
+                }
+            }
             throw ResponseException(
                 response = response,
                 cachedResponseText = "TMDB login validation failed.",
@@ -258,5 +278,9 @@ internal class KtorTmdbApi constructor(
     private companion object {
         const val API_VERSION = "3"
         const val INVALID_CREDENTIALS_STATUS_CODE = 30
+        const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
+        const val HTTP_REQUEST_TIMEOUT = 408
+        const val HTTP_TOO_MANY_REQUESTS = 429
     }
 }

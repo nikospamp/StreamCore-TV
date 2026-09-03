@@ -92,7 +92,7 @@ internal actual fun WebLoginCredentialForm(
             identifierInput.disabled = isLoading
             passwordInput.disabled = isLoading
             visibility.disabled = isLoading
-            submit.disabled = isLoading || !isSubmitEnabled
+            submit.disabled = isLoading
             submit.textContent = submitLabel
             form.setAttribute("aria-busy", isLoading.toString())
             updateError(form, identifierInput, LOGIN_IDENTIFIER_ERROR_ID, identifierError, colors)
