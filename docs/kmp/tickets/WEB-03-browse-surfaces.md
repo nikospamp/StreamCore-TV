@@ -5,9 +5,8 @@
 This is a non-executable milestone index. Do not assign it to an implementation owner. Execute
 [WEB-03A](WEB-03A-contracts-and-shell.md) through [WEB-03F](WEB-03F-integration-gate.md).
 
-The milestone is currently blocked: WEB-02 candidate `8a391953ae3a77074b1d97428de32cba14a1c760` is unmerged and its review is blocked pending
-localized corrections. The accepted integration base remains WEB-01 merge `2267306e5df827deded96addd91b6ec947e9f655`; it is not an authorized WEB-03
-implementation base.
+WEB-02 is accepted and merged. WEB-03A uses immutable base
+`eb5467a661fed227f80f70bd3f8a2e91c52bf102`; later WEB-03 feature tickets remain blocked until WEB-03A publishes its reviewed contract commit.
 
 ## Aggregate Goal and Scope
 
