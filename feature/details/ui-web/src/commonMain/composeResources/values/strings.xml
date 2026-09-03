@@ -1,0 +1,23 @@
+<resources>
+    <string name="web_details_back">Back</string>
+    <string name="web_details_refresh">Refresh</string>
+    <string name="web_details_updating">Updating</string>
+    <string name="web_details_loading">Loading details</string>
+    <string name="web_details_error_title">Unable to load details</string>
+    <string name="web_details_error_message">This title is unavailable right now. Retry or return to browse.</string>
+    <string name="web_details_retry">Retry</string>
+    <string name="web_details_play">Play</string>
+    <string name="web_details_resume">Resume</string>
+    <string name="web_details_trailer">Trailer</string>
+    <string name="web_details_like">Like</string>
+    <string name="web_details_liked">Liked</string>
+    <string name="web_details_my_list">My List</string>
+    <string name="web_details_in_my_list">In My List</string>
+    <string name="web_details_action_unavailable">Library action unavailable</string>
+    <string name="web_details_action_updating">Updating selection</string>
+    <string name="web_details_overview">Overview</string>
+    <string name="web_details_cast">Cast</string>
+    <string name="web_details_genres">Genres</string>
+    <string name="web_details_recommendations">More like this</string>
+    <string name="web_details_no_recommendations">No recommendations are available yet.</string>
+</resources>

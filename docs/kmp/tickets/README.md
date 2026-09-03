@@ -43,10 +43,12 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-03): WEB-03B–E READY IN PARALLEL.** WEB-03A passed five serialized Wasm compiles, 30 focused Chromium tests, and one
-capped read-only acceptance review. Its immutable feature base is `4cb1bb45c2df6b230a9121bf365d96ee39259139`; it is merged into
-`codex/kmp-migration` at `60cb62768ef00caf81691f34b89b267790d2899c`. B–E must all branch from the immutable feature base, not from the integration
-merge commit. Full candidate, Android/root, visual, and live browse claims remain WEB-03F scope.
+**Current gate (2026-09-03): WEB-03 ACCEPTED; WEB-04A contract freeze is ready.** WEB-02 and WEB-03A are accepted, WEB-03B through WEB-03E were
+reviewed and merged in the required order, and WEB-03F passed its backend-agnostic integration, production/Binaryen, browser, visual, Android/root,
+and final redacted live-cleanup gates. WEB-03A's immutable feature base was `4cb1bb45c2df6b230a9121bf365d96ee39259139`, merged into
+`codex/kmp-migration` at `60cb62768ef00caf81691f34b89b267790d2899c`; B–E correctly branched from that feature base. The accepted WEB-03F branch commit
+is `a81f509a7d8402f90ef5f8b5fe9dd4767e1fb346`, and the root handoff publishes this integration merge as WEB-04A's immutable base. WEB-04B and
+WEB-04C remain blocked until WEB-04A's provider-neutral playback contract-freeze checkpoint is reviewed and its exact 40-character commit is published.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.
