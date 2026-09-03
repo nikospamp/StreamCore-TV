@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.colorspace.ColorSpace
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.lifecycle.ViewModelStore
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
@@ -169,19 +170,65 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `retry recreates failed source session at last position`() = runTest {
+    fun `retry re-resolves source and reuses session for subsequent loads`() = runTest {
         val source = FakeSourceRepository(fail = true)
         val progress = FakeProgressRepository().apply { current = progressEntry(position = 42_000L) }
         val factory = FakeSessionFactory()
         val subject = PlayerViewModel(source, progress, factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
+
         assertEquals(PlaybackPhase.Error, subject.uiState.value.phase)
+        assertEquals(1, source.resolvedRequests.size)
+        assertEquals(1, factory.sessions.size)
 
         source.fail = false
         subject.onAction(PlayerAction.Retry)
         runCurrent()
-        assertEquals(42_000L, factory.sessions.single().preparedAt)
+
+        subject.onAction(PlayerAction.Load(request(contentId = "next-content"), false))
+        runCurrent()
+
+        assertEquals(
+            listOf("content", "content", "next-content"),
+            source.resolvedRequests.map { request -> request.contentId },
+        )
+        assertEquals(1, factory.sessions.size)
+        assertEquals(listOf("content", "next-content"), factory.sessions.single().preparedMediaIds)
+        assertEquals(listOf(42_000L, 42_000L), factory.sessions.single().preparedPositions)
+    }
+
+    @Test
+    fun `source resolution failure exposes only sanitized copy`() = runTest {
+        val secret = "super-secret-token"
+        val source = FakeSourceRepository(
+            fail = true,
+            failureMessage = "Request failed: https://example.test/video.mpd?access_token=$secret",
+        )
+        val subject = PlayerViewModel(source, FakeProgressRepository(), FakeSessionFactory())
+
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+
+        assertEquals("Unable to load this video.", subject.uiState.value.error?.message)
+        assertFalse(subject.uiState.value.toString().contains(secret))
+    }
+
+    @Test
+    fun `clearing view model closes its single session exactly once`() = runTest {
+        val factory = FakeSessionFactory()
+        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val store = ViewModelStore()
+        store.put("player", subject)
+
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+        store.clear()
+        store.clear()
+
+        assertEquals(1, factory.sessions.size)
+        assertEquals(1, factory.sessions.single().closeCount)
+        assertEquals(null, subject.videoSurface.value)
     }
 
     @Test
@@ -333,21 +380,29 @@ class PlayerViewModelTest {
         assertFalse(subject.uiState.value.controlsVisible)
     }
 
-    private fun request(): PlaybackRequestModel {
-        return PlaybackRequestModel("profile", "content", content())
+    private fun request(contentId: String = "content"): PlaybackRequestModel {
+        return PlaybackRequestModel("profile", contentId, content(contentId))
     }
 
     private fun progressEntry(position: Long): PlaybackProgressEntryModel {
         return PlaybackProgressEntryModel("profile", "content", content(), position, 100_000L, 1L)
     }
 
-    private fun content(): ContentModel {
-        return ContentModel("content", "Title", "", 0, "", 0, "", null, emptyList(), 0L, emptyList())
+    private fun content(contentId: String = "content"): ContentModel {
+        return ContentModel(contentId, "Title", "", 0, "", 0, "", null, emptyList(), 0L, emptyList())
     }
 
-    private class FakeSourceRepository(var fail: Boolean = false) : PlaybackSourceRepository {
+    private class FakeSourceRepository(
+        var fail: Boolean = false,
+        private val failureMessage: String = "source failed",
+    ) : PlaybackSourceRepository {
+        val resolvedRequests = mutableListOf<PlaybackRequestModel>()
+
         override suspend fun resolve(request: PlaybackRequestModel): PlaybackMediaModel {
-            if (fail) error("source failed")
+            resolvedRequests += request
+            if (fail) {
+                error(failureMessage)
+            }
             return PlaybackMediaModel(request.contentId, request.contentSnapshot.title, "https://example.test/video.mpd", "application/dash+xml")
         }
     }
@@ -391,8 +446,11 @@ class PlayerViewModelTest {
         override val state: StateFlow<PlaybackEngineState> = mutableState
         override val videoSurface: PlaybackVideoSurface = FakeSurface
         var preparedAt: Long? = null
+        val preparedMediaIds = mutableListOf<String>()
+        val preparedPositions = mutableListOf<Long>()
         var playCount = 0
         var pauseCount = 0
+        var closeCount = 0
         val seeks = mutableListOf<Long>()
         var selectedSpeed = 1f
         var selectedResizeMode = PlaybackResizeMode.Fit
@@ -404,6 +462,8 @@ class PlayerViewModelTest {
 
         override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
             preparedAt = startPositionMillis
+            preparedMediaIds += media.assetId
+            preparedPositions += startPositionMillis
         }
 
         override fun play() {
@@ -441,7 +501,9 @@ class PlayerViewModelTest {
             }
         }
 
-        override fun close() = Unit
+        override fun close() {
+            closeCount += 1
+        }
     }
 
     private object FakeSurface : PlaybackVideoSurface {

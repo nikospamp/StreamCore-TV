@@ -44,8 +44,13 @@ class PlayerViewModel constructor(
     val effects: Flow<PlayerEffect> = effectsChannel.receiveAsFlow()
 
     private var request: PlaybackRequestModel? = null
-    private var session: PlaybackSession? = null
-    private var sessionStateJob: Job? = null
+    private val session: PlaybackSession = sessionFactory.create()
+    private val sessionStateJob: Job
+    private var hasPreparedSession = false
+    private val preparedSession: PlaybackSession?
+        get() {
+            return session.takeIf { hasPreparedSession }
+        }
     private var controlsJob: Job? = null
     private var filmstripJob: Job? = null
     private var activeFilmstripPositions: List<Long> = emptyList()
@@ -55,6 +60,12 @@ class PlayerViewModel constructor(
     private var lastValidPositionMillis = 0L
     private var lastSavedProgressBucket = 0L
     private var isBackNavigationPending = false
+
+    init {
+        sessionStateJob = viewModelScope.launch {
+            session.state.collect(::applyEngineState)
+        }
+    }
 
     fun onAction(action: PlayerAction) {
         when (action) {
@@ -69,11 +80,11 @@ class PlayerViewModel constructor(
             PlayerAction.ScrubFinished -> finishScrubbing()
             is PlayerAction.OpenSettings -> openSettings(action.page)
             PlayerAction.CloseSettings -> closeSettings()
-            is PlayerAction.SelectVideoTrack -> session?.selectVideoTrack(action.trackId)
-            is PlayerAction.SelectAudioTrack -> session?.selectAudioTrack(action.trackId)
-            is PlayerAction.SelectTextTrack -> session?.selectTextTrack(action.trackId)
-            is PlayerAction.SelectSpeed -> session?.setSpeed(action.speed)
-            is PlayerAction.SelectResizeMode -> session?.setResizeMode(action.mode)
+            is PlayerAction.SelectVideoTrack -> preparedSession?.selectVideoTrack(action.trackId)
+            is PlayerAction.SelectAudioTrack -> preparedSession?.selectAudioTrack(action.trackId)
+            is PlayerAction.SelectTextTrack -> preparedSession?.selectTextTrack(action.trackId)
+            is PlayerAction.SelectSpeed -> preparedSession?.setSpeed(action.speed)
+            is PlayerAction.SelectResizeMode -> preparedSession?.setResizeMode(action.mode)
             PlayerAction.Retry -> retry()
             PlayerAction.PipSelected -> requestPip()
             is PlayerAction.PipChanged -> onPipChanged(action.isInPip)
@@ -85,15 +96,14 @@ class PlayerViewModel constructor(
         controlsJob?.cancel()
         filmstripJob?.cancel()
         feedbackJob?.cancel()
-        sessionStateJob?.cancel()
-        session?.close()
-        session = null
+        sessionStateJob.cancel()
+        session.close()
         _videoSurface.value = null
         super.onCleared()
     }
 
     private fun load(newRequest: PlaybackRequestModel, isPipSupported: Boolean) {
-        if (request == newRequest && session != null) {
+        if (request == newRequest && hasPreparedSession) {
             return
         }
         filmstripJob?.cancel()
@@ -116,32 +126,24 @@ class PlayerViewModel constructor(
             lastValidPositionMillis = progress?.positionMillis ?: 0L
             lastSavedProgressBucket = lastValidPositionMillis / ProgressSaveIntervalMillis
             val media = sourceRepository.resolve(activeRequest)
-            replaceSession().prepare(media, lastValidPositionMillis)
-        }.onFailure { throwable ->
+            if (!hasPreparedSession) {
+                hasPreparedSession = true
+                _videoSurface.value = session.videoSurface
+            }
+            session.prepare(media, lastValidPositionMillis)
+        }.onFailure {
             _uiState.update { state ->
                 state.copy(
                     phase = PlaybackPhase.Error,
                     controlsVisible = true,
                     error = PlaybackErrorModel(
                         code = "SOURCE_RESOLUTION_FAILED",
-                        message = throwable.message ?: "Unable to load this video.",
+                        message = SourceResolutionErrorMessage,
                         isRecoverable = true,
                     ),
                 )
             }
         }
-    }
-
-    private fun replaceSession(): PlaybackSession {
-        sessionStateJob?.cancel()
-        session?.close()
-        val newSession = sessionFactory.create()
-        session = newSession
-        _videoSurface.value = newSession.videoSurface
-        sessionStateJob = viewModelScope.launch {
-            newSession.state.collect(::applyEngineState)
-        }
-        return newSession
     }
 
     private fun applyEngineState(engine: PlaybackEngineState) {
@@ -200,10 +202,10 @@ class PlayerViewModel constructor(
     private fun togglePlayPause() {
         val state = _uiState.value
         if (state.isPlaying) {
-            session?.pause()
+            preparedSession?.pause()
             viewModelScope.launch { saveProgress() }
         } else {
-            session?.play()
+            preparedSession?.play()
         }
         _uiState.update { it.copy(controlsVisible = true) }
         scheduleControlsHideIfEligible()
@@ -215,7 +217,7 @@ class PlayerViewModel constructor(
             return
         }
         val target = (state.positionMillis + deltaMillis).coerceIn(0L, state.durationMillis)
-        session?.seekTo(target)
+        preparedSession?.seekTo(target)
         if (showFeedback) {
             showSeekFeedback((deltaMillis / 1_000L).toInt())
         }
@@ -228,7 +230,7 @@ class PlayerViewModel constructor(
             return
         }
         resumeAfterScrub = state.isPlaying
-        session?.pause()
+        preparedSession?.pause()
         controlsJob?.cancel()
         _uiState.update {
             it.copy(
@@ -258,9 +260,9 @@ class PlayerViewModel constructor(
         filmstripJob?.cancel()
         activeFilmstripPositions = emptyList()
         pendingFilmstripPositions = null
-        session?.seekTo(state.scrubPositionMillis)
+        preparedSession?.seekTo(state.scrubPositionMillis)
         if (resumeAfterScrub) {
-            session?.play()
+            preparedSession?.play()
         }
         _uiState.update {
             it.copy(
@@ -298,7 +300,7 @@ class PlayerViewModel constructor(
     }
 
     private suspend fun processFilmstripRequests() {
-        val activeSession = session ?: return
+        val activeSession = preparedSession ?: return
         while (true) {
             val positions = pendingFilmstripPositions ?: return
             pendingFilmstripPositions = null
@@ -399,7 +401,7 @@ class PlayerViewModel constructor(
 
     private fun onForegroundChanged(isForeground: Boolean) {
         if (!isForeground && !_uiState.value.isInPip) {
-            session?.pause()
+            preparedSession?.pause()
             viewModelScope.launch { saveProgress() }
         }
     }
@@ -474,6 +476,7 @@ class PlayerViewModel constructor(
         const val ProgressSaveIntervalMillis = 10_000L
         const val FilmstripSpacingMillis = 5_000L
         const val SeekFeedbackMillis = 800L
+        const val SourceResolutionErrorMessage = "Unable to load this video."
         val FilmstripFrameIndicesByPriority = listOf(2, 1, 3, 0, 4)
     }
 }
