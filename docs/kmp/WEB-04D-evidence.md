@@ -79,7 +79,7 @@ remains backend-agnostic.
   targeted product cases. The listener probe, server confinement, hidden-controls keyboard path, fullscreen focus, and Details return-focus deltas
   each received a bounded P0/P1 re-review PASS.
 - Failure screenshots were inspected: the fullscreen control and Details Play action visibly retained the Compose focus ring where DOM focus
-  assertions failed. Final Candidate 4 visual acceptance remains pending.
+  assertions failed. Those correction images were not the final visual gate; Candidate 4's production visual result is recorded below.
 
 Focused tests do not constitute the production candidate or six-project release matrix. A production source change after a development run is not
 silently promoted by an affected rerun.
@@ -120,8 +120,28 @@ silently promoted by an affected rerun.
   `expiry` phase only. Non-WebKit, restoration/null/other phases, different source/name/message, and a second expiry occurrence remain fatal.
 - The affected legacy product journey then passed 2/2 across WebKit 1280 and 1920 in 34.5s; bounded test-integrity and release delta reviews both
   returned `PASS`. This focused result is only pre-freeze evidence.
-- Candidate 3 remains failed; 185/186 is not a pass and the one-case correction is not a replacement full matrix. Candidate 4 is pending freeze and
-  must rerun production distribution, artifact validation, and all 186 registrations.
+- Candidate 3 remains failed; 185/186 is not a pass and the one-case correction is not a replacement full matrix. Candidate 4 subsequently froze
+  and executed the final non-live gates recorded below.
+
+## Candidate 4 final non-live evidence
+
+- Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; the candidate was frozen before final non-live execution.
+- Production/Binaryen distribution re-invocation **PASS** in 1s with 340 actionable tasks (59 executed, 281 up-to-date).
+- Artifact validator **PASS**: 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
+- Complete six-project matrix **PASS** in 21m41.111s: 186 passed / 0 failed / 0 skipped / 0 retried. Every project executed 31/31:
+  Chromium 1280, Chromium 1920, Firefox 1280, Firefox 1920, WebKit 1280, and WebKit 1920. By suite, player passed 60/60, product passed 66/66,
+  and runtime passed 60/60.
+- Final production visual capture and human inspection **PASS** at 1280×720 and 1920×1080 for player controls and settings. Readability, clipping,
+  overlap, focus visibility, responsive placement, and scrim/panel hierarchy had no P0/P1 finding.
+- Combined Android/root compatibility gate **PASS** in 7m10s with 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date), including
+  Media3 compilation, player-mobile tests, TMDB and ClientB APK assembly, root `check`, KMP, lint, host-test, and Wasm coverage.
+- Player-mobile unit results were 12/12 with zero failures/errors/skips. The generated TMDB and ClientB debug APKs were 23,177,040 bytes and
+  23,012,604 bytes respectively.
+- Post-run cleanup restored the WEB-04D worktree to its committed state. The primary checkout remains at
+  `f9e13558b3fc1c68db89ba9715932e8db80813ae` with exactly the pre-existing untracked `.kotlin/`; the build-generated untracked `.android/` was
+  removed without touching `.kotlin/`.
+- Candidate 4 is green for every recorded non-live gate. WEB-04 acceptance remains blocked by two external gates only: manual current Safari/macOS
+  and the final authorized live TMDB/public-media journey with mandatory temporary-session cleanup; both remain **NOT RUN**.
 
 ## Review and release gates
 
@@ -136,12 +156,13 @@ silently promoted by an affected rerun.
 - Failed frozen candidate: `ace71461c4914716509e1488a311110d7a20844d`; it is not eligible for acceptance.
 - Failed Candidate 2: `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`; 183/186 passed with 3 terminal-diagnostic failures and zero skips.
 - Failed Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; 185/186 passed with 1 terminal expiry diagnostic and zero skips.
-- Candidate 4: `NOT YET CREATED` after the strict expiry-only test correction.
-- Production/Binaryen distribution and artifact validator: candidates 1, 2, and 3 `PASS`; Candidate 4 `NOT RUN`.
+- Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; final non-live candidate.
+- Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, and 4 `PASS`.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
-  `NOT RUN`.
-- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 visual set `NOT RUN`.
-- Android/root compatibility gate: `NOT RUN` on a frozen WEB-04D commit.
+  `PASS` (186/186, zero failures/skips/retries).
+- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 final production controls/settings
+  captures at both required viewports `PASS` with no P0/P1 finding.
+- Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
 - Manual current Safari/macOS: `NOT RUN`; Playwright WebKit cannot substitute.
 - Final live TMDB/public-media journey and temporary-session cleanup: `NOT RUN`; it requires new action-time authorization immediately before
   transmission.
