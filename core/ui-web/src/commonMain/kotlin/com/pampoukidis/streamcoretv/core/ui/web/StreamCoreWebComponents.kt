@@ -128,7 +128,7 @@ fun StreamCoreWebButton(
                     coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
                 }
             }
-            .webSpaceActivation(onClick)
+            .webSpaceActivation(enabled = enabled && !loading, onClick = onClick)
             .semantics { role = Role.Button },
     ) {
         if (loading) {
@@ -207,7 +207,7 @@ fun StreamCoreWebProfileCard(
                     coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
                 }
             }
-            .webSpaceActivation(onClick)
+            .webSpaceActivation(enabled = enabled, onClick = onClick)
             .semantics { role = Role.Button },
     ) {
         Box(content = content)
@@ -257,7 +257,7 @@ fun StreamCoreWebContentCard(
                     coroutineScope.launch { bringIntoViewRequester.bringIntoView() }
                 }
             }
-            .webSpaceActivation(onClick)
+            .webSpaceActivation(enabled = enabled, onClick = onClick)
             .semantics { role = Role.Button },
     ) {
         Box(content = content)
@@ -354,9 +354,12 @@ fun Modifier.webEscape(onEscape: () -> Unit): Modifier {
     }
 }
 
-private fun Modifier.webSpaceActivation(onClick: () -> Unit): Modifier {
+private fun Modifier.webSpaceActivation(
+    enabled: Boolean,
+    onClick: () -> Unit,
+): Modifier {
     return onPreviewKeyEvent { event ->
-        if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
+        if (enabled && event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
             onClick()
             true
         } else {

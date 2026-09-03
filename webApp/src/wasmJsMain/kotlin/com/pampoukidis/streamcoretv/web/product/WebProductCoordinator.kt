@@ -16,6 +16,8 @@ import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import com.pampoukidis.streamcoretv.web.navigation.WebNavigationController
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
+import com.pampoukidis.streamcoretv.web.navigation.isDiagnosticRoute
+import com.pampoukidis.streamcoretv.web.navigation.requiresSelectedProfile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import org.koin.core.Koin
@@ -112,12 +114,33 @@ internal class WebProductCoordinator(
         authStore.edit { preferences ->
             preferences[selectedProfileIdKey] = profile.id
         }
-        navigation.navigate(WebRoute.AuthenticatedLanding)
+        navigation.navigate(WebRoute.Home)
     }
 
     suspend fun changeProfile() {
         clearSelectedProfile()
         navigation.navigate(WebRoute.Profiles)
+    }
+
+    suspend fun logout(): AppError? {
+        return when (val result = authenticateRepository.logoutUser()) {
+            is AppResult.Success -> {
+                authenticated = false
+                selectedProfile = null
+                val cleanupError = try {
+                    clearSelectedProfile()
+                    null
+                } catch (throwable: CancellationException) {
+                    navigation.replace(WebRoute.Login)
+                    throw throwable
+                } catch (_: Throwable) {
+                    profileSelectionStorageError()
+                }
+                navigation.replace(WebRoute.Login)
+                cleanupError
+            }
+            is AppResult.Failure -> result.error
+        }
     }
 
     suspend fun reconcileProfiles(profiles: List<ProfileModel>) {
@@ -159,17 +182,29 @@ internal class WebProductCoordinator(
     }
 
     fun sanitizeRoute(route: WebRoute) {
-        if (!authenticated && route !is WebRoute.Login && route !is WebRoute.Diagnostic) {
-            navigation.replace(WebRoute.Login)
-            return
+        val canonicalRoute = canonicalRoute(route)
+        if (canonicalRoute != route) {
+            navigation.replace(canonicalRoute)
         }
-        if (authenticated && route is WebRoute.Login) {
-            navigation.replace(if (selectedProfile == null) WebRoute.Profiles else WebRoute.AuthenticatedLanding)
-            return
+    }
+
+    fun canonicalRoute(route: WebRoute): WebRoute {
+        if (route.isDiagnosticRoute()) {
+            return route
         }
-        if (authenticated && selectedProfile == null && route is WebRoute.AuthenticatedLanding) {
-            navigation.replace(WebRoute.Profiles)
+        if (!authenticated && route !is WebRoute.Login) {
+            return WebRoute.Login
         }
+        if (!authenticated) {
+            return route
+        }
+        if (route is WebRoute.Root || route is WebRoute.Login || route is WebRoute.AuthenticatedLanding) {
+            return if (selectedProfile == null) WebRoute.Profiles else WebRoute.Home
+        }
+        if (route.requiresSelectedProfile() && selectedProfile == null) {
+            return WebRoute.Profiles
+        }
+        return route
     }
 
     private suspend fun restoreAuthenticatedRoute(): WebProductInitialization {
@@ -196,11 +231,14 @@ internal class WebProductCoordinator(
         }
         val requestedRoute = navigation.route.value
         val destination = when {
-            requestedRoute is WebRoute.Diagnostic -> WebRoute.Diagnostic
+            requestedRoute.isDiagnosticRoute() -> requestedRoute
             requestedRoute is WebRoute.Profiles || requestedRoute is WebRoute.CreateProfile ||
                 requestedRoute is WebRoute.EditProfile -> requestedRoute
-            selectedProfile != null -> WebRoute.AuthenticatedLanding
-            else -> WebRoute.Profiles
+            selectedProfile == null -> WebRoute.Profiles
+            requestedRoute.requiresSelectedProfile() && requestedRoute !is WebRoute.AuthenticatedLanding -> {
+                requestedRoute
+            }
+            else -> WebRoute.Home
         }
         navigation.replace(destination)
         return WebProductInitialization.Ready
@@ -225,8 +263,8 @@ internal class WebProductCoordinator(
     }
 
     private fun safeProfileRestoreRoute(): WebRoute {
-        return if (navigation.route.value is WebRoute.Diagnostic) {
-            WebRoute.Diagnostic
+        return if (navigation.route.value.isDiagnosticRoute()) {
+            navigation.route.value
         } else {
             WebRoute.Profiles
         }
