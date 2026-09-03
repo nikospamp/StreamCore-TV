@@ -211,6 +211,47 @@ object StreamCoreDimens {
         }
     }
 
+    object Web {
+        object Artwork {
+            val FallbackWidth = 320.dp
+            val FallbackHeight = 180.dp
+        }
+
+        object Home {
+            val HeroHeight = 360.dp
+            val HeroCopyMaxWidth = 620.dp
+            val HeroContentPadding = 36.dp
+            val SectionSpacing = 32.dp
+            val PosterCardWidth = 180.dp
+            val LandscapeCardWidth = 288.dp
+            val LoadingCardHeight = 162.dp
+            val LoadingTitleWidth = 220.dp
+            val LoadingTitleHeight = 28.dp
+        }
+
+        object Search {
+            val FieldMaxWidth = 780.dp
+            val RecentQueryMaxWidth = 260.dp
+            val TrendingCardWidth = 300.dp
+            val ResultCardMinWidth = 180.dp
+            val LoadingPosterHeight = 270.dp
+        }
+
+        object Library {
+            val LandscapeCardWidth = 300.dp
+            val PosterCardWidth = 190.dp
+            val ProgressHeight = 5.dp
+            val LoadingTitleWidth = 220.dp
+            val LoadingTitleHeight = 26.dp
+        }
+
+        object Details {
+            val RecommendationCardWidth = 280.dp
+            val LoadingTitleHeight = 44.dp
+            val LoadingLineHeight = 24.dp
+        }
+    }
+
     object Tv {
         object Navigation {
             val CollapsedWidth = 72.dp

@@ -37,18 +37,18 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
@@ -460,9 +460,9 @@ private fun WebLibraryContentCard(
         content.poster
     }
     val cardWidth = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        LandscapeCardWidth
+        StreamCoreDimens.Web.Library.LandscapeCardWidth
     } else {
-        PosterCardWidth
+        StreamCoreDimens.Web.Library.PosterCardWidth
     }
     val aspectRatio = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
         LandscapeAspectRatio
@@ -480,9 +480,10 @@ private fun WebLibraryContentCard(
         PosterRequestHeightPx
     }
     val scrimColor = MaterialTheme.colorScheme.scrim
-    val artworkScrim = remember(scrimColor) {
+    val transparentContainer = MaterialTheme.colorScheme.transparentContainer
+    val artworkScrim = remember(scrimColor, transparentContainer) {
         Brush.verticalGradient(
-            0.35f to Color.Transparent,
+            0.35f to transparentContainer,
             1f to scrimColor.copy(alpha = 0.94f),
         )
     }
@@ -509,7 +510,7 @@ private fun WebLibraryContentCard(
                 Text(
                     text = content.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onArtwork,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -543,8 +544,8 @@ private fun WebLibraryProgress(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(ProgressHeight)
-            .background(Color.White.copy(alpha = 0.28f)),
+            .height(StreamCoreDimens.Web.Library.ProgressHeight)
+            .background(MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.28f)),
     ) {
         Box(
             modifier = Modifier
@@ -598,8 +599,8 @@ private fun WebLibraryLoading(modifier: Modifier = Modifier) {
             Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
                 Box(
                     modifier = Modifier
-                        .width(LoadingTitleWidth)
-                        .height(LoadingTitleHeight)
+                        .width(StreamCoreDimens.Web.Library.LoadingTitleWidth)
+                        .height(StreamCoreDimens.Web.Library.LoadingTitleHeight)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             shape = MaterialTheme.shapes.small,
@@ -609,8 +610,8 @@ private fun WebLibraryLoading(modifier: Modifier = Modifier) {
                     repeat(LoadingCardCount) {
                         Box(
                             modifier = Modifier
-                                .width(LandscapeCardWidth)
-                                .height(LandscapeCardWidth / LandscapeAspectRatio)
+                                .width(StreamCoreDimens.Web.Library.LandscapeCardWidth)
+                                .height(StreamCoreDimens.Web.Library.LandscapeCardWidth / LandscapeAspectRatio)
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     shape = MaterialTheme.shapes.large,
@@ -722,13 +723,8 @@ private const val PosterRequestHeightPx = 600
 private const val LoadingSectionCount = 3
 private const val LoadingCardCount = 4
 private const val FocusRequestAttempts = 3
-private val LandscapeCardWidth = 300.dp
-private val PosterCardWidth = 190.dp
 private val LandscapeAspectRatio = 16f / 9f
 private val PosterAspectRatio = 2f / 3f
-private val ProgressHeight = 5.dp
-private val LoadingTitleWidth = 220.dp
-private val LoadingTitleHeight = 26.dp
 
 @Preview(name = "Library · Loading", widthDp = 1280, heightDp = 720)
 @Composable
