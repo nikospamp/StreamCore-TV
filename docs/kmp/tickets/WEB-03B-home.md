@@ -17,9 +17,11 @@ TMDB call, DTO, SDK, response, or client-specific model.
 
 ## Expected API and Scope
 
-- `WebHomeRoute(profileId, selectedContentKey, onContentSelected, onError, returnFocusKey, onReturnFocusConsumed, viewModel)` matching the existing
-  Home route contract, with lifecycle/state collection appropriate for KMP web.
-- Stateless `WebHomeScreen(state, onAction, selectedContentKey, returnFocusKey, onReturnFocusConsumed)` as the first public screen composable.
+- `WebHomeRoute(profileId, selectedContentKey, onContentSelected, onError, returnFocusKey, onReturnFocusConsumed, viewModel)` using
+  `WebBrowseFocusKey?` for selected/return focus and `(ContentModel, WebBrowseFocusKey) -> Unit` for selection, exactly as frozen in
+  `docs/kmp/WEB-03A-evidence.md`.
+- Stateless `WebHomeScreen(state, onAction, selectedContentKey, returnFocusKey, onReturnFocusConsumed, modifier)` as the first public screen
+  composable, with the frozen types and parameter order.
 - Hero/backdrop, metadata, primary actions, pager/indicator, horizontal rows, continue-watching progress, bounded Coil/Ktor image requests, fallbacks,
   stable keys/content types, and loading/content/empty/offline/error/long-text showcases.
 - Deterministic arrow/Enter/Space/Escape and mouse behavior; hover changes visuals without unpredictably stealing keyboard focus; focused cards scroll
@@ -31,11 +33,12 @@ Do not wire app navigation or implement playback; emit the frozen callbacks only
 
 ```powershell
 .\gradlew.bat :feature:home:ui-web:compileKotlinWasmJs
-.\gradlew.bat :feature:home:ui-web:wasmJsBrowserTest
+.\gradlew.bat :feature:home:ui-web:testAndroidHostTest
 ```
 
-Run only through the build queue. Tier 1 may add the focused Home Compose/browser test in development Chromium 1280×720. Record executed test
-counts, focus scenario, allocation/key review, and inspected Home screenshots if generated. No file-presence visual claim, Binaryen, full matrix,
-Android/root gate, or live credentials.
+Run only through the build queue. The module convention intentionally has no feature-local Wasm browser-test task; host tests cover pure
+fixture/focus resolution, while WEB-03F owns Compose browser-node assertions in `:webApp:wasmJsBrowserTest`. Record executed host-test counts, focus
+scenario, allocation/key review, and inspected Home screenshots if generated. No file-presence visual claim, Binaryen, full matrix, Android/root
+gate, or live credentials.
 
 Acceptance is a reviewed feature commit that changes only reserved paths and satisfies the frozen API. WEB-03F owns integration and the live claim.

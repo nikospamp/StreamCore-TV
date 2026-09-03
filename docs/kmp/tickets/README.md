@@ -43,10 +43,10 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-03): WEB-03A READY.** WEB-02 passed independent review, focused remediation, one production/Binaryen distribution,
-48 browser tests, the complete 114-case Playwright matrix, inspected visual evidence, the combined Android/root gate, and the strengthened live
-TMDB smoke with confirmed cleanup. It is merged into `codex/kmp-migration` at
-`eb5467a661fed227f80f70bd3f8a2e91c52bf102`, the immutable WEB-03A base and current rollback point.
+**Current gate (2026-09-03): WEB-03B–E READY IN PARALLEL.** WEB-03A passed five serialized Wasm compiles, 30 focused Chromium tests, and one
+capped read-only acceptance review. Its immutable feature base is `4cb1bb45c2df6b230a9121bf365d96ee39259139`; it is merged into
+`codex/kmp-migration` at `60cb62768ef00caf81691f34b89b267790d2899c`. B–E must all branch from the immutable feature base, not from the integration
+merge commit. Full candidate, Android/root, visual, and live browse claims remain WEB-03F scope.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.

@@ -55,7 +55,7 @@ Run through the serialized build queue, in order:
 ```powershell
 .\gradlew.bat :core:ui-web:compileKotlinWasmJs
 .\gradlew.bat :webApp:compileKotlinWasmJs
-.\gradlew.bat :webApp:wasmJsBrowserTest --tests "*WebRouteTest*" --tests "*WebProductCoordinatorTest*"
+.\gradlew.bat :webApp:wasmJsBrowserTest --tests "*WebRouteTest*" --tests "*WebProductCoordinatorTest*" --tests "*WebBrowseShellTest*"
 ```
 
 Tier 1 may use one development Chromium 1280×720 protected-route/history smoke. No Binaryen, full browser matrix, Android/root gate, visual
@@ -68,3 +68,6 @@ approval, or live credential run belongs here.
 - Publish the accepted 40-character `WEB-03A_CONTRACT_COMMIT`. WEB-03B–E all branch from that identical commit.
 - Report changed files, API signatures, command/count evidence, review findings, and status. Do not claim complete browse, visual parity, cross-browser
   passing, or live TMDB behavior.
+
+Accepted on 2026-09-03: `WEB-03A_CONTRACT_COMMIT=4cb1bb45c2df6b230a9121bf365d96ee39259139`. Exact frozen signatures and observed evidence are
+recorded in `docs/kmp/WEB-03A-evidence.md`.
