@@ -77,8 +77,9 @@ WEB-04 adds these version-specific player contracts:
   `Quality · 1080p · 5.8 Mbps`;
 - Compose projects the timeline as an adjustable generic node, not an HTML `slider` role. Its exact accessible name is dynamic:
   `Playback position <position> of <duration>`, and tests locate it by label before sending pointer drag input to its settled bounds;
-- a capture-phase document Escape listener owns real-browser Escape and stops duplicate Compose dispatch. Fullscreen exit restores the current
-  projected control through its stable ID, including the open shadow-root projection;
+- a capture-phase document Escape listener owns real-browser Escape and stops duplicate Compose dispatch. Compose focus remains authoritative:
+  fullscreen and Details restoration are proved behaviorally by pressing Space after return and requiring the focused action to reopen its target;
+  cross-engine DOM `activeElement` projection is not treated as the focus contract;
 - the ten deterministic fixtures are mandatory in the default Playwright suite; there is no environment flag or skip path that can turn a green
   command into 60 unexecuted player registrations. Their `body[data-player-*]` values contain only synthetic IDs, fixed sanitized copy, booleans,
   and counts. The diagnostic listener balance probe records actual relevant document/tagged-video

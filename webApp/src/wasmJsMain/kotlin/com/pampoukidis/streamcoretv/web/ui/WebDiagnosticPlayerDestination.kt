@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
@@ -152,29 +151,14 @@ private fun DiagnosticPlayerEvidence(
 ) {
     val playerState by viewModel.uiState.collectAsState()
     var fullscreen by remember { mutableStateOf(document.fullscreenElement != null) }
-    var focusedAction by remember { mutableStateOf(currentFocusedPlayerAction()) }
 
     DisposableEffect(Unit) {
         val fullscreenListener: (Event) -> Unit = {
             fullscreen = document.fullscreenElement != null
         }
-        val focusListener: (Event) -> Unit = {
-            focusedAction = currentFocusedPlayerAction()
-        }
         document.addEventListener(FullscreenEvent, fullscreenListener)
-        document.addEventListener(FocusEvent, focusListener)
         onDispose {
             document.removeEventListener(FullscreenEvent, fullscreenListener)
-            document.removeEventListener(FocusEvent, focusListener)
-        }
-    }
-
-    LaunchedEffect(fullscreen) {
-        if (!fullscreen) {
-            repeat(FocusEvidenceFrames) {
-                withFrameNanos { }
-            }
-            focusedAction = currentFocusedPlayerAction()
         }
     }
 
@@ -184,7 +168,6 @@ private fun DiagnosticPlayerEvidence(
         profileId,
         playerState,
         fullscreen,
-        focusedAction,
         DiagnosticPlayerRegistry.activeSessions,
         DiagnosticListenerProbe.count(),
         DiagnosticPlayerRegistry.activeTimers,
@@ -198,7 +181,6 @@ private fun DiagnosticPlayerEvidence(
             profileId = profileId,
             state = playerState,
             fullscreen = fullscreen,
-            focusedAction = focusedAction,
         )
     }
 }
@@ -209,7 +191,6 @@ private fun publishDiagnosticPlayerEvidence(
     profileId: String,
     state: PlayerUiState,
     fullscreen: Boolean,
-    focusedAction: String,
 ) {
     val body = document.body ?: return
     body.removeAttribute(FixtureReadyAttribute)
@@ -232,7 +213,6 @@ private fun publishDiagnosticPlayerEvidence(
     body.setAttribute("data-player-audio-track", state.selectedAudioTrackId.orEmpty())
     body.setAttribute("data-player-text-track", state.selectedTextTrackId.orEmpty())
     body.setAttribute("data-player-fullscreen", fullscreen.toString())
-    body.setAttribute("data-player-focused-action", focusedAction)
     body.setAttribute("data-player-layer", state.diagnosticLayer())
     body.setAttribute(
         "data-player-filmstrip-count",
@@ -294,10 +274,6 @@ private fun PlayerUiState.diagnosticLayer(): String {
     }
 }
 
-private fun currentFocusedPlayerAction(): String {
-    return DiagnosticListenerProbe.focusedAction()
-}
-
 private fun diagnosticPlaybackRequest(
     profileId: String,
     contentId: String,
@@ -354,12 +330,9 @@ private class DiagnosticPlayerViewModelStoreOwner : ViewModelStoreOwner {
 private const val FixtureReadyAttribute = "data-player-fixture-ready"
 private const val InvalidFixtureName = "invalid-direct-id"
 private const val FullscreenEvent = "fullscreenchange"
-private const val FocusEvent = "focusin"
-private const val FocusEvidenceFrames = 8
 
 @JsModule("./diagnostic-listener-probe.mjs")
 private external object DiagnosticListenerProbe {
     fun install()
     fun count(): Int
-    fun focusedAction(): String
 }

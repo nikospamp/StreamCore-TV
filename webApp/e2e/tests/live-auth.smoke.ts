@@ -162,11 +162,10 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
     await ensureUserActivatedPlayback(page, productionVideo);
     const resumePositionSeconds = await seekPastResumeThreshold(page, productionVideo);
 
-    const enterFullscreen = page.getByRole(
-      "button",
-      { name: "Enter fullscreen", exact: true },
+    await activateSemanticButton(
+      page,
+      page.getByRole("button", { name: "Enter fullscreen", exact: true }),
     );
-    await activateSemanticButton(page, enterFullscreen);
     await expect.poll(async () => {
       return page.evaluate(() => document.fullscreenElement !== null);
     }, { timeout: 30_000, intervals: [100] }).toBe(true);
@@ -174,7 +173,14 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
     await expect.poll(async () => {
       return page.evaluate(() => document.fullscreenElement === null);
     }, { timeout: 30_000, intervals: [100] }).toBe(true);
-    await expect(enterFullscreen).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect.poll(async () => {
+      return page.evaluate(() => document.fullscreenElement !== null);
+    }, { timeout: 30_000, intervals: [100] }).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect.poll(async () => {
+      return page.evaluate(() => document.fullscreenElement === null);
+    }, { timeout: 30_000, intervals: [100] }).toBe(true);
 
     await page.keyboard.press("Escape");
     await expectProductRoute(page, "/details/550");

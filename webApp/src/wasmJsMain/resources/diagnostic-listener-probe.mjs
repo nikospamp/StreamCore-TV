@@ -1,4 +1,4 @@
-const trackedDocumentEvents = new Set(["fullscreenchange", "visibilitychange", "focusin", "keydown"]);
+const trackedDocumentEvents = new Set(["fullscreenchange", "visibilitychange", "keydown"]);
 const registrations = new Map();
 let installed = false;
 let activeCount = 0;
@@ -56,14 +56,6 @@ export function install() {
 
 export function count() {
   return activeCount;
-}
-
-export function focusedAction() {
-  let active = document.activeElement;
-  while (active?.shadowRoot?.activeElement) {
-    active = active.shadowRoot.activeElement;
-  }
-  return active?.id === "web-player:fullscreen" ? "fullscreen" : "";
 }
 
 function shouldTrack(target, type) {
