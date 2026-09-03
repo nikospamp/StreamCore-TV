@@ -72,21 +72,21 @@ import com.pampoukidis.streamcoretv.feature.home.common.home.toHomeContentModel
 import com.pampoukidis.streamcoretv.feature.home.common.testing.HomeTestTags
 import com.pampoukidis.streamcoretv.feature.home.web.testing.WebHomePreviewData
 import org.jetbrains.compose.resources.stringResource
-import streamcoretv.feature.home.uiweb.generated.resources.Res
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_empty_message
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_empty_title
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_error_message
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_error_title
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_feature_position
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_loading_description
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_more_details
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_next_feature
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_offline_message
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_offline_title
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_open_details
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_previous_feature
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_refresh
-import streamcoretv.feature.home.uiweb.generated.resources.web_home_title
+import streamcoretv.feature.home.ui_web.generated.resources.Res
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_empty_message
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_empty_title
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_error_message
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_error_title
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_feature_position
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_loading_description
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_more_details
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_next_feature
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_offline_message
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_offline_title
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_open_details
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_previous_feature
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_refresh
+import streamcoretv.feature.home.ui_web.generated.resources.web_home_title
 
 @Composable
 fun WebHomeScreen(
