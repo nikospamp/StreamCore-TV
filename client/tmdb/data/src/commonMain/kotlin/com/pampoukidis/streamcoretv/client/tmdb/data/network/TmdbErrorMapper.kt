@@ -47,6 +47,10 @@ internal class TmdbErrorMapper constructor() {
                 operation = operation,
                 exception = throwable,
             )
+            is ResponseException -> mapHttpError(
+                operation = operation,
+                exception = throwable,
+            )
             is SerializationException -> AppError.Parsing(source = source(operation = operation))
             is IOException -> AppError.Network(source = source(operation = operation))
             else -> AppError.Unknown(source = source(operation = operation))
@@ -64,18 +68,16 @@ internal class TmdbErrorMapper constructor() {
             backendMessage = exception.response.status.description,
         )
 
-        return when (httpCode) {
-            401,
-            403 -> {
-                if (operation == LOGIN_OPERATION) {
-                    AppError.Authentication(source = errorSource)
-                } else {
-                    AppError.Unauthorized(source = errorSource)
-                }
+        return when {
+            httpCode == 408 -> AppError.Timeout(source = errorSource)
+            httpCode == 429 -> AppError.Server(source = errorSource)
+            httpCode in 500..599 -> AppError.Server(source = errorSource)
+            operation == LOGIN_OPERATION && (httpCode == 401 || httpCode == 403) -> {
+                AppError.Authentication(source = errorSource)
             }
-            408 -> AppError.Timeout(source = errorSource)
-            429 -> AppError.Server(source = errorSource)
-            in 500..599 -> AppError.Server(source = errorSource)
+            httpCode == 401 || httpCode == 403 -> {
+                AppError.Unauthorized(source = errorSource)
+            }
             else -> AppError.Unknown(source = errorSource)
         }
     }
