@@ -131,7 +131,11 @@ internal class Media3PlaybackSession(
         thumbnailExtractor = null
         lastFilmstripPrewarmCenterMillis = null
         replaceFrameExtractor(item)
-        _state.value = _state.value.copy(phase = PlaybackPhase.Preparing, error = null)
+        _state.value = PlaybackEngineState(
+            phase = PlaybackPhase.Preparing,
+            speed = player.playbackParameters.speed,
+            resizeMode = resizeMode,
+        )
         player.setMediaItem(item, startPositionMillis.coerceAtLeast(0L))
         player.prepare()
         player.playWhenReady = true
@@ -303,7 +307,7 @@ internal class Media3PlaybackSession(
             error = error?.let { playbackError ->
                 PlaybackErrorModel(
                     code = playbackError.errorCodeName,
-                    message = playbackError.localizedMessage ?: "Playback failed",
+                    message = PlaybackFailureMessage,
                     isRecoverable = true,
                 )
             },
@@ -477,6 +481,7 @@ internal class Media3PlaybackSession(
         const val FilmstripPrewarmRefreshMillis = 30_000L
         const val FrameCacheBytes = 8 * 1024 * 1024
         const val LogTag = "Media3PlaybackSession"
+        const val PlaybackFailureMessage = "Playback failed."
     }
 }
 
