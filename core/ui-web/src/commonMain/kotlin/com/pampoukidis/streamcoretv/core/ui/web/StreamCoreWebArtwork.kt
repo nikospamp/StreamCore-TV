@@ -14,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
@@ -79,7 +79,10 @@ private fun StreamCoreWebArtworkPreview() {
             fallbackText = "S",
             requestWidthPx = 640,
             requestHeightPx = 360,
-            modifier = Modifier.size(width = 320.dp, height = 180.dp),
+            modifier = Modifier.size(
+                width = StreamCoreDimens.Web.Artwork.FallbackWidth,
+                height = StreamCoreDimens.Web.Artwork.FallbackHeight,
+            ),
         )
     }
 }

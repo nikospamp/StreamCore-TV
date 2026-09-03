@@ -67,6 +67,7 @@ kotlin {
             implementation("androidx.datastore:datastore-preferences-core:${libs.versions.datastore.get()}")
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)

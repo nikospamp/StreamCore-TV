@@ -22,11 +22,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
+import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
@@ -39,10 +42,19 @@ import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
+import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
+import com.pampoukidis.streamcoretv.core.ui.web.webEscape
+import com.pampoukidis.streamcoretv.feature.details.web.details.WebDetailsRoute
+import com.pampoukidis.streamcoretv.feature.home.common.home.HomeViewModel
+import com.pampoukidis.streamcoretv.feature.home.web.home.WebHomeRoute
+import com.pampoukidis.streamcoretv.feature.library.web.library.WebLibraryRoute
 import com.pampoukidis.streamcoretv.feature.login.web.login.WebLoginRoute
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.web.editor.WebProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.web.profiles.WebProfilesRoute
+import com.pampoukidis.streamcoretv.feature.search.common.search.SearchViewModel
+import com.pampoukidis.streamcoretv.feature.search.web.search.WebSearchRoute
+import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
 import com.pampoukidis.streamcoretv.web.navigation.isDiagnosticRoute
 import com.pampoukidis.streamcoretv.web.platform.SecureWebUriHandler
@@ -55,6 +67,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.KoinIsolatedContext
+import org.koin.compose.viewmodel.koinViewModel
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 import streamcoretv.core.ui.generated.resources.Res
@@ -110,12 +123,21 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
     var activeError by remember { mutableStateOf<AppError?>(null) }
     var profilesRevision by remember { mutableIntStateOf(0) }
     var logoutInProgress by remember { mutableStateOf(false) }
+    var transientDetailsContent by remember { mutableStateOf<ContentModel?>(null) }
+    var pendingPlaybackRequest by remember { mutableStateOf<PlaybackRequestModel?>(null) }
+    var inAppDetailsIds by remember { mutableStateOf(emptySet<String>()) }
+    val clearBrowseTransients: () -> Unit = {
+        transientDetailsContent = null
+        pendingPlaybackRequest = null
+        inAppDetailsIds = emptySet()
+    }
     val handleProductError: (AppError) -> Unit = { error ->
         activeError = error
         document.body?.setAttribute("data-product-error-kind", error.webErrorKind())
         scope.launch { coordinator.handleError(error) }
     }
     val profileChanged: () -> Unit = {
+        clearBrowseTransients()
         profilesRevision += 1
         scope.launch {
             val error = coordinator.reconcileProfilesFromRepository()
@@ -130,6 +152,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         state.navigationController.navigate(WebRoute.Profiles)
     }
     val changeProfile: () -> Unit = {
+        clearBrowseTransients()
         scope.launch { coordinator.changeProfile() }
     }
     val logout: () -> Unit = {
@@ -138,11 +161,29 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
             scope.launch {
                 try {
                     coordinator.logout()?.let { error -> activeError = error }
+                    if (state.navigationController.route.value is WebRoute.Login) {
+                        clearBrowseTransients()
+                    }
                 } finally {
                     logoutInProgress = false
                 }
             }
         }
+    }
+    val openDetails: (ContentModel, WebBrowseFocusKey) -> Unit = { content, focusKey ->
+        if (state.navigationController.captureReturnFocus(focusKey)) {
+            transientDetailsContent = content
+            pendingPlaybackRequest = null
+            inAppDetailsIds = inAppDetailsIds + content.id
+            state.navigationController.navigate(WebRoute.Details(content.id))
+        }
+    }
+    val navigateTopLevel: (WebBrowseDestination) -> Unit = { destination ->
+        clearBrowseTransients()
+        state.navigationController.navigate(destination.toRoute())
+    }
+    val consumeReturnFocus: (WebBrowseFocusKey) -> Unit = { focusKey ->
+        state.navigationController.consumeReturnFocus(focusKey)
     }
 
     LaunchedEffect(coordinator) {
@@ -167,6 +208,24 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         }
     }
 
+    LaunchedEffect(route) {
+        if (
+            route is WebRoute.Root ||
+            route is WebRoute.Login ||
+            route is WebRoute.Profiles ||
+            route is WebRoute.CreateProfile ||
+            route is WebRoute.EditProfile ||
+            route is WebRoute.AuthenticatedLanding
+        ) {
+            clearBrowseTransients()
+        } else if (route !is WebRoute.Details && route !is WebRoute.Player) {
+            transientDetailsContent = null
+            pendingPlaybackRequest = null
+        } else if (route is WebRoute.Details) {
+            pendingPlaybackRequest = null
+        }
+    }
+
     CompositionLocalProvider(LocalProfileAvatarArtworkResolver provides avatarResolver) {
         if (initializing) {
             StreamCoreWebBlockingSurface(
@@ -188,6 +247,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                 WebRoute.Profiles -> WebProfilesRoute(
                     profilesRevision = profilesRevision,
                     onProfileSelected = { profile ->
+                        clearBrowseTransients()
                         scope.launch { coordinator.profileSelected(profile) }
                     },
                     onCreateProfile = { state.navigationController.navigate(WebRoute.CreateProfile) },
@@ -215,59 +275,126 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                     onClose = closeProfileEditor,
                     onError = handleProductError,
                 )
-                WebRoute.Home -> WebBrowsePlaceholder(
-                    destination = WebBrowseDestination.Home,
-                    title = "Home",
-                    message = "Home is ready for its WEB-03B feature implementation.",
-                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    logoutInProgress = logoutInProgress,
-                    onNavigate = state.navigationController::navigate,
-                    onChangeProfile = changeProfile,
-                    onLogout = logout,
-                )
-                WebRoute.Search -> WebBrowsePlaceholder(
-                    destination = WebBrowseDestination.Search,
-                    title = "Search",
-                    message = "Search is ready for its WEB-03C feature implementation.",
-                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    logoutInProgress = logoutInProgress,
-                    onNavigate = state.navigationController::navigate,
-                    onChangeProfile = changeProfile,
-                    onLogout = logout,
-                )
-                WebRoute.Library -> WebBrowsePlaceholder(
-                    destination = WebBrowseDestination.Library,
-                    title = "Library",
-                    message = "Library is ready for its WEB-03D feature implementation.",
-                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    logoutInProgress = logoutInProgress,
-                    onNavigate = state.navigationController::navigate,
-                    onChangeProfile = changeProfile,
-                    onLogout = logout,
-                )
-                is WebRoute.Details -> WebBrowsePlaceholder(
-                    destination = WebBrowseDestination.Details,
-                    title = "Details",
-                    message = "Content ${destination.contentId} is ready for its WEB-03E feature implementation.",
-                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    logoutInProgress = logoutInProgress,
-                    onNavigate = state.navigationController::navigate,
-                    onChangeProfile = changeProfile,
-                    onLogout = logout,
-                )
+                WebRoute.Home -> {
+                    val profile = requireNotNull(coordinator.selectedProfile)
+                    WebBrowseFeatureSurface(
+                        destination = WebBrowseDestination.Home,
+                        profileName = profile.displayName,
+                        logoutInProgress = logoutInProgress,
+                        onDestinationSelected = navigateTopLevel,
+                        onChangeProfile = changeProfile,
+                        onLogout = logout,
+                    ) {
+                        WebHomeRoute(
+                            profileId = profile.id,
+                            selectedContentKey = navigationEntry.returnFocusKey,
+                            onContentSelected = openDetails,
+                            onError = handleProductError,
+                            returnFocusKey = navigationEntry.returnFocusKey,
+                            onReturnFocusConsumed = consumeReturnFocus,
+                            viewModel = koinViewModel(key = "web-home:${profile.id}"),
+                        )
+                    }
+                }
+                WebRoute.Search -> {
+                    val profile = requireNotNull(coordinator.selectedProfile)
+                    WebBrowseFeatureSurface(
+                        destination = WebBrowseDestination.Search,
+                        profileName = profile.displayName,
+                        logoutInProgress = logoutInProgress,
+                        onDestinationSelected = navigateTopLevel,
+                        onChangeProfile = changeProfile,
+                        onLogout = logout,
+                    ) {
+                        WebSearchRoute(
+                            profileId = profile.id,
+                            selectedContentKey = navigationEntry.returnFocusKey,
+                            onContentSelected = openDetails,
+                            onBack = {
+                                clearBrowseTransients()
+                                state.navigationController.replace(WebRoute.Home)
+                            },
+                            returnFocusKey = navigationEntry.returnFocusKey,
+                            onReturnFocusConsumed = consumeReturnFocus,
+                            viewModel = koinViewModel<SearchViewModel>(key = "web-search:${profile.id}"),
+                        )
+                    }
+                }
+                WebRoute.Library -> {
+                    val profile = requireNotNull(coordinator.selectedProfile)
+                    WebBrowseFeatureSurface(
+                        destination = WebBrowseDestination.Library,
+                        profileName = profile.displayName,
+                        logoutInProgress = logoutInProgress,
+                        onDestinationSelected = navigateTopLevel,
+                        onChangeProfile = changeProfile,
+                        onLogout = logout,
+                    ) {
+                        WebLibraryRoute(
+                            profileId = profile.id,
+                            selectedContentKey = navigationEntry.returnFocusKey,
+                            onContentSelected = openDetails,
+                            onError = handleProductError,
+                            returnFocusKey = navigationEntry.returnFocusKey,
+                            onReturnFocusConsumed = consumeReturnFocus,
+                        )
+                    }
+                }
+                is WebRoute.Details -> {
+                    val profile = requireNotNull(coordinator.selectedProfile)
+                    WebBrowseFeatureSurface(
+                        destination = WebBrowseDestination.Details,
+                        profileName = profile.displayName,
+                        logoutInProgress = logoutInProgress,
+                        onDestinationSelected = navigateTopLevel,
+                        onChangeProfile = changeProfile,
+                        onLogout = logout,
+                    ) {
+                        WebDetailsRoute(
+                            profileId = profile.id,
+                            contentId = destination.contentId,
+                            onRecommendationSelected = openDetails,
+                            onPlaySelected = { request, focusKey ->
+                                if (state.navigationController.captureReturnFocus(focusKey)) {
+                                    pendingPlaybackRequest = request
+                                    state.navigationController.navigate(WebRoute.Player(request.contentId))
+                                }
+                            },
+                            onBack = {
+                                if (destination.contentId in inAppDetailsIds) {
+                                    window.history.back()
+                                } else {
+                                    clearBrowseTransients()
+                                    state.navigationController.replace(WebRoute.Home)
+                                }
+                            },
+                            onError = handleProductError,
+                            initialContent = transientDetailsContent?.takeIf { content ->
+                                content.id == destination.contentId
+                            },
+                            returnFocusKey = navigationEntry.returnFocusKey,
+                            onReturnFocusConsumed = consumeReturnFocus,
+                        )
+                    }
+                }
                 is WebRoute.Player -> WebBrowsePlaceholder(
                     destination = null,
                     title = "Playback is not available yet",
                     message = "This WEB-03 route is an explicit placeholder. No media is loaded.",
                     profileName = coordinator.selectedProfile?.displayName.orEmpty(),
                     logoutInProgress = logoutInProgress,
-                    onNavigate = state.navigationController::navigate,
+                    onNavigate = navigateTopLevel,
                     onChangeProfile = changeProfile,
                     onLogout = logout,
                     actionLabel = "Back to details",
                     onAction = {
-                        state.navigationController.replace(WebRoute.Details(destination.contentId))
+                        if (pendingPlaybackRequest?.contentId == destination.contentId) {
+                            window.history.back()
+                        } else {
+                            state.navigationController.replace(WebRoute.Details(destination.contentId))
+                        }
                     },
+                    focusAction = true,
                 )
                 WebRoute.AuthenticatedLanding -> Unit
                 WebRoute.Diagnostic,
@@ -290,25 +417,59 @@ private const val VISUAL_SETTLE_FRAMES = 3
 private const val VISUAL_SETTLE_DELAY_MILLIS = 1_500L
 
 @Composable
+private fun WebBrowseFeatureSurface(
+    destination: WebBrowseDestination,
+    profileName: String,
+    logoutInProgress: Boolean,
+    onDestinationSelected: (WebBrowseDestination) -> Unit,
+    onChangeProfile: () -> Unit,
+    onLogout: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    StreamCoreWebBrowseScaffold(
+        activeDestination = destination,
+        profileName = profileName,
+        logoutInProgress = logoutInProgress,
+        onDestinationSelected = onDestinationSelected,
+        onChangeProfile = onChangeProfile,
+        onLogout = onLogout,
+        content = content,
+    )
+}
+
+@Composable
 private fun WebBrowsePlaceholder(
     destination: WebBrowseDestination?,
     title: String,
     message: String,
     profileName: String,
     logoutInProgress: Boolean,
-    onNavigate: (WebRoute) -> Unit,
+    onNavigate: (WebBrowseDestination) -> Unit,
     onChangeProfile: () -> Unit,
     onLogout: () -> Unit,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    focusAction: Boolean = false,
 ) {
+    val actionFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(focusAction, actionLabel) {
+        if (focusAction && actionLabel != null && onAction != null) {
+            repeat(PLAYER_FOCUS_REQUEST_ATTEMPTS) {
+                androidx.compose.runtime.withFrameNanos { }
+                if (actionFocusRequester.requestFocus()) {
+                    return@LaunchedEffect
+                }
+            }
+        }
+    }
     StreamCoreWebBrowseScaffold(
         activeDestination = destination,
         profileName = profileName,
         logoutInProgress = logoutInProgress,
-        onDestinationSelected = { selected -> onNavigate(selected.toRoute()) },
+        onDestinationSelected = onNavigate,
         onChangeProfile = onChangeProfile,
         onLogout = onLogout,
+        modifier = if (onAction == null) Modifier else Modifier.webEscape(onAction),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             StreamCoreWebPanel {
@@ -322,13 +483,19 @@ private fun WebBrowsePlaceholder(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (actionLabel != null && onAction != null) {
-                        StreamCoreWebButton(text = actionLabel, onClick = onAction)
+                        StreamCoreWebButton(
+                            text = actionLabel,
+                            onClick = onAction,
+                            modifier = Modifier.focusRequester(actionFocusRequester),
+                        )
                     }
                 }
             }
         }
     }
 }
+
+private const val PLAYER_FOCUS_REQUEST_ATTEMPTS = 4
 
 private fun WebBrowseDestination.toRoute(): WebRoute {
     return when (this) {

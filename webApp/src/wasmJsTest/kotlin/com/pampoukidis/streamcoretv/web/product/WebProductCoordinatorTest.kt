@@ -435,9 +435,15 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun authenticatedReloadPreservesDirectDetailsAndPlayerRoutes(): TestResult {
+    fun authenticatedReloadPreservesEveryProtectedBrowseRoute(): TestResult {
         return runTest {
-            listOf<WebRoute>(WebRoute.Details("603"), WebRoute.Player("603")).forEach { route ->
+            listOf<WebRoute>(
+                WebRoute.Home,
+                WebRoute.Search,
+                WebRoute.Library,
+                WebRoute.Details("603"),
+                WebRoute.Player("603"),
+            ).forEach { route ->
                 val selected = profile("selected")
                 val fixture = coordinatorFixture(
                     bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),

@@ -51,6 +51,21 @@ Those exact `data-testid` values may use ordinary Playwright DOM interaction. No
 this exception. The native login visibility and Continue buttons also expose their standard button roles and exact localized accessible names as
 ordinary DOM controls; unlike projected Compose nodes, Playwright may focus, click, or press them directly.
 
+WEB-03 adds one ordinary DOM search contract through its typed `HtmlElementView` boundary:
+
+- `search:field`, a native `searchbox` whose value may be filled and whose Enter/Escape/caret behavior may be driven directly.
+
+The WEB-03 production matrix proved these additional Compose-projected `button` names in all six engine/viewport projects: `Home`, `Search`,
+`Library`, `Change profile`, `Sign out`, `Play`, `My List`, `In My List`, `Clear search`, `Try again`, and deterministic
+`Open details for <fixture title>` values. They remain geometry/discovery contracts only. Tests resolve a unique projected node, wait for its bounds
+to settle, then send hover/pointer or keyboard input to the Compose surface; they do not call DOM `click()` on the projection. When Home exposes the
+same content title in more than one semantic action, the hero action is disambiguated by its rendered `More details` copy instead of assuming a
+globally unique name.
+
+WEB-03 also exposes non-sensitive host readiness through `body[data-product-route]`, `body[data-product-visual-state]`, and
+`body[data-profile-count]`. The temporary `/player/{contentId}` route deliberately contains no `video` or Shaka element; WEB-04 owns the real video
+DOM contract.
+
 Native login and profile-editor text inputs use the browser's Tab order. Left/Right must retain normal caret and selection semantics while those
 inputs own focus; arrow-key focus movement is asserted only for non-text Compose rows and native action/dialog controls.
 
@@ -74,7 +89,7 @@ tokens, and session IDs must never be projected into them.
 
 Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for any other canvas-rendered Compose child unless a later,
 version-specific all-engine matrix proves the exact selector and updates this document. The WEB-02 role/name list must be revalidated when Compose
-Multiplatform or Playwright changes. Browser password-manager or autofill integration is not claimed. The native login inputs expose standard
+Multiplatform or Playwright changes; the same applies to the WEB-03 additions above. Browser password-manager or autofill integration is not claimed. The native login inputs expose standard
 autocomplete hints, but browser UI and stored-credential behavior remain outside the proven contract.
 
 ## Browser matrix and Windows Firefox handling
