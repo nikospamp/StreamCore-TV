@@ -1,0 +1,23 @@
+<resources>
+    <string name="web_search_title">Search</string>
+    <string name="web_search_subtitle">Find films and series across your catalogue.</string>
+    <string name="web_search_field_hint">Search titles, people, or genres</string>
+    <string name="web_search_clear">Clear</string>
+    <string name="web_search_clear_search">Clear search</string>
+    <string name="web_search_searching">Searching…</string>
+    <string name="web_search_loading_results">Loading results…</string>
+    <string name="web_search_empty_title">No results for “%1$s”</string>
+    <string name="web_search_empty_message">Try another title, person, or genre.</string>
+    <string name="web_search_failure_title">Search is unavailable</string>
+    <string name="web_search_failure_message">Check your connection and try again.</string>
+    <string name="web_search_try_again">Try again</string>
+    <string name="web_search_discovery_empty">Start typing to discover something to watch.</string>
+    <string name="web_search_recent_heading">Recent searches</string>
+    <string name="web_search_clear_recent">Clear recent</string>
+    <string name="web_search_remove">Remove</string>
+    <string name="web_search_remove_recent_description">Remove %1$s from recent searches</string>
+    <string name="web_search_trending_heading">Trending now</string>
+    <string name="web_search_offline_notice">You’re offline. Showing saved results.</string>
+    <string name="web_search_results_heading">Results</string>
+    <string name="web_search_open_details">Open details for %1$s</string>
+</resources>
