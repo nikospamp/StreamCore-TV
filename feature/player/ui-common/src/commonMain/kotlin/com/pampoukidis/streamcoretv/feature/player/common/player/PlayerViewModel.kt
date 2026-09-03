@@ -147,44 +147,64 @@ class PlayerViewModel constructor(
     }
 
     private fun applyEngineState(engine: PlaybackEngineState) {
-        if (engine.positionMillis > 0L) {
-            lastValidPositionMillis = engine.positionMillis
+        val normalizedEngine = engine.normalizedForUi()
+        if (normalizedEngine.positionMillis > 0L) {
+            lastValidPositionMillis = normalizedEngine.positionMillis
         }
-        val forceControlsVisible = !engine.isPlaying ||
-                engine.phase == PlaybackPhase.Buffering ||
-                engine.phase == PlaybackPhase.Ended ||
-                engine.phase == PlaybackPhase.Error ||
+        val forceControlsVisible = !normalizedEngine.isPlaying ||
+                normalizedEngine.phase == PlaybackPhase.Buffering ||
+                normalizedEngine.phase == PlaybackPhase.Ended ||
+                normalizedEngine.phase == PlaybackPhase.Error ||
                 _uiState.value.isScrubbing ||
                 _uiState.value.settingsPage != null
         _uiState.update { state ->
             state.copy(
-                phase = engine.phase,
-                isPlaying = engine.isPlaying,
-                positionMillis = if (state.isScrubbing) state.positionMillis else engine.positionMillis,
-                durationMillis = engine.durationMillis,
-                bufferedPositionMillis = engine.bufferedPositionMillis,
-                videoAspectRatio = engine.videoAspectRatio,
+                phase = normalizedEngine.phase,
+                isPlaying = normalizedEngine.isPlaying,
+                positionMillis = if (state.isScrubbing) state.positionMillis else normalizedEngine.positionMillis,
+                durationMillis = normalizedEngine.durationMillis,
+                bufferedPositionMillis = normalizedEngine.bufferedPositionMillis,
+                videoAspectRatio = normalizedEngine.videoAspectRatio,
                 controlsVisible = if (forceControlsVisible) true else state.controlsVisible,
-                videoTracks = engine.videoTracks,
-                audioTracks = engine.audioTracks,
-                textTracks = engine.textTracks,
-                selectedVideoTrackId = engine.selectedVideoTrackId,
-                selectedAudioTrackId = engine.selectedAudioTrackId,
-                selectedTextTrackId = engine.selectedTextTrackId,
-                speed = engine.speed,
-                resizeMode = engine.resizeMode,
-                error = engine.error,
+                videoTracks = normalizedEngine.videoTracks,
+                audioTracks = normalizedEngine.audioTracks,
+                textTracks = normalizedEngine.textTracks,
+                selectedVideoTrackId = normalizedEngine.selectedVideoTrackId,
+                selectedAudioTrackId = normalizedEngine.selectedAudioTrackId,
+                selectedTextTrackId = normalizedEngine.selectedTextTrackId,
+                speed = normalizedEngine.speed,
+                resizeMode = normalizedEngine.resizeMode,
+                error = normalizedEngine.error?.toUiError(),
             )
         }
-        if (engine.phase == PlaybackPhase.Ended) {
+        if (normalizedEngine.phase == PlaybackPhase.Ended) {
             viewModelScope.launch { removeProgress() }
         }
-        val progressBucket = engine.positionMillis / ProgressSaveIntervalMillis
-        if (engine.isPlaying && progressBucket > lastSavedProgressBucket) {
+        val progressBucket = normalizedEngine.positionMillis / ProgressSaveIntervalMillis
+        if (normalizedEngine.isPlaying && progressBucket > lastSavedProgressBucket) {
             lastSavedProgressBucket = progressBucket
-            viewModelScope.launch { saveProgress(positionOverride = engine.positionMillis) }
+            viewModelScope.launch { saveProgress(positionOverride = normalizedEngine.positionMillis) }
         }
         scheduleControlsHideIfEligible()
+    }
+
+    private fun PlaybackEngineState.normalizedForUi(): PlaybackEngineState {
+        if (phase != PlaybackPhase.Preparing) {
+            return this
+        }
+        return PlaybackEngineState(
+            phase = PlaybackPhase.Preparing,
+            speed = speed,
+            resizeMode = resizeMode,
+        )
+    }
+
+    private fun PlaybackErrorModel.toUiError(): PlaybackErrorModel {
+        return PlaybackErrorModel(
+            code = PlaybackFailureErrorCode,
+            message = PlaybackFailureErrorMessage,
+            isRecoverable = isRecoverable,
+        )
     }
 
     private fun toggleControls() {
@@ -477,6 +497,8 @@ class PlayerViewModel constructor(
         const val FilmstripSpacingMillis = 5_000L
         const val SeekFeedbackMillis = 800L
         const val SourceResolutionErrorMessage = "Unable to load this video."
+        const val PlaybackFailureErrorCode = "PLAYBACK_FAILED"
+        const val PlaybackFailureErrorMessage = "Playback failed."
         val FilmstripFrameIndicesByPriority = listOf(2, 1, 3, 0, 4)
     }
 }

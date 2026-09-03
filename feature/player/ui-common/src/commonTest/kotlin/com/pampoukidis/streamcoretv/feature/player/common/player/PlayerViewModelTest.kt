@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.lifecycle.ViewModelStore
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
+import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
@@ -19,6 +20,8 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
+import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
+import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -212,6 +215,88 @@ class PlayerViewModelTest {
 
         assertEquals("Unable to load this video.", subject.uiState.value.error?.message)
         assertFalse(subject.uiState.value.toString().contains(secret))
+    }
+
+    @Test
+    fun `engine failure exposes only app owned error details`() = runTest {
+        val secret = "super-secret-token"
+        val factory = FakeSessionFactory()
+        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        subject.onAction(PlayerAction.Load(request(), false))
+        runCurrent()
+
+        factory.sessions.single().emit(
+            PlaybackEngineState(
+                phase = PlaybackPhase.Error,
+                error = PlaybackErrorModel(
+                    code = "HTTP_401_$secret",
+                    message = "Request failed with access_token=$secret",
+                    isRecoverable = true,
+                ),
+            ),
+        )
+        runCurrent()
+
+        val error = assertNotNull(subject.uiState.value.error)
+        assertEquals("PLAYBACK_FAILED", error.code)
+        assertEquals("Playback failed.", error.message)
+        assertTrue(error.isRecoverable)
+        assertFalse(subject.uiState.value.toString().contains(secret))
+    }
+
+    @Test
+    fun `preparing next content clears retained engine state without saving old progress`() = runTest {
+        val progress = FakeProgressRepository()
+        val factory = FakeSessionFactory()
+        val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+        subject.onAction(PlayerAction.Load(request(contentId = "content-a"), false))
+        runCurrent()
+        val session = factory.sessions.single()
+        val retainedContentAState = PlaybackEngineState(
+            phase = PlaybackPhase.Ready,
+            isPlaying = true,
+            positionMillis = 45_000L,
+            durationMillis = 100_000L,
+            bufferedPositionMillis = 70_000L,
+            videoAspectRatio = 1.78f,
+            videoTracks = listOf(
+                PlaybackTrackModel("video-a", PlaybackTrackType.Video, "1080p"),
+            ),
+            audioTracks = listOf(
+                PlaybackTrackModel("audio-a", PlaybackTrackType.Audio, "English"),
+            ),
+            textTracks = listOf(
+                PlaybackTrackModel("text-a", PlaybackTrackType.Text, "English"),
+            ),
+            selectedVideoTrackId = "video-a",
+            selectedAudioTrackId = "audio-a",
+            selectedTextTrackId = "text-a",
+            error = PlaybackErrorModel("CONTENT_A_ERROR", "Content A failure", true),
+        )
+        session.emit(retainedContentAState)
+        runCurrent()
+        progress.upserts.clear()
+        session.stateOnPrepare = retainedContentAState.copy(phase = PlaybackPhase.Preparing)
+
+        subject.onAction(PlayerAction.Load(request(contentId = "content-b"), false))
+        runCurrent()
+
+        val state = subject.uiState.value
+        assertEquals(1, factory.sessions.size)
+        assertEquals(listOf("content-a", "content-b"), session.preparedMediaIds)
+        assertEquals(PlaybackPhase.Preparing, state.phase)
+        assertFalse(state.isPlaying)
+        assertEquals(0L, state.positionMillis)
+        assertEquals(0L, state.durationMillis)
+        assertEquals(0L, state.bufferedPositionMillis)
+        assertEquals(emptyList(), state.videoTracks)
+        assertEquals(emptyList(), state.audioTracks)
+        assertEquals(emptyList(), state.textTracks)
+        assertEquals(null, state.selectedVideoTrackId)
+        assertEquals(null, state.selectedAudioTrackId)
+        assertEquals(null, state.selectedTextTrackId)
+        assertEquals(null, state.error)
+        assertTrue(progress.upserts.isEmpty())
     }
 
     @Test
@@ -456,6 +541,7 @@ class PlayerViewModelTest {
         var selectedResizeMode = PlaybackResizeMode.Fit
         val filmstripRequests = mutableListOf<List<Long>>()
         val filmstripEmissions = mutableListOf<Long>()
+        var stateOnPrepare: PlaybackEngineState? = null
         fun emit(value: PlaybackEngineState) {
             mutableState.value = value
         }
@@ -464,6 +550,7 @@ class PlayerViewModelTest {
             preparedAt = startPositionMillis
             preparedMediaIds += media.assetId
             preparedPositions += startPositionMillis
+            stateOnPrepare?.let(::emit)
         }
 
         override fun play() {

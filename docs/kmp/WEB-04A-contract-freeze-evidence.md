@@ -4,7 +4,7 @@
 
 - Ticket: `WEB-04A`
 - Immutable audit base: `f9e13558b3fc1c68db89ba9715932e8db80813ae`
-- Freeze document status: implemented and verified; review pending
+- Freeze document status: implemented, verified, and corrected after the first capped review; final re-review pending
 - Reviewed freeze SHA: `NOT RUN — fill after review and commit`
 - WEB-04B / WEB-04C status: **blocked until this freeze is reviewed and its immutable SHA is recorded**
 
@@ -47,6 +47,9 @@ The frozen rule is:
 - raw exception messages, URLs, manifests, query parameters, headers, engine payloads, and provider diagnostics are never surfaced to users;
 - variable technical detail may be retained only in an appropriate non-UI diagnostic channel where existing privacy and logging rules permit it;
 - sanitization occurs at the boundary that maps implementation failures into the common playback error contract.
+
+`PlayerViewModel` now maps every engine error to fixed `PLAYBACK_FAILED` / `Playback failed.` values while preserving only recoverability. Media3
+also emits fixed copy at its implementation boundary. Neither raw engine code nor message reaches `PlayerUiState`.
 
 This avoids leaking credentials or backend/engine-specific detail while keeping feature UI backend-agnostic.
 
@@ -144,6 +147,19 @@ The reviewer must confirm all of the following before recording the freeze SHA:
 | Media3 compatibility | `./gradlew :playback:media3:compileDebugKotlin --max-workers=1 --console=plain` | PASS in 11s; 16 actionable tasks (8 executed, 8 up-to-date) | working tree |
 | Verify playback API has no WEB-04A diff | `git diff -- playback/api` | PASS: empty | working tree |
 | Browser/Shaka runtime verification | `NOT RUN — root to fill` | `NOT RUN — engine work remains not run` | `NOT RUN — root to fill` |
+
+First-review corrections are recorded separately:
+
+| Purpose | Command | Result | Evidence SHA |
+|---|---|---|---|
+| Capped freeze review | Three read-only reviews | BLOCK: raw engine error propagation and retained content-A Preparing state were reproducible P1s; all other assertions passed | `6d787a909f0e6a7763677bc489e25aabf06b9242` |
+| Corrected ViewModel regressions | `./gradlew :feature:player:ui-common:testAndroidHostTest --max-workers=1 --console=plain` | PASS in 11s; 15/15, zero failures/errors/skips; 27 actionable tasks (9 executed, 18 up-to-date) | corrected working tree |
+| Corrected Player Wasm compile | `./gradlew :feature:player:ui-common:compileKotlinWasmJs --max-workers=1 --console=plain` | PASS in 8s; 14 actionable tasks (7 executed, 7 up-to-date) | corrected working tree |
+| Corrected Media3 compile | `./gradlew :playback:media3:compileDebugKotlin --max-workers=1 --console=plain` | PASS in 8s; 16 actionable tasks (3 executed, 13 up-to-date) | corrected working tree |
+
+The corrected Preparing path clears prior media timing, playing state, buffer, aspect ratio, tracks, selections, and error before UI/progress logic;
+only speed and resize preference may carry across media. A regression emits content A's retained playing state during content B preparation and proves
+zero content-B progress writes. A separate regression emits a token-bearing engine code/message and proves neither reaches UI state.
 
 ## Checkpoint decision
 
