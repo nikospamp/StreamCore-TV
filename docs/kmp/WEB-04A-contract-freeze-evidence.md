@@ -4,9 +4,9 @@
 
 - Ticket: `WEB-04A`
 - Immutable audit base: `f9e13558b3fc1c68db89ba9715932e8db80813ae`
-- Freeze document status: implemented, verified, and corrected after the first capped review; final re-review pending
-- Reviewed freeze SHA: `NOT RUN — fill after review and commit`
-- WEB-04B / WEB-04C status: **blocked until this freeze is reviewed and its immutable SHA is recorded**
+- Freeze document status: accepted after focused verification, capped review, and delta-only re-review
+- Reviewed freeze SHA: `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`
+- WEB-04B / WEB-04C status: **released to branch from exactly `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`**
 
 This checkpoint freezes the browser playback contract and module boundary before implementation continues. The target architecture remains backend-agnostic.
 
@@ -120,18 +120,18 @@ Unless a separate reviewed change reopens the contract freeze, WEB-04A must not 
 
 The reviewer must confirm all of the following before recording the freeze SHA:
 
-- [ ] Audit base is exactly `f9e13558b3fc1c68db89ba9715932e8db80813ae`.
-- [ ] Existing playback API is unchanged and sufficient.
-- [ ] Common contracts remain backend-agnostic.
-- [ ] One session is owned per `PlayerViewModel` lifetime.
-- [ ] The session is reused and synchronously closed.
-- [ ] UI source failures use fixed-copy sanitization.
-- [ ] `:playback:web` is browser-only and exposes an actually executed browser-test task.
-- [ ] The module exposes a Koin factory only, not a live session singleton.
-- [ ] WEB-01 Shaka evidence is described narrowly.
-- [ ] Playback-engine implementation and runtime proof remain marked not run.
-- [ ] Owned and forbidden paths are complete and non-overlapping.
-- [ ] WEB-04B and WEB-04C remain blocked until the reviewed freeze SHA is recorded.
+- [x] Audit base is exactly `f9e13558b3fc1c68db89ba9715932e8db80813ae`.
+- [x] Existing playback API is unchanged and sufficient.
+- [x] Common contracts remain backend-agnostic.
+- [x] One session is owned per `PlayerViewModel` lifetime.
+- [x] The session is reused and synchronously closed.
+- [x] UI source and engine failures use fixed-copy sanitization.
+- [x] `:playback:web` is browser-only and exposes an actually executed browser-test task.
+- [x] The module exposes a Koin factory only, not a live session singleton.
+- [x] WEB-01 Shaka evidence is described narrowly.
+- [x] Playback-engine implementation and runtime proof remain marked not run.
+- [x] Owned and forbidden paths are complete and non-overlapping.
+- [x] WEB-04B and WEB-04C branch only from the reviewed freeze SHA recorded above.
 
 ## Command and result ledger
 
@@ -163,6 +163,8 @@ zero content-B progress writes. A separate regression emits a token-bearing engi
 
 ## Checkpoint decision
 
-Decision: `PENDING REVIEW`.
+Decision: `ACCEPTED`.
 
-WEB-04B and WEB-04C must not start until a reviewer accepts this freeze, the owned-path list is complete, and the resulting immutable reviewed freeze SHA replaces the placeholder above.
+The first capped review blocked on two P1s and no other freeze criteria. Both are closed by `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`:
+delta-only lifecycle and security re-reviews returned PASS. WEB-04A engine work continues on its owning branch; WEB-04B and WEB-04C may now
+start from that exact immutable checkpoint. No engine, player UI, release, production/Binaryen, full-matrix, Safari, or live-playback claim is made.
