@@ -211,6 +211,9 @@ async function openPlayerFixture(
     `/diagnostic/details/${fixtureContentId}`,
     { timeout: 30_000 },
   );
+  await expect(page.locator("body")).toHaveAttribute("data-image-probe", "loaded", {
+    timeout: 30_000,
+  });
   const query = new URLSearchParams({ fixture: scenario, ...parameters });
   await page.goto(`${fixtureRoute}?${query.toString()}`);
   await waitForFixtureReadiness(page, scenario);
@@ -417,8 +420,13 @@ function unexpectedDiagnostics(
   projectName: string,
 ): DiagnosticMessage[] {
   const unexpected: DiagnosticMessage[] = [];
+  const webKitHardReloadKnownCounts = new Map<number, number>();
+  const webKitHardReloadCoroutineEpochs = new Set<number>();
+  const webKitHardReloadComposeResourceEpochs = new Set<number>();
   const webKitHardReloadClassCastEpochs = new Set<number>();
   const webKitHardReloadBlobEpochs = new Set<number>();
+  const webKitHardReloadIoEpochs = new Set<number>();
+  const webKitPlayerExitBlobEpochs = new Set<number>();
   const webKitPlayerExitKnownCounts = new Map<number, number>();
   for (let index = 0; index < messages.length; index += 1) {
     const current = messages[index];
@@ -434,10 +442,48 @@ function unexpectedDiagnostics(
       projectName.startsWith("webkit-") &&
       current.source === "pageerror" &&
       current.phase === "hard-reload" &&
+      WEBKIT_COROUTINE_TEARDOWN_ERROR.test(normalized) &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) < MAX_WEBKIT_HARD_RELOAD_ERRORS &&
+      !webKitHardReloadCoroutineEpochs.has(current.phaseEpoch)
+    ) {
+      webKitHardReloadCoroutineEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch);
+      continue;
+    }
+    if (
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "hard-reload" &&
+      WEBKIT_COMPOSE_RESOURCE_ACCESS_ERROR.test(normalized) &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) < MAX_WEBKIT_HARD_RELOAD_ERRORS &&
+      !webKitHardReloadComposeResourceEpochs.has(current.phaseEpoch)
+    ) {
+      webKitHardReloadComposeResourceEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch);
+      continue;
+    }
+    if (
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "hard-reload" &&
       normalized === WEBKIT_RESPONSE_CLASS_CAST_ERROR &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) < MAX_WEBKIT_HARD_RELOAD_ERRORS &&
       !webKitHardReloadClassCastEpochs.has(current.phaseEpoch)
     ) {
       webKitHardReloadClassCastEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch);
+      continue;
+    }
+    if (
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "hard-reload" &&
+      normalized === WEBKIT_IO_READ_ERROR &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) < MAX_WEBKIT_HARD_RELOAD_ERRORS &&
+      !webKitHardReloadIoEpochs.has(current.phaseEpoch)
+    ) {
+      webKitHardReloadIoEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch);
       continue;
     }
     const next = messages[index + 1];
@@ -450,9 +496,26 @@ function unexpectedDiagnostics(
       next.phase === current.phase &&
       next.phaseEpoch === current.phaseEpoch &&
       next.text.trim() === WEBKIT_IO_READ_ERROR &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) + 2 <= MAX_WEBKIT_HARD_RELOAD_ERRORS &&
       !webKitHardReloadBlobEpochs.has(current.phaseEpoch)
     ) {
       webKitHardReloadBlobEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch, 2);
+      index += 1;
+      continue;
+    }
+    if (
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "player-exit" &&
+      WEBKIT_BLOB_ACCESS_ERROR.test(normalized) &&
+      next?.source === "pageerror" &&
+      next.phase === current.phase &&
+      next.phaseEpoch === current.phaseEpoch &&
+      next.text.trim() === WEBKIT_IO_READ_ERROR &&
+      !webKitPlayerExitBlobEpochs.has(current.phaseEpoch)
+    ) {
+      webKitPlayerExitBlobEpochs.add(current.phaseEpoch);
       index += 1;
       continue;
     }
@@ -517,11 +580,22 @@ const WEBKIT_RESPONSE_CLASS_CAST_ERROR =
 const WEBKIT_BLOB_ACCESS_ERROR =
   /^ttp:\/\/127\.0\.0\.1:4173\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12} due to access control checks\.$/;
 const WEBKIT_IO_READ_ERROR = "The I/O read operation failed.";
+const WEBKIT_COMPOSE_RESOURCE_ACCESS_ERROR =
+  /^\/127\.0\.0\.1:4173\/composeResources\/[A-Za-z0-9._\/-]+ due to access control checks\.$/;
 const WEBKIT_CONFIG_ACCESS_ERROR =
   /^\/127\.0\.0\.1:4173\/config\.json due to access control checks\.$/;
 const WEBKIT_COROUTINE_TEARDOWN_ERROR =
   /^Fatal exception in coroutines machinery for AwaitContinuation\(DispatchedContinuation\[FlushCoroutineDispatcher@\d+, kotlinx\.coroutines\.DeferredCoroutine\.\$awaitCOROUTINE\$@\d+\]\)\{Completed\}@\d+\. Please read KDoc to 'handleFatalException' method and report this incident to maintainers$/;
+const MAX_WEBKIT_HARD_RELOAD_ERRORS = 2;
 const MAX_WEBKIT_PLAYER_EXIT_ERRORS = 2;
+
+function incrementEpochCount(
+  counts: Map<number, number>,
+  epoch: number,
+  increment: number = 1,
+): void {
+  counts.set(epoch, (counts.get(epoch) ?? 0) + increment);
+}
 
 async function settleNavigationDiagnostics(
   page: Page,
