@@ -17,7 +17,19 @@ const mimeTypes = new Map([
   [".wasm", "application/wasm"],
   [".json", "application/json; charset=utf-8"],
   [".xml", "application/xml; charset=utf-8"],
+  [".css", "text/css; charset=utf-8"],
+  [".svg", "image/svg+xml"],
   [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".woff2", "font/woff2"],
+  [".mpd", "application/dash+xml"],
+  [".m3u8", "application/vnd.apple.mpegurl"],
+  [".mp4", "video/mp4"],
+  [".m4s", "video/iso.segment"],
+  [".webm", "video/webm"],
+  [".vtt", "text/vtt; charset=utf-8"],
 ]);
 
 if (!existsSync(join(distributionDirectory, "index.html"))) {
