@@ -16,10 +16,14 @@ import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.feature.search.common.testing.SearchTestTags
 import kotlinx.browser.document
 import kotlinx.browser.window
+import org.jetbrains.compose.resources.stringResource
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
+import streamcoretv.feature.search.ui_web.generated.resources.Res
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_field_hint
+import kotlin.js.ExperimentalWasmJsInterop
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -33,6 +37,7 @@ internal actual fun WebSearchTextField(
     onFocusRequestConsumed: () -> Unit,
     modifier: Modifier,
 ) {
+    val fieldHint = stringResource(Res.string.web_search_field_hint)
     val currentCallbacks = rememberUpdatedState(
         WebSearchTextFieldCallbacks(
             enabled = enabled,
@@ -53,13 +58,15 @@ internal actual fun WebSearchTextField(
     )
 
     HtmlElementView(
-        factory = { createSearchFieldContainer(listeners) },
+        factory = { createSearchFieldContainer(listeners, fieldHint) },
         update = { container ->
             val input = container.searchInput()
             listeners.updateValueFromState(input = input, value = value)
             input.disabled = !enabled
             input.style.cssText = fieldStyle(colors)
             container.searchStyle().textContent = focusStyle(colors)
+            input.setAttribute("aria-label", fieldHint)
+            input.setAttribute("placeholder", fieldHint)
             input.setAttribute("aria-disabled", (!enabled).toString())
         },
         onRelease = { container -> listeners.detach(container.searchInput()) },
@@ -91,6 +98,7 @@ private data class WebSearchTextFieldCallbacks(
     val onEscape: () -> Unit,
 )
 
+@OptIn(ExperimentalWasmJsInterop::class)
 private class WebSearchTextFieldListeners(
     private val callbacks: () -> WebSearchTextFieldCallbacks,
 ) {
@@ -125,6 +133,7 @@ private class WebSearchTextFieldListeners(
                 if (!isComposing) {
                     commitValue(input.value)
                 }
+                null
             },
             0,
         )
@@ -167,6 +176,8 @@ private class WebSearchTextFieldListeners(
         input.removeEventListener("keydown", keyDownListener)
         pendingPasteTimer?.let { timerId -> window.clearTimeout(timerId) }
         pendingPasteTimer = null
+        isComposing = false
+        lastCommittedValue = null
     }
 
     fun updateValueFromState(input: HTMLInputElement, value: String) {
@@ -187,12 +198,15 @@ private class WebSearchTextFieldListeners(
     }
 }
 
-private fun createSearchFieldContainer(listeners: WebSearchTextFieldListeners): HTMLElement {
+private fun createSearchFieldContainer(
+    listeners: WebSearchTextFieldListeners,
+    fieldHint: String,
+): HTMLElement {
     val input = (document.createElement("input") as HTMLInputElement).apply {
         type = "search"
         setAttribute("data-testid", SearchTestTags.Field)
-        setAttribute("aria-label", "Search titles, people, or genres")
-        setAttribute("placeholder", "Search titles, people, or genres")
+        setAttribute("aria-label", fieldHint)
+        setAttribute("placeholder", fieldHint)
         setAttribute("autocomplete", "off")
         setAttribute("autocapitalize", "none")
         setAttribute("enterkeyhint", "search")

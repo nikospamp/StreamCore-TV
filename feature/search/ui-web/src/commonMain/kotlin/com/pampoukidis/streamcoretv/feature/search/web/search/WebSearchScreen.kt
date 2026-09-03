@@ -63,6 +63,28 @@ import com.pampoukidis.streamcoretv.feature.search.common.search.SearchAction
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchContentState
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchUiState
 import com.pampoukidis.streamcoretv.feature.search.common.testing.SearchTestTags
+import org.jetbrains.compose.resources.stringResource
+import streamcoretv.feature.search.ui_web.generated.resources.Res
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_clear
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_clear_recent
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_clear_search
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_discovery_empty
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_empty_message
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_empty_title
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_failure_message
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_failure_title
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_loading_results
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_offline_notice
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_open_details
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_recent_heading
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_remove
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_remove_recent_description
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_results_heading
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_searching
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_subtitle
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_title
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_trending_heading
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_try_again
 
 @Composable
 fun WebSearchScreen(
@@ -125,12 +147,12 @@ fun WebSearchScreen(
                 )
 
                 SearchContentState.Searching -> WebSearchLoading(
-                    title = "Searching…",
+                    title = stringResource(Res.string.web_search_searching),
                     modifier = Modifier.weight(1f),
                 )
 
                 SearchContentState.Loading -> WebSearchLoading(
-                    title = "Loading results…",
+                    title = stringResource(Res.string.web_search_loading_results),
                     modifier = Modifier.weight(1f),
                 )
 
@@ -146,18 +168,18 @@ fun WebSearchScreen(
                 )
 
                 is SearchContentState.Empty -> WebSearchMessage(
-                    title = "No results for “${content.query}”",
-                    message = "Try another title, person, or genre.",
-                    actionLabel = "Clear search",
+                    title = stringResource(Res.string.web_search_empty_title, content.query),
+                    message = stringResource(Res.string.web_search_empty_message),
+                    actionLabel = stringResource(Res.string.web_search_clear_search),
                     onAction = { onAction(SearchAction.ClearQuery) },
                     testTag = SearchTestTags.Empty,
                     modifier = Modifier.weight(1f),
                 )
 
                 is SearchContentState.Failure -> WebSearchMessage(
-                    title = "Search is unavailable",
-                    message = "Check your connection and try again.",
-                    actionLabel = "Try again",
+                    title = stringResource(Res.string.web_search_failure_title),
+                    message = stringResource(Res.string.web_search_failure_message),
+                    actionLabel = stringResource(Res.string.web_search_try_again),
                     onAction = { onAction(SearchAction.Retry) },
                     testTag = SearchTestTags.Failure,
                     modifier = Modifier.weight(1f),
@@ -171,12 +193,12 @@ fun WebSearchScreen(
 private fun SearchHeading() {
     Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
         Text(
-            text = "Search",
+            text = stringResource(Res.string.web_search_title),
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Find films and series across your catalogue.",
+            text = stringResource(Res.string.web_search_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -212,7 +234,7 @@ private fun WebSearchFieldRow(
         )
         if (state.query.isNotEmpty()) {
             StreamCoreWebButton(
-                text = "Clear",
+                text = stringResource(Res.string.web_search_clear),
                 onClick = { onAction(SearchAction.ClearQuery) },
                 enabled = true,
                 variant = StreamCoreWebButtonVariant.Tertiary,
@@ -239,7 +261,7 @@ private fun WebSearchDiscovery(
             modifier = modifier.fillMaxWidth(),
         ) {
             Text(
-                text = "Start typing to discover something to watch.",
+                text = stringResource(Res.string.web_search_discovery_empty),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -286,12 +308,12 @@ private fun WebRecentSearches(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Recent searches",
+                text = stringResource(Res.string.web_search_recent_heading),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             StreamCoreWebButton(
-                text = "Clear recent",
+                text = stringResource(Res.string.web_search_clear_recent),
                 onClick = { onAction(SearchAction.ClearRecent) },
                 variant = StreamCoreWebButtonVariant.Tertiary,
             )
@@ -305,6 +327,10 @@ private fun WebRecentSearches(
                 key = { query -> query },
                 contentType = { RecentQueryContentType },
             ) { query ->
+                val removeDescription = stringResource(
+                    Res.string.web_search_remove_recent_description,
+                    query,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
                     StreamCoreWebButton(
                         text = query,
@@ -315,11 +341,11 @@ private fun WebRecentSearches(
                             .testTag(SearchTestTags.recent(query)),
                     )
                     StreamCoreWebButton(
-                        text = "Remove",
+                        text = stringResource(Res.string.web_search_remove),
                         onClick = { onAction(SearchAction.RecentRemoved(query)) },
                         variant = StreamCoreWebButtonVariant.Tertiary,
                         modifier = Modifier
-                            .semantics { contentDescription = "Remove $query from recent searches" }
+                            .semantics { contentDescription = removeDescription }
                             .testTag(SearchTestTags.removeRecent(query)),
                     )
                 }
@@ -361,7 +387,7 @@ private fun WebTrendingSearches(
         modifier = Modifier.testTag(SearchTestTags.TrendingList),
     ) {
         Text(
-            text = "Trending now",
+            text = stringResource(Res.string.web_search_trending_heading),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
         )
@@ -415,7 +441,7 @@ private fun WebSearchResults(
     ) {
         if (showOfflineNotice) {
             Text(
-                text = "You’re offline. Showing saved results.",
+                text = stringResource(Res.string.web_search_offline_notice),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
@@ -430,7 +456,7 @@ private fun WebSearchResults(
             )
         }
         Text(
-            text = "Results",
+            text = stringResource(Res.string.web_search_results_heading),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -524,6 +550,10 @@ private fun WebSearchContentTile(
     modifier: Modifier,
     interactionModifier: Modifier,
 ) {
+    val openDetailsDescription = stringResource(
+        Res.string.web_search_open_details,
+        content.title,
+    )
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = modifier,
@@ -535,7 +565,7 @@ private fun WebSearchContentTile(
             modifier = interactionModifier
                 .fillMaxWidth()
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "Open details for ${content.title}"
+                    contentDescription = openDetailsDescription
                 },
         ) {
             StreamCoreWebArtwork(

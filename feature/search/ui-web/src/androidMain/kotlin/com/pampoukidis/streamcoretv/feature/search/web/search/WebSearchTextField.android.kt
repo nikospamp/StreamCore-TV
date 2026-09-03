@@ -21,6 +21,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import com.pampoukidis.streamcoretv.feature.search.common.testing.SearchTestTags
+import org.jetbrains.compose.resources.stringResource
+import streamcoretv.feature.search.ui_web.generated.resources.Res
+import streamcoretv.feature.search.ui_web.generated.resources.web_search_field_hint
 
 @Composable
 internal actual fun WebSearchTextField(
@@ -53,7 +56,7 @@ internal actual fun WebSearchTextField(
         onValueChange = onValueChange,
         enabled = enabled,
         singleLine = true,
-        placeholder = { Text("Search titles, people, or genres") },
+        placeholder = { Text(stringResource(Res.string.web_search_field_hint)) },
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.None,
             autoCorrectEnabled = false,
