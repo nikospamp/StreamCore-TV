@@ -433,6 +433,94 @@ class WebProductCoordinatorTest {
             fixture.close()
         }
     }
+
+    @Test
+    fun authenticatedReloadPreservesDirectDetailsAndPlayerRoutes(): TestResult {
+        return runTest {
+            listOf<WebRoute>(WebRoute.Details("603"), WebRoute.Player("603")).forEach { route ->
+                val selected = profile("selected")
+                val fixture = coordinatorFixture(
+                    bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
+                    profilesResult = AppResult.Success(listOf(selected)),
+                )
+                fixture.coordinator.profileSelected(selected)
+                fixture.navigation.replace(route)
+
+                assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
+                assertEquals(route, fixture.navigation.route.value)
+                fixture.close()
+            }
+        }
+    }
+
+    @Test
+    fun protectedRouteWithoutSelectedProfileCanonicalizesToProfiles(): TestResult {
+        return runTest {
+            val fixture = coordinatorFixture(
+                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
+                profilesResult = AppResult.Success(listOf(profile("available"))),
+            )
+            fixture.navigation.replace(WebRoute.Details("603"))
+
+            assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
+            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Details("603")))
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun authenticatedLegacyLandingCanonicalizesToHome(): TestResult {
+        return runTest {
+            val selected = profile("selected")
+            val fixture = coordinatorFixture(
+                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
+                profilesResult = AppResult.Success(listOf(selected)),
+            )
+            fixture.coordinator.profileSelected(selected)
+            fixture.navigation.replace(WebRoute.AuthenticatedLanding)
+
+            assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun successfulLogoutClearsSelectionAndRoutesToLogin(): TestResult {
+        return runTest {
+            val fixture = coordinatorFixture(
+                logoutResult = AppResult.Success(Unit),
+            )
+            fixture.coordinator.profileSelected(profile("selected"))
+
+            assertNull(fixture.coordinator.logout())
+            assertNull(fixture.coordinator.selectedProfile)
+            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Login, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun failedLogoutPreservesSelectedProfileAndRoute(): TestResult {
+        return runTest {
+            val error = AppError.Network()
+            val fixture = coordinatorFixture(
+                logoutResult = AppResult.Failure(error),
+            )
+            fixture.coordinator.profileSelected(profile("selected"))
+
+            assertEquals(error, fixture.coordinator.logout())
+            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
+            assertEquals(
+                "selected",
+                fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)],
+            )
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
 }
 
 private fun coordinatorFixture(
@@ -441,6 +529,7 @@ private fun coordinatorFixture(
     bootstrapThrowable: Throwable? = null,
     profilesResult: AppResult<List<ProfileModel>> = AppResult.Success(emptyList()),
     authStoreOverride: DataStore<Preferences>? = null,
+    logoutResult: AppResult<Unit> = AppResult.Success(Unit),
 ): CoordinatorFixture {
     val application = koinApplication {
         modules(
@@ -461,6 +550,7 @@ private fun coordinatorFixture(
     val authenticateRepository = StubAuthenticateRepository(
         bootstrapResult = bootstrapResult,
         bootstrapThrowable = bootstrapThrowable,
+        logoutResult = logoutResult,
     )
     val profileRepository = StubProfileRepository(profilesResult)
     val coordinator = WebProductCoordinator(
@@ -509,6 +599,7 @@ private data class CoordinatorFixture(
 private class StubAuthenticateRepository(
     private val bootstrapResult: AppResult<AuthStateModel>,
     private val bootstrapThrowable: Throwable?,
+    private val logoutResult: AppResult<Unit>,
 ) : AuthenticateRepository {
     override val authState: Flow<AuthStateModel> = MutableStateFlow(AuthStateModel.LoggedOut)
 
@@ -526,7 +617,7 @@ private class StubAuthenticateRepository(
     }
 
     override suspend fun logoutUser(): AppResult<Unit> {
-        error("Not used by coordinator tests")
+        return logoutResult
     }
 
     override suspend fun forgotPassword(email: String, otp: String?): AppResult<Unit> {
