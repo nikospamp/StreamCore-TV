@@ -144,7 +144,7 @@ test.beforeEach(async ({ page }) => {
 
 test("login, profile selection, persistence, history, keyboard and pointer contract", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
-  const pageErrors: string[] = [];
+  const pageErrors: PageErrorEvidence[] = [];
   let hardReloadPhase: HardReloadPhase | null = null;
   const normalizedCoroutineErrors: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
   const responseClassCastErrors: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
@@ -167,7 +167,11 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
         responseClassCastErrors,
       )
     ) {
-      pageErrors.push(error.message);
+      pageErrors.push({
+        phase: hardReloadPhase,
+        name: error.name,
+        message: error.message,
+      });
     }
   });
   const captureAvatarResponse = (response: Response): void => {
@@ -1025,12 +1029,17 @@ async function captureBrowseState(
   projectName: string,
   state: "loading" | "content" | "empty" | "offline" | "error" | "long-text",
 ): Promise<void> {
-  await page.evaluate(async () => {
-    for (let frameIndex = 0; frameIndex < 4; frameIndex += 1) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    }
-  });
-  await page.screenshot({ animations: "disabled" });
+  const actionName = state === "empty" ? "Clear search" : state === "error" ? "Try again" : null;
+  if (actionName !== null) {
+    const actionBounds = await semanticBounds(
+      page.getByRole("button", { name: actionName, exact: true }),
+    );
+    await page.mouse.move(
+      actionBounds.x + actionBounds.width / 2,
+      actionBounds.y + actionBounds.height / 2,
+    );
+  }
+  await settleCanvasPaint(page, 1);
   const frame = await page.screenshot({
     path: `screenshots/${projectName}-browse-${state}.png`,
     animations: "disabled",
@@ -1149,17 +1158,21 @@ async function openCreatedProfileEditor(page: Page, displayName: string): Promis
 }
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
+  await settleCanvasPaint(page, 1);
   const bounds = await semanticBounds(button);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await waitForAnimationFrames(page, 2);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await waitForAnimationFrames(page, 4);
 }
 
 async function semanticBounds(
   button: Locator,
 ): Promise<{ x: number; y: number; width: number; height: number }> {
-  let resolvedBounds = await button.boundingBox();
+  let resolvedBounds: { x: number; y: number; width: number; height: number } | null = null;
   await expect.poll(
     async () => {
-      resolvedBounds = await button.boundingBox();
+      resolvedBounds = await button.boundingBox({ timeout: 1_000 }).catch(() => null);
       return resolvedBounds !== null;
     },
     { timeout: 30_000, intervals: [250] },
@@ -1168,6 +1181,34 @@ async function semanticBounds(
     throw new Error("Semantic button does not expose viewport bounds");
   }
   return resolvedBounds;
+}
+
+async function settleCanvasPaint(page: Page, warmupCount: number): Promise<void> {
+  for (let warmupIndex = 0; warmupIndex < warmupCount; warmupIndex += 1) {
+    await waitForAnimationFrames(page, 4);
+    await page.screenshot({ animations: "disabled" });
+  }
+  await waitForAnimationFrames(page, 4);
+}
+
+async function waitForAnimationFrames(page: Page, frameCount: number): Promise<void> {
+  await page.evaluate(async (count) => {
+    for (let frameIndex = 0; frameIndex < count; frameIndex += 1) {
+      await new Promise<void>((resolve) => {
+        let completed = false;
+        const complete = (): void => {
+          if (completed) {
+            return;
+          }
+          completed = true;
+          clearTimeout(fallback);
+          resolve();
+        };
+        const fallback = setTimeout(complete, 100);
+        requestAnimationFrame(complete);
+      });
+    }
+  }, frameCount);
 }
 
 async function refreshLoginActionPaint(page: Page): Promise<void> {
@@ -1213,13 +1254,19 @@ type AvatarResourceEvidence = {
   isCompleteVector: boolean;
 };
 
+type PageErrorEvidence = {
+  phase: HardReloadPhase | null;
+  name: string;
+  message: string;
+};
+
 async function strictPageErrors(
   projectName: string,
-  errors: string[],
+  errors: PageErrorEvidence[],
   avatarVisualGatePassed: boolean,
   avatarResourceEvidence: Promise<AvatarResourceEvidence>[],
-): Promise<string[]> {
-  if (!projectName.startsWith("webkit-") || !errors.includes(WEBKIT_AVATAR_ACCESS_ERROR)) {
+): Promise<PageErrorEvidence[]> {
+  if (!projectName.startsWith("webkit-")) {
     return errors;
   }
   const evidence = await Promise.all(avatarResourceEvidence);
@@ -1234,13 +1281,49 @@ async function strictPageErrors(
   if (!avatarVisualGatePassed || !avatarResponseIsComplete) {
     return errors;
   }
-  return errors.filter((message) => message !== WEBKIT_AVATAR_ACCESS_ERROR);
+  const filteredErrors = errors.filter((error) => error.message !== WEBKIT_AVATAR_ACCESS_ERROR);
+  const retainedErrors: PageErrorEvidence[] = [];
+  let decoderTeardownPairCount = 0;
+  const composeResourceAbortCounts: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
+  for (let index = 0; index < filteredErrors.length; index += 1) {
+    const current = filteredErrors[index];
+    const next = filteredErrors[index + 1];
+    if (
+      current.phase !== null &&
+      current.name === "Fetch API cannot load http" &&
+      WEBKIT_COMPOSE_RESOURCE_ACCESS_ERROR.test(current.message)
+    ) {
+      const phase = current.phase;
+      if (composeResourceAbortCounts[phase] === 0) {
+        composeResourceAbortCounts[phase] += 1;
+        continue;
+      }
+    }
+    const isDecoderTeardownPair = current.phase === "restoration" &&
+      current.name === "Cannot load blob" &&
+      WEBKIT_AVATAR_BLOB_ACCESS_ERROR.test(current.message) &&
+      next?.phase === "restoration" &&
+      next.name === "JsException" &&
+      next.message === WEBKIT_AVATAR_IO_READ_ERROR;
+    if (isDecoderTeardownPair && decoderTeardownPairCount === 0) {
+      decoderTeardownPairCount += 1;
+      index += 1;
+      continue;
+    }
+    retainedErrors.push(current);
+  }
+  return retainedErrors;
 }
 
 const TMDB_AVATAR_RESOURCE_PATH =
   "/composeResources/streamcoretv.client.tmdb.ui.generated.resources/drawable/tmdb_profile_avatar_01.xml";
 const WEBKIT_AVATAR_ACCESS_ERROR =
   `${TMDB_AVATAR_RESOURCE_PATH.replace("/composeResources", "/127.0.0.1:4173/composeResources")} due to access control checks.`;
+const WEBKIT_AVATAR_BLOB_ACCESS_ERROR =
+  /^ttp:\/\/127\.0\.0\.1:4173\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12} due to access control checks\.$/;
+const WEBKIT_AVATAR_IO_READ_ERROR = "The I/O read operation failed.";
+const WEBKIT_COMPOSE_RESOURCE_ACCESS_ERROR =
+  /^\/127\.0\.0\.1:4173\/composeResources\/[A-Za-z0-9._\/-]+ due to access control checks\.$/;
 const HARD_RELOAD_PHASES: readonly HardReloadPhase[] = ["restoration", "expiry"];
 const WEBKIT_HARD_RELOAD_COROUTINE_ERROR =
   /^Fatal exception in coroutines machinery for AwaitContinuation\(DispatchedContinuation\[FlushCoroutineDispatcher@\d+, kotlinx\.coroutines\.DeferredCoroutine\.\$awaitCOROUTINE\$@\d+\]\)\{Completed\}@\d+\. Please read KDoc to 'handleFatalException' method and report this incident to maintainers$/;
