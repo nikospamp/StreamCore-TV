@@ -4,9 +4,8 @@
 
 - **Depends on:** accepted, merged WEB-02.
 - **Branch:** `codex/web-03a-contract-shell`.
-- **Immutable base:** unavailable while WEB-02 candidate `8a391953ae3a77074b1d97428de32cba14a1c760` is blocked pending localized corrections and
-  remains unmerged. The root must record the accepted WEB-02 merge's exact 40-character SHA in the dispatch and verify `HEAD` equals it before edits.
-- `2267306e5df827deded96addd91b6ec947e9f655` is the accepted WEB-01 rollback point, not an authorized implementation base for this ticket.
+- **Immutable base:** `eb5467a661fed227f80f70bd3f8a2e91c52bf102`, the accepted WEB-02 merge. The root must verify `HEAD` equals this exact SHA before edits.
+- `2267306e5df827deded96addd91b6ec947e9f655` remains the older accepted WEB-01 rollback point, not an authorized implementation base for this ticket.
 
 Stop if the base is missing, status contains anything except explicitly preserved user-owned files, or WEB-02's shared web API is not reviewed.
 
