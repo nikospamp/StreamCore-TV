@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
@@ -230,7 +229,7 @@ private fun WebSearchFieldRow(
             onFocusRequestConsumed = onFocusRequestConsumed,
             modifier = Modifier
                 .weight(1f)
-                .widthIn(max = SearchFieldMaxWidth),
+                .widthIn(max = StreamCoreDimens.Web.Search.FieldMaxWidth),
         )
         if (state.query.isNotEmpty()) {
             StreamCoreWebButton(
@@ -337,7 +336,7 @@ private fun WebRecentSearches(
                         onClick = { onAction(SearchAction.RecentSelected(query)) },
                         variant = StreamCoreWebButtonVariant.Secondary,
                         modifier = Modifier
-                            .widthIn(max = RecentQueryMaxWidth)
+                            .widthIn(max = StreamCoreDimens.Web.Search.RecentQueryMaxWidth)
                             .testTag(SearchTestTags.recent(query)),
                     )
                     StreamCoreWebButton(
@@ -410,7 +409,7 @@ private fun WebTrendingSearches(
                     requestWidthPx = TrendingRequestWidthPx,
                     requestHeightPx = TrendingRequestHeightPx,
                     onClick = { onAction(SearchAction.TrendingSelected(content)) },
-                    modifier = Modifier.width(TrendingCardWidth),
+                    modifier = Modifier.width(StreamCoreDimens.Web.Search.TrendingCardWidth),
                     interactionModifier = Modifier
                         .focusRequester(requireNotNull(focusRequesters[focusKey]))
                         .webSearchFocusOrder(
@@ -463,7 +462,9 @@ private fun WebSearchResults(
         )
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val columnCount = remember(maxWidth) {
-                maxOf(1, (maxWidth / (ResultCardMinWidth + StreamCoreDimens.Spacing.Large)).toInt())
+                val cardSlotWidth = StreamCoreDimens.Web.Search.ResultCardMinWidth +
+                    StreamCoreDimens.Spacing.Large
+                maxOf(1, (maxWidth / cardSlotWidth).toInt())
             }
             val gridState = rememberLazyGridState()
             val focusRequesters = remember(items) {
@@ -621,12 +622,12 @@ private fun WebSearchLoading(
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-                    modifier = Modifier.width(ResultCardMinWidth),
+                    modifier = Modifier.width(StreamCoreDimens.Web.Search.ResultCardMinWidth),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(LoadingPosterHeight)
+                            .height(StreamCoreDimens.Web.Search.LoadingPosterHeight)
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 shape = MaterialTheme.shapes.medium,
@@ -706,11 +707,6 @@ private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
     return false
 }
 
-private val SearchFieldMaxWidth = 780.dp
-private val RecentQueryMaxWidth = 260.dp
-private val TrendingCardWidth = 300.dp
-private val ResultCardMinWidth = 180.dp
-private val LoadingPosterHeight = 270.dp
 private const val LoadingTitleFraction = 0.72f
 private const val LoadingItemCount = 6
 private const val FocusRequestAttempts = 4

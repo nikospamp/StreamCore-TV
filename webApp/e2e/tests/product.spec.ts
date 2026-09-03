@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Response } from "@playwright/test";
 
 const validConfig = {
   tmdbBaseUrl: "https://api.example.test/",
@@ -170,7 +170,7 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
       pageErrors.push(error.message);
     }
   });
-  page.on("response", (response) => {
+  const captureAvatarResponse = (response: Response): void => {
     if (!response.url().endsWith(TMDB_AVATAR_RESOURCE_PATH)) {
       return;
     }
@@ -187,7 +187,8 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
         isCompleteVector: text.startsWith("<vector") && text.endsWith("</vector>"),
       };
     })());
-  });
+  };
+  page.on("response", captureAvatarResponse);
 
   await page.goto("/login");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", { timeout: 30_000 });
@@ -240,6 +241,9 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
     animations: "disabled",
   });
   expect(profilesFrame.byteLength).toBeGreaterThan(30_000);
+  page.off("response", captureAvatarResponse);
+  expect(avatarResourceEvidence.length).toBeGreaterThan(0);
+  await Promise.all(avatarResourceEvidence);
 
   await page.mouse.move(
     firstProfileBounds.x + firstProfileBounds.width / 2,
@@ -1021,6 +1025,12 @@ async function captureBrowseState(
   projectName: string,
   state: "loading" | "content" | "empty" | "offline" | "error" | "long-text",
 ): Promise<void> {
+  await page.evaluate(async () => {
+    for (let frameIndex = 0; frameIndex < 4; frameIndex += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+  });
+  await page.screenshot({ animations: "disabled" });
   const frame = await page.screenshot({
     path: `screenshots/${projectName}-browse-${state}.png`,
     animations: "disabled",

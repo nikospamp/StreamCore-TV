@@ -37,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -50,12 +49,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
@@ -163,7 +162,7 @@ fun WebHomeScreen(
                 )
                 else -> LazyColumn(
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(HomeSectionSpacing),
+                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Web.Home.SectionSpacing),
                     contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.ExtraLarge),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -272,7 +271,7 @@ private fun WebHomeHero(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(HeroHeight)
+            .height(StreamCoreDimens.Web.Home.HeroHeight)
             .clip(MaterialTheme.shapes.extraLarge)
             .testTag(HomeTestTags.Hero),
     ) {
@@ -293,7 +292,7 @@ private fun WebHomeHero(
                         colors = listOf(
                             MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
                             MaterialTheme.colorScheme.background.copy(alpha = 0.74f),
-                            Color.Transparent,
+                            MaterialTheme.colorScheme.transparentContainer,
                         ),
                     ),
                 ),
@@ -302,8 +301,8 @@ private fun WebHomeHero(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .width(HeroCopyWidth)
-                .padding(HeroContentPadding),
+                .width(StreamCoreDimens.Web.Home.HeroCopyMaxWidth)
+                .padding(StreamCoreDimens.Web.Home.HeroContentPadding),
         ) {
             Text(
                 text = activeContent.title,
@@ -485,7 +484,11 @@ private fun WebHomeContentTile(
     rank: Int,
 ) {
     val isPoster = row.type == RowType.Poster || row.type == RowType.TopTen
-    val cardWidth = if (isPoster) PosterCardWidth else LandscapeCardWidth
+    val cardWidth = if (isPoster) {
+        StreamCoreDimens.Web.Home.PosterCardWidth
+    } else {
+        StreamCoreDimens.Web.Home.LandscapeCardWidth
+    }
     val aspectRatio = if (isPoster) {
         StreamCoreDimens.Artwork.PosterAspectRatio
     } else {
@@ -594,7 +597,7 @@ private fun BoxScope.ContinueWatchingProgress(
 private fun WebHomeLoading() {
     val loadingDescription = stringResource(Res.string.web_home_loading_description)
     Column(
-        verticalArrangement = Arrangement.spacedBy(HomeSectionSpacing),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Web.Home.SectionSpacing),
         modifier = Modifier
             .fillMaxSize()
             .testTag(WebHomeTestTags.Loading)
@@ -605,7 +608,7 @@ private fun WebHomeLoading() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(HeroHeight)
+                .height(StreamCoreDimens.Web.Home.HeroHeight)
                 .clip(MaterialTheme.shapes.extraLarge)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         )
@@ -613,8 +616,8 @@ private fun WebHomeLoading() {
             Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
                 Box(
                     modifier = Modifier
-                        .width(LoadingTitleWidth)
-                        .height(LoadingTitleHeight)
+                        .width(StreamCoreDimens.Web.Home.LoadingTitleWidth)
+                        .height(StreamCoreDimens.Web.Home.LoadingTitleHeight)
                         .clip(MaterialTheme.shapes.small)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 )
@@ -622,8 +625,8 @@ private fun WebHomeLoading() {
                     repeat(4) {
                         Box(
                             modifier = Modifier
-                                .width(LandscapeCardWidth)
-                                .height(LoadingCardHeight)
+                                .width(StreamCoreDimens.Web.Home.LandscapeCardWidth)
+                                .height(StreamCoreDimens.Web.Home.LoadingCardHeight)
                                 .clip(MaterialTheme.shapes.large)
                                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         )
@@ -773,15 +776,6 @@ private fun WebHomeLongTextPreview() {
     WebHomePreview(WebBrowseFixtureScenario.LongText)
 }
 
-private val HeroHeight = 360.dp
-private val HeroCopyWidth = 620.dp
-private val HeroContentPadding = 36.dp
-private val HomeSectionSpacing = 32.dp
-private val PosterCardWidth = 180.dp
-private val LandscapeCardWidth = 288.dp
-private val LoadingCardHeight = 162.dp
-private val LoadingTitleWidth = 220.dp
-private val LoadingTitleHeight = 28.dp
 private const val HeroRequestWidthPx = 1280
 private const val HeroRequestHeightPx = 720
 private const val PosterRequestWidthPx = 360

@@ -34,7 +34,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.disabled
@@ -45,10 +44,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
+import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
@@ -306,7 +306,13 @@ private fun WebDetailsLoading() {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(if (index == 0) 0.78f else 1f)
-                            .height(if (index == 0) LoadingTitleHeight else LoadingLineHeight)
+                            .height(
+                                if (index == 0) {
+                                    StreamCoreDimens.Web.Details.LoadingTitleHeight
+                                } else {
+                                    StreamCoreDimens.Web.Details.LoadingLineHeight
+                                },
+                            )
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 shape = MaterialTheme.shapes.small,
@@ -710,16 +716,17 @@ private fun WebDetailsRecommendationCard(
     modifier: Modifier = Modifier,
 ) {
     val scrimColor = MaterialTheme.colorScheme.scrim
-    val scrim = remember(scrimColor) {
+    val transparentContainer = MaterialTheme.colorScheme.transparentContainer
+    val scrim = remember(scrimColor, transparentContainer) {
         Brush.verticalGradient(
-            0.45f to Color.Transparent,
+            0.45f to transparentContainer,
             1f to scrimColor.copy(alpha = 0.92f),
         )
     }
     StreamCoreWebContentCard(
         onClick = onClick,
         aspectRatio = RecommendationAspectRatio,
-        modifier = modifier.width(RecommendationCardWidth),
+        modifier = modifier.width(StreamCoreDimens.Web.Details.RecommendationCardWidth),
     ) {
         StreamCoreWebArtwork(
             imageUrl = content.backdrop ?: content.poster,
@@ -738,7 +745,7 @@ private fun WebDetailsRecommendationCard(
                     text = content.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onArtwork,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
@@ -769,9 +776,6 @@ private const val FocusRequestAttempts = 3
 private const val RecommendationContentType = "details-recommendation"
 private val HeroAspectRatio = 16f / 9f
 private val RecommendationAspectRatio = 16f / 9f
-private val RecommendationCardWidth = 280.dp
-private val LoadingTitleHeight = 44.dp
-private val LoadingLineHeight = 24.dp
 
 @Preview(name = "Details · Loading", widthDp = 1280, heightDp = 720)
 @Composable
