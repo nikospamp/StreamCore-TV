@@ -87,6 +87,7 @@ include(":feature:home:ui-common")
 include(":feature:home:ui-mobile")
 include(":feature:home:ui-tablet")
 include(":feature:home:ui-tv")
+include(":feature:home:ui-web")
 
 // Search
 include(":feature:search:data")
@@ -95,6 +96,7 @@ include(":feature:search:ui-common")
 include(":feature:search:ui-mobile")
 include(":feature:search:ui-tablet")
 include(":feature:search:ui-tv")
+include(":feature:search:ui-web")
 
 // Details
 include(":feature:details:data")
@@ -103,6 +105,7 @@ include(":feature:details:ui-common")
 include(":feature:details:ui-mobile")
 include(":feature:details:ui-tablet")
 include(":feature:details:ui-tv")
+include(":feature:details:ui-web")
 
 // Library
 include(":feature:library:data")
@@ -111,6 +114,7 @@ include(":feature:library:ui-common")
 include(":feature:library:ui-mobile")
 include(":feature:library:ui-tablet")
 include(":feature:library:ui-tv")
+include(":feature:library:ui-web")
 
 // Playback
 include(":playback:api")

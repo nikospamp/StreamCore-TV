@@ -163,15 +163,15 @@ private fun NavigationProbe(
             )
             StreamCoreButton(
                 text = "Details ID",
-                onClick = { onNavigate(WebRoute.Details(DiagnosticContentId)) },
-                enabled = route !is WebRoute.Details,
+                onClick = { onNavigate(WebRoute.DiagnosticDetails(DiagnosticContentId)) },
+                enabled = route !is WebRoute.DiagnosticDetails,
                 variant = StreamCoreButtonVariant.Secondary,
                 modifier = Modifier.testTag(WebDiagnosticTags.DetailsNavigation),
             )
             StreamCoreButton(
                 text = "Player ID",
-                onClick = { onNavigate(WebRoute.Player(DiagnosticContentId)) },
-                enabled = route !is WebRoute.Player,
+                onClick = { onNavigate(WebRoute.DiagnosticPlayer(DiagnosticContentId)) },
+                enabled = route !is WebRoute.DiagnosticPlayer,
                 variant = StreamCoreButtonVariant.Secondary,
                 modifier = Modifier.testTag(WebDiagnosticTags.PlayerNavigation),
             )

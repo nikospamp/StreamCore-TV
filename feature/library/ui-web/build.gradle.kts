@@ -3,23 +3,29 @@ plugins {
 }
 
 streamCoreKmp {
+    withHostTest()
     withWasmJs()
 }
 
 kotlin {
     sourceSets {
-        remove(getByName("commonTest"))
-
         commonMain.dependencies {
-            api(projects.core.ui)
             implementation(projects.core.data)
+            implementation(projects.core.ui)
+            implementation(projects.core.uiWeb)
+            api(projects.feature.library.uiCommon)
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.runtime)
             implementation(compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.coil.compose)
+            implementation(libs.jetbrains.lifecycle.runtime.compose)
+            implementation(libs.koin.compose.viewmodel)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
