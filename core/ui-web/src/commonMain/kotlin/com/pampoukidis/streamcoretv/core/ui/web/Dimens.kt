@@ -5,6 +5,9 @@ import androidx.compose.ui.unit.dp
 object StreamCoreWebDimens {
     val ScreenHorizontal = 56.dp
     val ScreenVertical = 40.dp
+    val TopChromeHeight = 80.dp
+    val TopChromeProfileWidth = 180.dp
+    val BrowseContentMaxWidth = 1600.dp
     val PanelWidth = 440.dp
     val WidePanelWidth = 880.dp
     val WideViewportThreshold = 1600.dp

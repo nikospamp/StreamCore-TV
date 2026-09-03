@@ -34,14 +34,17 @@ import com.pampoukidis.streamcoretv.core.ui.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebBlockingSurface
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebBrowseScaffold
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
+import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.feature.login.web.login.WebLoginRoute
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.web.editor.WebProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.web.profiles.WebProfilesRoute
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
+import com.pampoukidis.streamcoretv.web.navigation.isDiagnosticRoute
 import com.pampoukidis.streamcoretv.web.platform.SecureWebUriHandler
 import com.pampoukidis.streamcoretv.web.product.WebProductCoordinator
 import com.pampoukidis.streamcoretv.web.product.WebProductInitialization
@@ -74,12 +77,8 @@ fun WebProductShell(state: WebStartupState) {
                         message = state.guidance,
                     )
                     is WebStartupState.Ready -> {
-                        val diagnosticRoute by state.navigationController.route.collectAsState()
-                        if (
-                            diagnosticRoute is WebRoute.Diagnostic ||
-                            diagnosticRoute is WebRoute.Details ||
-                            diagnosticRoute is WebRoute.Player
-                        ) {
+                        val navigationEntry by state.navigationController.entry.collectAsState()
+                        if (navigationEntry.route.isDiagnosticRoute()) {
                             WebDiagnosticShell(state)
                         } else {
                             KoinIsolatedContext(state.graph.application) {
@@ -95,7 +94,8 @@ fun WebProductShell(state: WebStartupState) {
 
 @Composable
 private fun ReadyProductShell(state: WebStartupState.Ready) {
-    val route by state.navigationController.route.collectAsState()
+    val navigationEntry by state.navigationController.entry.collectAsState()
+    val route = navigationEntry.route
     val scope = rememberCoroutineScope()
     val coordinator = remember(state.graph, state.navigationController) {
         WebProductCoordinator(
@@ -109,6 +109,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
     var initializing by remember { mutableStateOf(true) }
     var activeError by remember { mutableStateOf<AppError?>(null) }
     var profilesRevision by remember { mutableIntStateOf(0) }
+    var logoutInProgress by remember { mutableStateOf(false) }
     val handleProductError: (AppError) -> Unit = { error ->
         activeError = error
         document.body?.setAttribute("data-product-error-kind", error.webErrorKind())
@@ -128,6 +129,21 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
     val closeProfileEditor: () -> Unit = {
         state.navigationController.navigate(WebRoute.Profiles)
     }
+    val changeProfile: () -> Unit = {
+        scope.launch { coordinator.changeProfile() }
+    }
+    val logout: () -> Unit = {
+        if (!logoutInProgress) {
+            logoutInProgress = true
+            scope.launch {
+                try {
+                    coordinator.logout()?.let { error -> activeError = error }
+                } finally {
+                    logoutInProgress = false
+                }
+            }
+        }
+    }
 
     LaunchedEffect(coordinator) {
         when (val result = coordinator.initialize()) {
@@ -139,8 +155,9 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
 
     LaunchedEffect(route, initializing) {
         if (!initializing) {
+            val canonicalRoute = coordinator.canonicalRoute(route)
             coordinator.sanitizeRoute(route)
-            document.body?.setAttribute("data-product-route", route.path)
+            document.body?.setAttribute("data-product-route", canonicalRoute.path)
             document.body?.setAttribute("data-product-visual-state", "loading")
             repeat(VISUAL_SETTLE_FRAMES) {
                 androidx.compose.runtime.withFrameNanos { }
@@ -157,7 +174,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                 message = "Validating your account and selected profile…",
             )
         } else {
-            when (val destination = route) {
+            when (val destination = coordinator.canonicalRoute(route)) {
                 WebRoute.Root -> Unit
                 WebRoute.Login -> WebLoginRoute(
                     onLoginSucceeded = {
@@ -198,11 +215,64 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                     onClose = closeProfileEditor,
                     onError = handleProductError,
                 )
-                WebRoute.AuthenticatedLanding -> AuthenticatedLanding(
+                WebRoute.Home -> WebBrowsePlaceholder(
+                    destination = WebBrowseDestination.Home,
+                    title = "Home",
+                    message = "Home is ready for its WEB-03B feature implementation.",
                     profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    onChangeProfile = { scope.launch { coordinator.changeProfile() } },
+                    logoutInProgress = logoutInProgress,
+                    onNavigate = state.navigationController::navigate,
+                    onChangeProfile = changeProfile,
+                    onLogout = logout,
                 )
-                WebRoute.Diagnostic, is WebRoute.Details, is WebRoute.Player -> WebDiagnosticShell(state)
+                WebRoute.Search -> WebBrowsePlaceholder(
+                    destination = WebBrowseDestination.Search,
+                    title = "Search",
+                    message = "Search is ready for its WEB-03C feature implementation.",
+                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
+                    logoutInProgress = logoutInProgress,
+                    onNavigate = state.navigationController::navigate,
+                    onChangeProfile = changeProfile,
+                    onLogout = logout,
+                )
+                WebRoute.Library -> WebBrowsePlaceholder(
+                    destination = WebBrowseDestination.Library,
+                    title = "Library",
+                    message = "Library is ready for its WEB-03D feature implementation.",
+                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
+                    logoutInProgress = logoutInProgress,
+                    onNavigate = state.navigationController::navigate,
+                    onChangeProfile = changeProfile,
+                    onLogout = logout,
+                )
+                is WebRoute.Details -> WebBrowsePlaceholder(
+                    destination = WebBrowseDestination.Details,
+                    title = "Details",
+                    message = "Content ${destination.contentId} is ready for its WEB-03E feature implementation.",
+                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
+                    logoutInProgress = logoutInProgress,
+                    onNavigate = state.navigationController::navigate,
+                    onChangeProfile = changeProfile,
+                    onLogout = logout,
+                )
+                is WebRoute.Player -> WebBrowsePlaceholder(
+                    destination = null,
+                    title = "Playback is not available yet",
+                    message = "This WEB-03 route is an explicit placeholder. No media is loaded.",
+                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
+                    logoutInProgress = logoutInProgress,
+                    onNavigate = state.navigationController::navigate,
+                    onChangeProfile = changeProfile,
+                    onLogout = logout,
+                    actionLabel = "Back to details",
+                    onAction = {
+                        state.navigationController.replace(WebRoute.Details(destination.contentId))
+                    },
+                )
+                WebRoute.AuthenticatedLanding -> Unit
+                WebRoute.Diagnostic,
+                is WebRoute.DiagnosticDetails,
+                is WebRoute.DiagnosticPlayer -> WebDiagnosticShell(state)
             }
         }
     }
@@ -220,24 +290,52 @@ private const val VISUAL_SETTLE_FRAMES = 3
 private const val VISUAL_SETTLE_DELAY_MILLIS = 1_500L
 
 @Composable
-private fun AuthenticatedLanding(
+private fun WebBrowsePlaceholder(
+    destination: WebBrowseDestination?,
+    title: String,
+    message: String,
     profileName: String,
+    logoutInProgress: Boolean,
+    onNavigate: (WebRoute) -> Unit,
     onChangeProfile: () -> Unit,
+    onLogout: () -> Unit,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-        StreamCoreWebPanel {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-            ) {
-                Text("Welcome, $profileName", style = MaterialTheme.typography.displaySmall)
-                Text(
-                    "Your profile is ready. Browse arrives in WEB-03.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                StreamCoreWebButton(text = "Change profile", onClick = onChangeProfile)
+    StreamCoreWebBrowseScaffold(
+        activeDestination = destination,
+        profileName = profileName,
+        logoutInProgress = logoutInProgress,
+        onDestinationSelected = { selected -> onNavigate(selected.toRoute()) },
+        onChangeProfile = onChangeProfile,
+        onLogout = onLogout,
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            StreamCoreWebPanel {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+                ) {
+                    Text(title, style = MaterialTheme.typography.displaySmall)
+                    Text(
+                        message,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (actionLabel != null && onAction != null) {
+                        StreamCoreWebButton(text = actionLabel, onClick = onAction)
+                    }
+                }
             }
         }
+    }
+}
+
+private fun WebBrowseDestination.toRoute(): WebRoute {
+    return when (this) {
+        WebBrowseDestination.Home -> WebRoute.Home
+        WebBrowseDestination.Search -> WebRoute.Search
+        WebBrowseDestination.Library -> WebRoute.Library
+        WebBrowseDestination.Details -> WebRoute.Home
     }
 }
 
