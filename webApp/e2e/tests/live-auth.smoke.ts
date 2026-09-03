@@ -308,13 +308,37 @@ async function expectProductRoute(page: Page, path: string): Promise<void> {
 }
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
-  let bounds = await button.boundingBox();
+  await waitForAnimationFrames(page, 4);
+  let bounds: { x: number; y: number; width: number; height: number } | null = null;
   await expect.poll(async () => {
-    bounds = await button.boundingBox();
+    bounds = await button.boundingBox({ timeout: 1_000 }).catch(() => null);
     return bounds !== null;
   }, { timeout: 30_000, intervals: [250] }).toBe(true);
   if (bounds === null) {
     throw new Error("Semantic control does not expose viewport bounds");
   }
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await waitForAnimationFrames(page, 2);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await waitForAnimationFrames(page, 4);
+}
+
+async function waitForAnimationFrames(page: Page, frameCount: number): Promise<void> {
+  await page.evaluate(async (count) => {
+    for (let frameIndex = 0; frameIndex < count; frameIndex += 1) {
+      await new Promise<void>((resolve) => {
+        let completed = false;
+        const complete = (): void => {
+          if (completed) {
+            return;
+          }
+          completed = true;
+          clearTimeout(fallback);
+          resolve();
+        };
+        const fallback = setTimeout(complete, 100);
+        requestAnimationFrame(complete);
+      });
+    }
+  }, frameCount);
 }
