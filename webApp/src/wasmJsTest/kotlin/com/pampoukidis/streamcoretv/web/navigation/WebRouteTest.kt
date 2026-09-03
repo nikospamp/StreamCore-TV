@@ -1,13 +1,19 @@
 package com.pampoukidis.streamcoretv.web.navigation
 
+import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
+import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
+import kotlinx.browser.window
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.test.TestResult
+import kotlinx.coroutines.test.runTest
+import org.w3c.dom.events.Event
+import kotlin.coroutines.resume
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
-import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 
 class WebRouteTest {
     @Test
@@ -86,5 +92,62 @@ class WebRouteTest {
         assertTrue(controller.consumeReturnFocus(homeKey))
         assertNull(controller.entry.value.returnFocusKey)
         controller.close()
+    }
+
+    @Test
+    fun browserBackRestoresAndConsumesHomeAndDetailsFocusEntries(): TestResult {
+        return runTest {
+            val controller = WebNavigationController()
+            val homeKey = WebBrowseFocusKey(
+                destination = WebBrowseDestination.Home,
+                sectionKey = "featured",
+                itemKey = "603",
+            )
+            controller.replace(WebRoute.Home)
+            assertTrue(controller.captureReturnFocus(homeKey))
+            controller.navigate(WebRoute.Details("603"))
+
+            awaitPopState { window.history.back() }
+
+            assertEquals(WebRoute.Home, controller.entry.value.route)
+            assertEquals(homeKey, controller.entry.value.returnFocusKey)
+            assertTrue(controller.consumeReturnFocus(homeKey))
+            assertNull(controller.entry.value.returnFocusKey)
+
+            val playKey = WebBrowseFocusKey(
+                destination = WebBrowseDestination.Details,
+                sectionKey = "details:actions",
+                itemKey = "play",
+            )
+            controller.replace(WebRoute.Details("603"))
+            assertTrue(controller.captureReturnFocus(playKey))
+            controller.navigate(WebRoute.Player("603"))
+
+            awaitPopState { window.history.back() }
+
+            assertEquals(WebRoute.Details("603"), controller.entry.value.route)
+            assertEquals(playKey, controller.entry.value.returnFocusKey)
+            assertTrue(controller.consumeReturnFocus(playKey))
+            assertNull(controller.entry.value.returnFocusKey)
+            controller.replace(WebRoute.Root)
+            controller.close()
+        }
+    }
+}
+
+private suspend fun awaitPopState(action: () -> Unit) {
+    suspendCancellableCoroutine { continuation ->
+        lateinit var listener: (Event) -> Unit
+        listener = {
+            window.removeEventListener("popstate", listener)
+            if (continuation.isActive) {
+                continuation.resume(Unit)
+            }
+        }
+        window.addEventListener("popstate", listener)
+        continuation.invokeOnCancellation {
+            window.removeEventListener("popstate", listener)
+        }
+        action()
     }
 }

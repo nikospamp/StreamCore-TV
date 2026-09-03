@@ -101,14 +101,14 @@ test("missing runtime config never starts the product graph", async ({ page }) =
   await expect(page.locator('[data-testid="html-video-probe"]')).toHaveCount(0);
 });
 
-test("direct ID route and reload preserve route identity", async ({ page }) => {
-  await page.goto("/details/603");
+test("diagnostic direct ID route and reload preserve route identity", async ({ page }) => {
+  await page.goto("/diagnostic/details/603");
   await expect(page.locator('[data-testid="html-video-probe"]')).toHaveAttribute(
     "data-shaka-probe",
     "linked",
     { timeout: 30_000 },
   );
-  expect(new URL(page.url()).pathname).toBe("/details/603");
+  expect(new URL(page.url()).pathname).toBe("/diagnostic/details/603");
 
   await page.reload();
   await expect(page.locator('[data-testid="html-video-probe"]')).toHaveAttribute(
@@ -116,28 +116,36 @@ test("direct ID route and reload preserve route identity", async ({ page }) => {
     "linked",
     { timeout: 30_000 },
   );
-  expect(new URL(page.url()).pathname).toBe("/details/603");
+  expect(new URL(page.url()).pathname).toBe("/diagnostic/details/603");
 });
 
-test("pointer navigation binds browser Back and Forward history", async ({ page }) => {
+test("diagnostic pointer navigation binds browser Back and Forward history", async ({ page }) => {
   await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
 
-  await page.mouse.move(200, 165);
-  await page.waitForTimeout(300);
-  await page.mouse.click(200, 165);
-  await expect(page).toHaveURL(/\/details\/603$/);
-  await page.mouse.move(315, 165);
-  await page.waitForTimeout(300);
-  await page.mouse.click(315, 165);
-  await expect(page).toHaveURL(/\/player\/603$/);
+  const detailsBounds = await semanticBounds(
+    page.getByRole("button", { name: "Details ID", exact: true }),
+  );
+  await page.mouse.click(
+    detailsBounds.x + detailsBounds.width / 2,
+    detailsBounds.y + detailsBounds.height / 2,
+  );
+  await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
+  const playerBounds = await semanticBounds(
+    page.getByRole("button", { name: "Player ID", exact: true }),
+  );
+  await page.mouse.click(
+    playerBounds.x + playerBounds.width / 2,
+    playerBounds.y + playerBounds.height / 2,
+  );
+  await expect(page).toHaveURL(/\/diagnostic\/player\/603$/);
 
   await page.goBack();
-  await expect(page).toHaveURL(/\/details\/603$/);
+  await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
   await page.goForward();
-  await expect(page).toHaveURL(/\/player\/603$/);
+  await expect(page).toHaveURL(/\/diagnostic\/player\/603$/);
 });
 
 test("four distinct official DataStore names retain values across reload", async ({ page }) => {
