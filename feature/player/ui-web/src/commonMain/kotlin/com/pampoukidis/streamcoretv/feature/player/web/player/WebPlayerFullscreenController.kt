@@ -24,6 +24,11 @@ internal expect fun WebPlayerDocumentVisibilityEffect(
     onVisibilityChanged: (Boolean) -> Unit,
 )
 
+@Composable
+internal expect fun WebPlayerDocumentEscapeEffect(
+    onEscape: () -> Unit,
+)
+
 private object NoOpWebPlayerFullscreenController : WebPlayerFullscreenController {
     override val isFullscreen: State<Boolean> = mutableStateOf(false)
 

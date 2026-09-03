@@ -331,10 +331,46 @@ class WebPlayerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    fun keyboardInputRevealsAutoHiddenControls(): TestResult {
+        var state by mutableStateOf(
+            WebPlayerFixtures.state(WebPlayerShowcaseScenario.ControlsHidden),
+        )
+        val actions = mutableListOf<PlayerAction>()
+        return runComposeUiTest {
+            setContent {
+                StreamCoreTheme(darkTheme = true) {
+                    WebPlayerScreen(
+                        state = state,
+                        videoSurface = WebPlayerFixtures.videoSurface,
+                        onAction = { action ->
+                            actions += action
+                            if (action == PlayerAction.UserInteraction) {
+                                state = state.copy(controlsVisible = true)
+                            }
+                        },
+                    )
+                }
+            }
+
+            onNodeWithTag(PlayerTestTags.Root)
+                .assertIsFocused()
+                .performKeyInput { pressKey(Key.DirectionRight) }
+            onNodeWithTag(PlayerTestTags.PlayPause)
+                .assertIsDisplayed()
+                .assertIsFocused()
+            assertTrue(actions.contains(PlayerAction.UserInteraction))
+        }
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
     fun noFilmstripFallbackKeepsScrubTimeAndTimelineAvailable(): TestResult {
+        val state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Scrubbing)
         return runPlayerUiTest(
-            state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.NoFilmstrip),
+            state = state,
         ) {
+            assertTrue(state.filmstripFrames.isNotEmpty())
+            assertTrue(state.filmstripFrames.all { frame -> frame.image == null })
             onNodeWithTag(
                 testTag = PlayerTestTags.Filmstrip,
                 useUnmergedTree = true,

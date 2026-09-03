@@ -157,12 +157,44 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
       page.getByRole("button", { name: "Play", exact: true }),
     );
     await expectProductRoute(page, "/player/550");
-    await expect(page.locator("video")).toHaveCount(0);
-    await page.keyboard.press("Space");
+    const productionVideo = page.getByTestId("playback-video");
+    await expect(productionVideo).toHaveCount(1, { timeout: 30_000 });
+    await ensureUserActivatedPlayback(page, productionVideo);
+    const resumePositionSeconds = await seekPastResumeThreshold(page, productionVideo);
+
+    const enterFullscreen = page.getByRole(
+      "button",
+      { name: "Enter fullscreen", exact: true },
+    );
+    await activateSemanticButton(page, enterFullscreen);
+    await expect.poll(async () => {
+      return page.evaluate(() => document.fullscreenElement !== null);
+    }, { timeout: 30_000, intervals: [100] }).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect.poll(async () => {
+      return page.evaluate(() => document.fullscreenElement === null);
+    }, { timeout: 30_000, intervals: [100] }).toBe(true);
+    await expect(enterFullscreen).toBeFocused();
+
+    await page.keyboard.press("Escape");
     await expectProductRoute(page, "/details/550");
+    await expect(page.getByTestId("playback-video")).toHaveCount(0);
 
     await page.reload();
     await expectProductRoute(page, "/details/550");
+    await activateSemanticButton(
+      page,
+      page.getByRole("button", { name: "Play", exact: true }),
+    );
+    await expectProductRoute(page, "/player/550");
+    const resumedVideo = page.getByTestId("playback-video");
+    await expect(resumedVideo).toHaveCount(1, { timeout: 30_000 });
+    await expect.poll(async () => {
+      return readVideoPositionSeconds(resumedVideo);
+    }, { timeout: 30_000, intervals: [250] }).toBeGreaterThanOrEqual(resumePositionSeconds - 2);
+    await page.keyboard.press("Escape");
+    await expectProductRoute(page, "/details/550");
+    await expect(page.getByTestId("playback-video")).toHaveCount(0);
     await activateSemanticButton(
       page,
       page.getByRole("button", { name: "Sign out", exact: true }),
@@ -322,6 +354,47 @@ async function activateSemanticButton(page: Page, button: Locator): Promise<void
   await waitForAnimationFrames(page, 2);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 4);
+}
+
+async function ensureUserActivatedPlayback(page: Page, video: Locator): Promise<void> {
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  const pause = page.getByRole("button", { name: "Pause", exact: true });
+  await expect.poll(async () => {
+    const playEnabled = await play.count() === 1 && await play.isEnabled();
+    const pauseEnabled = await pause.count() === 1 && await pause.isEnabled();
+    return playEnabled || pauseEnabled;
+  }, { timeout: 30_000, intervals: [250] }).toBe(true);
+  if (await pause.count() === 1 && await pause.isEnabled()) {
+    await activateSemanticButton(page, pause);
+    await expect(play).toBeEnabled({ timeout: 30_000 });
+  }
+  await activateSemanticButton(page, play);
+  await expect(pause).toBeEnabled({ timeout: 30_000 });
+  await expect.poll(async () => {
+    return video.evaluate((element) => !(element as HTMLVideoElement).paused);
+  }, { timeout: 30_000, intervals: [250] }).toBe(true);
+}
+
+async function seekPastResumeThreshold(page: Page, video: Locator): Promise<number> {
+  const forward = page.getByRole("button", { name: "Forward 10 seconds", exact: true });
+  let positionSeconds = await readVideoPositionSeconds(video);
+  for (let seekIndex = 0; seekIndex < 4; seekIndex += 1) {
+    const previousPositionSeconds = positionSeconds;
+    await activateSemanticButton(page, forward);
+    await expect.poll(async () => {
+      return readVideoPositionSeconds(video);
+    }, { timeout: 30_000, intervals: [250] }).toBeGreaterThan(previousPositionSeconds + 5);
+    positionSeconds = await readVideoPositionSeconds(video);
+  }
+  expect(positionSeconds).toBeGreaterThan(30);
+  await expect(page.getByLabel(/^Playback position (?!0:[012]\d)\d+:\d{2} of /)).toHaveCount(1, {
+    timeout: 30_000,
+  });
+  return positionSeconds;
+}
+
+async function readVideoPositionSeconds(video: Locator): Promise<number> {
+  return video.evaluate((element) => (element as HTMLVideoElement).currentTime);
 }
 
 async function waitForAnimationFrames(page: Page, frameCount: number): Promise<void> {

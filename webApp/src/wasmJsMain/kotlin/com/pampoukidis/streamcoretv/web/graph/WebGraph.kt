@@ -33,7 +33,6 @@ import com.pampoukidis.streamcoretv.feature.library.domain.libraryDomainModule
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginViewModel
 import com.pampoukidis.streamcoretv.feature.login.common.login.loginUiModule
 import com.pampoukidis.streamcoretv.feature.login.domain.loginDomainModule
-import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
 import com.pampoukidis.streamcoretv.feature.player.common.player.playerUiModule
 import com.pampoukidis.streamcoretv.feature.player.data.playbackWebDataModule
 import com.pampoukidis.streamcoretv.feature.player.data.PLAYBACK_PROGRESS_STORE_QUALIFIER
@@ -51,8 +50,8 @@ import com.pampoukidis.streamcoretv.feature.search.domain.searchDomainModule
 import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
+import com.pampoukidis.streamcoretv.playback.web.webPlaybackModule
 import com.pampoukidis.streamcoretv.web.config.WebRuntimeConfig
-import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlaybackSessionFactory
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.module.Module
@@ -89,7 +88,6 @@ fun webModules(
     val webRuntimeModule = module {
         single<TmdbRuntimeConfig> { config.toTmdbRuntimeConfig() }
         single<PerformanceTracer> { NoOpPerformanceTracer }
-        single<PlaybackSessionFactory> { DiagnosticPlaybackSessionFactory() }
     }
     return listOf(
         webRuntimeModule,
@@ -109,6 +107,7 @@ fun webModules(
         libraryDomainModule,
         libraryUiModule,
         playbackWebDataModule(useSessionStorage),
+        webPlaybackModule,
         playerUiModule,
         tmdbDataModule,
         tmdbWebDataModule(useSessionStorage),
@@ -157,7 +156,7 @@ internal fun resolveWebGraph(koin: Koin): List<String> {
         resolve<SearchViewModel>(koin, "SearchViewModel")
         resolve<DetailsViewModel>(koin, "DetailsViewModel")
         resolve<LibraryViewModel>(koin, "LibraryViewModel")
-        resolve<PlayerViewModel>(koin, "PlayerViewModel")
+        resolve<PlaybackSessionFactory>(koin, "PlaybackSessionFactory")
     }
 }
 

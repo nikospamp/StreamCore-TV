@@ -43,11 +43,13 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-03): WEB-04 parallel implementation wave is open.** WEB-03 is accepted and merged at
-`f9e13558b3fc1c68db89ba9715932e8db80813ae`. WEB-04A's provider-neutral playback contract freeze is reviewed at
-`28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`: the playback API remains unchanged and backend-agnostic, one session is reused per PlayerViewModel,
-and source/engine error copy is sanitized. WEB-04A engine, WEB-04B UI, and WEB-04C test/release work may proceed in parallel from exactly that
-checkpoint. WEB-04D remains blocked until all three reviewed inputs are accepted.
+**Current gate (2026-09-03): WEB-04D integrated candidate freeze.** WEB-03 remains accepted at
+`f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
+`631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
+`3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Integrated focused gates are green (engine 19/19,
+player UI 14/14, WebApp 65/65, design-token gate) and the capped architecture, lifecycle/accessibility, and security/release reviews are closed.
+The frozen production/Binaryen artifact, 186-test six-project matrix, Android/root gate, inspected visuals, manual current Safari/macOS, and final
+authorized live journey remain required before WEB-04 acceptance. The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
 concurrent feature owners while the root orchestrator remains active.

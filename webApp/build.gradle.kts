@@ -25,6 +25,14 @@ kotlin {
     }
 
     sourceSets {
+        wasmJsMain {
+            resources.srcDir(
+                project(":playback:web").file("src/wasmJsMain/resources"),
+            )
+            resources.srcDir(
+                project(":feature:player:ui-web").file("src/wasmJsMain/resources"),
+            )
+        }
         wasmJsMain.dependencies {
             implementation(projects.core.data)
             implementation(projects.core.domain)
@@ -56,7 +64,9 @@ kotlin {
             implementation(projects.feature.library.uiWeb)
             implementation(projects.feature.player.data)
             implementation(projects.feature.player.uiCommon)
+            implementation(projects.feature.player.uiWeb)
             implementation(projects.playback.api)
+            implementation(projects.playback.web)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
@@ -68,13 +78,13 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.js)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(npm("shaka-player", libs.versions.shaka.get()))
         }
         wasmJsTest.dependencies {
             implementation(kotlin("test"))

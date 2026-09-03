@@ -25,6 +25,13 @@ internal actual fun WebPlayerDocumentVisibilityEffect(
     }
 }
 
+@Composable
+internal actual fun WebPlayerDocumentEscapeEffect(
+    onEscape: () -> Unit,
+) {
+    return
+}
+
 private object AndroidWebPlayerFullscreenController : WebPlayerFullscreenController {
     override val isFullscreen: State<Boolean> = mutableStateOf(false)
 

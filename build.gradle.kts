@@ -315,6 +315,7 @@ val allowedDesignTokenFiles = setOf(
     "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Dimens.kt",
     "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Shape.kt",
     "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Type.kt",
+    "feature/player/ui-web/src/commonMain/kotlin/com/pampoukidis/streamcoretv/feature/player/web/player/Dimens.kt",
 )
 val rawDimensionRegexPatternValue = """(?<![A-Za-z0-9_])(?:[1-9]\d*(?:\.\d+)?|0\.\d+)\.(?:dp|sp)\b"""
 val roundedCornerShapeRegexPatternValue = """RoundedCornerShape\s*\([^)]*(?:[1-9]\d*(?:\.\d+)?|0\.\d+)\.dp"""

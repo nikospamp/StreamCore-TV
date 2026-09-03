@@ -22,8 +22,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -43,7 +41,6 @@ import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
-import com.pampoukidis.streamcoretv.core.ui.web.webEscape
 import com.pampoukidis.streamcoretv.feature.details.web.details.WebDetailsRoute
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeViewModel
 import com.pampoukidis.streamcoretv.feature.home.web.home.WebHomeRoute
@@ -91,7 +88,13 @@ fun WebProductShell(state: WebStartupState) {
                     )
                     is WebStartupState.Ready -> {
                         val navigationEntry by state.navigationController.entry.collectAsState()
-                        if (navigationEntry.route.isDiagnosticRoute()) {
+                        val route = navigationEntry.route
+                        if (route is WebRoute.DiagnosticPlayer) {
+                            WebDiagnosticPlayerDestination(
+                                state = state,
+                                destination = route,
+                            )
+                        } else if (route.isDiagnosticRoute()) {
                             WebDiagnosticShell(state)
                         } else {
                             KoinIsolatedContext(state.graph.application) {
@@ -377,25 +380,29 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                         )
                     }
                 }
-                is WebRoute.Player -> WebBrowsePlaceholder(
-                    destination = null,
-                    title = "Playback is not available yet",
-                    message = "This WEB-03 route is an explicit placeholder. No media is loaded.",
-                    profileName = coordinator.selectedProfile?.displayName.orEmpty(),
-                    logoutInProgress = logoutInProgress,
-                    onNavigate = navigateTopLevel,
-                    onChangeProfile = changeProfile,
-                    onLogout = logout,
-                    actionLabel = "Back to details",
-                    onAction = {
-                        if (pendingPlaybackRequest?.contentId == destination.contentId) {
-                            window.history.back()
-                        } else {
+                is WebRoute.Player -> {
+                    val profile = requireNotNull(coordinator.selectedProfile)
+                    val inAppRequest = pendingPlaybackRequest?.takeIf { request ->
+                        request.profileId == profile.id && request.contentId == destination.contentId
+                    }
+                    WebPlayerDestination(
+                        profileId = profile.id,
+                        contentId = destination.contentId,
+                        transientRequest = inAppRequest,
+                        detailsRepository = state.graph.application.koin.get(),
+                        onBack = {
+                            if (inAppRequest != null) {
+                                window.history.back()
+                            } else {
+                                state.navigationController.replace(WebRoute.Details(destination.contentId))
+                            }
+                        },
+                        onUnavailable = {
+                            pendingPlaybackRequest = null
                             state.navigationController.replace(WebRoute.Details(destination.contentId))
-                        }
-                    },
-                    focusAction = true,
-                )
+                        },
+                    )
+                }
                 WebRoute.AuthenticatedLanding -> Unit
                 WebRoute.Diagnostic,
                 is WebRoute.DiagnosticDetails,
@@ -436,66 +443,6 @@ private fun WebBrowseFeatureSurface(
         content = content,
     )
 }
-
-@Composable
-private fun WebBrowsePlaceholder(
-    destination: WebBrowseDestination?,
-    title: String,
-    message: String,
-    profileName: String,
-    logoutInProgress: Boolean,
-    onNavigate: (WebBrowseDestination) -> Unit,
-    onChangeProfile: () -> Unit,
-    onLogout: () -> Unit,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-    focusAction: Boolean = false,
-) {
-    val actionFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(focusAction, actionLabel) {
-        if (focusAction && actionLabel != null && onAction != null) {
-            repeat(PLAYER_FOCUS_REQUEST_ATTEMPTS) {
-                androidx.compose.runtime.withFrameNanos { }
-                if (actionFocusRequester.requestFocus()) {
-                    return@LaunchedEffect
-                }
-            }
-        }
-    }
-    StreamCoreWebBrowseScaffold(
-        activeDestination = destination,
-        profileName = profileName,
-        logoutInProgress = logoutInProgress,
-        onDestinationSelected = onNavigate,
-        onChangeProfile = onChangeProfile,
-        onLogout = onLogout,
-        modifier = if (onAction == null) Modifier else Modifier.webEscape(onAction),
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            StreamCoreWebPanel {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-                ) {
-                    Text(title, style = MaterialTheme.typography.displaySmall)
-                    Text(
-                        message,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (actionLabel != null && onAction != null) {
-                        StreamCoreWebButton(
-                            text = actionLabel,
-                            onClick = onAction,
-                            modifier = Modifier.focusRequester(actionFocusRequester),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private const val PLAYER_FOCUS_REQUEST_ATTEMPTS = 4
 
 private fun WebBrowseDestination.toRoute(): WebRoute {
     return when (this) {

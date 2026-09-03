@@ -20,7 +20,8 @@ result:
 - the Compose viewport is represented by one host `DIV`;
 - Compose buttons, text, and text fields expose no ordinary DOM nodes carrying `role`, accessible-name attributes, or `data-testid`;
 - the probe's `testTag` values are therefore not valid Playwright selectors;
-- the `HtmlElementView` video is an ordinary DOM element and its explicit `data-testid="html-video-probe"` is stable in all three engines.
+- the former WEB-01 `HtmlElementView` probe exposed `data-testid="html-video-probe"`; WEB-04 retires that probe and its global-fallback adapter in favor
+  of the production playback surface described below.
 
 WEB-02 adds a narrowly scoped accessibility-projection contract for Compose Multiplatform `1.12.0` with Playwright `1.62.1`. The production matrix
 proved the following exact role/name queries in Chromium, Firefox, and WebKit at both 1280×720 and 1920×1080:
@@ -63,8 +64,26 @@ same content title in more than one semantic action, the hero action is disambig
 globally unique name.
 
 WEB-03 also exposes non-sensitive host readiness through `body[data-product-route]`, `body[data-product-visual-state]`, and
-`body[data-profile-count]`. The temporary `/player/{contentId}` route deliberately contains no `video` or Shaka element; WEB-04 owns the real video
-DOM contract.
+`body[data-profile-count]`. Its temporary `/player/{contentId}` placeholder is replaced by WEB-04's route-scoped production player.
+
+WEB-04 adds these version-specific player contracts:
+
+- the production session owns one native video with `data-testid="playback-video"`; deterministic diagnostic fixtures use
+  `data-testid="player:video"` and no media URI;
+- the native video and generated `HtmlElementView` host are pointer-transparent so Compose controls and the timeline receive real canvas pointer
+  input without nesting the controls inside an interactive parent semantic node;
+- projected buttons use exact names `Back`, `Back 10 seconds`, `Play`/`Pause`/`Replay`, `Forward 10 seconds`, `Enter fullscreen`/
+  `Exit fullscreen`, `Playback settings`, `Retry`, `Back to playback settings`, plus state-bearing settings rows such as `Speed · 1×` and
+  `Quality · 1080p · 5.8 Mbps`;
+- Compose projects the timeline as an adjustable generic node, not an HTML `slider` role. Its exact accessible name is dynamic:
+  `Playback position <position> of <duration>`, and tests locate it by label before sending pointer drag input to its settled bounds;
+- a capture-phase document Escape listener owns real-browser Escape and stops duplicate Compose dispatch. Fullscreen exit restores the current
+  projected control through its stable ID, including the open shadow-root projection;
+- the ten deterministic fixtures are mandatory in the default Playwright suite; there is no environment flag or skip path that can turn a green
+  command into 60 unexecuted player registrations. Their `body[data-player-*]` values contain only synthetic IDs, fixed sanitized copy, booleans,
+  and counts. The diagnostic listener balance probe records actual relevant document/tagged-video
+  registrations by target, type, listener identity, and capture flag; repeated lifecycle tests require a nonzero mounted count and exact zero after
+  disposal.
 
 Native login and profile-editor text inputs use the browser's Tab order. Left/Right must retain normal caret and selection semantics while those
 inputs own focus; arrow-key focus movement is asserted only for non-text Compose rows and native action/dialog controls.
@@ -89,7 +108,7 @@ tokens, and session IDs must never be projected into them.
 
 Playwright must not use `getByRole`, `getByLabel`, text locators, or `[data-testid]` for any other canvas-rendered Compose child unless a later,
 version-specific all-engine matrix proves the exact selector and updates this document. The WEB-02 role/name list must be revalidated when Compose
-Multiplatform or Playwright changes; the same applies to the WEB-03 additions above. Browser password-manager or autofill integration is not claimed. The native login inputs expose standard
+Multiplatform or Playwright changes; the same applies to the WEB-03 and WEB-04 additions above. Browser password-manager or autofill integration is not claimed. The native login inputs expose standard
 autocomplete hints, but browser UI and stored-credential behavior remain outside the proven contract.
 
 ## Browser matrix and Windows Firefox handling

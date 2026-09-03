@@ -1,6 +1,6 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { extname, isAbsolute, join, normalize, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const e2eDirectory = fileURLToPath(new URL(".", import.meta.url));
@@ -39,10 +39,36 @@ if (!existsSync(join(distributionDirectory, "index.html"))) {
 }
 
 createServer((request, response) => {
-  const requestPath = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+  const requestTarget = request.url ?? "/";
+  const rawPath = requestTarget.split("?", 1)[0];
+  if (rawPath.includes("\\")) {
+    response.writeHead(400).end();
+    return;
+  }
+  let requestPath;
+  try {
+    const encodedPath = new URL(requestTarget, "http://localhost").pathname;
+    if (/%(?:2f|5c)/i.test(encodedPath)) {
+      response.writeHead(400).end();
+      return;
+    }
+    requestPath = decodeURIComponent(encodedPath);
+  } catch (_) {
+    response.writeHead(400).end();
+    return;
+  }
+  if (requestPath.includes("\\")) {
+    response.writeHead(400).end();
+    return;
+  }
   const relativePath = requestPath === "/" ? "index.html" : requestPath.slice(1);
   let candidate = normalize(join(distributionDirectory, relativePath));
-  if (!candidate.startsWith(distributionDirectory)) {
+  const candidateFromRoot = relative(distributionDirectory, candidate);
+  if (
+    isAbsolute(candidateFromRoot) ||
+    candidateFromRoot === ".." ||
+    candidateFromRoot.startsWith(`..${sep}`)
+  ) {
     response.writeHead(400).end();
     return;
   }

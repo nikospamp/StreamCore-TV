@@ -137,7 +137,7 @@ internal fun WebRoute.browseDestinationOrNull(): WebBrowseDestination? {
     }
 }
 
-private fun String.isBrowserSafeId(): Boolean {
+internal fun String.isBrowserSafeId(): Boolean {
     return isNotBlank() && all { character ->
         character.isLetterOrDigit() || character == '-' || character == '_'
     }
