@@ -168,3 +168,49 @@ Decision: `ACCEPTED`.
 The first capped review blocked on two P1s and no other freeze criteria. Both are closed by `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`:
 delta-only lifecycle and security re-reviews returned PASS. WEB-04A engine work continues on its owning branch; WEB-04B and WEB-04C may now
 start from that exact immutable checkpoint. No engine, player UI, release, production/Binaryen, full-matrix, Safari, or live-playback claim is made.
+
+## WEB-04A engine implementation checkpoint
+
+- Implementation base: accepted contract freeze `28af56e2d3bf560cf9594c6ea724e3ed510ebf9b`, plus the docs-only acceptance commit
+  `e92cced8aa8c9f2573a4db4e25c1fa9c80db6ddf`.
+- Playback API diff: empty. Media3, `PlayerViewModel`, settings, web application/UI, providers, credentials, generated output, and WEB-04B/C paths are
+  unchanged by the engine implementation.
+- `WebPlaybackSessionFactory` creates a distinct session-owned `HTMLVideoElement`, `ShakaWebPlaybackBridge`, `WebPlaybackSession`, and
+  `WebPlaybackVideoSurface` for every `create()` call. Koin continues to register only `PlaybackSessionFactory` as a process-scoped object.
+- A committed module-local `shaka-playback-adapter.mjs` imports `shaka-player/dist/shaka-player.compiled.js` statically. It has no CDN, page-script,
+  or global-object fallback. Shaka objects, promises, and raw errors remain inside this adapter; the fakeable Kotlin bridge exposes only commands,
+  primitive-backed snapshots, and callbacks. Filmstrip image bytes cross only as base64-encoded PNG data before decoding to Compose
+  `ImageBitmap`.
+- Prepare/load uses both Kotlin and adapter generation/closed guards. State mapping covers idle, preparing, buffering, ready, ended, and error;
+  autoplay rejection resolves to ready/paused. Commands cover play, pause, ended replay, bounded seek, `0.5x..2.0x` speed, fit/fill resize, retry,
+  video/audio selection and text selection. Quality Auto (`selectVideoTrack(null)`) re-enables ABR independently of an explicit audio override and
+  reports no selected video ID while Auto is active; manual video and audio selections continue to report active-variant IDs. Text selection
+  explicitly restores visibility while null selection unloads the Shaka text track and disables native text-track visibility.
+- UI-visible failures use only fixed `SOURCE_MISSING` / `No playable source is available.` or `PLAYBACK_FAILED` / `Playback failed.` copy. Raw
+  exceptions, manifests, source URLs, query parameters, and Shaka payloads do not cross the adapter/session boundary.
+- The playback surface returns the exact session-owned video element from `HtmlElementView`. Close synchronously invalidates the generation,
+  detaches the callback, clears the ticker, removes every stored DOM/Shaka listener, pauses/clears/removes the element, clears track snapshots, and
+  starts exactly one caught destroy for its successfully constructed Shaka instance. Adapter lifecycle probes expose only primitive cleanup
+  observations and verify both destroy resolution and caught rejection. Repeated close and late callbacks are no-ops. No internal Flow collectors
+  or object URLs are created.
+- Browser filmstrips query only Shaka manifest image tracks. The adapter fetches the selected thumbnail sprite, crops that image through a temporary
+  canvas, releases its fetched bitmap/controller/callback state, and emits a real Compose `ImageBitmap`; absent/failed image tracks complete with
+  no frames. The video element is never a canvas source.
+- Focused browser tests authored: 19 tests covering factory ownership, state/commands and clamping, autoplay rejection, fixed-copy sanitization,
+  missing source, active track mapping/text visibility assertions, Quality Auto with a retained audio override, generation rejection, ended replay,
+  retry generation, available and absent manifest filmstrips, filmstrip cancellation, same-element release, repeated close, and adapter destroy
+  resolution/rejection cleanup.
+
+### Engine verification ledger
+
+| Purpose | Command | Result |
+|---|---|---|
+| Static scope/API check | `git diff --check`; `git diff -- playback/api`; owned-path inspection | PASS before handoff; API diff empty and implementation changes restricted to `playback/web/**` plus this appended engine evidence |
+| Wasm compile | `.\gradlew.bat :playback:web:compileKotlinWasmJs --max-workers=1 --console=plain` | PASS in 3s; 8 actionable tasks (6 executed, 2 up-to-date) |
+| Focused browser tests, pre-review | `.\gradlew.bat :playback:web:wasmJsBrowserTest --max-workers=1 --console=plain` | PASS in 35s; 17/17, zero failures/errors/skips; 140 actionable tasks (13 executed, 127 up-to-date) |
+| Post-review Quality Auto delta | Same serialized command after two focused adapter/session regressions | PASS in 30s; 19/19, zero failures/errors/skips; 140 actionable tasks (13 executed, 127 up-to-date) |
+| Media3 compatibility | `.\gradlew.bat :playback:media3:compileDebugKotlin` | NOT RERUN after browser-only engine delta; accepted freeze compatibility pass remains recorded above |
+| Player regression | `.\gradlew.bat :feature:player:ui-common:testAndroidHostTest` | NOT RERUN after browser-only engine delta; accepted freeze 15/15 pass remains recorded above |
+
+Known boundary: this checkpoint makes no production Binaryen, full-browser-matrix, Safari, application/root-gate, visual, or live-playback claim.
+The target architecture remains backend-agnostic.
