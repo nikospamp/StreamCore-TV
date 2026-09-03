@@ -57,7 +57,7 @@ Commands below ran one at a time through the shared build/browser queue unless t
 | Complete production matrix | `npx playwright test`: 123/126 PASS in 6.4m. All 12 new browse registrations passed except the Chromium-1920 interaction described below; two failures were inherited WEB-02 WebKit harness/runtime cases. This row remains an observed 123/126 and is not rewritten as 126/126. |
 | Final affected correction reruns | Chromium-1920 browse: 1/1 PASS in 47.3s. WebKit-1280 history/CRUD/visual: 3/3 PASS in 1.5m with one worker. WebKit-1920 history/CRUD/visual: 3/3 PASS in 2.2m with one worker. |
 | Final Android/root gate | `./gradlew :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin check -PverifyDesignTokensLogFiles=true -PstreamcoreLocalPropertiesPath=<primary ignored local.properties> --continue --max-workers=1 --console=plain`: PASS in 3m37s; 2,114 actionable tasks (365 executed, 1,749 up-to-date). Both app graphs, lint/tests, 360-file token verification, and KMP convention/dependency/compiler/test-target checks passed. |
-| Final live TMDB journey | BLOCKED before process creation. The execution-policy reviewer required a new explicit authorization naming the local credential payload and external TMDB destination. No credential file was opened by the rejected command, no process/browser/server started, and nothing was transmitted. |
+| Final live TMDB journey | First explicitly authorized run: FAIL, 0/1 in 40.0s. Login, Profiles, Home, and Search were reached, but the smoke incorrectly required exactly one title-only `Fight Club` semantic node; the live API returned three exact-title candidates. The terminal failure remained that assertion, so the nested `finally` direct session deletion completed successfully rather than replacing it with the fixed cleanup error; browser storage cleanup also ran unconditionally. The test-only correction selects the first ranked exact-title candidate and still requires `/details/550`. Offline discovery remains exactly one live test. A corrected credentialed retry is not run without new one-run authorization. |
 
 The 61 browser-test count is: `WebRuntimeConfigTest` 5, `WebGraphTest` 1, `WebRouteTest` 7, `WebProductCoordinatorTest` 23,
 `WebStorageFallbackTest` 7, `WebStorageProbeTest` 6, `WebBrowseFeatureScreensTest` 3, `WebBrowseShellTest` 1,
@@ -107,6 +107,7 @@ rerun alone after the test/evidence commit and is the only Android/root result u
 
 ## Acceptance status
 
-All non-live gates pass. Acceptance is blocked only on one explicitly authorized redacted live TMDB browse journey with confirmed temporary-session
-and browser-storage cleanup. The rejected launch started no process and transmitted nothing. No credentials, generated production config, build
-output, request URL, session/account value, or machine-local path is committed.
+All non-live gates pass. The first live run exposed and corrected one title-uniqueness assumption; production was unchanged and cleanup completed.
+Acceptance is blocked only on one newly authorized corrected live retry completing the full browse journey and application-driven cleanup. The
+earlier policy-rejected launch started no process and transmitted nothing. No credentials, generated production config, build output, request URL,
+session/account value, or machine-local path is committed.

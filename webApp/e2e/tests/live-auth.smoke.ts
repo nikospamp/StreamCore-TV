@@ -131,10 +131,11 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
     const searchField = page.getByTestId("search:field");
     await searchField.fill("Fight Club");
     await searchField.press("Enter");
-    const fightClub = page.getByRole(
+    const fightClubCandidates = page.getByRole(
       "button",
       { name: "Open details for Fight Club", exact: true },
     );
+    const fightClub = fightClubCandidates.first();
     await expect(fightClub).toHaveCount(1, { timeout: 30_000 });
     await activateSemanticButton(page, fightClub);
     await expectProductRoute(page, "/details/550");
