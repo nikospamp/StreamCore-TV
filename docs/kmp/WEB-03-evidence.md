@@ -56,8 +56,8 @@ Commands below ran one at a time through the shared build/browser queue unless t
 | E2E discovery | `npx playwright test --list`: PASS; 126 registrations = 21 scenarios across Chromium, Firefox, and WebKit at 1280x720 and 1920x1080. Live smoke is excluded. |
 | Complete production matrix | `npx playwright test`: 123/126 PASS in 6.4m. All 12 new browse registrations passed except the Chromium-1920 interaction described below; two failures were inherited WEB-02 WebKit harness/runtime cases. This row remains an observed 123/126 and is not rewritten as 126/126. |
 | Final affected correction reruns | Chromium-1920 browse: 1/1 PASS in 47.3s. WebKit-1280 history/CRUD/visual: 3/3 PASS in 1.5m with one worker. WebKit-1920 history/CRUD/visual: 3/3 PASS in 2.2m with one worker. |
-| Final Android/root gate | Pending final clean serialized rerun. |
-| Final live TMDB journey | Pending final non-live gate completion; explicit action-time authorization is already recorded. |
+| Final Android/root gate | `./gradlew :app:compileTmdbDebugKotlin :app:compileClientBDebugKotlin check -PverifyDesignTokensLogFiles=true -PstreamcoreLocalPropertiesPath=<primary ignored local.properties> --continue --max-workers=1 --console=plain`: PASS in 3m37s; 2,114 actionable tasks (365 executed, 1,749 up-to-date). Both app graphs, lint/tests, 360-file token verification, and KMP convention/dependency/compiler/test-target checks passed. |
+| Final live TMDB journey | BLOCKED before process creation. The execution-policy reviewer required a new explicit authorization naming the local credential payload and external TMDB destination. No credential file was opened by the rejected command, no process/browser/server started, and nothing was transmitted. |
 
 The 61 browser-test count is: `WebRuntimeConfigTest` 5, `WebGraphTest` 1, `WebRouteTest` 7, `WebProductCoordinatorTest` 23,
 `WebStorageFallbackTest` 7, `WebStorageProbeTest` 6, `WebBrowseFeatureScreensTest` 3, `WebBrowseShellTest` 1,
@@ -107,5 +107,6 @@ rerun alone after the test/evidence commit and is the only Android/root result u
 
 ## Acceptance status
 
-Pending the final clean Android/root gate and one authorized redacted live TMDB browse journey with confirmed temporary-session and browser-storage
-cleanup. No credentials, generated production config, build output, request URL, session/account value, or machine-local path is committed.
+All non-live gates pass. Acceptance is blocked only on one explicitly authorized redacted live TMDB browse journey with confirmed temporary-session
+and browser-storage cleanup. The rejected launch started no process and transmitted nothing. No credentials, generated production config, build
+output, request URL, session/account value, or machine-local path is committed.
