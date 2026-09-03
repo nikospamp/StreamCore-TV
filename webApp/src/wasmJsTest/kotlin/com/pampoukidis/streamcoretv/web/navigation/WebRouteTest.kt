@@ -12,13 +12,15 @@ class WebRouteTest {
 
     @Test
     fun rejectsPayloadLikeAndUnknownRoutes() {
-        assertEquals(WebRoute.Diagnostic, WebRoute.parse("/details/%7Bcontent%7D"))
-        assertEquals(WebRoute.Diagnostic, WebRoute.parse("/unknown/603"))
+        assertEquals(WebRoute.Root, WebRoute.parse("/details/%7Bcontent%7D"))
+        assertEquals(WebRoute.Root, WebRoute.parse("/unknown/603"))
     }
 
     @Test
     fun routePathsRemainBrowserSafe() {
         assertEquals("/details/movie-603", WebRoute.Details("movie-603").path)
         assertEquals("/player/movie_603", WebRoute.Player("movie_603").path)
+        assertEquals(WebRoute.Login, WebRoute.parse("/login?source=history"))
+        assertEquals(WebRoute.EditProfile("profile-1"), WebRoute.parse("/profiles/profile-1/edit"))
     }
 }

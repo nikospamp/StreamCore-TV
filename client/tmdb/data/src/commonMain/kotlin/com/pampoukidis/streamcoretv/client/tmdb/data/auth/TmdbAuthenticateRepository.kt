@@ -13,9 +13,11 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 
 class TmdbAuthenticateRepository internal constructor(
     private val tmdbApi: TmdbApi,
@@ -27,9 +29,12 @@ class TmdbAuthenticateRepository internal constructor(
     private val _authState = MutableStateFlow<AuthStateModel>(AuthStateModel.LoggedOut)
     override val authState: StateFlow<AuthStateModel> = _authState.asStateFlow()
 
+    private var pendingRevokedSessionId: String? = null
+
     override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
         val sessionId = authStore.currentSessionId()
         if (sessionId == null) {
+            pendingRevokedSessionId = null
             _authState.value = AuthStateModel.LoggedOut
             return AppResult.Success(AuthStateModel.LoggedOut)
         }
@@ -43,19 +48,23 @@ class TmdbAuthenticateRepository internal constructor(
             }
         ) {
             is AppResult.Success -> {
-                val account = loadAccount(sessionId = sessionId)
-                val authState = AuthStateModel.LoggedIn(account = account)
-                authStore.saveSession(
-                    sessionId = sessionId,
-                    account = account,
-                )
-                _authState.value = authState
-                AppResult.Success(authState)
+                when (val accountResult = loadVerifiedAccount(sessionId = sessionId)) {
+                    is AppResult.Success -> {
+                        val authState = AuthStateModel.LoggedIn(account = accountResult.value)
+                        authStore.saveSession(
+                            sessionId = sessionId,
+                            account = accountResult.value,
+                        )
+                        pendingRevokedSessionId = null
+                        _authState.value = authState
+                        AppResult.Success(authState)
+                    }
+
+                    is AppResult.Failure -> bootstrapFailure(error = accountResult.error)
+                }
             }
 
-            is AppResult.Failure -> clearSessionAndFail(
-                error = result.error.toBootstrapFailure(),
-            )
+            is AppResult.Failure -> bootstrapFailure(error = result.error)
         }
     }
 
@@ -63,26 +72,138 @@ class TmdbAuthenticateRepository internal constructor(
         identifier: String,
         password: String,
     ): AppResult<Unit> {
-        return callExecutor.execute(operation = LOGIN_OPERATION) {
-            val requestToken = tmdbApi.createRequestToken()
-                .requireRequestToken(backendCode = CREATE_REQUEST_TOKEN_FAILED_CODE)
+        val validatedToken = when (
+            val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                val requestToken = tmdbApi.createRequestToken()
+                    .requireRequestToken(backendCode = CREATE_REQUEST_TOKEN_FAILED_CODE)
 
-            val validatedToken = tmdbApi.validateRequestTokenWithLogin(
-                identifier = identifier,
-                password = password,
-                requestToken = requestToken,
-            ).requireRequestToken(backendCode = VALIDATE_LOGIN_FAILED_CODE)
+                tmdbApi.validateRequestTokenWithLogin(
+                    identifier = identifier,
+                    password = password,
+                    requestToken = requestToken,
+                ).requireRequestToken(backendCode = VALIDATE_LOGIN_FAILED_CODE)
+            }
+        ) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
 
-            val sessionId = tmdbApi.createSession(requestToken = validatedToken)
-                .requireSessionId()
+        when (val result = revokeRetainedSession()) {
+            is AppResult.Success -> Unit
+            is AppResult.Failure -> return result
+        }
 
-            val account = loadAccount(sessionId = sessionId)
+        val sessionId = when (
+            val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                tmdbApi.createSession(requestToken = validatedToken).requireSessionId()
+            }
+        ) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
 
-            authStore.saveSession(
+        val accountResult = try {
+            loadVerifiedAccount(sessionId = sessionId)
+        } catch (exception: CancellationException) {
+            compensateUncommittedSession(sessionId = sessionId)
+            throw exception
+        }
+        return when (accountResult) {
+            is AppResult.Success -> persistNewSession(
+                sessionId = sessionId,
+                account = accountResult.value,
+            )
+
+            is AppResult.Failure -> {
+                compensateUncommittedSession(sessionId = sessionId)
+                accountResult
+            }
+        }
+    }
+
+    private suspend fun revokeRetainedSession(): AppResult<Unit> {
+        val retainedSessionId = when (
+            val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                authStore.currentSessionId()
+            }
+        ) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
+        if (retainedSessionId == null) {
+            pendingRevokedSessionId = null
+            return AppResult.Success(Unit)
+        }
+
+        if (retainedSessionId != pendingRevokedSessionId) {
+            when (
+                val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                    val response = tmdbApi.deleteSession(sessionId = retainedSessionId)
+                    if (!response.success) {
+                        throw TmdbAuthenticationFailureException(
+                            backendCode = REPLACE_SESSION_DELETE_FAILED_CODE,
+                            message = "TMDB did not revoke the retained session.",
+                        )
+                    }
+                }
+            ) {
+                is AppResult.Success -> pendingRevokedSessionId = retainedSessionId
+                is AppResult.Failure -> return result
+            }
+        }
+
+        return when (
+            val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                authStore.clear()
+            }
+        ) {
+            is AppResult.Success -> {
+                pendingRevokedSessionId = null
+                _authState.value = AuthStateModel.LoggedOut
+                AppResult.Success(Unit)
+            }
+
+            is AppResult.Failure -> result
+        }
+    }
+
+    private suspend fun persistNewSession(
+        sessionId: String,
+        account: AuthAccountModel?,
+    ): AppResult<Unit> {
+        return try {
+            when (
+                val result = callExecutor.execute(operation = LOGIN_OPERATION) {
+                    authStore.saveSession(
+                        sessionId = sessionId,
+                        account = account,
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    _authState.value = AuthStateModel.LoggedIn(account = account)
+                    AppResult.Success(Unit)
+                }
+
+                is AppResult.Failure -> {
+                    when (
+                        reconcileSessionAfterPersistenceFailure(
+                            sessionId = sessionId,
+                            account = account,
+                        )
+                    ) {
+                        SessionCommitStatus.Committed -> AppResult.Success(Unit)
+                        SessionCommitStatus.NotCommitted,
+                        SessionCommitStatus.Indeterminate -> result
+                    }
+                }
+            }
+        } catch (exception: CancellationException) {
+            reconcileSessionAfterPersistenceFailure(
                 sessionId = sessionId,
                 account = account,
             )
-            _authState.value = AuthStateModel.LoggedIn(account = account)
+            throw exception
         }
     }
 
@@ -135,6 +256,7 @@ class TmdbAuthenticateRepository internal constructor(
     private suspend fun clearSessionForLogout(): AppResult<Unit> {
         return try {
             authStore.clear()
+            pendingRevokedSessionId = null
             AppResult.Success(Unit)
         } catch (exception: CancellationException) {
             throw exception
@@ -169,20 +291,38 @@ class TmdbAuthenticateRepository internal constructor(
         return AppResult.Success(Unit)
     }
 
-    private suspend fun loadAccount(sessionId: String): AuthAccountModel? {
-        val accountId = accountId.toIntOrNull() ?: return null
-
-        return when (
-            val result = callExecutor.execute(operation = GET_ACCOUNT_DETAILS_OPERATION) {
-                tmdbApi.getAccountDetails(
-                    accountId = accountId,
-                    sessionId = sessionId,
-                ).toModel()
-            }
-        ) {
-            is AppResult.Success -> result.value
-            is AppResult.Failure -> null
+    private suspend fun loadVerifiedAccount(sessionId: String): AppResult<AuthAccountModel?> {
+        if (accountId.isBlank()) {
+            return AppResult.Success(null)
         }
+
+        val expectedAccountId = accountId.toIntOrNull() ?: return invalidAccountIdFailure()
+        return callExecutor.execute(operation = GET_ACCOUNT_DETAILS_OPERATION) {
+            val account = tmdbApi.getAccountDetails(
+                accountId = expectedAccountId,
+                sessionId = sessionId,
+            ).toModel()
+            if (account.id != expectedAccountId) {
+                throw TmdbAuthenticationFailureException(
+                    backendCode = ACCOUNT_ID_MISMATCH_CODE,
+                    message = "TMDB returned account details for a different account.",
+                )
+            }
+            account
+        }
+    }
+
+    private fun invalidAccountIdFailure(): AppResult.Failure {
+        return AppResult.Failure(
+            AppError.Unknown(
+                source = ErrorSource(
+                    client = CLIENT,
+                    operation = GET_ACCOUNT_DETAILS_OPERATION,
+                    backendCode = INVALID_ACCOUNT_ID_CONFIGURATION_CODE,
+                    backendMessage = "Configured TMDB account id is not numeric.",
+                ),
+            ),
+        )
     }
 
     private fun TmdbRequestTokenResponseDto.requireRequestToken(
@@ -219,8 +359,72 @@ class TmdbAuthenticateRepository internal constructor(
 
     private suspend fun <T> clearSessionAndFail(error: AppError): AppResult<T> {
         authStore.clear()
+        pendingRevokedSessionId = null
         _authState.value = AuthStateModel.LoggedOut
         return AppResult.Failure(error)
+    }
+
+    private suspend fun compensateUncommittedSession(sessionId: String) {
+        withContext(NonCancellable) {
+            val persistedSessionId = try {
+                authStore.currentSessionId()
+            } catch (_: Throwable) {
+                return@withContext
+            }
+            if (persistedSessionId == sessionId) {
+                return@withContext
+            }
+
+            try {
+                val response = tmdbApi.deleteSession(sessionId = sessionId)
+                if (!response.success) {
+                    return@withContext
+                }
+            } catch (_: Throwable) {
+                // Best effort only: the login failure or cancellation remains primary.
+            }
+        }
+    }
+
+    private suspend fun reconcileSessionAfterPersistenceFailure(
+        sessionId: String,
+        account: AuthAccountModel?,
+    ): SessionCommitStatus {
+        return withContext(NonCancellable) {
+            val persistedSessionId = try {
+                authStore.currentSessionId()
+            } catch (_: Throwable) {
+                return@withContext SessionCommitStatus.Indeterminate
+            }
+            if (persistedSessionId == sessionId) {
+                _authState.value = AuthStateModel.LoggedIn(account = account)
+                return@withContext SessionCommitStatus.Committed
+            }
+
+            try {
+                val response = tmdbApi.deleteSession(sessionId = sessionId)
+                if (!response.success) {
+                    return@withContext SessionCommitStatus.NotCommitted
+                }
+            } catch (_: Throwable) {
+                // Best effort only: the persistence failure or cancellation remains primary.
+            }
+            SessionCommitStatus.NotCommitted
+        }
+    }
+
+    private suspend fun <T> bootstrapFailure(error: AppError): AppResult<T> {
+        val normalizedError = error.toBootstrapFailure()
+        if (normalizedError.invalidatesPersistedSession()) {
+            return clearSessionAndFail(error = normalizedError)
+        }
+        return AppResult.Failure(normalizedError)
+    }
+
+    private fun AppError.invalidatesPersistedSession(): Boolean {
+        return this is AppError.Authentication ||
+            this is AppError.Unauthorized ||
+            this is AppError.SessionExpired
     }
 
     private fun AppError.toBootstrapFailure(): AppError {
@@ -270,7 +474,16 @@ class TmdbAuthenticateRepository internal constructor(
         const val VALIDATE_LOGIN_FAILED_CODE = "VALIDATE_LOGIN_FAILED"
         const val CREATE_SESSION_FAILED_CODE = "CREATE_SESSION_FAILED"
         const val DELETE_SESSION_FAILED_CODE = "DELETE_SESSION_FAILED"
+        const val REPLACE_SESSION_DELETE_FAILED_CODE = "REPLACE_SESSION_DELETE_FAILED"
+        const val ACCOUNT_ID_MISMATCH_CODE = "ACCOUNT_ID_MISMATCH"
+        const val INVALID_ACCOUNT_ID_CONFIGURATION_CODE = "INVALID_ACCOUNT_ID_CONFIGURATION"
         const val LOGOUT_LOCAL_READ_FAILED_CODE = "LOGOUT_LOCAL_READ_FAILED"
         const val LOGOUT_LOCAL_CLEAR_FAILED_CODE = "LOGOUT_LOCAL_CLEAR_FAILED"
     }
+}
+
+private enum class SessionCommitStatus {
+    Committed,
+    NotCommitted,
+    Indeterminate,
 }

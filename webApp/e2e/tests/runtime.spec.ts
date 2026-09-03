@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const validConfig = {
   tmdbBaseUrl: "https://api.example.test/",
@@ -64,7 +64,7 @@ test("records the actual Compose DOM/accessibility selector projection", async (
     }
   });
 
-  await page.goto("/");
+  await page.goto("/diagnostic");
   const videoProbe = page.locator('[data-testid="html-video-probe"]');
   await expect(videoProbe).toHaveAttribute("data-shaka-probe", "linked", { timeout: 30_000 });
 
@@ -96,7 +96,7 @@ test("missing runtime config never starts the product graph", async ({ page }) =
     await route.fulfill({ status: 404, body: "missing" });
   });
 
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "blocking-error");
   await expect(page.locator('[data-testid="html-video-probe"]')).toHaveCount(0);
 });
@@ -120,13 +120,17 @@ test("direct ID route and reload preserve route identity", async ({ page }) => {
 });
 
 test("pointer navigation binds browser Back and Forward history", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
 
+  await page.mouse.move(200, 165);
+  await page.waitForTimeout(300);
   await page.mouse.click(200, 165);
   await expect(page).toHaveURL(/\/details\/603$/);
+  await page.mouse.move(315, 165);
+  await page.waitForTimeout(300);
   await page.mouse.click(315, 165);
   await expect(page).toHaveURL(/\/player\/603$/);
 
@@ -137,7 +141,7 @@ test("pointer navigation binds browser Back and Forward history", async ({ page 
 });
 
 test("four distinct official DataStore names retain values across reload", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
@@ -163,7 +167,7 @@ test("four distinct official DataStore names retain values across reload", async
 });
 
 test("corrupt persistent protobuf is replaced and remains in persistent mode", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
@@ -192,7 +196,7 @@ test("persistent DataStore quota failure retries official session storage", asyn
     };
   });
 
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
@@ -222,7 +226,7 @@ test("Ktor Js Fetch preserves TMDB URL and headers", async ({ page }) => {
     }
   });
 
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-network-probe", "success", {
     timeout: 30_000,
   });
@@ -252,7 +256,7 @@ test("Ktor Fetch server failure maps through the repository AppError boundary", 
     });
   });
 
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-network-probe", "server-error", {
     timeout: 30_000,
   });
@@ -262,16 +266,37 @@ test("external HTTPS links cannot retain window.opener", async ({ page, context 
   await context.route("https://example.com/**", async (route) => {
     await route.fulfill({ contentType: "text/html", body: "<!doctype html><title>probe</title>" });
   });
-  await page.goto("/");
+  await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
   });
 
+  const externalLink = page.getByRole("button", { name: "External link", exact: true });
+  const bounds = await semanticBounds(externalLink);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.waitForTimeout(300);
   const popupPromise = page.waitForEvent("popup");
-  await page.mouse.click(440, 165);
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   const popup = await popupPromise;
   await popup.waitForLoadState();
 
   expect(await popup.evaluate(() => window.opener === null)).toBe(true);
   await popup.close();
 });
+
+async function semanticBounds(
+  button: Locator,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  let resolvedBounds = await button.boundingBox();
+  await expect.poll(
+    async () => {
+      resolvedBounds = await button.boundingBox();
+      return resolvedBounds !== null;
+    },
+    { timeout: 30_000, intervals: [250] },
+  ).toBe(true);
+  if (resolvedBounds === null) {
+    throw new Error("Semantic button does not expose viewport bounds");
+  }
+  return resolvedBounds;
+}

@@ -9,5 +9,7 @@ internal data class TmdbRequestTokenResponseDto(
     @SerialName("expires_at")
     val expiresAt: String? = null,
     @SerialName("request_token")
-    val requestToken: String,
+    val requestToken: String = "",
+    @SerialName("status_code")
+    val statusCode: Int? = null,
 )

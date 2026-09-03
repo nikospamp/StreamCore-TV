@@ -55,6 +55,7 @@ include(":kmp-convention-fixtures:compose")
 include(":core:data")
 include(":core:domain")
 include(":core:ui")
+include(":core:ui-web")
 
 // Clients
 include(":client:tmdb:data")
@@ -69,6 +70,7 @@ include(":feature:login:ui-common")
 include(":feature:login:ui-mobile")
 include(":feature:login:ui-tablet")
 include(":feature:login:ui-tv")
+include(":feature:login:ui-web")
 
 // Profiles
 include(":feature:profiles:data")
@@ -77,6 +79,7 @@ include(":feature:profiles:ui-common")
 include(":feature:profiles:ui-mobile")
 include(":feature:profiles:ui-tablet")
 include(":feature:profiles:ui-tv")
+include(":feature:profiles:ui-web")
 
 // Home
 include(":feature:home:domain")
