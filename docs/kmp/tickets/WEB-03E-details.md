@@ -17,8 +17,9 @@ provided at the route boundary, and WEB-03A components. UI remains backend-agnos
 ## Expected API and Scope
 
 - `WebDetailsRoute(profileId, contentId, onRecommendationSelected, onPlaySelected, onBack, onError, initialContent, returnFocusKey,
-  onReturnFocusConsumed, viewModel)` matching the shared Details route semantics.
-- Stateless `WebDetailsScreen(state, onAction, returnFocusKey, onReturnFocusConsumed)`.
+  onReturnFocusConsumed, viewModel)` using `(ContentModel, WebBrowseFocusKey) -> Unit` and
+  `(PlaybackRequestModel, WebBrowseFocusKey) -> Unit`, exactly as frozen in `docs/kmp/WEB-03A-evidence.md`.
+- Stateless `WebDetailsScreen(state, onAction, returnFocusKey, onReturnFocusConsumed, modifier)` with the frozen types and parameter order.
 - Direct-ID loading that does not require an in-memory `ContentModel`; backdrop, metadata, description, cast/genres, recommendations, bounded images,
   loading/content/offline/error/long-text showcases.
 - Like/My List optimistic mutation and rollback through existing shared actions. Trailer uses the injected secure browser URI launcher with protected
@@ -32,11 +33,11 @@ Do not implement a player, modify route parsing, or add TMDB-specific ID/payload
 
 ```powershell
 .\gradlew.bat :feature:details:ui-web:compileKotlinWasmJs
-.\gradlew.bat :feature:details:ui-web:wasmJsBrowserTest
+.\gradlew.bat :feature:details:ui-web:testAndroidHostTest
 ```
 
-Use the serialized queue. Focused tests cover direct-ID load dispatch, initial-content rendering, mutation rollback, secure trailer callback, temporary
-Play callback, recommendation/back focus, semantics, and long text. Tier 1 permits one development Chromium 1280×720 Details journey. No Binaryen,
-full matrix, Android/root gate, live credentials, or uninspected visual claim.
+Use the serialized queue. Host tests cover pure direct-ID dispatch, fixtures, and recommendation/action focus resolution. The module convention
+intentionally has no feature-local Wasm browser-test task; WEB-03F owns rendering, secure URI, mutation, callback, semantics, and browser focus
+assertions in `:webApp:wasmJsBrowserTest`. No Binaryen, full matrix, Android/root gate, live credentials, or uninspected visual claim.
 
 Acceptance is a reviewed feature commit limited to reserved paths. WEB-03F owns shell integration and live/cross-browser claims.

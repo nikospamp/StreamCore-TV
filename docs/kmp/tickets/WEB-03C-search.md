@@ -17,10 +17,11 @@ backend-agnostic and performs no direct provider/network access.
 
 ## Expected API and Scope
 
-- `WebSearchRoute(profileId, selectedContentKey, onContentSelected, onBack, returnFocusKey, onReturnFocusConsumed, viewModel)` aligned with the
-  existing shared route contract.
-- Stateless `WebSearchScreen(state, onAction, selectedContentKey, returnFocusKey, onReturnFocusConsumed)` plus an `expect/actual` or Wasm-local
-  `WebSearchTextField` implementing the frozen value/change/submit/focus semantics.
+- `WebSearchRoute(profileId, selectedContentKey, onContentSelected, onBack, returnFocusKey, onReturnFocusConsumed, viewModel)` using
+  `WebBrowseFocusKey?` for selected/return focus and `(ContentModel, WebBrowseFocusKey) -> Unit` for selection, exactly as frozen in
+  `docs/kmp/WEB-03A-evidence.md`.
+- Stateless `WebSearchScreen(state, onAction, selectedContentKey, returnFocusKey, onReturnFocusConsumed, modifier)` plus the frozen
+  `expect/actual WebSearchTextField` value/change/committed-submit/Escape/focus-consumption contract.
 - Native browser text entry must synchronously commit input before submit, handle composition/paste, and avoid the zero-delay canvas focus race
   learned in WEB-02. Search ViewModel retains debounce/cancellation behavior.
 - Discovery/trending, recent searches, remove/clear, result rows/grid, loading/empty/offline/error/long-text showcases, bounded images, stable keys and
@@ -33,11 +34,12 @@ Do not change shared debounce logic, app routes, global HTML, or browser server 
 
 ```powershell
 .\gradlew.bat :feature:search:ui-web:compileKotlinWasmJs
-.\gradlew.bat :feature:search:ui-web:wasmJsBrowserTest
+.\gradlew.bat :feature:search:ui-web:testAndroidHostTest
 ```
 
-Through the serialized queue, run focused cancellation, text-commit/submit, recent-search, semantics, and focus tests; Tier 1 permits one development
-Chromium 1280×720 Search journey. Record test counts and whether IME/paste were executed or not run. No Binaryen, full matrix, Android/root gate,
+Through the serialized queue, host tests cover pure cancellation/fixture/focus behavior. The module convention intentionally has no feature-local
+Wasm browser-test task; WEB-03F owns native text-commit/submit, semantics, IME/paste, and Compose browser assertions in
+`:webApp:wasmJsBrowserTest`. Record host-test counts and mark browser-only cases deferred, not passed. No Binaryen, full matrix, Android/root gate,
 visual approval by existence, or live credentials.
 
 Acceptance is a reviewed feature commit limited to reserved paths. WEB-03F owns integration, provider, and cross-browser claims.
