@@ -367,3 +367,10 @@ silently promoted by an affected rerun.
   `FAIL` at 0/1 in 56.2s because the restored CTA correctly rendered `Resume`, not the queried `Play`. Correction
   `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` is committed. Candidate 7 attempt 5 `PASS` at 1/1 in 35.7s: the complete journey, all required 2xx
   endpoint classes, application logout/session deletion, and browser-storage cleanup passed.
+
+## Primary integration closure
+
+- `codex/kmp-migration` fast-forwarded from `f9e13558b3fc1c68db89ba9715932e8db80813ae` to accepted WEB-04D evidence tip
+  `47141011f5d965bdf36bb9a646387ae3b35336f7` with `git merge --ff-only codex/web-04d-final-integration`.
+- The integration worktree was clean, the accepted branch tracked no `.kotlin/**`, and the primary checkout retained exactly its pre-existing
+  untracked `.kotlin/`. The generated `.android/` directory remained absent.
