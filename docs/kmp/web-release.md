@@ -214,5 +214,10 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
   credential-free real-media probe proved the unchanged production Player pauses correctly once literal rendered `Pause` is present
   (`pauseCalls=1`, `playCalls=0`, native `paused=true`); all experimental z-order changes were reverted.
 - Test-only correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` requires exact rendered Play/Pause content before stable physical activation and retains native
-  state assertions. Fallback temporary-session and browser-storage cleanup for the failed attempt were confirmed by harness control flow. The
+  state assertions.
+- Candidate 7 live attempt 2 **FAIL** at 0/1 in 59.9s after corrected playback, seek/fullscreen, Player exit, and hard reload. The restored Details
+  `Play` control's centered focus/hover scale could not satisfy the obsolete all-edge bounds oracle. Test-only correction
+  `09c346ea40d02da5fbd3e94ee8ba17b765879c31` stabilizes the positive-area center and preserves post-hover remeasurement; the exact credential-free
+  Player→Back→reload→Play journey passed 1/1 in 20.5s.
+- Fallback temporary-session and browser-storage cleanup for both failed Candidate 7 attempts were confirmed by harness control flow. The further
   corrected live rerun is **NOT RUN** pending fresh action-time authorization.

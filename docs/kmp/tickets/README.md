@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 7 non-live PASS; corrected live rerun NOT RUN pending fresh authorization.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 7 non-live PASS; further corrected live rerun NOT RUN pending fresh authorization.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -88,8 +88,11 @@ after reaching the real production Player/public Sintel: the test selected seman
 while the control was still rendering its disabled buffering spinner. Credential-free instrumentation proved zero playback calls before readiness
 and, on the unchanged production code after the spinner cleared, one pause call, zero play calls, and native `paused=true`. The z-order hypothesis
 and all temporary changes were reverted. Test-only correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` now requires literal rendered
-Play/Pause content before stable physical activation. Fallback session and browser-storage cleanup were confirmed by control flow. The corrected
-live rerun is `NOT RUN` pending fresh action-time authorization.
+Play/Pause content before stable physical activation. Candidate 7 live attempt 2 passed that blocker plus seek/fullscreen, exit, and hard reload,
+then failed 0/1 in 59.9s because centered focus/hover scale animation never satisfied the all-edge bounds oracle for the restored Details `Play`.
+Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` retains positive-area and post-hover physical-click checks; its exact credential-free
+Player→Back→reload→Play journey passed 1/1 in 20.5s. Fallback session and browser-storage cleanup were confirmed after both failures. The further
+corrected live rerun is `NOT RUN` pending fresh action-time authorization.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three

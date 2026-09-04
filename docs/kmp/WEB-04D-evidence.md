@@ -257,7 +257,7 @@ silently promoted by an affected rerun.
 - Every required non-live Candidate 7 gate is green. Current Safari/macOS remains explicitly **WAIVED / NOT RUN**, never `PASS`. The first
   user-authorized Candidate 7 live attempt subsequently failed and is recorded below; it does not invalidate the non-live gate.
 
-## Candidate 7 live attempt 1 and actionable-control correction
+## Candidate 7 live attempts and bounded harness corrections
 
 - Candidate 7 live attempt 1 (overall live attempt 3) ran from clean evidence revision
   `7827a7cdcc6d29248e09ced6e9dd640dfbb4dc20`. The redacted wrapper reported both ignored inputs configured, all six required environment values
@@ -280,14 +280,28 @@ silently promoted by an affected rerun.
   `DELETE` success plus `{ success: true }` and would have replaced the original assertion with `Temporary-session cleanup was not confirmed` on
   cleanup failure. The original Pause assertion remained terminal, and nested local/session-storage clearing completed; cleanup is therefore
   confirmed by control flow, not claimed as application logout.
-- A corrected live rerun is **NOT RUN** and requires fresh action-time authorization before credential transmission. Candidate 7 production and its
-  complete non-live pass remain unchanged.
+- Candidate 7 live attempt 2 (overall live attempt 4) ran from clean diagnosis revision
+  `9ad17b16ca74568ef3f9b042597877722f52e860`; the same redacted boolean preflight passed with `childEnvironmentMatched=True`. It progressed through
+  corrected production Pause→Play, seek beyond the resume threshold, fullscreen pointer and Space re-entry, Player exit/video removal, hard reload,
+  and ready restored `/details/550`, then **FAIL** at 0/1 in 59.9s while resolving the reloaded Details `Play` bounds. The second Player entry,
+  resume-position assertion, application logout, and application-driven deletion were not reached.
+- The geometry helper required x, y, width, and height all to change by less than 0.5px. `StreamCoreWebButton` intentionally scales around its center
+  for focus and hover, changing every edge while leaving the safe click center invariant. Test-only correction
+  `09c346ea40d02da5fbd3e94ee8ba17b765879c31` now requires a positive-area rectangle whose center is stable within 0.5px, then preserves the
+  existing pre-hover resolve, pointer move, post-hover re-resolve, and physical click.
+- The exact credential-free product transition—login/profile → Details → production Player/video → Escape cleanup → Details hard reload →
+  center-stable physical Play → Player/video—**PASS** 1/1 in 20.5s. Temporary test code and artifacts were removed. Live discovery remains exactly
+  1 test in 1 file.
+- Attempt 2 stopped before application logout, so the same mandatory fallback authenticated `DELETE` and nested browser-storage cleanup ran. The
+  terminal result remained the bounds assertion rather than `Temporary-session cleanup was not confirmed`; cleanup is confirmed by control flow.
+- A further corrected live rerun is **NOT RUN** and requires fresh action-time authorization before credential transmission. Candidate 7 production
+  and its complete non-live pass remain unchanged.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, the bounded
   production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**. Candidate 7 non-live execution is green;
-  final acceptance remains gated only on a corrected, freshly authorized live journey and cleanup.
+  final acceptance remains gated only on a further corrected, freshly authorized live journey and cleanup.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -303,7 +317,8 @@ silently promoted by an affected rerun.
   0 skipped; not acceptance-eligible.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
-- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`, live attempt 1 `FAIL` at 0/1 in 50.4s; corrected rerun `NOT RUN`.
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1 and 2 `FAIL` at 0/1 in 50.4s and 59.9s;
+  further corrected rerun `NOT RUN`.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
   unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
@@ -318,4 +333,7 @@ silently promoted by an affected rerun.
 - Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
   at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 7 attempt 1 `FAIL` at 0/1 in 50.4s because the
   harness clicked the buffering spinner under a false-enabled semantic projection; fallback session and storage cleanup were confirmed by control
-  flow. Correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` is committed; the corrected live rerun is `NOT RUN` pending fresh action-time authorization.
+  flow. Correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` is committed. Candidate 7 attempt 2 `FAIL` at 0/1 in 59.9s after corrected playback,
+  seek/fullscreen, exit, and hard reload because centered focus/hover scaling never satisfied the all-edge bounds oracle; fallback cleanup was again
+  confirmed. Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` is committed; the further corrected rerun is `NOT RUN`
+  pending fresh action-time authorization.
