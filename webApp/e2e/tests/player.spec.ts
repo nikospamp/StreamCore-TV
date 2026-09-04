@@ -8,10 +8,15 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "success");
 
-    await expect(playerVideo(page)).toHaveCount(1);
+    const video = playerVideo(page);
+    await expect(video).toHaveCount(1);
+    await expectVideoPointerPassthrough(video);
     await expectPlayerState(page, "ready");
     await activateProjectedButton(page, "Play");
     await expect(page.locator("body")).toHaveAttribute("data-player-playing", "true");
+    await activateProjectedButton(page, "Pause");
+    await expect(page.locator("body")).toHaveAttribute("data-player-playing", "false");
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toHaveCount(1);
     await diagnostics.assertClean();
   });
 
@@ -283,6 +288,20 @@ async function waitForFixtureReadiness(
 
 function playerVideo(page: Page): Locator {
   return page.locator('[data-testid="player:video"]');
+}
+
+async function expectVideoPointerPassthrough(video: Locator): Promise<void> {
+  await expect.poll(async () => {
+    return video.evaluate((element) => {
+      const host = element.parentElement;
+      if (host === null) {
+        return "missing-host";
+      }
+      const videoPointerEvents = window.getComputedStyle(element).pointerEvents;
+      const hostPointerEvents = window.getComputedStyle(host).pointerEvents;
+      return `${videoPointerEvents}|${hostPointerEvents}`;
+    });
+  }, { timeout: 30_000, intervals: [100] }).toBe("none|none");
 }
 
 async function expectPlayerState(page: Page, state: string): Promise<void> {

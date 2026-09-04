@@ -7,14 +7,16 @@
 - Implementation status: WEB-04C test/release input merged into WEB-04D; isolated WEB-04C execution remains **NOT RUN**
 - A/B production integration: merged inputs present; integrated Candidates 1 `ace71461c4914716509e1488a311110d7a20844d`, 2
   `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`, and 3 `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1` executed and **FAILED** their
-  complete matrices; integrated Candidate 4 `dc066a26effde71eabfc66ca590f37ea976805f7` **PASSED** its complete matrix
+  complete matrices; integrated Candidate 4 `dc066a26effde71eabfc66ca590f37ea976805f7` **PASSED** its complete matrix, but is historical and not
+  acceptance-eligible after the subsequent live production blocker and production correction
 - Production artifact validation: isolated WEB-04C **NOT RUN**; integrated Candidates 1, 2, 3, and 4 production/Binaryen artifacts and validators
   **PASS**
 - WEB-04C standalone Playwright scenarios: **NOT RUN**; integrated Candidate 1 **FAILED** at 144 passed / 42 failed / 0 skipped and Candidate 2
   **FAILED** at 183 passed / 3 failed / 0 skipped; Candidate 3 **FAILED** at 185 passed / 1 failed / 0 skipped; Candidate 4 **PASS** at
   186 passed / 0 failed / 0 skipped / 0 retried
 - Current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; no pass is claimed
-- Live TMDB or public-media journey: attempt 1 **FAIL**, 0/1 in 49.7s; corrected rerun **NOT RUN** pending fresh action-time authorization
+- Live TMDB or public-media journey: Candidate 4 attempts 1 and 2 **FAIL** at 0/1 in 49.7s and 49.1s; Candidate 5 rerun **NOT RUN** pending freeze,
+  full Tier 3, and fresh action-time authorization
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
 
 The target architecture remains backend-agnostic. No production Kotlin/resource, playback, feature, core, build-logic, credential, real-config,
@@ -54,6 +56,13 @@ generated distribution, browser binary, node-module, or screenshot file was chan
 - Candidate 4 final production controls/settings captures at 1280×720 and 1920×1080 passed human inspection with no P0/P1 finding. Its combined
   Android/root gate passed in 7m10s with 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date), including Media3 compilation,
   player-mobile tests, both provider APKs, root `check`, KMP, lint, host-test, and Wasm coverage.
+- Candidate 4 live attempt 1 failed 0/1 in 49.7s after reaching real login/session, search, Details, and public Sintel. Attempt 2 on harness revision
+  `eb37969` failed 0/1 in 49.1s because a stable projected `Pause` click left native `video.paused=false`; fallback `DELETE` and browser
+  local/session-storage cleanup were confirmed only by live-smoke control flow.
+- Production diagnosis identified HtmlElementView immediate-parent-host pointer interception. The bounded correction applies immediate video/host
+  `pointer-events:none`, a six-frame attachment retry, post-attachment and update reapplication, and update/release cancellation. Focused compile,
+  engine 21/21, player UI 14/14, WebApp 65/65, development-distribution, and six-project Play/Pause 6/6 evidence is green. Candidate 5 remains
+  pending freeze and full Tier 3; these focused results are not a candidate pass.
 
 The isolated WEB-04C observations are not runtime passes; integrated candidate results are labeled explicitly.
 
@@ -157,20 +166,19 @@ vendor and contains no deploy credential.
   earlier bounded runs exposed and retained evidence for module-resource packaging, `HtmlElementView` pointer interception, document Escape, and
   shadow-root focus restoration before the clean rerun.
 - Six-project production matrix: isolated WEB-04C **NOT RUN**; integrated Candidate 1 **FAIL** at 144/42/0, Candidate 2 **FAIL** at 183/3/0, and
-  Candidate 3 **FAIL** at 185/1/0; Candidate 4 **PASS** at 186/0/0 with zero retries
+  Candidate 3 **FAIL** at 185/1/0; Candidate 4 historical **PASS** at 186/0/0 with zero retries, not a current acceptance candidate
 - Screenshot inspection: isolated WEB-04C **NOT RUN**; Candidate 1 failure screenshots were inspected during WEB-04D correction triage, while the
   Candidate 4 final production controls/settings set **PASS** at 1280×720 and 1920×1080 with no P0/P1 finding
 - Current Safari/macOS checklist: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; Playwright WebKit does not substitute and no pass
   is claimed
-- Final redacted live TMDB/public-media journey and cleanup: attempt 1 **FAIL** at 0/1 in 49.7s after real login/session, search, Details, and
-  public Sintel; it failed waiting for projected `Play` after attempted `Pause`. Fallback `DELETE` cleanup is confirmed only by live-smoke control
-  flow because no cleanup exception replaced the original, and browser local/session-storage cleanup was awaited. The bounded test-only
-  stable-bounds/native-`paused` correction was delta-reviewed `PASS`; corrected rerun **NOT RUN** pending fresh action-time authorization.
+- Final redacted live TMDB/public-media journey and cleanup: Candidate 4 attempt 1 **FAIL** at 0/1 in 49.7s; attempt 2 on `eb37969` **FAIL** at 0/1
+  in 49.1s because native video remained unpaused after the stable projected Pause click. Cleanup was confirmed only by live-smoke control flow.
+  Candidate 5 corrected rerun **NOT RUN** pending freeze, full Tier 3, and fresh action-time authorization.
 
 WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidates 1, 2, and 3 passed
 artifact validation but failed their complete matrices at 144/42/0, 183/3/0, and 185/1/0; bounded corrections did not replace those failures.
-Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection. Current Safari/macOS
-is explicitly **WAIVED / NOT RUN**, not a pass, and no longer blocks by user decision. Candidate 4's production/non-live evidence remains valid;
-WEB-04 acceptance is blocked only by the authorized live rerun.
+Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection, but its evidence is
+now historical and it is not acceptance-eligible after the live production blocker and subsequent production correction. Current Safari/macOS is
+explicitly **WAIVED / NOT RUN**, not a pass. Candidate 5 is pending freeze and full Tier 3; its authorized live rerun remains **NOT RUN**.
 WEB-04D reconciled A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input
 or focused-rerun status is a release pass claim.

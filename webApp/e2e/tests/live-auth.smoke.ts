@@ -159,6 +159,7 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
     await expectProductRoute(page, "/player/550");
     const productionVideo = page.getByTestId("playback-video");
     await expect(productionVideo).toHaveCount(1, { timeout: 30_000 });
+    await expectVideoPointerPassthrough(productionVideo);
     await ensureUserActivatedPlayback(page, productionVideo);
     const resumePositionSeconds = await seekPastResumeThreshold(page, productionVideo);
 
@@ -344,6 +345,20 @@ async function expectProductRoute(page: Page, path: string): Promise<void> {
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
+}
+
+async function expectVideoPointerPassthrough(video: Locator): Promise<void> {
+  await expect.poll(async () => {
+    return video.evaluate((element) => {
+      const host = element.parentElement;
+      if (host === null) {
+        return "missing-host";
+      }
+      const videoPointerEvents = window.getComputedStyle(element).pointerEvents;
+      const hostPointerEvents = window.getComputedStyle(host).pointerEvents;
+      return `${videoPointerEvents}|${hostPointerEvents}`;
+    });
+  }, { timeout: 30_000, intervals: [100] }).toBe("none|none");
 }
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
