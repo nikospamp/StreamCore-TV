@@ -146,7 +146,8 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 ## Rollback
 
 1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
-   journey is not green. For Candidate 4, Safari is explicitly waived as `WAIVED / NOT RUN`; the final live rerun remains required.
+   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 5 still requires freeze, full Tier 3, and a successful live
+   rerun.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
 4. Purge only `index.html` and `/config.json` where caches require it. Content-hashed assets remain immutable.
@@ -161,7 +162,7 @@ ship an explicit forward/backward-compatible migration before promotion.
 
 Automated Playwright WebKit is not Safari evidence. The user explicitly waived this gate on 2026-09-04. The checklist therefore remains
 **WAIVED / NOT RUN**, not `PASS`; no current Safari or macOS execution evidence is claimed. This explicit waiver removes the Safari gate as the
-current Candidate 4 blocker without treating Playwright WebKit as a substitute.
+current WEB-04 blocker without treating Playwright WebKit as a substitute.
 
 | Field | Result |
 |---|---|
@@ -182,12 +183,21 @@ current Candidate 4 blocker without treating Playwright WebKit as a substitute.
 | Logout and temporary-session cleanup | NOT RUN |
 | Redacted observations | NOT RUN |
 
-## Candidate 4 live journey
+## Candidate 4 live journey and post-candidate correction
 
 - Attempt 1 through the boolean-clean wrapper: **FAIL**, 0/1 in 49.7s.
 - Reached real login/session, search, Details, and public Sintel; failed while waiting for projected `Play` after an attempted `Pause`.
 - Fallback `DELETE` cleanup is confirmed only by live-smoke control flow because no cleanup exception replaced the original failure. Browser
   local/session-storage cleanup was awaited.
 - The bounded test-only correction re-resolves stable projected bounds after hover/recomposition and uses native `HTMLVideoElement.paused` state
-  as the pause/play oracle. Delta review: **PASS**. Corrected live rerun: **NOT RUN**, pending fresh action-time authorization.
-- Candidate 4 remains green for all recorded production/non-live gates. Promotion remains blocked only by the authorized live rerun.
+  as the pause/play oracle. Delta review: **PASS**.
+- Attempt 2 on harness revision `eb37969`: **FAIL**, 0/1 in 49.1s. The stable projected `Pause` bounds were clicked, but native
+  `video.paused` remained `false`. Fallback `DELETE` and browser local/session-storage cleanup were confirmed only by live-smoke control flow.
+- Root cause: the production HtmlElementView immediate parent host intercepted pointer input above the Compose canvas. Production now applies
+  immediate video/host `pointer-events:none`, retries unattached hosts for at most six animation frames, reapplies on the post-attachment frame and
+  HtmlElementView updates, and cancels pending work on update/release.
+- Focused correction evidence: compile initially failed in 10s then passed in 3s (8 actionable, 6 executed/2 up-to-date); engine 21/21 passed in
+  54s (148 actionable, 12/136); player UI 14/14 passed up-to-date in 2s (180 actionable, 15/165); WebApp 65/65 passed in 43s (342 actionable,
+  66/276); development distribution passed in 35s (338 actionable, 63/275); six-project Play/Pause regression passed 6/6 in 36.8s.
+- Candidate 4's non-live pass is historical and not acceptance-eligible. Candidate 5 is pending freeze and full Tier 3. Its live rerun is
+  **NOT RUN** pending fresh action-time authorization.

@@ -196,10 +196,12 @@ start from that exact immutable checkpoint. No engine, player UI, release, produ
 - Browser filmstrips query only Shaka manifest image tracks. The adapter fetches the selected thumbnail sprite, crops that image through a temporary
   canvas, releases its fetched bitmap/controller/callback state, and emits a real Compose `ImageBitmap`; absent/failed image tracks complete with
   no frames. The video element is never a canvas source.
-- Focused browser tests authored: 19 tests covering factory ownership, state/commands and clamping, autoplay rejection, fixed-copy sanitization,
+- Focused browser tests authored: 21 tests covering factory ownership, state/commands and clamping, autoplay rejection, fixed-copy sanitization,
   missing source, active track mapping/text visibility assertions, Quality Auto with a retained audio override, generation rejection, ended replay,
   retry generation, available and absent manifest filmstrips, filmstrip cancellation, same-element release, repeated close, and adapter destroy
-  resolution/rejection cleanup.
+  resolution/rejection cleanup. The playback surface also has a scheduler-driven regression proving an attached host's `pointer-events:auto` is
+  overwritten after attachment, the surface retries across up to six unattached animation frames and reapplies the host override on the following
+  frame, and release cancels a pending retry before removing the video.
 
 ### Engine verification ledger
 
@@ -209,6 +211,10 @@ start from that exact immutable checkpoint. No engine, player UI, release, produ
 | Wasm compile | `.\gradlew.bat :playback:web:compileKotlinWasmJs --max-workers=1 --console=plain` | PASS in 3s; 8 actionable tasks (6 executed, 2 up-to-date) |
 | Focused browser tests, pre-review | `.\gradlew.bat :playback:web:wasmJsBrowserTest --max-workers=1 --console=plain` | PASS in 35s; 17/17, zero failures/errors/skips; 140 actionable tasks (13 executed, 127 up-to-date) |
 | Post-review Quality Auto delta | Same serialized command after two focused adapter/session regressions | PASS in 30s; 19/19, zero failures/errors/skips; 140 actionable tasks (13 executed, 127 up-to-date) |
+| Production surface pointer-transparency authored checkpoint | Two focused host-override/attachment-retry/retry-cancellation regressions added after the 19/19 run | NOT RUN at the authored checkpoint; verification follows below |
+| Production surface pointer-transparency compile, first attempt | `.\gradlew.bat :playback:web:compileKotlinWasmJs --max-workers=1 --console=plain` | FAIL in 10s; 8 actionable tasks: generic `parentElement` exposed no `style`; corrected with a safe `HTMLElement` cast before retry |
+| Production surface pointer-transparency compile, corrected retry | Same serialized compile command after the safe `HTMLElement` cast | PASS in 3s; 8 actionable tasks (6 executed, 2 up-to-date) |
+| Production surface pointer-transparency browser tests | `.\gradlew.bat :playback:web:wasmJsBrowserTest --max-workers=1 --console=plain` | PASS in 54s; 21/21, zero failures/errors/skips; 148 actionable tasks (12 executed, 136 up-to-date) |
 | Media3 compatibility | `.\gradlew.bat :playback:media3:compileDebugKotlin` | NOT RERUN after browser-only engine delta; accepted freeze compatibility pass remains recorded above |
 | Player regression | `.\gradlew.bat :feature:player:ui-common:testAndroidHostTest` | NOT RERUN after browser-only engine delta; accepted freeze 15/15 pass remains recorded above |
 

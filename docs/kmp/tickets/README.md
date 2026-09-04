@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 4 non-live green; live rerun pending authorization.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 5 pending freeze and full Tier 3.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -62,12 +62,14 @@ eligible for acceptance. Its strict one-time expiry-only test correction does no
 `dc066a26effde71eabfc66ca590f37ea976805f7` is the first complete non-live green candidate: production/Binaryen distribution and validator passed,
 the full matrix passed 186/186 with every project at 31/31 and zero failures/skips/retries, player/product/runtime passed 60/60, 66/66, and 60/60,
 final production controls/settings visuals passed at 1280×720 and 1920×1080 with no P0/P1 finding, and the combined Android/root gate passed.
-The user explicitly waived manual current Safari/macOS on 2026-09-04; that gate is **WAIVED / NOT RUN**, never `PASS`, and is no longer the current
-blocker. Candidate 4 live attempt 1 used the boolean-clean wrapper and failed 0/1 in 49.7s while waiting for projected `Play` after attempted
-`Pause`, after reaching real login/session, search, Details, and public Sintel. Fallback `DELETE` cleanup is confirmed only by live-smoke control flow because
-no cleanup exception replaced the original failure; browser local/session-storage cleanup was awaited. The bounded test-only stable-bounds and
-native `paused`-state correction was delta-reviewed `PASS`; its live rerun remains `NOT RUN` pending fresh action-time authorization. Candidate 4's
-production/non-live evidence remains valid, and WEB-04 acceptance is blocked only by that authorized live rerun.
+The user explicitly waived manual current Safari/macOS on 2026-09-04; that gate is **WAIVED / NOT RUN**, never `PASS`. Candidate 4 live attempt 1
+failed 0/1 in 49.7s after reaching real login/session, search, Details, and public Sintel. Attempt 2 on harness revision `eb37969` failed 0/1 in
+49.1s because a stable projected `Pause` click left native `video.paused=false`. Fallback `DELETE` and browser local/session-storage cleanup were
+confirmed only by live-smoke control flow. The root cause was production HtmlElementView parent-host pointer interception. Production now applies
+immediate video/host `pointer-events:none`, a bounded six-frame attachment retry, one post-attachment reapply, update reapplication, and
+update/release cancellation. Focused results are green: compile PASS after one initial failure, engine 21/21, player UI 14/14, WebApp 65/65,
+development distribution PASS, and six-project Play/Pause regression 6/6. Candidate 4's non-live results remain historical but it is not eligible
+for acceptance. Candidate 5 must freeze and pass full Tier 3; its live rerun is `NOT RUN` pending fresh action-time authorization.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three

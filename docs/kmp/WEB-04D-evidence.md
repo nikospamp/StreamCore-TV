@@ -40,11 +40,12 @@ remains backend-agnostic.
 |---|---|
 | `:webApp:compileKotlinWasmJs` after initial wiring | PASS in 1m04s; 156 actionable tasks (149 executed, 7 from cache) |
 | First `:webApp:wasmJsBrowserTest` integration attempt | FAIL before tests: dependency-owned `shaka-playback-adapter.mjs` was not beside the consuming generated Kotlin module; 346 actionable tasks |
-| Corrected WebApp browser suite | PASS 65/65, zero failures/errors/skips; latest run in 59s with 342 actionable tasks (66 executed, 276 up-to-date) |
-| Engine browser suite on integrated source | PASS 19/19, zero failures/errors/skips; task completed before a later UI-suite failure stopped the combined invocation |
-| Player UI browser suite after all-null/pointer/Escape/focus corrections | PASS 13/13, then PASS 14/14 after the hidden-controls keyboard regression was added; latest run in 1m05s with 180 actionable tasks (20 executed, 160 up-to-date) |
+| Production host-pointer compile correction | Initial FAIL in 10s, then PASS in 3s; 8 actionable tasks (6 executed, 2 up-to-date) |
+| Corrected WebApp browser suite | PASS 65/65, zero failures/errors/skips; latest run in 43s with 342 actionable tasks (66 executed, 276 up-to-date) |
+| Engine browser suite on integrated source | PASS 21/21, zero failures/errors/skips; latest run in 54s with 148 actionable tasks (12 executed, 136 up-to-date) |
+| Player UI browser suite after all-null/pointer/Escape/focus corrections | PASS 13/13, then PASS 14/14 after the hidden-controls keyboard regression was added; latest up-to-date run in 2s with 180 actionable tasks (15 executed, 165 up-to-date) |
 | `verifyDesignTokens` | PASS in the same serialized invocation; module-local `Dimens.kt` is registered in the exact-path allowlist |
-| Development Wasm distribution | PASS; latest pre-hidden-root-focus correction build in 1m09s, 338 actionable tasks (65 executed, 273 up-to-date); approximately 12.3 MiB JS, 31.4 MiB app Wasm, 8.24 MiB Skiko Wasm |
+| Development Wasm distribution | PASS; latest post-host-pointer-correction build in 35s, 338 actionable tasks (63 executed, 275 up-to-date) |
 | Locked E2E install | PASS; 3 packages installed, 4 audited, 0 vulnerabilities |
 | Default Playwright discovery | PASS; plain `npx playwright test --list` reports 186 tests in 3 files, including all 60 player project-tests with no fixture skip guard |
 | Live-smoke discovery | PASS; `npx playwright test --config playwright.live.config.ts --list` reports exactly 1 test without launching a browser or reading credentials |
@@ -55,6 +56,7 @@ remains backend-agnostic.
 | Affected Escape/resume rerun | 2/3; only shadow-root projected focus remained failing |
 | Affected fullscreen focus rerun | PASS 1/1 |
 | Final clean Chromium 1280 development fixture before the later hidden-root focusability correction | PASS 10/10 in 57.2s, zero skips |
+| Six-project physical Play/Pause regression after host-pointer correction | PASS 6/6 in 36.8s |
 
 ## Candidate 1 and correction evidence
 
@@ -74,7 +76,7 @@ remains backend-agnostic.
   standalone network, out-of-phase, or over-count diagnostics still fail.
 - Focused correction observations, not a replacement full-matrix claim: fullscreen behavior 6/6; Firefox/WebKit 1280 player sample 18/20 followed
   by passing affected WebKit resume and Escape cases; Details return behavior 2/2 in Chromium/WebKit; isolated WebKit 1920 legacy reload 1/1.
-- Latest focused module results remain engine 19/19, player UI 14/14, and WebApp 65/65. Behavioral focus corrections removed the projected-DOM
+- At that correction stage, focused module results were engine 19/19, player UI 14/14, and WebApp 65/65. Behavioral focus corrections removed the projected-DOM
   focus oracle: Space re-entered fullscreen in all six browser/viewport projects, and Space re-entered Player from returned Details focus in the
   targeted product cases. The listener probe, server confinement, hidden-controls keyboard path, fullscreen focus, and Details return-focus deltas
   each received a bounded P0/P1 re-review PASS.
@@ -123,7 +125,7 @@ silently promoted by an affected rerun.
 - Candidate 3 remains failed; 185/186 is not a pass and the one-case correction is not a replacement full matrix. Candidate 4 subsequently froze
   and executed the final non-live gates recorded below.
 
-## Candidate 4 final non-live evidence
+## Candidate 4 historical non-live evidence
 
 - Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; the candidate was frozen before final non-live execution.
 - Production/Binaryen distribution re-invocation **PASS** in 1s with 340 actionable tasks (59 executed, 281 up-to-date).
@@ -140,11 +142,10 @@ silently promoted by an affected rerun.
 - Post-run cleanup restored the WEB-04D worktree to its committed state. The primary checkout remains at
   `f9e13558b3fc1c68db89ba9715932e8db80813ae` with exactly the pre-existing untracked `.kotlin/`; the build-generated untracked `.android/` was
   removed without touching `.kotlin/`.
-- Candidate 4 is green for every recorded non-live gate. On 2026-09-04 the user explicitly waived the manual current Safari/macOS gate; it remains
-  **WAIVED / NOT RUN**, is not a pass, and no Safari execution evidence is claimed. WEB-04 acceptance is now blocked only by a successful rerun of
-  the authorized live TMDB/public-media journey with mandatory temporary-session cleanup.
+- Candidate 4 passed every recorded non-live gate, but this is now historical evidence only. Two failed live attempts exposed a production
+  HtmlElementView host hit-test blocker, and the subsequent production correction means Candidate 4 is not eligible for WEB-04 acceptance.
 
-## External-gate status and live attempt 1
+## External-gate status, Candidate 4 live attempts, and production correction
 
 - Manual current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04. Playwright WebKit is not substituted for Safari, the
   checklist was not executed, and the waiver removes this gate as a current blocker without converting it to `PASS`.
@@ -153,15 +154,28 @@ silently promoted by an affected rerun.
 - Cleanup evidence is limited to the live smoke's control flow: fallback `DELETE` cleanup was confirmed because no cleanup exception replaced the
   original failure, and browser local/session-storage cleanup was awaited. This is not recorded as a successful live journey.
 - A bounded test-only correction now re-resolves stable projected semantic bounds after hover/recomposition and uses native
-  `HTMLVideoElement.paused` state as the pause/play oracle. Its capped delta review returned **PASS**; the corrected live rerun is **NOT RUN** and
-  requires fresh action-time authorization immediately before transmission.
-- Candidate 4's production, complete non-live matrix, visual, and Android/root evidence remains valid. WEB-04 acceptance is blocked only by the
-  authorized live rerun.
+  `HTMLVideoElement.paused` state as the pause/play oracle. Its capped delta review returned **PASS**.
+- Candidate 4 live attempt 2 on harness revision `eb37969` also **FAILED** at 0/1 in 49.1s: the stable projected `Pause` bounds were clicked, but
+  native `video.paused` remained `false`. Fallback `DELETE` and browser local/session-storage cleanup were again confirmed only by the live
+  smoke's control flow; no cleanup exception replaced the original failure.
+- Bounded production diagnosis identified the immediate HtmlElementView parent host as the hit-test interceptor above the Compose canvas. The
+  production surface now sets the video and attached host to `pointer-events:none` immediately, retries host attachment for at most six animation
+  frames, reapplies once on the frame after attachment, reapplies from HtmlElementView updates, and cancels pending work on update/release.
+- Wasm surface tests cover an existing host `pointer-events:auto` override, delayed host attachment plus post-attachment reapplication, and
+  cancellation/idempotent release. The successful physical-pointer fixture now checks computed video/host pass-through and performs
+  Play→Pause→Play semantics; the live smoke checks the same production video/host invariant before activation.
+- Focused correction results: production compile initially **FAIL** in 10s, then **PASS** in 3s with 8 actionable tasks (6 executed, 2
+  up-to-date); engine browser suite **PASS** 21/21 in 54s with 148 actionable (12 executed, 136 up-to-date); player UI browser suite **PASS** 14/14
+  up-to-date in 2s with 180 actionable (15 executed, 165 up-to-date); WebApp browser suite **PASS** 65/65 in 43s with 342 actionable (66 executed,
+  276 up-to-date); development distribution **PASS** in 35s with 338 actionable (63 executed, 275 up-to-date); and the six-project physical
+  Play/Pause regression **PASS** 6/6 in 36.8s.
+- The production correction and focused results are pre-candidate evidence only. Candidate 5 is pending freeze and the complete Tier 3 gate.
+  Safari remains **WAIVED / NOT RUN**; the corrected live rerun is **NOT RUN** pending fresh action-time authorization.
 
 ## Review and release gates
 
-- Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, and security/release/E2E** after the
-  bounded corrections recorded below; no review blocker remains open before Candidate 4 freeze.
+- Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, and the bounded
+  production HtmlElementView host-pointer correction**; Candidate 5 still requires freeze and full Tier 3 execution.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -171,7 +185,8 @@ silently promoted by an affected rerun.
 - Failed frozen candidate: `ace71461c4914716509e1488a311110d7a20844d`; it is not eligible for acceptance.
 - Failed Candidate 2: `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`; 183/186 passed with 3 terminal-diagnostic failures and zero skips.
 - Failed Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; 185/186 passed with 1 terminal expiry diagnostic and zero skips.
-- Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; final non-live candidate.
+- Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; historical non-live pass, not acceptance-eligible after two failed live attempts exposed the
+  production host-pointer blocker.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, and 4 `PASS`.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
   `PASS` (186/186, zero failures/skips/retries).
@@ -180,5 +195,6 @@ silently promoted by an affected rerun.
 - Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
 - Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
   claimed.
-- Final live TMDB/public-media journey and temporary-session cleanup: attempt 1 `FAIL` at 0/1 in 49.7s after reaching public Sintel; corrected rerun
-  `NOT RUN` pending new action-time authorization immediately before transmission.
+- Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
+  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 5 rerun `NOT RUN` pending freeze, full Tier 3,
+  and new action-time authorization immediately before transmission.
