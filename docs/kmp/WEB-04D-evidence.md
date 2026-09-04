@@ -374,3 +374,89 @@ silently promoted by an affected rerun.
   `47141011f5d965bdf36bb9a646387ae3b35336f7` with `git merge --ff-only codex/web-04d-final-integration`.
 - The integration worktree was clean, the accepted branch tracked no `.kotlin/**`, and the primary checkout retained exactly its pre-existing
   untracked `.kotlin/`. The generated `.android/` directory remained absent.
+
+## Post-acceptance P0 input finding and Candidate 8
+
+Candidate 7 and its acceptance evidence above remain immutable history. The following evidence records a user-observed P0 found during the
+post-acceptance manual app check; it does not retroactively rewrite Candidate 7's frozen results.
+
+- Manual reproduction against the accepted local production app reached Details and entered a playing Player. After the controls auto-hid,
+  neither a center mouse click nor navigation-key input restored visible controls. Escape still returned to Details. Read-only browser inspection
+  found the native video playing with video/host pointer pass-through applied and focus retained by the Compose canvas; this was a real input
+  recovery defect, not a provider, credential, or playback-session failure.
+- Candidate 8: `34023b5fc1a6bd5bd9347808b215381a9d19b9c5` (`fix(web): restore hidden player controls`). The correction adds a semantics-free,
+  non-focusable Compose interaction surface above the media surface, explicit player z-order, and a Wasm document capture path for hidden-state
+  Arrow/Enter/Space recovery while leaving Escape, Tab, editable targets, and backend-agnostic playback contracts unchanged. The hidden-state
+  diagnostic attribute reflects the real `PlayerUiState.controlsVisible` value rather than stale browser accessibility projection.
+- Focused Candidate 8 evidence: player UI Wasm browser tests **PASS** 17/17 with zero failures/errors/skips; the two real-auto-hide pointer and
+  keyboard recovery scenarios **PASS** 12/12 across Chromium, Firefox, and WebKit at 1280×720 and 1920×1080. These tests prove pointer recovery,
+  Arrow recovery, held-Space key-up preservation, one subsequent Space toggle, playback/timer continuity, and clean diagnostics without treating
+  hidden-state accessibility projection as an oracle.
+- A manual real-media rerun then found a second P0: the controls state and semantics were restored, but the native video was visually composited
+  above the Compose controls. This was a rendering-layer occlusion, not another input-dispatch defect. Candidate 8 therefore remained focused
+  correction evidence and was not promoted as the final post-acceptance candidate.
+
+## Candidate 9 rendering correction and focused evidence
+
+- Candidate 9: `c678192eee9fe0ac642087831670facd35e86380` (`fix(web): layer player controls above video`). The app owns a dedicated full-viewport DOM
+  playback layer at z-order 0 and an explicit Compose root at z-order 1. Production video mounting is route/session-owned, pointer-transparent,
+  and removed on release; the Compose media slot uses a `BlendMode.Clear` hole so video is visible beneath Compose while controls, status, focus,
+  and interaction surfaces remain above it. The architecture and playback contracts remain backend-agnostic.
+- Candidate 9 production/Binaryen distribution **PASS** in 4m22s with 340 actionable tasks (64 executed, 276 up-to-date).
+- Artifact validator **PASS**: 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
+- Playback-web browser tests **PASS** 21/21 with zero failures/errors/skips: Shaka adapter 4, module 1, session 13, and video-surface 3. Player UI
+  Wasm browser tests **PASS** 17/17 with zero failures/errors/skips.
+- The bounded diagnostic compositing regression **PASS** 6/6 across the six browser/viewport projects. It asserts the app-owned video layer and
+  Compose root are ordered full-viewport body siblings with computed z-orders 0 and 1, verifies the mounted video/layer pointer and visibility
+  contract, and compares two tiny center clips with the diagnostic video visible versus temporarily hidden. The differing pixels prove that the
+  final browser composition exposes the video through the clear Compose hole without adding an image dependency or broad snapshot baseline.
+- The final real-auto-hide recovery slice **PASS** 12/12 across Chromium, Firefox, and WebKit at both viewports. One bounded pointer case proves a
+  nonzero in-player mouse move after the first auto-hide and a center click after a second auto-hide; one bounded keyboard case proves Arrow
+  recovery, held-Space key-up preservation, and a fresh focused Space toggle. Both retain exact playback/timer continuity and terminal clean
+  diagnostics.
+- Candidate 9 affected real-TMDB/manual-media evidence is **PASS** for the corrected P0 paths using the existing authorized session: real media and
+  Compose controls were simultaneously visible; Play worked; controls auto-hid; center click and Arrow each restored controls; fullscreen
+  entry/exit worked; and leaving Player produced zero video nodes with the app-owned video layer hidden. This was an affected player slice, not a
+  rerun of the full login/session journey.
+
+## Candidate 9 complete-matrix result and bounded test-only correction
+
+- Discovery **PASS** at exactly 198 registrations: 33/33 in each of Chromium 1280, Chromium 1920, Firefox 1280, Firefox 1920, WebKit 1280, and
+  WebKit 1920. By suite, Player registered 72, product 66, and runtime 60.
+- The one frozen Candidate 9 complete production matrix ran for 29.5m and **FAILED**: 197 passed / 1 failed / 0 skipped / 0 retried. This result
+  remains failed and is not rewritten by focused evidence. The sole failure was WebKit 1920 `profile-scoped resume survives close and hard reload`.
+- Trace evidence shows all resume behavior completed: profile A persisted 44–46 seconds before reload, restored the same range after the new
+  runtime/fixture/route became ready, then profile B opened independently at 0–1 second. The failure occurred only at terminal diagnostics. During
+  the hard reload, two adjacent page errors matching the existing anchored WebKit coroutine-teardown signature arrived 0.695ms apart in the same
+  phase epoch; the classifier accepted the first and rejected the second. The errors occurred before reload completed, no later page error was
+  observed, the replacement document loaded successfully, and neither error stack contained Candidate 9 code.
+- Test-only correction `2e425a01b16ba939682f4766beb58c6e38851010` (`test(web): bound WebKit reload teardown pair`) adds a resume-test-local opt-in for one exact
+  adjacent pair only: WebKit, `pageerror`, hard-reload phase, same epoch, both matching the existing anchored signature, and still under the
+  unchanged total cap of two. Default classifier behavior is unchanged; pair plus singleton, nonadjacent/repeated pair, third event, wrong
+  source/phase/epoch/browser, and unknown text remain fatal.
+- The affected resume slice then **PASS** 2/2 across WebKit 1280 and WebKit 1920 in 25.3s. This is bounded correction evidence; it does not convert
+  Candidate 9's 197/198 full run into a pass. No second complete matrix was run under the adopted test-local-correction policy.
+
+## Candidate 9 Android, live, and remaining external status
+
+- Combined Android/root compatibility gate **PASS** in 2m08s with 2,350 actionable tasks (119 executed, 2,231 up-to-date). Player-mobile results
+  were 12/12 with zero failures/errors/skips. The generated TMDB and ClientB debug APKs were 23,177,040 bytes and 23,012,604 bytes respectively.
+  The generated `.android/` directory was removed after verification without touching the pre-existing `.kotlin/` directory.
+- Candidate 7's full redacted live login/session journey remains **PASS** 1/1 with all required endpoint classes, application logout/session
+  deletion, and browser-storage cleanup as recorded above. Candidate 9 changed only player input/rendering paths, so its authorized live activity
+  was intentionally limited to the affected real-TMDB/manual-media slice recorded above.
+- A new Candidate 9 full login/session journey was **NOT RUN** because the previously cleaned username/password source was no longer available.
+  No new Candidate 9 full-login, temporary-session deletion, or credential-cleanup pass is claimed.
+- Manual current Safari/macOS remains **WAIVED / NOT RUN** by explicit user decision on 2026-09-04. Playwright WebKit is not substituted for
+  Safari, and the waiver is never reported as `PASS`.
+
+## Adopted risk-tier policy
+
+- The risk-tiered protocol now uses: Tier 0 immutable setup and ownership; Tier 1 affected module plus targeted Chromium inner-loop evidence; a
+  focused three-engine risk gate for browser/input/DOM/timing/fullscreen work, adding the second viewport only for geometry risk; one capped Tier 2
+  release-blocker review that reopens only for concrete P0/P1 or gate failure; and one frozen Tier 3 production/Binaryen, full-matrix, and
+  Android/root release gate. Test-only corrections rerun the affected slice unless they change global harness behavior, discovery, scheduling,
+  global classifier defaults, or a shared fixture. Documentation-only changes never retrigger executable gates.
+- Deterministic hidden-state timing is preferred for the inner loop, with exactly one real auto-hide timing smoke retained for release evidence.
+  Live credentials remain a final, redacted, cleanup-mandatory proof rather than an iterative debugging loop. Manual Safari/macOS remains
+  **WAIVED / NOT RUN**, never `PASS`.

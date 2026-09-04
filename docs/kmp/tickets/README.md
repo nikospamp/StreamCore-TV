@@ -43,63 +43,25 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 7 ACCEPTED and fast-forwarded into `codex/kmp-migration`.** WEB-03 was the integration base at
-`f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
-`631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
-`3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
-`ace71461c4914716509e1488a311110d7a20844d` passed production/Binaryen distribution and artifact validation but failed its complete matrix with
-144 passed / 42 failed / 0 skipped, so it is not eligible for acceptance. Bounded corrections now have green focused evidence (engine 19/19,
-player UI 14/14, WebApp 65/65, fullscreen behavior 6/6, targeted Details-return and browser-diagnostic reruns) and all capped P0/P1 reviews are
-closed. These focused results do not replace Candidate 1's failed matrix. Candidate 2
-`d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60` passed production/Binaryen distribution and artifact validation, then failed its complete 21.7m matrix
-with 183 passed / 3 failed / 0 skipped. All behavioral assertions passed; the failures were bounded terminal WebKit diagnostics: two exact
-hard-reload coroutine teardown occurrences across viewports, one same-epoch player-exit blob-access plus I/O pair, and one diagnostic-seed
-`web-probe.png` abort. Candidate 2 is not eligible for acceptance. Its correction is test-only and does not replace the failed matrix. Candidate 3
-`9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1` passed its production distribution re-invocation and artifact validator, then failed the complete
-21.8m matrix with 185 passed / 1 failed / 0 skipped. All 60 player registrations passed; the sole failure was the legacy product WebKit-1280
-journey retaining one terminal exact `JsException` I/O-read diagnostic during its tagged expiry phase after behavior passed. Candidate 3 is not
-eligible for acceptance. Its strict one-time expiry-only test correction does not replace the failed matrix. Candidate 4
-`dc066a26effde71eabfc66ca590f37ea976805f7` is the first complete non-live green candidate: production/Binaryen distribution and validator passed,
-the full matrix passed 186/186 with every project at 31/31 and zero failures/skips/retries, player/product/runtime passed 60/60, 66/66, and 60/60,
-final production controls/settings visuals passed at 1280×720 and 1920×1080 with no P0/P1 finding, and the combined Android/root gate passed.
-The user explicitly waived manual current Safari/macOS on 2026-09-04; that gate is **WAIVED / NOT RUN**, never `PASS`. Candidate 4 live attempt 1
-failed 0/1 in 49.7s after reaching real login/session, search, Details, and public Sintel. Attempt 2 on harness revision `eb37969` failed 0/1 in
-49.1s because a stable projected `Pause` click left native `video.paused=false`. Fallback `DELETE` and browser local/session-storage cleanup were
-confirmed only by live-smoke control flow. The root cause was production HtmlElementView parent-host pointer interception. Production now applies
-immediate video/host `pointer-events:none`, a bounded six-frame attachment retry, one post-attachment reapply, update reapplication, and
-update/release cancellation. Focused results are green: compile PASS after one initial failure, engine 21/21, player UI 14/14, WebApp 65/65,
-development distribution PASS, and six-project Play/Pause regression 6/6. Candidate 4's non-live results remain historical but it is not eligible
-for acceptance. Candidate 5 then failed its complete 26.1m matrix at 183 passed / 3 failed / 0 skipped. Two product failures contained the same
-exact adjacent UUID blob→I/O pair during expiry; the WebKit-1920 player failure contained one exact Compose-resource event followed by an exact
-adjacent same-epoch coroutine pair during player exit. The bounded test-only consolidation applies per-phase/epoch totals, adjacency, and
-per-signature uniqueness while leaving unknown, extra, nonadjacent, wrong-source/phase/epoch/browser diagnostics fatal. The final refinement treats
-one coroutine singleton or one exact adjacent pair as the same shared signature, so pair plus singleton or any repeat is blocked. The affected
-WebKit focused rerun passed 4/4 in 1.3m. Candidate 5 remains failed. Candidate 6 then failed its complete 26.0m matrix at 185 passed / 1 failed /
-0 skipped. The sole WebKit-1280 player failure retained unknown `Cache API operation failed: Context is stopped` during the second cross-document Back after all route
-behavior passed. Trace timing placed it between the known Compose-resource and coroutine teardown events while the old context was stopping; no
-whitelist was added. Two focused WebKit-1280/1920 attempts failed first at a stale query-bearing URL assertion and then at a missing diagnostic
-re-entry role projection. The bounded correction now enters through projected `Player ID`/production `pushState`, verifies Escape/Back cleanup,
-reopens with browser Forward/`popstate`, and verifies final Back disposal. Its exact affected rerun passed 2/2 in 13.0s with exit code 0 and exact
-session/listener/timer/video disposal plus close-count increments. Candidate 6 remains failed. Candidate 7 froze at
-`1cb7ca253182f5f61ed07e7c9905f18e1307c469`: production/Binaryen distribution and validation passed, the complete matrix passed 186/186 in
-22.2m with every project at 31/31 and zero failures/skips/retries, current controls/settings visuals passed at both required viewports, and the
-combined Android/root gate passed in 58s with 2,350 actionable tasks plus player-mobile 12/12. Candidate 7 live attempt 1 then failed 0/1 in 50.4s
-after reaching the real production Player/public Sintel: the test selected semantic `Pause`
-while the control was still rendering its disabled buffering spinner. Credential-free instrumentation proved zero playback calls before readiness
-and, on the unchanged production code after the spinner cleared, one pause call, zero play calls, and native `paused=true`. The z-order hypothesis
-and all temporary changes were reverted. Test-only correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` now requires literal rendered
-Play/Pause content before stable physical activation. Candidate 7 live attempt 2 passed that blocker plus seek/fullscreen, exit, and hard reload,
-then failed 0/1 in 59.9s because centered focus/hover scale animation never satisfied the all-edge bounds oracle for the restored Details `Play`.
-Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` retains positive-area and post-hover physical-click checks; its exact credential-free
-Player→Back→reload→Play journey passed 1/1 in 20.5s. Fallback session and browser-storage cleanup were confirmed after both failures. The further
-corrected live attempt 3 repeated all prior checkpoints but failed 0/1 in 58.4s because consecutive projected bounds still never stabilized after
-reload. Correction `b70eabf328c000dc27b85374e57a601d6dee0a68` keeps unique positive-area bounds, remeasures after hover, and clicks the latest center without
-requiring cross-frame projection stability; the exact credential-free transition passed 1/1 in 21.3s. Fallback cleanup was again confirmed. The
-next live attempt repeated all prior checkpoints but failed 0/1 in 56.2s because persisted progress correctly changed the restored Details CTA from
-`Play` to `Resume`. One-word correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` now targets exact `Resume`; fallback cleanup was again
-confirmed. Live attempt 5 then passed 1/1 in 35.7s: the full journey, restored Resume position, all 16 required endpoint classes at 2xx,
-application-driven session deletion, and browser-storage cleanup passed. Candidate 7's non-live and live gates are green; Safari/macOS remains
-explicitly **WAIVED / NOT RUN**, never `PASS`.
+**Current gate (2026-09-04): WEB-04D Candidate 9 ACCEPTED and closure-ready.** Production is frozen at
+`c678192eee9fe0ac642087831670facd35e86380`; the bounded test-only WebKit classifier correction is
+`2e425a01b16ba939682f4766beb58c6e38851010`. Production/Binaryen distribution and the release artifact validator passed. The one-time complete
+matrix remains recorded exactly as executed: **197/198 passed in 29.5m**, with one WebKit-1920 hard-reload case failing only because a second exact
+adjacent known `AwaitContinuation` teardown event exceeded the prior singleton allowance. The strict affected WebKit-1280/1920 slice then passed
+**2/2 in 25.3s** on the test-only correction; this is focused correction evidence and is never reported as an unexecuted 198/198 complete pass.
+The combined Android/root gate passed in **2m08s** with **2,350 actionable tasks** (119 executed, 2,231 up-to-date), and player-mobile passed 12/12.
+
+The scoped real-TMDB/public-media Player manual passed on Candidate 9, including visible controls composited above real video plus mouse and keyboard
+hidden-controls recovery. Candidate 7's complete authenticated live journey remains inherited because Candidate 9 does not change authentication,
+provider routing, endpoint sequencing, logout, or temporary-session cleanup. Manual current Safari/macOS remains explicitly **WAIVED / NOT RUN**;
+Playwright WebKit is not substituted and no Safari pass is claimed.
+
+Historical summary: WEB-04D integrated accepted A→B→C inputs from WEB-03F. Candidates 1–3 failed their complete matrices; Candidate 4's historical
+non-live pass was superseded by a live native-host pointer blocker; Candidates 5–6 remained failed with bounded WebKit teardown/navigation findings;
+Candidate 7 achieved complete non-live and live acceptance. Post-acceptance manual use exposed hidden-control input and opaque real-video compositing
+P0s. Candidate 8 corrected input recovery, and Candidate 9 replaced overlay-only `HtmlElementView` video with the app-owned video layer and Compose
+clear-hole contract. One capped P0/P1 audit found no Candidate 9 lifecycle defect; its sole complete-matrix failure was the established WebKit
+hard-reload runtime signature addressed by the exact test-only correction above.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
@@ -138,6 +100,7 @@ concurrent feature owners while the root orchestrator remains active.
 | [WEB-04B](WEB-04B-player-ui.md)                  | Web player UI against the frozen fake session                 | WEB-04A freeze         | Feature-local                    |
 | [WEB-04C](WEB-04C-release-and-test.md)            | Release fixtures, tests and deployment contract               | WEB-04A freeze         | Test/docs only                   |
 | [WEB-04D](WEB-04D-final-integration.md)           | Playback integration and release acceptance                   | WEB-04A through C      | Integration owner only           |
+| [WEB-04E](WEB-04E-browser-verification-optimization.md) | Preserve playback coverage while removing repeated real-time waits | Accepted WEB-04D release | Test infrastructure only      |
 
 ## Execution Protocol
 
@@ -176,16 +139,30 @@ concurrent feature owners while the root orchestrator remains active.
 
 1. **Tier 0 — setup (target ≤5 minutes):** verify base and status, reserve paths, define the smallest acceptance journey, and name the first
    provider/platform boundary.
-2. **Tier 1 — iteration (target ≤15 minutes):** run development Wasm, focused unit/Compose tests, and at most one Chromium 1280×720 journey. After
-   two failed hypotheses or 15 minutes, stop and assign a specialist. Do not run Binaryen, the full browser matrix, or root `check`.
-3. **Early live proof:** only when a smallest provider/network/persistence vertical slice cannot be proved by existing accepted evidence, run one
+2. **Tier 1 — inner loop (target about 2 minutes):** run the affected module compile/test plus only the targeted Chromium 1280×720 scenario. After
+   two failed hypotheses or 15 minutes, stop and assign a specialist. Do not run Binaryen, the complete browser matrix, or root `check`.
+3. **Tier 1 risk gate:** when a change is browser-sensitive, viewport-sensitive, native-DOM/Compose interop, focus/input, timing, or fullscreen work,
+   run the affected scenario across Chromium, Firefox, and WebKit at one representative viewport. Add the second viewport only when geometry or
+   responsive behavior is itself changed. This risk gate is focused evidence, not a complete-matrix claim.
+4. **Early live proof:** only when a smallest provider/network/persistence vertical slice cannot be proved by existing accepted evidence, run one
    redacted smoke and return to mocks. WEB-03/04 do not use live credentials during feature iteration.
-4. **Tier 2 — review:** freeze production code and complete read-only architecture, boundary, lifecycle/leak, accessibility, and security reviews.
-5. **Tier 3 — candidate:** the integration owner runs one production/Binaryen distribution, one complete three-browser/two-viewport matrix, and one
-   combined Android/root regression gate. Any production change creates a new candidate and returns to focused verification.
-6. **Test-only correction:** rerun only affected cases and report the original matrix plus focused rerun separately.
-7. **Final live proof:** only after all non-live gates are ready, run the ticket's single redacted provider journey and mandatory cleanup. Never read,
+5. **Tier 2 — capped release-blocker review:** after production freezes, run one bounded read-only audit covering architecture/boundaries,
+   lifecycle/leaks, accessibility/input, security, and release integrity. Reopen only for a concrete P0/P1 or an acceptance-gate failure; do not
+   extend acceptance through repeated speculative edge-case passes.
+6. **Tier 3 — frozen candidate:** run production/Binaryen distribution, the complete 198-registration matrix exactly once (33 unique scenarios ×
+   Chromium/Firefox/WebKit × 1280/1920), and the combined Android/root gate. Rerun the complete matrix only after a production or packaged-artifact
+   change. Documentation-only changes never trigger executable gates.
+7. **Test-only correction:** rerun only the affected browser/project/scenario slice and report it beside the original result. Run the complete matrix
+   only when the correction changes global harness behavior, discovery, scheduling, global classifier defaults, or a shared fixture used across
+   the matrix.
+   Never remove, merge, or skip any of the 33 unique scenarios to reduce runtime.
+8. **Deterministic timing:** diagnostic clock/hidden-state fixtures replace repeated 10-second auto-hide waits. Retain exactly one real-timing release
+   smoke for the production auto-hide duration; deterministic cases continue to verify pointer and keyboard reveal without reducing coverage.
+9. **Final live proof:** only after all non-live gates are ready, run the ticket's single redacted provider journey and mandatory cleanup. Never read,
    print, copy, commit, or screenshot credentials; use the ignored wrapper defined by WEB-02 and obtain action-time approval when Codex would transmit.
+
+All Gradle, webpack, Binaryen, Playwright-server, browser-matrix, and other CPU-heavy execution remains serialized through the root-owned build
+queue. Parallel waves are limited to disjoint edits, analysis, and read-only review.
 
 ## Web Evidence Taxonomy
 
