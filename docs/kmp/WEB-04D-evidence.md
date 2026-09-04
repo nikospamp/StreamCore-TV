@@ -294,6 +294,17 @@ silently promoted by an affected rerun.
   1 test in 1 file.
 - Attempt 2 stopped before application logout, so the same mandatory fallback authenticated `DELETE` and nested browser-storage cleanup ran. The
   terminal result remained the bounds assertion rather than `Temporary-session cleanup was not confirmed`; cleanup is confirmed by control flow.
+- Candidate 7 live attempt 3 (overall live attempt 5) ran from clean evidence revision
+  `365f823680060dbdbffb4ae16f7a81a8dc528ac2`; redacted preflight again passed. It repeated the corrected playback, seek/fullscreen, Player exit,
+  hard reload, and ready restored Details checkpoints, but the center-stability poll still did not obtain consecutive projected bounds and the run
+  **FAIL** at 0/1 in 58.4s before the second Player entry.
+- Cross-frame stability is not required for safe physical activation because the helper already resolves once, moves to that center, waits for
+  hover/recomposition, and resolves again immediately before clicking. Test-only correction
+  `b70eabf328c000dc27b85374e57a601d6dee0a68` therefore requires one unique positive-area current rectangle at each stage and clicks the latest
+  center. The exact credential-free Player→Back→reload→Play journey **PASS** 1/1 in 21.3s; temporary code/artifacts were removed and live discovery
+  remains exactly 1 test in 1 file.
+- Attempt 3 also stopped before logout; the original bounds assertion remained terminal rather than the cleanup-specific error, confirming fallback
+  session deletion and nested browser-storage cleanup by control flow.
 - A further corrected live rerun is **NOT RUN** and requires fresh action-time authorization before credential transmission. Candidate 7 production
   and its complete non-live pass remain unchanged.
 
@@ -317,8 +328,8 @@ silently promoted by an affected rerun.
   0 skipped; not acceptance-eligible.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
-- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1 and 2 `FAIL` at 0/1 in 50.4s and 59.9s;
-  further corrected rerun `NOT RUN`.
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1, 2, and 3 `FAIL` at 0/1 in 50.4s,
+  59.9s, and 58.4s; further corrected rerun `NOT RUN`.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
   unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
@@ -335,5 +346,7 @@ silently promoted by an affected rerun.
   harness clicked the buffering spinner under a false-enabled semantic projection; fallback session and storage cleanup were confirmed by control
   flow. Correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` is committed. Candidate 7 attempt 2 `FAIL` at 0/1 in 59.9s after corrected playback,
   seek/fullscreen, exit, and hard reload because centered focus/hover scaling never satisfied the all-edge bounds oracle; fallback cleanup was again
-  confirmed. Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` is committed; the further corrected rerun is `NOT RUN`
-  pending fresh action-time authorization.
+  confirmed. Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` was exercised by Candidate 7 attempt 3, which `FAIL` at 0/1
+  in 58.4s at the same restored-Details bounds checkpoint. Fresh-bounds correction
+  `b70eabf328c000dc27b85374e57a601d6dee0a68` is committed, credential-free exact transition evidence is 1/1 in 21.3s, and the further corrected
+  live rerun is `NOT RUN` pending fresh action-time authorization.
