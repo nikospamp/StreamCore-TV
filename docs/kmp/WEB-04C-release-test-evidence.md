@@ -17,7 +17,7 @@
   185 passed / 1 failed / 0 skipped; Candidate 7 **PASS** at 186 passed / 0 failed / 0 skipped / 0 retried
 - Current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; no pass is claimed
 - Live TMDB or public-media journey: Candidate 4 attempts 1 and 2 **FAIL** at 0/1 in 49.7s and 49.1s; Candidate 7 attempt 1 **FAIL** at 0/1 in
-  50.4s; corrected Candidate 7 rerun **NOT RUN** pending fresh action-time authorization
+  50.4s and attempt 2 **FAIL** at 0/1 in 59.9s; further corrected Candidate 7 rerun **NOT RUN** pending fresh action-time authorization
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
 
 The target architecture remains backend-agnostic. No production Kotlin/resource, playback, feature, core, build-logic, credential, real-config,
@@ -81,7 +81,11 @@ generated distribution, browser binary, node-module, or screenshot file was chan
   while the control still rendered its disabled buffering spinner because the projected node falsely appeared enabled. Credential-free real-media
   evidence changed from `pauseCalls=0`/`playCalls=0` before actionable readiness to `pauseCalls=1`/`playCalls=0`/native `paused=true` after literal
   rendered-text readiness on unchanged Candidate 7 production. The z-order hypothesis was reverted. Test-only correction
-  `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` preserves stable physical clicks and native state assertions; corrected live execution is pending.
+  `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` preserves physical clicks and native state assertions.
+- Candidate 7 live attempt 2 **FAIL** at 0/1 in 59.9s after corrected playback, seek/fullscreen, Player exit, and hard reload. Centered focus/hover
+  scale animation never satisfied the helper's all-edge bounds rule for restored Details `Play`. Correction
+  `09c346ea40d02da5fbd3e94ee8ba17b765879c31` retains positive-area and post-hover checks but stabilizes the invariant click center; the exact
+  credential-free Player→Back→reload→Play transition passed 1/1 in 20.5s. Further corrected live execution is pending fresh authorization.
 
 The isolated WEB-04C observations are not runtime passes; integrated candidate results are labeled explicitly.
 
@@ -194,14 +198,16 @@ vendor and contains no deploy credential.
 - Final redacted live TMDB/public-media journey and cleanup: Candidate 4 attempt 1 **FAIL** at 0/1 in 49.7s; attempt 2 on `eb37969` **FAIL** at 0/1
   in 49.1s because native video remained unpaused after the stable projected Pause click. Cleanup was confirmed only by live-smoke control flow.
   Candidate 7 attempt 1 **FAIL** at 0/1 in 50.4s because the harness clicked the buffering spinner under a false-enabled semantic projection;
-  fallback session and browser-storage cleanup were confirmed by the same control-flow contract. Corrected rerun **NOT RUN** pending fresh
-  action-time authorization.
+  Candidate 7 attempt 2 **FAIL** at 0/1 in 59.9s because centered control scaling never satisfied the all-edge bounds oracle after hard reload.
+  Fallback session and browser-storage cleanup were confirmed after both failures by the same control-flow contract. Further corrected rerun
+  **NOT RUN** pending fresh action-time authorization.
 
 WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidates 1, 2, and 3 passed
 artifact validation but failed their complete matrices at 144/42/0, 183/3/0, and 185/1/0; bounded corrections did not replace those failures.
 Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection, but its evidence is
 now historical and it is not acceptance-eligible after the live production blocker and subsequent production correction. Current Safari/macOS is
 explicitly **WAIVED / NOT RUN**, not a pass. Candidates 5 and 6 failed their complete matrices at 183/3/0 and 185/1/0; Candidate 7 passed its
-complete non-live gate at 186/0/0, but live attempt 1 failed 0/1; corrected live execution remains **NOT RUN** pending fresh authorization.
+complete non-live gate at 186/0/0, but live attempts 1 and 2 failed 0/1; further corrected live execution remains **NOT RUN** pending fresh
+authorization.
 WEB-04D reconciled A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input
 or focused-rerun status is a release pass claim.
