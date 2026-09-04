@@ -20,6 +20,62 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await diagnostics.assertClean();
   });
 
+  test("hidden controls reveal through physical pointer input", async ({ page }, testInfo) => {
+    const diagnostics = installSanitizedDiagnostics(page, testInfo);
+    await openPlayerFixture(page, "success");
+
+    const body = page.locator("body");
+    await activateProjectedButton(page, "Play");
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+    await expect(body).toHaveAttribute("data-player-controls-visible", "false", {
+      timeout: 15_000,
+    });
+
+    await clickPlayerSurfaceCenter(page);
+    await expect(body).toHaveAttribute("data-player-controls-visible", "true");
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+
+    await diagnostics.assertClean();
+  });
+
+  test("hidden controls reveal through keyboard input and Space toggles only after release", async ({ page }, testInfo) => {
+    const diagnostics = installSanitizedDiagnostics(page, testInfo);
+    await openPlayerFixture(page, "success");
+
+    const body = page.locator("body");
+    await activateProjectedButton(page, "Play");
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+    await expect(body).toHaveAttribute("data-player-controls-visible", "false", {
+      timeout: 15_000,
+    });
+
+    await page.keyboard.press("ArrowUp");
+    await expect(body).toHaveAttribute("data-player-controls-visible", "true");
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+
+    await expect(body).toHaveAttribute("data-player-controls-visible", "false", {
+      timeout: 15_000,
+    });
+    await page.keyboard.down(" ");
+    await expect(body).toHaveAttribute("data-player-controls-visible", "true");
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await page.keyboard.up(" ");
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+
+    await page.keyboard.press("Space");
+    await expect(body).toHaveAttribute("data-player-playing", "false");
+    await expect(body).toHaveAttribute("data-player-active-timers", "0");
+    await diagnostics.assertClean();
+  });
+
   test("autoplay rejection remains ready and explicit activation starts playback", async ({ page }, testInfo) => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "autoplay-blocked");
@@ -315,6 +371,15 @@ async function waitForFixtureReadiness(
 
 function playerVideo(page: Page): Locator {
   return page.locator('[data-testid="player:video"]');
+}
+
+async function clickPlayerSurfaceCenter(page: Page): Promise<void> {
+  const bounds = await playerVideo(page).boundingBox({ timeout: 1_000 });
+  if (bounds === null) {
+    throw new Error("Player video surface does not expose viewport bounds");
+  }
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await waitForAnimationFrames(page, 2);
 }
 
 async function expectVideoPointerPassthrough(video: Locator): Promise<void> {

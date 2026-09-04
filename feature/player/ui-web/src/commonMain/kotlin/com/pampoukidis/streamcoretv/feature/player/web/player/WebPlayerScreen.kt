@@ -1,10 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.player.web.player
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -46,6 +44,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +53,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.zIndex
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
@@ -122,6 +122,10 @@ fun WebPlayerScreen(
             currentOnAction(PlayerAction.BackSelected)
         }
     }
+    WebPlayerDocumentControlsRevealEffect(
+        enabled = !state.controlsVisible && state.settingsPage == null && state.error == null,
+        onReveal = { currentOnAction(PlayerAction.UserInteraction) },
+    )
 
     LaunchedEffect(state.controlsVisible, state.phase, state.error, state.settingsPage) {
         if (state.error != null || state.settingsPage != null) {
@@ -175,23 +179,16 @@ fun WebPlayerScreen(
                     onAction = currentOnAction,
                 )
             }
-            .focusable()
-            .webPlayerPointerInteraction {
-                currentOnAction(PlayerAction.UserInteraction)
-            },
+            .focusable(),
     ) {
         WebPlayerVideoSurface(
             state = state,
             videoSurface = videoSurface,
-            onClick = {
-                currentOnAction(
-                    if (state.controlsVisible) {
-                        PlayerAction.ToggleControls
-                    } else {
-                        PlayerAction.UserInteraction
-                    },
-                )
-            },
+        )
+
+        WebPlayerInteractionOverlay(
+            controlsVisible = state.controlsVisible,
+            onAction = currentOnAction,
         )
 
         if (state.controlsVisible) {
@@ -248,19 +245,12 @@ fun WebPlayerScreen(
 private fun WebPlayerVideoSurface(
     state: PlayerUiState,
     videoSurface: PlaybackVideoSurface?,
-    onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .hoverable(interactionSource)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
+            .zIndex(WebPlayerZOrder.VideoSurface)
             .testTag(WebPlayerTestTags.VideoSurface),
     ) {
         if (videoSurface == null) {
@@ -282,6 +272,29 @@ private fun WebPlayerVideoSurface(
             videoSurface.Render(modifier = Modifier.fillMaxSize())
         }
     }
+}
+
+@Composable
+private fun WebPlayerInteractionOverlay(
+    controlsVisible: Boolean,
+    onAction: (PlayerAction) -> Unit,
+) {
+    val currentOnAction by rememberUpdatedState(onAction)
+    val pointerModifier = if (controlsVisible) {
+        Modifier.pointerInput(Unit) {
+            detectTapGestures {
+                currentOnAction(PlayerAction.ToggleControls)
+            }
+        }
+    } else {
+        Modifier
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(WebPlayerZOrder.Interaction)
+            .then(pointerModifier),
+    )
 }
 
 @Composable
@@ -314,6 +327,7 @@ private fun BoxScope.WebPlayerControls(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .align(Alignment.TopCenter)
+            .zIndex(WebPlayerZOrder.Controls)
             .fillMaxWidth()
             .heightIn(min = WebPlayerTokens.TopBarMinHeight)
             .background(topBrush)
@@ -353,6 +367,7 @@ private fun BoxScope.WebPlayerControls(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = Modifier
             .align(Alignment.BottomCenter)
+            .zIndex(WebPlayerZOrder.Controls)
             .fillMaxWidth()
             .background(bottomBrush)
             .padding(
@@ -724,6 +739,7 @@ private fun BoxScope.WebPlayerStatus(state: PlayerUiState) {
             StreamCoreWebPanel(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .zIndex(WebPlayerZOrder.Status)
                     .widthIn(max = WebPlayerTokens.StatusPanelMaxWidth)
                     .testTag(WebPlayerTestTags.Ended),
             ) {
@@ -739,6 +755,7 @@ private fun BoxScope.WebPlayerStatus(state: PlayerUiState) {
             StreamCoreWebPanel(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .zIndex(WebPlayerZOrder.Status)
                     .widthIn(max = WebPlayerTokens.StatusPanelMaxWidth)
                     .testTag(WebPlayerTestTags.Activation),
             ) {
@@ -769,6 +786,7 @@ private fun BoxScope.WebPlayerProgressStatus(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = Modifier
             .align(Alignment.Center)
+            .zIndex(WebPlayerZOrder.Status)
             .testTag(testTag),
     ) {
         CircularProgressIndicator(
@@ -798,6 +816,7 @@ private fun BoxScope.WebPlayerSeekFeedback(seconds: Int) {
         style = MaterialTheme.typography.headlineMedium,
         modifier = Modifier
             .align(if (seconds < 0) Alignment.CenterStart else Alignment.CenterEnd)
+            .zIndex(WebPlayerZOrder.SeekFeedback)
             .padding(horizontal = WebPlayerTokens.SeekFeedbackHorizontalPadding)
             .testTag(WebPlayerTestTags.SeekFeedback),
     )
