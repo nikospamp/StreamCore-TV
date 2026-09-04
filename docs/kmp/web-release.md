@@ -219,5 +219,8 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
   `Play` control's centered focus/hover scale could not satisfy the obsolete all-edge bounds oracle. Test-only correction
   `09c346ea40d02da5fbd3e94ee8ba17b765879c31` stabilizes the positive-area center and preserves post-hover remeasurement; the exact credential-free
   Player→Back→reload→Play journey passed 1/1 in 20.5s.
-- Fallback temporary-session and browser-storage cleanup for both failed Candidate 7 attempts were confirmed by harness control flow. The further
-  corrected live rerun is **NOT RUN** pending fresh action-time authorization.
+- Candidate 7 live attempt 3 **FAIL** at 0/1 in 58.4s at the same restored-Details checkpoint because consecutive projected centers still did not
+  settle. Correction `b70eabf328c000dc27b85374e57a601d6dee0a68` retains unique positive-area bounds and post-hover remeasurement but clicks the latest center
+  without cross-frame stability; the exact credential-free transition passed 1/1 in 21.3s.
+- Fallback temporary-session and browser-storage cleanup for all three failed Candidate 7 attempts were confirmed by harness control flow. The
+  further corrected live rerun is **NOT RUN** pending fresh action-time authorization.

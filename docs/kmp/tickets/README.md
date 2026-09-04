@@ -92,7 +92,10 @@ Play/Pause content before stable physical activation. Candidate 7 live attempt 2
 then failed 0/1 in 59.9s because centered focus/hover scale animation never satisfied the all-edge bounds oracle for the restored Details `Play`.
 Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` retains positive-area and post-hover physical-click checks; its exact credential-free
 Player→Back→reload→Play journey passed 1/1 in 20.5s. Fallback session and browser-storage cleanup were confirmed after both failures. The further
-corrected live rerun is `NOT RUN` pending fresh action-time authorization.
+corrected live attempt 3 repeated all prior checkpoints but failed 0/1 in 58.4s because consecutive projected bounds still never stabilized after
+reload. Correction `b70eabf328c000dc27b85374e57a601d6dee0a68` keeps unique positive-area bounds, remeasures after hover, and clicks the latest center without
+requiring cross-frame projection stability; the exact credential-free transition passed 1/1 in 21.3s. Fallback cleanup was again confirmed. The
+further live rerun is `NOT RUN` pending fresh action-time authorization.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
