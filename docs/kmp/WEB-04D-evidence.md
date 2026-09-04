@@ -460,3 +460,15 @@ post-acceptance manual app check; it does not retroactively rewrite Candidate 7'
 - Deterministic hidden-state timing is preferred for the inner loop, with exactly one real auto-hide timing smoke retained for release evidence.
   Live credentials remain a final, redacted, cleanup-mandatory proof rather than an iterative debugging loop. Manual Safari/macOS remains
   **WAIVED / NOT RUN**, never `PASS`.
+
+## Candidate 9 primary integration closure
+
+- Before integration, primary `codex/kmp-migration` was at `c93d330f5a66c1eed34c6e349b82f0d8044d7d76` with exactly its pre-existing
+  untracked `.kotlin/`; `.android/` was absent. WEB04D was clean at accepted evidence tip
+  `4e5cc3559ba1a40723d26300387e92f2120d8915`.
+- Primary fast-forwarded to `4e5cc3559ba1a40723d26300387e92f2120d8915` with
+  `git merge --ff-only codex/web-04d-final-integration`. The branches then reported `0 0` left/right divergence.
+- Post-integration primary status remained exactly `?? .kotlin/`; the user-owned directory was untouched and `.android/` remained absent.
+  The accepted production commits are Candidate 8 `34023b5fc1a6bd5bd9347808b215381a9d19b9c5` and Candidate 9
+  `c678192eee9fe0ac642087831670facd35e86380`, followed only by the bounded test correction and documentation commits.
+- This closure record is documentation-only. Under the adopted policy it does not retrigger Binaryen, browser, Android, or live execution.
