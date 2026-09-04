@@ -12,6 +12,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await expect(video).toHaveCount(1);
     await expectVideoPointerPassthrough(video);
     await expectPlayerState(page, "ready");
+    await expectPlayerVideoComposition(page, video, testInfo);
     await activateProjectedButton(page, "Play");
     await expect(page.locator("body")).toHaveAttribute("data-player-playing", "true");
     await activateProjectedButton(page, "Pause");
@@ -21,6 +22,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
   });
 
   test("hidden controls reveal through physical pointer input", async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "success");
 
@@ -28,10 +30,29 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await activateProjectedButton(page, "Play");
     await expect(body).toHaveAttribute("data-player-playing", "true");
     await expect(body).toHaveAttribute("data-player-active-timers", "1");
+    const videoBounds = await playerVideo(page).boundingBox({ timeout: 1_000 });
+    if (videoBounds === null) {
+      throw new Error("Player video surface does not expose viewport bounds");
+    }
+    const pointerY = videoBounds.y + videoBounds.height / 2;
+    await page.mouse.move(videoBounds.x + videoBounds.width * 0.25, pointerY);
+    await waitForAnimationFrames(page, 2);
     await expect(body).toHaveAttribute("data-player-controls-visible", "false", {
       timeout: 15_000,
     });
 
+    await page.mouse.move(videoBounds.x + videoBounds.width * 0.75, pointerY);
+    await waitForAnimationFrames(page, 2);
+    await expect(body).toHaveAttribute("data-player-controls-visible", "true");
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(body).toHaveAttribute("data-player-playing", "true");
+    await expect(body).toHaveAttribute("data-player-active-timers", "1");
+
+    await page.mouse.move(videoBounds.x + videoBounds.width / 2, pointerY);
+    await waitForAnimationFrames(page, 2);
+    await expect(body).toHaveAttribute("data-player-controls-visible", "false", {
+      timeout: 15_000,
+    });
     await clickPlayerSurfaceCenter(page);
     await expect(body).toHaveAttribute("data-player-controls-visible", "true");
     await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -42,6 +63,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
   });
 
   test("hidden controls reveal through keyboard input and Space toggles only after release", async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
     await openPlayerFixture(page, "success");
 
@@ -394,6 +416,107 @@ async function expectVideoPointerPassthrough(video: Locator): Promise<void> {
       return `${videoPointerEvents}|${hostPointerEvents}`;
     });
   }, { timeout: 30_000, intervals: [100] }).toBe("none|none");
+}
+
+async function expectPlayerVideoComposition(
+  page: Page,
+  video: Locator,
+  testInfo: TestInfo,
+): Promise<void> {
+  const structure = await video.evaluate((element) => {
+    const videoLayer = document.getElementById("streamcore-playback-video-layer");
+    const composeRoot = document.getElementById("streamcore-compose-root");
+    if (videoLayer === null || composeRoot === null) {
+      return null;
+    }
+    const videoStyle = window.getComputedStyle(element);
+    const videoLayerStyle = window.getComputedStyle(videoLayer);
+    const composeRootStyle = window.getComputedStyle(composeRoot);
+    const viewportCoveredBy = (candidate: Element): boolean => {
+      const bounds = candidate.getBoundingClientRect();
+      return Math.abs(bounds.left) < 0.5 &&
+        Math.abs(bounds.top) < 0.5 &&
+        Math.abs(bounds.width - window.innerWidth) < 0.5 &&
+        Math.abs(bounds.height - window.innerHeight) < 0.5;
+    };
+    return {
+      rootsAreOrderedBodySiblings: videoLayer.parentElement === document.body &&
+        composeRoot.parentElement === document.body &&
+        videoLayer.nextElementSibling === composeRoot,
+      videoParentId: element.parentElement?.id ?? null,
+      videoLayerPosition: videoLayerStyle.position,
+      videoLayerZIndex: videoLayerStyle.zIndex,
+      videoLayerPointerEvents: videoLayerStyle.pointerEvents,
+      videoLayerVisible: videoLayerStyle.display !== "none" &&
+        videoLayerStyle.visibility !== "hidden",
+      composeRootPosition: composeRootStyle.position,
+      composeRootZIndex: composeRootStyle.zIndex,
+      videoPointerEvents: videoStyle.pointerEvents,
+      videoBackgroundColor: videoStyle.backgroundColor,
+      videoLayerCoversViewport: viewportCoveredBy(videoLayer),
+      composeRootCoversViewport: viewportCoveredBy(composeRoot),
+      videoCoversViewport: viewportCoveredBy(element),
+    };
+  });
+  expect(structure).toEqual({
+    rootsAreOrderedBodySiblings: true,
+    videoParentId: "streamcore-playback-video-layer",
+    videoLayerPosition: "absolute",
+    videoLayerZIndex: "0",
+    videoLayerPointerEvents: "none",
+    videoLayerVisible: true,
+    composeRootPosition: "absolute",
+    composeRootZIndex: "1",
+    videoPointerEvents: "none",
+    videoBackgroundColor: "rgb(17, 197, 113)",
+    videoLayerCoversViewport: true,
+    composeRootCoversViewport: true,
+    videoCoversViewport: true,
+  });
+
+  const bounds = await video.boundingBox({ timeout: 1_000 });
+  if (bounds === null) {
+    throw new Error("Diagnostic player video does not expose viewport bounds");
+  }
+  const clipSize = 32;
+  const clip = {
+    x: Math.floor(bounds.x + bounds.width / 2 - clipSize / 2),
+    y: Math.floor(bounds.y + bounds.height / 2 - clipSize / 2),
+    width: clipSize,
+    height: clipSize,
+  };
+  await waitForAnimationFrames(page, 2);
+  const visibleFrame = await page.screenshot({ clip, animations: "disabled" });
+  const previousVisibility = await video.evaluate((element) => element.style.visibility);
+  let hiddenFrame: Buffer;
+  try {
+    await video.evaluate((element) => {
+      element.style.visibility = "hidden";
+    });
+    await waitForAnimationFrames(page, 2);
+    hiddenFrame = await page.screenshot({ clip, animations: "disabled" });
+  } finally {
+    await video.evaluate((element, visibility) => {
+      if (visibility.length === 0) {
+        element.style.removeProperty("visibility");
+      } else {
+        element.style.visibility = visibility;
+      }
+    }, previousVisibility);
+    await waitForAnimationFrames(page, 2);
+  }
+  const videoAffectedFinalComposition = !visibleFrame.equals(hiddenFrame);
+  if (!videoAffectedFinalComposition) {
+    await testInfo.attach("diagnostic-video-visible", {
+      body: visibleFrame,
+      contentType: "image/png",
+    });
+    await testInfo.attach("diagnostic-video-hidden", {
+      body: hiddenFrame,
+      contentType: "image/png",
+    });
+  }
+  expect(videoAffectedFinalComposition).toBe(true);
 }
 
 async function expectPlayerState(page: Page, state: string): Promise<void> {

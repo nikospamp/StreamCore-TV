@@ -21,8 +21,11 @@ fun main() {
     configureWebImageLoader()
     var startupState: WebStartupState by mutableStateOf(WebStartupState.Loading)
     val applicationScope = MainScope()
+    val composeRoot = requireNotNull(document.getElementById(ComposeRootElementId)) {
+        "Missing #$ComposeRootElementId host element."
+    }
 
-    ComposeViewport(document.body!!) {
+    ComposeViewport(composeRoot) {
         WebProductShell(startupState)
     }
 
@@ -59,3 +62,5 @@ fun main() {
         }
     }
 }
+
+private const val ComposeRootElementId = "streamcore-compose-root"

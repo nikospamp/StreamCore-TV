@@ -1,104 +1,86 @@
 package com.pampoukidis.streamcoretv.playback.web
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.HtmlElementView
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
+import kotlinx.browser.document
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLVideoElement
 
 internal class WebPlaybackVideoSurface(
     internal val videoElement: HTMLVideoElement,
-    private val animationFrames: WebAnimationFrameScheduler = BrowserWebAnimationFrameScheduler,
 ) : PlaybackVideoSurface {
-    private var pendingPointerTransparencyFrameId: Int? = null
     private var released: Boolean = false
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Render(modifier: Modifier) {
-        HtmlElementView(
-            factory = { videoElement },
-            update = { element ->
-                element.setAttribute("aria-label", "Video playback")
-                applyPointerTransparency(element)
+        DisposableEffect(videoElement) {
+            val videoLayer = requireNotNull(
+                document.getElementById(WEB_PLAYBACK_VIDEO_LAYER_ID) as? HTMLElement,
+            ) {
+                "Missing #$WEB_PLAYBACK_VIDEO_LAYER_ID playback video layer."
+            }
+            mount(videoLayer)
+            onDispose {
+                release(videoLayer)
+            }
+        }
+        Layout(
+            content = {},
+            modifier = modifier.drawBehind {
+                drawRect(
+                    color = Color.Transparent,
+                    blendMode = BlendMode.Clear,
+                )
             },
-            onRelease = { element -> release(element) },
-            modifier = modifier,
-        )
+        ) { _, constraints ->
+            layout(
+                width = constraints.maxWidth,
+                height = constraints.maxHeight,
+            ) {}
+        }
     }
 
-    internal fun release(element: HTMLVideoElement) {
-        if (element !== videoElement) {
+    internal fun mount(videoLayer: HTMLElement) {
+        if (released) {
             return
         }
+        videoElement.setAttribute("aria-label", VideoAriaLabel)
+        videoElement.style.setProperty(PointerEventsProperty, PointerEventsNone)
+        videoLayer.style.setProperty(PointerEventsProperty, PointerEventsNone)
+        videoLayer.style.setProperty(VisibilityProperty, VisibilityVisible)
+        if (videoElement.parentElement !== videoLayer) {
+            videoLayer.appendChild(videoElement)
+        }
+    }
+
+    internal fun release(videoLayer: HTMLElement) {
         if (released) {
             return
         }
         released = true
-        pendingPointerTransparencyFrameId?.let { requestId -> animationFrames.cancel(requestId) }
-        pendingPointerTransparencyFrameId = null
-        element.pause()
-        element.remove()
+        videoElement.pause()
+        videoElement.remove()
+        hideLayerWhenEmpty(videoLayer)
     }
 
-    internal fun applyPointerTransparency(element: HTMLVideoElement) {
-        if (released || element !== videoElement) {
-            return
+    private fun hideLayerWhenEmpty(videoLayer: HTMLElement) {
+        if (videoLayer.childElementCount == 0) {
+            videoLayer.style.setProperty(VisibilityProperty, VisibilityHidden)
         }
-        pendingPointerTransparencyFrameId?.let { requestId -> animationFrames.cancel(requestId) }
-        pendingPointerTransparencyFrameId = null
-        setVideoPointerTransparency(element)
-        val hostWasApplied = setHostPointerTransparency(element)
-        schedulePointerTransparencyRetry(
-            element = element,
-            hostWasApplied = hostWasApplied,
-            remainingUnattachedRetries = MaximumUnattachedRetryFrames,
-        )
-    }
-
-    private fun schedulePointerTransparencyRetry(
-        element: HTMLVideoElement,
-        hostWasApplied: Boolean,
-        remainingUnattachedRetries: Int,
-    ) {
-        pendingPointerTransparencyFrameId = animationFrames.request {
-            pendingPointerTransparencyFrameId = null
-            if (!released) {
-                setVideoPointerTransparency(element)
-                val hostIsApplied = setHostPointerTransparency(element)
-                when {
-                    hostIsApplied && hostWasApplied -> Unit
-                    hostIsApplied -> schedulePointerTransparencyRetry(
-                        element = element,
-                        hostWasApplied = true,
-                        remainingUnattachedRetries = 0,
-                    )
-
-                    remainingUnattachedRetries > 1 -> schedulePointerTransparencyRetry(
-                        element = element,
-                        hostWasApplied = false,
-                        remainingUnattachedRetries = remainingUnattachedRetries - 1,
-                    )
-                }
-            }
-        }
-    }
-
-    private fun setVideoPointerTransparency(element: HTMLVideoElement) {
-        element.style.setProperty(PointerEventsProperty, PointerEventsNone)
-    }
-
-    private fun setHostPointerTransparency(element: HTMLVideoElement): Boolean {
-        val host = element.parentElement as? HTMLElement ?: return false
-        host.style.setProperty(PointerEventsProperty, PointerEventsNone)
-        return true
     }
 
     private companion object {
+        const val VideoAriaLabel = "Video playback"
         const val PointerEventsProperty = "pointer-events"
         const val PointerEventsNone = "none"
-        const val MaximumUnattachedRetryFrames = 6
+        const val VisibilityProperty = "visibility"
+        const val VisibilityVisible = "visible"
+        const val VisibilityHidden = "hidden"
     }
 }

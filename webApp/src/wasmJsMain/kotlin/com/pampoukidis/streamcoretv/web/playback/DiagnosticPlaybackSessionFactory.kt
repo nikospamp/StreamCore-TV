@@ -2,10 +2,12 @@
 
 package com.pampoukidis.streamcoretv.web.playback
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.HtmlElementView
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
@@ -17,11 +19,13 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
+import com.pampoukidis.streamcoretv.playback.web.WEB_PLAYBACK_VIDEO_LAYER_ID
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLVideoElement
 import org.w3c.dom.events.Event
 
@@ -259,25 +263,45 @@ private class DiagnosticPlaybackSession(
 private class DiagnosticPlaybackVideoSurface(
     private val videoElement: HTMLVideoElement,
 ) : PlaybackVideoSurface {
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Render(modifier: Modifier) {
-        HtmlElementView(
-            factory = { videoElement },
-            update = { element ->
-                element.setAttribute("data-testid", "player:video")
-                disableHostPointerEvents(element)
-            },
-            onRelease = { element -> element.remove() },
-            modifier = modifier,
-        )
+        DisposableEffect(videoElement) {
+            val videoLayer = requireNotNull(
+                document.getElementById(WEB_PLAYBACK_VIDEO_LAYER_ID) as? HTMLElement,
+            ) {
+                "Missing #$WEB_PLAYBACK_VIDEO_LAYER_ID host element."
+            }
+            videoElement.style.apply {
+                display = "block"
+                width = "100%"
+                height = "100%"
+                objectFit = "contain"
+                backgroundColor = DiagnosticCompositingColor
+                setProperty(PointerEventsProperty, PointerEventsNone)
+            }
+            videoLayer.appendChild(videoElement)
+            videoLayer.style.visibility = VisibilityVisible
+            onDispose {
+                videoElement.remove()
+                if (videoLayer.childElementCount == 0) {
+                    videoLayer.style.visibility = VisibilityHidden
+                }
+            }
+        }
+
+        Canvas(modifier = modifier) {
+            drawRect(
+                color = Color.Transparent,
+                blendMode = BlendMode.Clear,
+            )
+        }
     }
 
-    private fun disableHostPointerEvents(element: HTMLVideoElement) {
-        val host = element.parentElement ?: return
-        val style = host.getAttribute("style").orEmpty()
-        if ("pointer-events" !in style) {
-            host.setAttribute("style", "$style;pointer-events:none;")
-        }
+    private companion object {
+        const val PointerEventsProperty = "pointer-events"
+        const val PointerEventsNone = "none"
+        const val DiagnosticCompositingColor = "rgb(17, 197, 113)"
+        const val VisibilityVisible = "visible"
+        const val VisibilityHidden = "hidden"
     }
 }
