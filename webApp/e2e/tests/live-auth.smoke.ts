@@ -374,23 +374,23 @@ async function activateSemanticButton(page: Page, button: Locator): Promise<void
 async function ensureUserActivatedPlayback(page: Page, video: Locator): Promise<void> {
   const play = page.getByRole("button", { name: "Play", exact: true });
   const pause = page.getByRole("button", { name: "Pause", exact: true });
+  const renderedPlay = play.filter({ hasText: /^Play$/ });
+  const renderedPause = pause.filter({ hasText: /^Pause$/ });
   await expect.poll(async () => {
-    const playEnabled = await play.count() === 1 && await play.isEnabled();
-    const pauseEnabled = await pause.count() === 1 && await pause.isEnabled();
-    return playEnabled || pauseEnabled;
-  }, { timeout: 30_000, intervals: [250] }).toBe(true);
-  if (await pause.count() === 1 && await pause.isEnabled()) {
-    await activateSemanticButton(page, pause);
+    return await renderedPlay.count() + await renderedPause.count();
+  }, { timeout: 30_000, intervals: [250] }).toBe(1);
+  if (await renderedPause.count() === 1) {
+    await activateSemanticButton(page, renderedPause);
     await expect.poll(async () => {
       return video.evaluate((element) => (element as HTMLVideoElement).paused);
     }, { timeout: 30_000, intervals: [250] }).toBe(true);
-    await expect(play).toBeEnabled({ timeout: 30_000 });
+    await expect(renderedPlay).toHaveCount(1, { timeout: 30_000 });
   }
-  await activateSemanticButton(page, play);
+  await activateSemanticButton(page, renderedPlay);
   await expect.poll(async () => {
     return video.evaluate((element) => !(element as HTMLVideoElement).paused);
   }, { timeout: 30_000, intervals: [250] }).toBe(true);
-  await expect(pause).toBeEnabled({ timeout: 30_000 });
+  await expect(renderedPause).toHaveCount(1, { timeout: 30_000 });
 }
 
 async function stableSemanticBounds(
