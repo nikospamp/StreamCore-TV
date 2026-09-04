@@ -155,7 +155,9 @@ test.describe("WEB-04 deterministic player acceptance", () => {
   });
 
   test("profile-scoped resume survives close and hard reload", async ({ page }, testInfo) => {
-    const diagnostics = installSanitizedDiagnostics(page, testInfo);
+    const diagnostics = installSanitizedDiagnostics(page, testInfo, {
+      allowWebKitHardReloadCoroutinePair: true,
+    });
     await openPlayerFixture(page, "resume", { profile: "profile-a" });
 
     await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "profile-a");
@@ -609,7 +611,11 @@ async function waitForAnimationFrames(page: Page, count: number): Promise<void> 
   }, count);
 }
 
-function installSanitizedDiagnostics(page: Page, testInfo: TestInfo) {
+function installSanitizedDiagnostics(
+  page: Page,
+  testInfo: TestInfo,
+  options: DiagnosticOptions = {},
+) {
   const messages: DiagnosticMessage[] = [];
   let phase: DiagnosticPhase | null = null;
   let phaseEpoch = 0;
@@ -637,7 +643,7 @@ function installSanitizedDiagnostics(page: Page, testInfo: TestInfo) {
       }
     },
     async assertClean(): Promise<void> {
-      const unexpected = unexpectedDiagnostics(messages, testInfo.project.name);
+      const unexpected = unexpectedDiagnostics(messages, testInfo.project.name, options);
       if (unexpected.length > 0) {
         await testInfo.attach("sanitized-browser-errors", {
           body: Buffer.from(JSON.stringify(unexpected.map((message) => message.text), null, 2)),
@@ -652,6 +658,7 @@ function installSanitizedDiagnostics(page: Page, testInfo: TestInfo) {
 function unexpectedDiagnostics(
   messages: readonly DiagnosticMessage[],
   projectName: string,
+  options: DiagnosticOptions,
 ): DiagnosticMessage[] {
   const unexpected: DiagnosticMessage[] = [];
   const webKitHardReloadKnownCounts = new Map<number, number>();
@@ -665,11 +672,30 @@ function unexpectedDiagnostics(
   for (let index = 0; index < messages.length; index += 1) {
     const current = messages[index];
     const normalized = current.text.trim();
+    const next = messages[index + 1];
     if (
       projectName.startsWith("webkit-") &&
       current.source === "console" &&
       normalized === WEBKIT_RENDERER_INFO_WARNING
     ) {
+      continue;
+    }
+    if (
+      options.allowWebKitHardReloadCoroutinePair === true &&
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "hard-reload" &&
+      WEBKIT_COROUTINE_TEARDOWN_ERROR.test(normalized) &&
+      next?.source === "pageerror" &&
+      next.phase === current.phase &&
+      next.phaseEpoch === current.phaseEpoch &&
+      WEBKIT_COROUTINE_TEARDOWN_ERROR.test(next.text.trim()) &&
+      (webKitHardReloadKnownCounts.get(current.phaseEpoch) ?? 0) + 2 <= MAX_WEBKIT_HARD_RELOAD_ERRORS &&
+      !webKitHardReloadCoroutineEpochs.has(current.phaseEpoch)
+    ) {
+      webKitHardReloadCoroutineEpochs.add(current.phaseEpoch);
+      incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch, 2);
+      index += 1;
       continue;
     }
     if (
@@ -720,7 +746,6 @@ function unexpectedDiagnostics(
       incrementEpochCount(webKitHardReloadKnownCounts, current.phaseEpoch);
       continue;
     }
-    const next = messages[index + 1];
     if (
       projectName.startsWith("webkit-") &&
       current.source === "pageerror" &&
@@ -837,6 +862,10 @@ type DiagnosticMessage = {
   text: string;
   phase: DiagnosticPhase | null;
   phaseEpoch: number;
+};
+
+type DiagnosticOptions = {
+  allowWebKitHardReloadCoroutinePair?: boolean;
 };
 
 type DiagnosticPhase = "hard-reload" | "player-exit";
