@@ -146,7 +146,7 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 ## Rollback
 
 1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
-   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 5 still requires freeze, full Tier 3, and a successful live
+   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 6 still requires freeze, full Tier 3, and a successful live
    rerun.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
@@ -199,5 +199,8 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
 - Focused correction evidence: compile initially failed in 10s then passed in 3s (8 actionable, 6 executed/2 up-to-date); engine 21/21 passed in
   54s (148 actionable, 12/136); player UI 14/14 passed up-to-date in 2s (180 actionable, 15/165); WebApp 65/65 passed in 43s (342 actionable,
   66/276); development distribution passed in 35s (338 actionable, 63/275); six-project Play/Pause regression passed 6/6 in 36.8s.
-- Candidate 4's non-live pass is historical and not acceptance-eligible. Candidate 5 is pending freeze and full Tier 3. Its live rerun is
-  **NOT RUN** pending fresh action-time authorization.
+- Candidate 4's non-live pass is historical and not acceptance-eligible. Candidate 5 subsequently failed its complete matrix at 183 passed / 3
+  failed / 0 skipped in 26.1m. The bounded classifier correction uses only the established exact navigation-teardown signatures with per-phase or
+  per-epoch totals, per-signature uniqueness, and required pair adjacency. A coroutine singleton or one exact adjacent pair shares one signature;
+  pair plus singleton or any repeat remains fatal. The affected WebKit focused rerun passed 4/4 in 1.3m, but does not replace the failure.
+  Candidate 6 is pending freeze and full Tier 3. Its live rerun is **NOT RUN** pending fresh action-time authorization.

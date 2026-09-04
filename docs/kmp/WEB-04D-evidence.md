@@ -169,13 +169,37 @@ silently promoted by an affected rerun.
   up-to-date in 2s with 180 actionable (15 executed, 165 up-to-date); WebApp browser suite **PASS** 65/65 in 43s with 342 actionable (66 executed,
   276 up-to-date); development distribution **PASS** in 35s with 338 actionable (63 executed, 275 up-to-date); and the six-project physical
   Play/Pause regression **PASS** 6/6 in 36.8s.
-- The production correction and focused results are pre-candidate evidence only. Candidate 5 is pending freeze and the complete Tier 3 gate.
-  Safari remains **WAIVED / NOT RUN**; the corrected live rerun is **NOT RUN** pending fresh action-time authorization.
+- The production correction and focused results were pre-Candidate-5 evidence only. Candidate 5 subsequently froze and ran the complete matrix
+  recorded below. Safari remains **WAIVED / NOT RUN**; another live rerun remains **NOT RUN** pending a green candidate and fresh action-time
+  authorization.
+
+## Candidate 5 matrix and bounded classifier correction
+
+- Candidate 5 complete six-project matrix **FAIL** in 26.1m: 183 passed / 3 failed / 0 skipped. The failed result remains authoritative and is not
+  replaced by the following test-only correction.
+- Raw WebKit classification: the product expiry phase emitted one exact, adjacent localhost-UUID blob-access → `JsException` I/O-read pair in
+  WebKit 1280 and again in WebKit 1920. The prior product classifier accepted the I/O event as its expiry singleton but retained the blob event.
+- Raw WebKit classification: the WebKit-1920 player-exit epoch emitted one exact Compose-resource access event followed by one exact adjacent
+  same-epoch coroutine-teardown pair. The prior player-exit classifier retained the Compose-resource event and counted the two coroutine events
+  as unrelated singles. All three project failures reached their final diagnostics assertion after the behavioral checks completed.
+- The product correction accepts one exact adjacent UUID blob→I/O pair in either non-null `restoration` or `expiry`, using one decoder allowance
+  per phase. The established standalone expiry I/O event shares that expiry allowance, so pair plus singleton, a repeated pair, a standalone blob,
+  wrong ordering, or cross-phase adjacency remains fatal.
+- The player-exit correction uses a total cap of three events per epoch and a per-signature ledger. It accepts one exact Compose-resource singleton
+  and either one exact coroutine singleton or one exact adjacent same-epoch coroutine pair, counting the pair as two and sharing one coroutine
+  signature. The existing blob→I/O pair also counts as two and marks I/O consumed; exact config, I/O, response-class-cast, and Compose-resource
+  singles remain unique. Unknown, extra, nonadjacent, wrong-source, wrong-phase,
+  wrong-epoch, and non-WebKit diagnostics remain fatal.
+- Final classifier refinement makes the coroutine singleton and exact adjacent pair two representations of the same per-epoch signature. Accepting
+  either blocks a later singleton, pair, or repeat in that epoch. The affected WebKit focused rerun **PASS** 4/4 in 1.3m; this remains focused
+  correction evidence and does not replace Candidate 5's failed matrix.
+- Candidate 5 is not eligible for acceptance. Candidate 6 is pending freeze and complete Tier 3 execution; focused correction evidence cannot
+  replace Candidate 5's failed matrix.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, and the bounded
-  production HtmlElementView host-pointer correction**; Candidate 5 still requires freeze and full Tier 3 execution.
+  production HtmlElementView host-pointer correction**; Candidate 6 still requires freeze and full Tier 3 execution.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -187,14 +211,16 @@ silently promoted by an affected rerun.
 - Failed Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; 185/186 passed with 1 terminal expiry diagnostic and zero skips.
 - Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; historical non-live pass, not acceptance-eligible after two failed live attempts exposed the
   production host-pointer blocker.
+- Candidate 5: complete matrix `FAIL` in 26.1m at 183 passed / 3 failed / 0 skipped; not acceptance-eligible.
+- Candidate 6: pending freeze and complete Tier 3 execution.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, and 4 `PASS`.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
-  `PASS` (186/186, zero failures/skips/retries).
+  historical `PASS` (186/186, zero failures/skips/retries), and Candidate 5 `FAIL` (183/186, zero skips).
 - Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 final production controls/settings
   captures at both required viewports `PASS` with no P0/P1 finding.
 - Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
 - Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
   claimed.
 - Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
-  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 5 rerun `NOT RUN` pending freeze, full Tier 3,
+  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 6 rerun `NOT RUN` pending freeze, full Tier 3,
   and new action-time authorization immediately before transmission.

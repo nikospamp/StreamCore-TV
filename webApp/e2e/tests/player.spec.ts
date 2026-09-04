@@ -445,8 +445,8 @@ function unexpectedDiagnostics(
   const webKitHardReloadClassCastEpochs = new Set<number>();
   const webKitHardReloadBlobEpochs = new Set<number>();
   const webKitHardReloadIoEpochs = new Set<number>();
-  const webKitPlayerExitBlobEpochs = new Set<number>();
   const webKitPlayerExitKnownCounts = new Map<number, number>();
+  const webKitPlayerExitKnownSignatures = new Map<number, Set<string>>();
   for (let index = 0; index < messages.length; index += 1) {
     const current = messages[index];
     const normalized = current.text.trim();
@@ -527,31 +527,68 @@ function unexpectedDiagnostics(
       projectName.startsWith("webkit-") &&
       current.source === "pageerror" &&
       current.phase === "player-exit" &&
+      WEBKIT_COROUTINE_TEARDOWN_ERROR.test(normalized) &&
+      next?.source === "pageerror" &&
+      next.phase === current.phase &&
+      next.phaseEpoch === current.phaseEpoch &&
+      WEBKIT_COROUTINE_TEARDOWN_ERROR.test(next.text.trim()) &&
+      consumePlayerExitSignatures(
+        webKitPlayerExitKnownCounts,
+        webKitPlayerExitKnownSignatures,
+        current.phaseEpoch,
+        [WEBKIT_PLAYER_EXIT_COROUTINE_SIGNATURE],
+        2,
+      )
+    ) {
+      index += 1;
+      continue;
+    }
+    if (
+      projectName.startsWith("webkit-") &&
+      current.source === "pageerror" &&
+      current.phase === "player-exit" &&
       WEBKIT_BLOB_ACCESS_ERROR.test(normalized) &&
       next?.source === "pageerror" &&
       next.phase === current.phase &&
       next.phaseEpoch === current.phaseEpoch &&
       next.text.trim() === WEBKIT_IO_READ_ERROR &&
-      !webKitPlayerExitBlobEpochs.has(current.phaseEpoch)
+      consumePlayerExitSignatures(
+        webKitPlayerExitKnownCounts,
+        webKitPlayerExitKnownSignatures,
+        current.phaseEpoch,
+        [WEBKIT_PLAYER_EXIT_BLOB_SIGNATURE, WEBKIT_PLAYER_EXIT_IO_SIGNATURE],
+        2,
+      )
     ) {
-      webKitPlayerExitBlobEpochs.add(current.phaseEpoch);
       index += 1;
       continue;
     }
-    const isKnownWebKitPlayerExitError =
+    const playerExitSignature = WEBKIT_COMPOSE_RESOURCE_ACCESS_ERROR.test(normalized)
+      ? WEBKIT_PLAYER_EXIT_COMPOSE_RESOURCE_SIGNATURE
+      : WEBKIT_CONFIG_ACCESS_ERROR.test(normalized)
+        ? WEBKIT_PLAYER_EXIT_CONFIG_SIGNATURE
+        : WEBKIT_COROUTINE_TEARDOWN_ERROR.test(normalized)
+          ? WEBKIT_PLAYER_EXIT_COROUTINE_SIGNATURE
+        : normalized === WEBKIT_IO_READ_ERROR
+          ? WEBKIT_PLAYER_EXIT_IO_SIGNATURE
+          : normalized === WEBKIT_RESPONSE_CLASS_CAST_ERROR
+            ? WEBKIT_PLAYER_EXIT_RESPONSE_CLASS_CAST_SIGNATURE
+            : null;
+    if (
       projectName.startsWith("webkit-") &&
       current.source === "pageerror" &&
       current.phase === "player-exit" &&
-      (
-        WEBKIT_CONFIG_ACCESS_ERROR.test(normalized) ||
-        WEBKIT_COROUTINE_TEARDOWN_ERROR.test(normalized) ||
-        normalized === WEBKIT_IO_READ_ERROR ||
-        normalized === WEBKIT_RESPONSE_CLASS_CAST_ERROR
-      );
-    if (isKnownWebKitPlayerExitError) {
-      const count = webKitPlayerExitKnownCounts.get(current.phaseEpoch) ?? 0;
-      if (count < MAX_WEBKIT_PLAYER_EXIT_ERRORS) {
-        webKitPlayerExitKnownCounts.set(current.phaseEpoch, count + 1);
+      playerExitSignature !== null
+    ) {
+      if (
+        consumePlayerExitSignatures(
+          webKitPlayerExitKnownCounts,
+          webKitPlayerExitKnownSignatures,
+          current.phaseEpoch,
+          [playerExitSignature],
+          1,
+        )
+      ) {
         continue;
       }
     }
@@ -606,7 +643,13 @@ const WEBKIT_CONFIG_ACCESS_ERROR =
 const WEBKIT_COROUTINE_TEARDOWN_ERROR =
   /^Fatal exception in coroutines machinery for AwaitContinuation\(DispatchedContinuation\[FlushCoroutineDispatcher@\d+, kotlinx\.coroutines\.DeferredCoroutine\.\$awaitCOROUTINE\$@\d+\]\)\{Completed\}@\d+\. Please read KDoc to 'handleFatalException' method and report this incident to maintainers$/;
 const MAX_WEBKIT_HARD_RELOAD_ERRORS = 2;
-const MAX_WEBKIT_PLAYER_EXIT_ERRORS = 2;
+const MAX_WEBKIT_PLAYER_EXIT_ERRORS = 3;
+const WEBKIT_PLAYER_EXIT_BLOB_SIGNATURE = "blob";
+const WEBKIT_PLAYER_EXIT_COMPOSE_RESOURCE_SIGNATURE = "compose-resource";
+const WEBKIT_PLAYER_EXIT_CONFIG_SIGNATURE = "config";
+const WEBKIT_PLAYER_EXIT_COROUTINE_SIGNATURE = "coroutine";
+const WEBKIT_PLAYER_EXIT_IO_SIGNATURE = "io-read";
+const WEBKIT_PLAYER_EXIT_RESPONSE_CLASS_CAST_SIGNATURE = "response-class-cast";
 
 function incrementEpochCount(
   counts: Map<number, number>,
@@ -614,6 +657,27 @@ function incrementEpochCount(
   increment: number = 1,
 ): void {
   counts.set(epoch, (counts.get(epoch) ?? 0) + increment);
+}
+
+function consumePlayerExitSignatures(
+  counts: Map<number, number>,
+  signatures: Map<number, Set<string>>,
+  epoch: number,
+  names: readonly string[],
+  eventCount: number,
+): boolean {
+  const count = counts.get(epoch) ?? 0;
+  const epochSignatures = signatures.get(epoch) ?? new Set<string>();
+  if (
+    count + eventCount > MAX_WEBKIT_PLAYER_EXIT_ERRORS ||
+    names.some((name) => epochSignatures.has(name))
+  ) {
+    return false;
+  }
+  names.forEach((name) => epochSignatures.add(name));
+  signatures.set(epoch, epochSignatures);
+  counts.set(epoch, count + eventCount);
+  return true;
 }
 
 async function settleNavigationDiagnostics(
