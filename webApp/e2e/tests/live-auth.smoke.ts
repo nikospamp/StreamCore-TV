@@ -348,16 +348,10 @@ async function expectProductRoute(page: Page, path: string): Promise<void> {
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
   await waitForAnimationFrames(page, 4);
-  let bounds: { x: number; y: number; width: number; height: number } | null = null;
-  await expect.poll(async () => {
-    bounds = await button.boundingBox({ timeout: 1_000 }).catch(() => null);
-    return bounds !== null;
-  }, { timeout: 30_000, intervals: [250] }).toBe(true);
-  if (bounds === null) {
-    throw new Error("Semantic control does not expose viewport bounds");
-  }
+  let bounds = await stableSemanticBounds(button);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 2);
+  bounds = await stableSemanticBounds(button);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 4);
 }
@@ -372,13 +366,38 @@ async function ensureUserActivatedPlayback(page: Page, video: Locator): Promise<
   }, { timeout: 30_000, intervals: [250] }).toBe(true);
   if (await pause.count() === 1 && await pause.isEnabled()) {
     await activateSemanticButton(page, pause);
+    await expect.poll(async () => {
+      return video.evaluate((element) => (element as HTMLVideoElement).paused);
+    }, { timeout: 30_000, intervals: [250] }).toBe(true);
     await expect(play).toBeEnabled({ timeout: 30_000 });
   }
   await activateSemanticButton(page, play);
-  await expect(pause).toBeEnabled({ timeout: 30_000 });
   await expect.poll(async () => {
     return video.evaluate((element) => !(element as HTMLVideoElement).paused);
   }, { timeout: 30_000, intervals: [250] }).toBe(true);
+  await expect(pause).toBeEnabled({ timeout: 30_000 });
+}
+
+async function stableSemanticBounds(
+  locator: Locator,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  let previous = await locator.boundingBox({ timeout: 1_000 }).catch(() => null);
+  let current = previous;
+  await expect.poll(async () => {
+    await waitForAnimationFrames(locator.page(), 2);
+    current = await locator.boundingBox({ timeout: 1_000 }).catch(() => null);
+    const stable = previous !== null && current !== null &&
+      Math.abs(previous.x - current.x) < 0.5 &&
+      Math.abs(previous.y - current.y) < 0.5 &&
+      Math.abs(previous.width - current.width) < 0.5 &&
+      Math.abs(previous.height - current.height) < 0.5;
+    previous = current;
+    return stable;
+  }, { timeout: 30_000, intervals: [100] }).toBe(true);
+  if (current === null) {
+    throw new Error("Semantic control does not expose stable viewport bounds");
+  }
+  return current;
 }
 
 async function seekPastResumeThreshold(page: Page, video: Locator): Promise<number> {

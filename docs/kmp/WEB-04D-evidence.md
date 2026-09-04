@@ -140,8 +140,23 @@ silently promoted by an affected rerun.
 - Post-run cleanup restored the WEB-04D worktree to its committed state. The primary checkout remains at
   `f9e13558b3fc1c68db89ba9715932e8db80813ae` with exactly the pre-existing untracked `.kotlin/`; the build-generated untracked `.android/` was
   removed without touching `.kotlin/`.
-- Candidate 4 is green for every recorded non-live gate. WEB-04 acceptance remains blocked by two external gates only: manual current Safari/macOS
-  and the final authorized live TMDB/public-media journey with mandatory temporary-session cleanup; both remain **NOT RUN**.
+- Candidate 4 is green for every recorded non-live gate. On 2026-09-04 the user explicitly waived the manual current Safari/macOS gate; it remains
+  **WAIVED / NOT RUN**, is not a pass, and no Safari execution evidence is claimed. WEB-04 acceptance is now blocked only by a successful rerun of
+  the authorized live TMDB/public-media journey with mandatory temporary-session cleanup.
+
+## External-gate status and live attempt 1
+
+- Manual current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04. Playwright WebKit is not substituted for Safari, the
+  checklist was not executed, and the waiver removes this gate as a current blocker without converting it to `PASS`.
+- Candidate 4 live attempt 1 used the boolean-clean wrapper and **FAILED** at 0/1 in 49.7s. The journey reached real login/session, search,
+  Details, and public Sintel, then failed while waiting for projected `Play` to appear after an attempted `Pause`.
+- Cleanup evidence is limited to the live smoke's control flow: fallback `DELETE` cleanup was confirmed because no cleanup exception replaced the
+  original failure, and browser local/session-storage cleanup was awaited. This is not recorded as a successful live journey.
+- A bounded test-only correction now re-resolves stable projected semantic bounds after hover/recomposition and uses native
+  `HTMLVideoElement.paused` state as the pause/play oracle. Its capped delta review returned **PASS**; the corrected live rerun is **NOT RUN** and
+  requires fresh action-time authorization immediately before transmission.
+- Candidate 4's production, complete non-live matrix, visual, and Android/root evidence remains valid. WEB-04 acceptance is blocked only by the
+  authorized live rerun.
 
 ## Review and release gates
 
@@ -163,6 +178,7 @@ silently promoted by an affected rerun.
 - Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 final production controls/settings
   captures at both required viewports `PASS` with no P0/P1 finding.
 - Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
-- Manual current Safari/macOS: `NOT RUN`; Playwright WebKit cannot substitute.
-- Final live TMDB/public-media journey and temporary-session cleanup: `NOT RUN`; it requires new action-time authorization immediately before
-  transmission.
+- Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
+  claimed.
+- Final live TMDB/public-media journey and temporary-session cleanup: attempt 1 `FAIL` at 0/1 in 49.7s after reaching public Sintel; corrected rerun
+  `NOT RUN` pending new action-time authorization immediately before transmission.

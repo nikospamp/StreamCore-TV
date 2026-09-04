@@ -13,8 +13,8 @@
 - WEB-04C standalone Playwright scenarios: **NOT RUN**; integrated Candidate 1 **FAILED** at 144 passed / 42 failed / 0 skipped and Candidate 2
   **FAILED** at 183 passed / 3 failed / 0 skipped; Candidate 3 **FAILED** at 185 passed / 1 failed / 0 skipped; Candidate 4 **PASS** at
   186 passed / 0 failed / 0 skipped / 0 retried
-- Current Safari/macOS: **NOT RUN**
-- Live TMDB or public-media journey: **NOT RUN**
+- Current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; no pass is claimed
+- Live TMDB or public-media journey: attempt 1 **FAIL**, 0/1 in 49.7s; corrected rerun **NOT RUN** pending fresh action-time authorization
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
 
 The target architecture remains backend-agnostic. No production Kotlin/resource, playback, feature, core, build-logic, credential, real-config,
@@ -160,12 +160,17 @@ vendor and contains no deploy credential.
   Candidate 3 **FAIL** at 185/1/0; Candidate 4 **PASS** at 186/0/0 with zero retries
 - Screenshot inspection: isolated WEB-04C **NOT RUN**; Candidate 1 failure screenshots were inspected during WEB-04D correction triage, while the
   Candidate 4 final production controls/settings set **PASS** at 1280×720 and 1920×1080 with no P0/P1 finding
-- Current Safari/macOS checklist: **NOT RUN**; Playwright WebKit must not substitute for it
-- Final redacted live TMDB/public-media journey and cleanup: **NOT RUN**
+- Current Safari/macOS checklist: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; Playwright WebKit does not substitute and no pass
+  is claimed
+- Final redacted live TMDB/public-media journey and cleanup: attempt 1 **FAIL** at 0/1 in 49.7s after real login/session, search, Details, and
+  public Sintel; it failed waiting for projected `Play` after attempted `Pause`. Fallback `DELETE` cleanup is confirmed only by live-smoke control
+  flow because no cleanup exception replaced the original, and browser local/session-storage cleanup was awaited. The bounded test-only
+  stable-bounds/native-`paused` correction was delta-reviewed `PASS`; corrected rerun **NOT RUN** pending fresh action-time authorization.
 
 WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidates 1, 2, and 3 passed
 artifact validation but failed their complete matrices at 144/42/0, 183/3/0, and 185/1/0; bounded corrections did not replace those failures.
 Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection. Current Safari/macOS
-and the live provider/media journey with cleanup remain explicitly NOT RUN, so WEB-04 acceptance remains blocked.
+is explicitly **WAIVED / NOT RUN**, not a pass, and no longer blocks by user decision. Candidate 4's production/non-live evidence remains valid;
+WEB-04 acceptance is blocked only by the authorized live rerun.
 WEB-04D reconciled A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input
 or focused-rerun status is a release pass claim.
