@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -295,38 +296,151 @@ class WebPlayerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun mouseMovementRevealsAutoHiddenControls(): TestResult {
-        var state by mutableStateOf(
-            WebPlayerFixtures.state(WebPlayerShowcaseScenario.ControlsHidden),
-        )
+    fun surfaceCenterClickDispatchesSingleToggleAction(): TestResult {
         val actions = mutableListOf<PlayerAction>()
-        return runComposeUiTest {
-            setContent {
-                StreamCoreTheme(darkTheme = true) {
-                    WebPlayerScreen(
-                        state = state,
-                        videoSurface = WebPlayerFixtures.videoSurface,
-                        onAction = { action ->
-                            actions += action
-                            if (action == PlayerAction.UserInteraction) {
-                                state = state.copy(controlsVisible = true)
-                            }
-                        },
-                    )
-                }
-            }
-
-            onNodeWithTag(PlayerTestTags.Root).assertIsFocused()
-            onAllNodesWithTag(PlayerTestTags.PlayPause).assertCountEquals(0)
+        return runPlayerUiTest(
+            state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Playing),
+            onAction = actions::add,
+        ) {
+            val surface = onNodeWithTag(WebPlayerTestTags.VideoSurface)
+            surface.performMouseInput { moveTo(center) }
+            waitForIdle()
             actions.clear()
-            onNodeWithTag(PlayerTestTags.Root).performMouseInput {
-                moveTo(center)
-            }
-            onNodeWithTag(PlayerTestTags.PlayPause)
-                .assertIsDisplayed()
-                .assertIsFocused()
-            assertTrue(actions.contains(PlayerAction.UserInteraction))
+
+            surface.performMouseInput { click(center) }
+            waitForIdle()
+
+            assertEquals(listOf<PlayerAction>(PlayerAction.ToggleControls), actions)
+            assertFalse(actions.contains(PlayerAction.TogglePlayPause))
         }
+    }
+
+    @Test
+    fun documentRevealCaptureAcceptsNavigationKeysFromComposeTargetsOnly() {
+        listOf(
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Enter",
+            " ",
+            "Spacebar",
+        ).forEach { key ->
+            assertTrue(isWebPlayerDocumentControlsRevealKey(key), key)
+        }
+        listOf("Escape", "Tab", "a").forEach { key ->
+            assertFalse(isWebPlayerDocumentControlsRevealKey(key), key)
+        }
+
+        listOf("canvas", "BODY", "div").forEach { tagName ->
+            assertTrue(
+                isWebPlayerDocumentControlsRevealTarget(
+                    tagName = tagName,
+                    isContentEditable = false,
+                ),
+                tagName,
+            )
+        }
+        listOf(null, "input", "textarea", "select", "button").forEach { tagName ->
+            assertFalse(
+                isWebPlayerDocumentControlsRevealTarget(
+                    tagName = tagName,
+                    isContentEditable = false,
+                ),
+                tagName.orEmpty(),
+            )
+        }
+        assertFalse(
+            isWebPlayerDocumentControlsRevealTarget(
+                tagName = "div",
+                isContentEditable = true,
+            ),
+        )
+    }
+
+    @Test
+    fun documentRevealCaptureConsumesOnlyLatchedKeyUpAfterVisibilityChange() {
+        val captureState = WebPlayerDocumentControlsRevealCaptureState()
+
+        assertEquals(
+            WebPlayerDocumentKeyCaptureDecision.ConsumeAndReveal,
+            captureState.onKeyDown(
+                key = " ",
+                repeat = false,
+                revealEnabled = true,
+                revealTarget = true,
+            ),
+        )
+        assertEquals(
+            WebPlayerDocumentKeyCaptureDecision.Consume,
+            captureState.onKeyDown(
+                key = " ",
+                repeat = true,
+                revealEnabled = false,
+                revealTarget = false,
+            ),
+        )
+        assertEquals(
+            WebPlayerDocumentKeyCaptureDecision.Consume,
+            captureState.onKeyUp(" "),
+        )
+        assertEquals(
+            WebPlayerDocumentKeyCaptureDecision.PassThrough,
+            captureState.onKeyUp(" "),
+        )
+        assertEquals(
+            WebPlayerDocumentKeyCaptureDecision.PassThrough,
+            captureState.onKeyDown(
+                key = " ",
+                repeat = false,
+                revealEnabled = false,
+                revealTarget = true,
+            ),
+        )
+    }
+
+    @Test
+    fun documentPointerCaptureRevealsOnceAndPassesVisibleOrNonPrimaryInput() {
+        val captureState = WebPlayerDocumentPointerRevealCaptureState()
+        captureState.updateEnabled(true)
+
+        assertTrue(
+            captureState.shouldScheduleMoveReveal(
+                revealEnabled = true,
+                revealTarget = true,
+            ),
+        )
+        assertEquals(
+            WebPlayerDocumentPointerCaptureDecision.ConsumeAndReveal,
+            captureState.onPointerDown(
+                revealEnabled = true,
+                revealTarget = true,
+                primaryButton = true,
+            ),
+        )
+        assertFalse(captureState.revealFromScheduledMove(revealEnabled = true))
+
+        captureState.updateEnabled(false)
+        assertEquals(
+            WebPlayerDocumentPointerCaptureDecision.PassThrough,
+            captureState.onPointerDown(
+                revealEnabled = false,
+                revealTarget = true,
+                primaryButton = true,
+            ),
+        )
+
+        captureState.updateEnabled(true)
+        assertEquals(
+            WebPlayerDocumentPointerCaptureDecision.PassThrough,
+            captureState.onPointerDown(
+                revealEnabled = true,
+                revealTarget = true,
+                primaryButton = false,
+            ),
+        )
+        assertFalse(isWebPlayerPrimaryPointerButton(button = 1))
+        assertTrue(isWebPlayerPrimaryPointerButton(button = 0))
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -358,7 +472,7 @@ class WebPlayerScreenTest {
             onNodeWithTag(PlayerTestTags.PlayPause)
                 .assertIsDisplayed()
                 .assertIsFocused()
-            assertTrue(actions.contains(PlayerAction.UserInteraction))
+            assertEquals(listOf<PlayerAction>(PlayerAction.UserInteraction), actions)
         }
     }
 

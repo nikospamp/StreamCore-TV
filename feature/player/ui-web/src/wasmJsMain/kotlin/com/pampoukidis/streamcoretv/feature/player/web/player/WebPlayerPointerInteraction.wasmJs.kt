@@ -9,9 +9,7 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 internal actual fun Modifier.webPlayerPointerInteraction(
     onInteraction: () -> Unit,
 ): Modifier {
-    return onPointerEvent(PointerEventType.Enter) {
-        onInteraction()
-    }.onPointerEvent(PointerEventType.Move) {
+    return onPointerEvent(PointerEventType.Move) {
         onInteraction()
     }
 }

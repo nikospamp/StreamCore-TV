@@ -91,6 +91,7 @@ internal fun WebDiagnosticPlayerDestination(
     DisposableEffect(diagnosticApplication, storeOwner) {
         onDispose {
             document.body?.removeAttribute(FixtureReadyAttribute)
+            document.body?.removeAttribute(ControlsVisibleAttribute)
             storeOwner.viewModelStore.clear()
             diagnosticApplication.close()
         }
@@ -123,6 +124,7 @@ private fun InvalidDiagnosticPlayerDestination(
     DisposableEffect(route, fixtureName) {
         val body = document.body
         body?.removeAttribute(FixtureReadyAttribute)
+        body?.removeAttribute(ControlsVisibleAttribute)
         body?.setAttribute("data-product-route", route.path)
         body?.setAttribute("data-player-fixture", fixtureName)
         body?.setAttribute("data-player-invalid-request", "true")
@@ -134,6 +136,7 @@ private fun InvalidDiagnosticPlayerDestination(
         body?.setAttribute(FixtureReadyAttribute, "true")
         onDispose {
             body?.removeAttribute(FixtureReadyAttribute)
+            body?.removeAttribute(ControlsVisibleAttribute)
         }
     }
     StreamCoreWebBlockingSurface(
@@ -200,6 +203,7 @@ private fun publishDiagnosticPlayerEvidence(
     body.setAttribute("data-player-profile-id", profileId)
     body.setAttribute("data-player-phase", state.phase.name.lowercase())
     body.setAttribute("data-player-playing", state.isPlaying.toString())
+    body.setAttribute(ControlsVisibleAttribute, state.controlsVisible.toString())
     body.setAttribute(
         "data-player-activation-required",
         DiagnosticPlayerRegistry.activationRequired.toString(),
@@ -328,6 +332,7 @@ private class DiagnosticPlayerViewModelStoreOwner : ViewModelStoreOwner {
 }
 
 private const val FixtureReadyAttribute = "data-player-fixture-ready"
+private const val ControlsVisibleAttribute = "data-player-controls-visible"
 private const val InvalidFixtureName = "invalid-direct-id"
 private const val FullscreenEvent = "fullscreenchange"
 

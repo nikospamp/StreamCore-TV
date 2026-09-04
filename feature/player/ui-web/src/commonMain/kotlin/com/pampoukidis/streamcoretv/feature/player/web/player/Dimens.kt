@@ -32,6 +32,14 @@ internal object WebPlayerTokens {
     const val FocusRequestAttempts = 4
 }
 
+internal object WebPlayerZOrder {
+    const val VideoSurface = 0f
+    const val Interaction = 1f
+    const val Controls = 2f
+    const val Status = 3f
+    const val SeekFeedback = 4f
+}
+
 internal val WebPlayerSpeedOptions = listOf(
     0.5f,
     0.75f,
