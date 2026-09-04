@@ -305,8 +305,15 @@ silently promoted by an affected rerun.
   remains exactly 1 test in 1 file.
 - Attempt 3 also stopped before logout; the original bounds assertion remained terminal rather than the cleanup-specific error, confirming fallback
   session deletion and nested browser-storage cleanup by control flow.
-- A further corrected live rerun is **NOT RUN** and requires fresh action-time authorization before credential transmission. Candidate 7 production
-  and its complete non-live pass remain unchanged.
+- Candidate 7 live attempt 4 (overall live attempt 6) ran from clean evidence revision
+  `f38f1e254bb54aa9704d4d40c7adfdacfd44de14`; redacted preflight passed and all prior checkpoints repeated. It then **FAIL** at 0/1 in 56.2s
+  because restored Details projected no `Play` button. This is expected product state: progress had been persisted beyond the resume threshold, so
+  `DetailsViewModel` sets resumable progress and the Details CTA renders `Resume`. The harness was querying the wrong accessible name.
+- One-word test correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` activates exact `Resume` after hard reload and retains physical bounds, Player/video, restored-position,
+  logout, endpoint, and cleanup assertions. Live discovery remains exactly 1 test in 1 file. Attempt 4 stopped before logout; fallback session and
+  browser-storage cleanup were again confirmed by control flow.
+- A further corrected live rerun is **NOT RUN** but is covered by the user's explicit standing authorization for every remaining rerun in this task;
+  no further approval prompt is required. Candidate 7 production and its complete non-live pass remain unchanged.
 
 ## Review and release gates
 
@@ -328,8 +335,8 @@ silently promoted by an affected rerun.
   0 skipped; not acceptance-eligible.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
-- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1, 2, and 3 `FAIL` at 0/1 in 50.4s,
-  59.9s, and 58.4s; further corrected rerun `NOT RUN`.
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1–4 `FAIL` at 0/1 in 50.4s, 59.9s,
+  58.4s, and 56.2s; standing-authorized corrected rerun `NOT RUN`.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
   unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
@@ -348,5 +355,6 @@ silently promoted by an affected rerun.
   seek/fullscreen, exit, and hard reload because centered focus/hover scaling never satisfied the all-edge bounds oracle; fallback cleanup was again
   confirmed. Center-stability correction `09c346ea40d02da5fbd3e94ee8ba17b765879c31` was exercised by Candidate 7 attempt 3, which `FAIL` at 0/1
   in 58.4s at the same restored-Details bounds checkpoint. Fresh-bounds correction
-  `b70eabf328c000dc27b85374e57a601d6dee0a68` is committed, credential-free exact transition evidence is 1/1 in 21.3s, and the further corrected
-  live rerun is `NOT RUN` pending fresh action-time authorization.
+  `b70eabf328c000dc27b85374e57a601d6dee0a68` is committed, and credential-free exact transition evidence is 1/1 in 21.3s. Candidate 7 attempt 4
+  `FAIL` at 0/1 in 56.2s because the restored CTA correctly rendered `Resume`, not the queried `Play`. Correction
+  `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` is committed; the next live rerun is `NOT RUN` and standing-authorized.

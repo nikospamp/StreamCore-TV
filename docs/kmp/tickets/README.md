@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 7 non-live PASS; further corrected live rerun NOT RUN pending fresh authorization.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 7 non-live PASS; further live rerun NOT RUN under standing authorization.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -95,7 +95,9 @@ Player→Back→reload→Play journey passed 1/1 in 20.5s. Fallback session and 
 corrected live attempt 3 repeated all prior checkpoints but failed 0/1 in 58.4s because consecutive projected bounds still never stabilized after
 reload. Correction `b70eabf328c000dc27b85374e57a601d6dee0a68` keeps unique positive-area bounds, remeasures after hover, and clicks the latest center without
 requiring cross-frame projection stability; the exact credential-free transition passed 1/1 in 21.3s. Fallback cleanup was again confirmed. The
-further live rerun is `NOT RUN` pending fresh action-time authorization.
+next live attempt repeated all prior checkpoints but failed 0/1 in 56.2s because persisted progress correctly changed the restored Details CTA from
+`Play` to `Resume`. One-word correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` now targets exact `Resume`; fallback cleanup was again
+confirmed. The further live rerun is `NOT RUN` and covered by the user's standing authorization for all remaining reruns.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
