@@ -9,15 +9,15 @@
   `d9a05ce7e4594f42efccc8c02d2c9b0ec6003f60`, and 3 `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1` executed and **FAILED** their
   complete matrices; integrated Candidate 4 `dc066a26effde71eabfc66ca590f37ea976805f7` **PASSED** its complete matrix, but is historical and not
   acceptance-eligible after the subsequent live production blocker and production correction
-- Production artifact validation: isolated WEB-04C **NOT RUN**; integrated Candidates 1, 2, 3, and 4 production/Binaryen artifacts and validators
+- Production artifact validation: isolated WEB-04C **NOT RUN**; integrated Candidates 1 through 7 production/Binaryen artifacts and validators
   **PASS**
 - WEB-04C standalone Playwright scenarios: **NOT RUN**; integrated Candidate 1 **FAILED** at 144 passed / 42 failed / 0 skipped and Candidate 2
   **FAILED** at 183 passed / 3 failed / 0 skipped; Candidate 3 **FAILED** at 185 passed / 1 failed / 0 skipped; Candidate 4 **PASS** at
   186 passed / 0 failed / 0 skipped / 0 retried; Candidate 5 **FAILED** at 183 passed / 3 failed / 0 skipped; Candidate 6 **FAILED** at
-  185 passed / 1 failed / 0 skipped
+  185 passed / 1 failed / 0 skipped; Candidate 7 **PASS** at 186 passed / 0 failed / 0 skipped / 0 retried
 - Current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; no pass is claimed
 - Live TMDB or public-media journey: Candidate 4 attempts 1 and 2 **FAIL** at 0/1 in 49.7s and 49.1s; Candidate 7 rerun is authorized by the user
-  in the current turn but remains **NOT RUN**, gated on green non-live checks; no credential transmission has occurred
+  in the current turn but remains **NOT RUN** until its green non-live evidence is committed; no Candidate 7 credential transmission has occurred
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
 
 The target architecture remains backend-agnostic. No production Kotlin/resource, playback, feature, core, build-logic, credential, real-config,
@@ -72,8 +72,11 @@ generated distribution, browser binary, node-module, or screenshot file was chan
   the subsequently executed candidate.
 - Candidate 6 complete matrix **FAIL** in 26.0m at 185 passed / 1 failed / 0 skipped. The sole WebKit-1280 player failure was unknown
   `Cache API operation failed: Context is stopped` during the second cross-document Back, between known Compose-resource and coroutine teardown
-  events after behavior passed. The correction adds no whitelist: it uses projected Player navigation and same-document browser Back, then asserts
-  exact route-scoped session/listener/timer/video cleanup and close-count increments. Candidate 7 is pending freeze and full Tier 3.
+  events after behavior passed. The correction adds no whitelist: it uses projected Player navigation, Escape/Back disposal, browser Forward
+  re-entry, and final Back disposal with exact route-scoped lifecycle counters.
+- Candidate 7 `1cb7ca253182f5f61ed07e7c9905f18e1307c469` complete non-live gate **PASS**: production/Binaryen distribution in 13s, artifact validator,
+  locked install, complete matrix 186/186 in 22.2m with every project 31/31, current controls/settings visual inspection at both required
+  viewports, and combined Android/root gate in 58s with 2,350 actionable tasks and player-mobile 12/12.
 
 The isolated WEB-04C observations are not runtime passes; integrated candidate results are labeled explicitly.
 
@@ -172,27 +175,27 @@ vendor and contains no deploy credential.
 - Read-only security/release review: **PASS after one bounded correction**. The initial review blocked raw-token scanning, script-root confinement,
   invalid-ID proof, and profile-isolated resume; a delta-only re-review confirmed all four findings closed and introduced no new scope.
 - TypeScript/Playwright discovery: isolated WEB-04C **NOT RUN**; integrated default discovery **PASS**, 186 registrations in three files
-- Release validator against a frozen production artifact: isolated WEB-04C **NOT RUN**; integrated Candidates 1, 2, 3, and 4 **PASS**
+- Release validator against a frozen production artifact: isolated WEB-04C **NOT RUN**; integrated Candidates 1 through 7 **PASS**
 - Chromium 1280 development fixture journey: **PASS on the integrated development artifact** — final clean run 10/10 in 57.2s, zero skips;
   earlier bounded runs exposed and retained evidence for module-resource packaging, `HtmlElementView` pointer interception, document Escape, and
   shadow-root focus restoration before the clean rerun.
 - Six-project production matrix: isolated WEB-04C **NOT RUN**; integrated Candidate 1 **FAIL** at 144/42/0, Candidate 2 **FAIL** at 183/3/0, and
   Candidate 3 **FAIL** at 185/1/0; Candidate 4 historical **PASS** at 186/0/0 with zero retries, not a current acceptance candidate; Candidate 5
-  **FAIL** at 183/3/0; Candidate 6 **FAIL** at 185/1/0
+  **FAIL** at 183/3/0; Candidate 6 **FAIL** at 185/1/0; Candidate 7 current **PASS** at 186/0/0 with zero retries
 - Screenshot inspection: isolated WEB-04C **NOT RUN**; Candidate 1 failure screenshots were inspected during WEB-04D correction triage, while the
-  Candidate 4 final production controls/settings set **PASS** at 1280×720 and 1920×1080 with no P0/P1 finding
+  Candidate 4 historical and Candidate 7 current production controls/settings sets **PASS** at 1280×720 and 1920×1080 with no P0/P1 finding
 - Current Safari/macOS checklist: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; Playwright WebKit does not substitute and no pass
   is claimed
 - Final redacted live TMDB/public-media journey and cleanup: Candidate 4 attempt 1 **FAIL** at 0/1 in 49.7s; attempt 2 on `eb37969` **FAIL** at 0/1
   in 49.1s because native video remained unpaused after the stable projected Pause click. Cleanup was confirmed only by live-smoke control flow.
-  Candidate 7 corrected rerun is authorized by the user in the current turn but remains **NOT RUN**, gated on green non-live checks; no credential
-  transmission has occurred.
+  Candidate 7 corrected rerun is authorized by the user in the current turn but remains **NOT RUN** until its green non-live evidence commit; no
+  Candidate 7 credential transmission has occurred.
 
 WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidates 1, 2, and 3 passed
 artifact validation but failed their complete matrices at 144/42/0, 183/3/0, and 185/1/0; bounded corrections did not replace those failures.
 Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection, but its evidence is
 now historical and it is not acceptance-eligible after the live production blocker and subsequent production correction. Current Safari/macOS is
-explicitly **WAIVED / NOT RUN**, not a pass. Candidates 5 and 6 failed their complete matrices at 183/3/0 and 185/1/0; Candidate 7 is pending
-freeze and full Tier 3, and its authorized live rerun remains **NOT RUN**, gated on those non-live checks.
+explicitly **WAIVED / NOT RUN**, not a pass. Candidates 5 and 6 failed their complete matrices at 183/3/0 and 185/1/0; Candidate 7 passed its
+complete non-live gate at 186/0/0 and its authorized live rerun remains **NOT RUN** until the evidence commit.
 WEB-04D reconciled A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input
 or focused-rerun status is a release pass claim.

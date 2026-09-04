@@ -170,8 +170,8 @@ silently promoted by an affected rerun.
   276 up-to-date); development distribution **PASS** in 35s with 338 actionable (63 executed, 275 up-to-date); and the six-project physical
   Play/Pause regression **PASS** 6/6 in 36.8s.
 - The production correction and focused results were pre-Candidate-5 evidence only. Candidate 5 subsequently froze and ran the complete matrix
-  recorded below. Safari remains **WAIVED / NOT RUN**; another live rerun remains **NOT RUN** pending a green candidate and fresh action-time
-  authorization.
+  recorded below. Safari remains **WAIVED / NOT RUN**. Candidate 7 later supplied a green non-live candidate and the user authorized its live
+  rerun; that live result remains **NOT RUN** until the evidence commit below is complete.
 
 ## Candidate 5 matrix and bounded classifier correction
 
@@ -232,13 +232,36 @@ silently promoted by an affected rerun.
 - Exact affected command `npx.cmd playwright test tests/player.spec.ts --project=webkit-1280 --project=webkit-1920 --grep "Escape closes one layer"
   --reporter=line` **PASS** with exit code 0 at 2/2 in 13.0s. The classifier is unchanged; unknown `Context is stopped` remains fatal. This focused
   result does not replace Candidate 6's failed matrix.
-- Candidate 6 remains failed. Candidate 7 is pending freeze and complete Tier 3 execution.
+- Candidate 6 remains failed. Candidate 7 subsequently froze and completed the non-live gates recorded below.
+
+## Candidate 7 frozen non-live acceptance evidence
+
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; the WEB-04D worktree was clean before execution. Its delta from Candidate 6 is limited to
+  the reviewed Player navigation test and evidence/release documentation; production remains the backend-agnostic Candidate 5 base.
+- `.\gradlew.bat :webApp:wasmJsBrowserDistribution --max-workers=1 --console=plain` **PASS** in 13s with 344 actionable tasks (59 executed,
+  285 up-to-date). The production output contains `streamcore-web.js` at 1,377,368 bytes, application Wasm at 6,435,018 bytes, and Skiko Wasm at
+  8,640,316 bytes.
+- `npm.cmd run validate:release` **PASS** with 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
+  The frozen locked install `npm.cmd ci` also **PASS** in 5m with 3 packages added; the package and lock inputs are unchanged from Candidate 5.
+- `npx.cmd playwright test --reporter=line` **PASS** with exit code 0 in 22.2m: 186 passed / 0 failed / 0 skipped / 0 retried. Chromium 1280,
+  Chromium 1920, Firefox 1280, Firefox 1920, WebKit 1280, and WebKit 1920 each completed 31/31. By suite, Player passed 60/60, product passed 66/66,
+  and runtime passed 60/60.
+- Current production visual capture **PASS**: the temporary capture-only test passed 2/2 in 6.3s and produced controls/settings images at 1280×720
+  and 1920×1080. Human inspection found no P0/P1 readability, clipping, overlap, focus-visibility, responsive-placement, timeline, or panel/scrim
+  issue. The temporary test and tracked screenshot churn were restored exactly to Candidate 7 before the next gate.
+- Combined Android/root compatibility gate **PASS** in 58s with 2,350 actionable tasks (103 executed, 2,247 up-to-date), covering Media3 compile,
+  player-mobile unit tests, TMDB and ClientB debug APK assembly, and root `check` with design-token verification and one worker. Player-mobile reports
+  12/12 with zero failures/errors/skips. APK sizes are 23,177,040 bytes (TMDB) and 23,012,604 bytes (ClientB).
+- Post-run cleanup restored WEB-04D to exact Candidate 7 and removed the verified generated primary `.android/` directory. The primary checkout
+  remains `f9e13558b3fc1c68db89ba9715932e8db80813ae` with exactly its pre-existing untracked `.kotlin/` directory.
+- Every required non-live Candidate 7 gate is green. Current Safari/macOS remains explicitly **WAIVED / NOT RUN**, never `PASS`. The user-authorized
+  live TMDB/public-media journey remains **NOT RUN** until this evidence is committed; no Candidate 7 credential transmission has occurred yet.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, the bounded
-  production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**; Candidate 7 still requires freeze and full
-  Tier 3 execution.
+  production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**. Candidate 7 non-live execution is green;
+  final acceptance remains gated only on the authorized live journey and cleanup.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -254,17 +277,19 @@ silently promoted by an affected rerun.
   0 skipped; not acceptance-eligible.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
-- Candidate 7: pending freeze and complete Tier 3 execution.
-- Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, and 6 `PASS`; Candidate 6 reused Candidate 5's unchanged
-  production artifact.
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`, live gate `NOT RUN`.
+- Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
+  unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
   historical `PASS` (186/186, zero failures/skips/retries), Candidate 5 `FAIL` (183/186, zero skips), and Candidate 6 `FAIL`
-  (185/186, zero skips).
-- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 final production controls/settings
-  captures at both required viewports `PASS` with no P0/P1 finding.
-- Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
+  (185/186, zero skips); Candidate 7 `PASS` (186/186, zero failures/skips/retries).
+- Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 historical and Candidate 7 current
+  production controls/settings captures at both required viewports `PASS` with no P0/P1 finding.
+- Android/root compatibility gate: Candidate 7 `PASS` in 58s, 2,350 actionable tasks (103 executed, 2,247 up-to-date), with player-mobile 12/12 and
+  both requested APKs assembled.
 - Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
   claimed.
 - Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
   at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 7 rerun is authorized by the user in the
-  current turn but remains `NOT RUN`, gated on green non-live checks; no credential transmission has occurred in this candidate.
+  current turn but remains `NOT RUN` until this evidence commit completes; all non-live checks are green and no credential transmission has occurred
+  in this candidate.
