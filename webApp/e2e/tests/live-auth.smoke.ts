@@ -401,15 +401,22 @@ async function stableSemanticBounds(
   await expect.poll(async () => {
     await waitForAnimationFrames(locator.page(), 2);
     current = await locator.boundingBox({ timeout: 1_000 }).catch(() => null);
-    const stable = previous !== null && current !== null &&
-      Math.abs(previous.x - current.x) < 0.5 &&
-      Math.abs(previous.y - current.y) < 0.5 &&
-      Math.abs(previous.width - current.width) < 0.5 &&
-      Math.abs(previous.height - current.height) < 0.5;
+    const previousCenter = previous === null ? null : {
+      x: previous.x + previous.width / 2,
+      y: previous.y + previous.height / 2,
+    };
+    const currentCenter = current === null ? null : {
+      x: current.x + current.width / 2,
+      y: current.y + current.height / 2,
+    };
+    const stable = previousCenter !== null && currentCenter !== null &&
+      current !== null && current.width > 0 && current.height > 0 &&
+      Math.abs(previousCenter.x - currentCenter.x) < 0.5 &&
+      Math.abs(previousCenter.y - currentCenter.y) < 0.5;
     previous = current;
     return stable;
   }, { timeout: 30_000, intervals: [100] }).toBe(true);
-  if (current === null) {
+  if (current === null || current.width <= 0 || current.height <= 0) {
     throw new Error("Semantic control does not expose stable viewport bounds");
   }
   return current;
