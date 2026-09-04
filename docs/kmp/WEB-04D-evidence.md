@@ -170,8 +170,8 @@ silently promoted by an affected rerun.
   276 up-to-date); development distribution **PASS** in 35s with 338 actionable (63 executed, 275 up-to-date); and the six-project physical
   Play/Pause regression **PASS** 6/6 in 36.8s.
 - The production correction and focused results were pre-Candidate-5 evidence only. Candidate 5 subsequently froze and ran the complete matrix
-  recorded below. Safari remains **WAIVED / NOT RUN**. Candidate 7 later supplied a green non-live candidate and the user authorized its live
-  rerun; that live result remains **NOT RUN** until the evidence commit below is complete.
+  recorded below. Safari remains **WAIVED / NOT RUN**. Candidate 7 later supplied a green non-live candidate and a passing live journey with
+  application cleanup, recorded below.
 
 ## Candidate 5 matrix and bounded classifier correction
 
@@ -312,14 +312,22 @@ silently promoted by an affected rerun.
 - One-word test correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` activates exact `Resume` after hard reload and retains physical bounds, Player/video, restored-position,
   logout, endpoint, and cleanup assertions. Live discovery remains exactly 1 test in 1 file. Attempt 4 stopped before logout; fallback session and
   browser-storage cleanup were again confirmed by control flow.
-- A further corrected live rerun is **NOT RUN** but is covered by the user's explicit standing authorization for every remaining rerun in this task;
-  no further approval prompt is required. Candidate 7 production and its complete non-live pass remain unchanged.
+- Candidate 7 live attempt 5 (overall live attempt 7) ran from clean evidence revision
+  `fcb36c1b5f7938afe34a7ebca492a7ef04109731` under standing authorization. Redacted preflight passed, and the complete journey **PASS** 1/1 in
+  35.7s (test body 34.7s): credential field separation; real login/session and profile selection; Search → Details → My List → Library → Details;
+  public Sintel production Player; pointer pass-through; Pause→Play; seek past the resume threshold; fullscreen pointer and Space re-entry; Player
+  exit/video removal; hard reload; exact `Resume`; restored-position assertion; second Player exit/video removal; logout; and browser Back remaining
+  on Login.
+- All 16 required TMDB endpoint classes were observed at least once and every observed response was 2xx, including application-driven session
+  `DELETE`. The captured session was non-null, response JSON confirmed cleanup success, browser local/session storage was cleared in `finally`, and
+  no secret value was printed or retained.
+- Candidate 7 production and its complete non-live pass remain unchanged. The live external gate and mandatory cleanup are now **PASS**.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, the bounded
   production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**. Candidate 7 non-live execution is green;
-  final acceptance remains gated only on a further corrected, freshly authorized live journey and cleanup.
+  the live journey and cleanup are also green. WEB-04D is accepted for primary fast-forward; Safari/macOS remains explicitly waived/not run.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -336,7 +344,7 @@ silently promoted by an affected rerun.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
 - Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`; live attempts 1–4 `FAIL` at 0/1 in 50.4s, 59.9s,
-  58.4s, and 56.2s; standing-authorized corrected rerun `NOT RUN`.
+  58.4s, and 56.2s; live attempt 5 `PASS` at 1/1 in 35.7s with application cleanup.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
   unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
@@ -357,4 +365,5 @@ silently promoted by an affected rerun.
   in 58.4s at the same restored-Details bounds checkpoint. Fresh-bounds correction
   `b70eabf328c000dc27b85374e57a601d6dee0a68` is committed, and credential-free exact transition evidence is 1/1 in 21.3s. Candidate 7 attempt 4
   `FAIL` at 0/1 in 56.2s because the restored CTA correctly rendered `Resume`, not the queried `Play`. Correction
-  `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` is committed; the next live rerun is `NOT RUN` and standing-authorized.
+  `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` is committed. Candidate 7 attempt 5 `PASS` at 1/1 in 35.7s: the complete journey, all required 2xx
+  endpoint classes, application logout/session deletion, and browser-storage cleanup passed.

@@ -146,8 +146,7 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 ## Rollback
 
 1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
-   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 7's non-live gates are green and promotion still requires its
-   successful corrected live rerun and cleanup.
+   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 7's non-live and live/cleanup gates are green.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
 4. Purge only `index.html` and `/config.json` where caches require it. Content-hashed assets remain immutable.
@@ -224,5 +223,8 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
   without cross-frame stability; the exact credential-free transition passed 1/1 in 21.3s.
 - Candidate 7 live attempt 4 **FAIL** at 0/1 in 56.2s after repeating all prior checkpoints because restored resumable content correctly exposed
   `Resume`, while the harness queried `Play`. One-word correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` targets exact `Resume`.
-- Fallback temporary-session and browser-storage cleanup for all four failed Candidate 7 attempts were confirmed by harness control flow. The
-  further corrected live rerun is **NOT RUN** under the user's explicit standing authorization for every remaining rerun in this task.
+- Fallback temporary-session and browser-storage cleanup for all four failed Candidate 7 attempts were confirmed by harness control flow.
+- Candidate 7 live attempt 5 **PASS** at 1/1 in 35.7s. The complete Login → Profiles → Search/Details/My List/Library → production Player →
+  Pause/Play → seek → fullscreen → Back → hard reload/Resume → Back → logout journey passed. All 16 required TMDB endpoint classes were observed
+  only at 2xx, application-driven temporary-session deletion was confirmed, browser storage was cleared, and no secret value was emitted.
+- Candidate 7 is accepted for primary fast-forward. Safari/macOS remains explicitly **WAIVED / NOT RUN**, not `PASS`.
