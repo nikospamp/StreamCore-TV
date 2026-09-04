@@ -175,6 +175,12 @@ silently promoted by an affected rerun.
 
 ## Candidate 5 matrix and bounded classifier correction
 
+- Frozen production correction `a6f4b64b2ab75ec3439623bfd56b31b759badfef` ran
+  `.\gradlew.bat :webApp:wasmJsBrowserDistribution --max-workers=1`: **PASS** in 3m42s with 340 actionable tasks (64 executed,
+  276 up-to-date). `webApp/build/dist/wasmJs/productionExecutable` contained approximately 1.31 MiB JavaScript, 6.14 MiB application Wasm,
+  and 8.24 MiB Skiko Wasm.
+- Candidate 5 dependency and artifact checks: `npm ci` **PASS** in 4m with 3 packages installed, 4 audited, and 0 vulnerabilities;
+  `npm run validate:release` **PASS** with 1 HTML, 1 JavaScript, 2 Wasm, 51 Compose assets, 1 placeholder config example, and 0 real configs.
 - Candidate 5 complete six-project matrix **FAIL** in 26.1m: 183 passed / 3 failed / 0 skipped. The failed result remains authoritative and is not
   replaced by the following test-only correction.
 - Raw WebKit classification: the product expiry phase emitted one exact, adjacent localhost-UUID blob-access → `JsException` I/O-read pair in
@@ -193,13 +199,46 @@ silently promoted by an affected rerun.
 - Final classifier refinement makes the coroutine singleton and exact adjacent pair two representations of the same per-epoch signature. Accepting
   either blocks a later singleton, pair, or repeat in that epoch. The affected WebKit focused rerun **PASS** 4/4 in 1.3m; this remains focused
   correction evidence and does not replace Candidate 5's failed matrix.
-- Candidate 5 is not eligible for acceptance. Candidate 6 is pending freeze and complete Tier 3 execution; focused correction evidence cannot
-  replace Candidate 5's failed matrix.
+- Candidate 5 is not eligible for acceptance. Candidate 6 subsequently froze and ran the complete matrix recorded below; focused correction
+  evidence cannot replace Candidate 5's failed matrix.
+
+## Candidate 6 matrix and non-whitelist navigation correction
+
+- Candidate 6 was test/docs-only relative to Candidate 5 production. Re-invoking
+  `.\gradlew.bat :webApp:wasmJsBrowserDistribution --max-workers=1` **PASS** in 3s with 340 actionable tasks (59 executed, 281 up-to-date), and
+  `npm run validate:release` **PASS** with the same 1 HTML / 1 JavaScript / 2 Wasm / 51 Compose assets / 1 placeholder config / 0 real config
+  inventory in `webApp/build/dist/wasmJs/productionExecutable`.
+- Frozen Candidate 6 `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1` ran `npx playwright test`; its complete six-project matrix **FAIL**
+  in 26.0m: 185 passed / 1 failed / 0 skipped. The sole failure was the WebKit-1280
+  `Escape closes one layer and browser Back returns to details` player case retaining the unknown `Context is stopped` page error in
+  `player-exit` epoch 2.
+- Raw trace timing proves the failure occurred during the test's second cross-document `page.goBack()`: the player Compose-resource fetch began at
+  `951926.710` and completed about `951942.240`; Back began at `952038.227`; the known Compose-resource teardown appeared at `952215.968`;
+  the unknown `Cache API operation failed: Context is stopped` appeared at `952229.045`; the known coroutine teardown followed at
+  `952244.273`; and Back completed at `952294.347`.
+- The existing post-navigation settle could not eliminate the error because it runs against the new Details document after the old WebKit context
+  has already stopped. No classifier signature or whitelist was added for `Context is stopped`.
+- Focused correction attempt 1 **FAIL** at 0/2 across WebKit-1280/1920: Details → Player correctly reached exact
+  `/diagnostic/player/603`, but the inherited assertion still required the query-bearing direct-entry URL. The exact-route assertion was corrected;
+  no re-entry, final cleanup, or terminal-diagnostics result was established by that attempt.
+- Focused correction attempt 2 **FAIL** at 0/2 across WebKit-1280/1920: initial projected-button entry, settings Escape, Player Escape/Back, zero
+  active lifecycle counters, and close count 1 passed. The visible diagnostic `Player ID` action did not have a projected button role after that
+  return, so the second role lookup stopped the case before re-entry and final cleanup. No production accessibility failure was inferred from this
+  diagnostic-only projection observation.
+- The final bounded test-only correction removes direct full-document Player `page.goto` entry. It enters through the projected `Player ID` action
+  and production `history.pushState`, verifies Escape/Back disposal, reopens the same history entry with browser Forward/`popstate`, and exits with
+  browser Back/`popstate`. It requires close count 1 after the first return, active session/video count 1 after Forward, and exact zero
+  sessions/listeners/timers/video plus close count 2 after final Back before diagnostics must remain clean.
+- Exact affected command `npx.cmd playwright test tests/player.spec.ts --project=webkit-1280 --project=webkit-1920 --grep "Escape closes one layer"
+  --reporter=line` **PASS** with exit code 0 at 2/2 in 13.0s. The classifier is unchanged; unknown `Context is stopped` remains fatal. This focused
+  result does not replace Candidate 6's failed matrix.
+- Candidate 6 remains failed. Candidate 7 is pending freeze and complete Tier 3 execution.
 
 ## Review and release gates
 
-- Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, and the bounded
-  production HtmlElementView host-pointer correction**; Candidate 6 still requires freeze and full Tier 3 execution.
+- Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, the bounded
+  production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**; Candidate 7 still requires freeze and full
+  Tier 3 execution.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -211,16 +250,21 @@ silently promoted by an affected rerun.
 - Failed Candidate 3: `9021e94eb2810463c0f9e9066cb0ec9a9e65f9c1`; 185/186 passed with 1 terminal expiry diagnostic and zero skips.
 - Candidate 4: `dc066a26effde71eabfc66ca590f37ea976805f7`; historical non-live pass, not acceptance-eligible after two failed live attempts exposed the
   production host-pointer blocker.
-- Candidate 5: complete matrix `FAIL` in 26.1m at 183 passed / 3 failed / 0 skipped; not acceptance-eligible.
-- Candidate 6: pending freeze and complete Tier 3 execution.
-- Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, and 4 `PASS`.
+- Candidate 5 production base: `a6f4b64b2ab75ec3439623bfd56b31b759badfef`; complete matrix `FAIL` in 26.1m at 183 passed / 3 failed /
+  0 skipped; not acceptance-eligible.
+- Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
+  not acceptance-eligible.
+- Candidate 7: pending freeze and complete Tier 3 execution.
+- Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, and 6 `PASS`; Candidate 6 reused Candidate 5's unchanged
+  production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
-  historical `PASS` (186/186, zero failures/skips/retries), and Candidate 5 `FAIL` (183/186, zero skips).
+  historical `PASS` (186/186, zero failures/skips/retries), Candidate 5 `FAIL` (183/186, zero skips), and Candidate 6 `FAIL`
+  (185/186, zero skips).
 - Player screenshot inspection: Candidate 1 correction screenshots inspected for focus evidence; Candidate 4 final production controls/settings
   captures at both required viewports `PASS` with no P0/P1 finding.
 - Android/root compatibility gate: Candidate 4 `PASS` in 7m10s, 2,350 actionable tasks (1,858 executed, 164 from cache, 328 up-to-date).
 - Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
   claimed.
 - Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
-  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 6 rerun `NOT RUN` pending freeze, full Tier 3,
-  and new action-time authorization immediately before transmission.
+  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 7 rerun is authorized by the user in the
+  current turn but remains `NOT RUN`, gated on green non-live checks; no credential transmission has occurred in this candidate.

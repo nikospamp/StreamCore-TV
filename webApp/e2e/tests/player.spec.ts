@@ -126,24 +126,33 @@ test.describe("WEB-04 deterministic player acceptance", () => {
 
   test("Escape closes one layer and browser Back returns to details", async ({ page }, testInfo) => {
     const diagnostics = installSanitizedDiagnostics(page, testInfo);
-    await openPlayerFixture(page, "success");
+    await openSuccessfulPlayerFixtureFromDetails(page);
 
     await activateProjectedButton(page, "Playback settings");
     await expect(page.locator("body")).toHaveAttribute("data-player-layer", "settings-root");
     await page.keyboard.press("Escape");
     await expect(page.locator("body")).toHaveAttribute("data-player-layer", "player");
-    await expect(page).toHaveURL(new RegExp(`${fixtureRoute.replaceAll("/", "\\/")}\\?`));
+    await expect(page).toHaveURL(new RegExp(`${fixtureRoute.replaceAll("/", "\\/")}$`));
     diagnostics.setPhase("player-exit");
     await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
     await settleNavigationDiagnostics(page, diagnostics);
+    await expect(page.locator("body")).toHaveAttribute("data-player-close-count", "1");
 
-    await page.goto(`${fixtureRoute}?fixture=success`);
+    await page.goForward();
+    await expect(page).toHaveURL(new RegExp(`${fixtureRoute.replaceAll("/", "\\/")}$`));
     await waitForFixtureReadiness(page, "success");
+    await expect(page.locator("body")).toHaveAttribute("data-player-active-sessions", "1");
+    await expect(playerVideo(page)).toHaveCount(1);
     diagnostics.setPhase("player-exit");
     await page.goBack();
     await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
     await settleNavigationDiagnostics(page, diagnostics);
+    await expect(page.locator("body")).toHaveAttribute("data-player-active-sessions", "0");
+    await expect(page.locator("body")).toHaveAttribute("data-player-active-listeners", "0");
+    await expect(page.locator("body")).toHaveAttribute("data-player-active-timers", "0");
+    await expect(playerVideo(page)).toHaveCount(0);
+    await expect(page.locator("body")).toHaveAttribute("data-player-close-count", "2");
     await diagnostics.assertClean();
   });
 
@@ -222,6 +231,24 @@ async function openPlayerFixture(
   const query = new URLSearchParams({ fixture: scenario, ...parameters });
   await page.goto(`${fixtureRoute}?${query.toString()}`);
   await waitForFixtureReadiness(page, scenario);
+}
+
+async function openSuccessfulPlayerFixtureFromDetails(page: Page): Promise<void> {
+  await installRuntimeConfig(page);
+  await page.goto(`/diagnostic/details/${fixtureContentId}`);
+  await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-product-route",
+    `/diagnostic/details/${fixtureContentId}`,
+    { timeout: 30_000 },
+  );
+  await expect(page.locator("body")).toHaveAttribute("data-image-probe", "loaded", {
+    timeout: 30_000,
+  });
+  await activateProjectedButton(page, "Player ID");
+  await waitForFixtureReadiness(page, "success");
 }
 
 async function installRuntimeConfig(page: Page): Promise<void> {

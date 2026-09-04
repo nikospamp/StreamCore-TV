@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 6 pending freeze and full Tier 3.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 7 pending freeze and full Tier 3.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -74,8 +74,14 @@ exact adjacent UUID blob→I/O pair during expiry; the WebKit-1920 player failur
 adjacent same-epoch coroutine pair during player exit. The bounded test-only consolidation applies per-phase/epoch totals, adjacency, and
 per-signature uniqueness while leaving unknown, extra, nonadjacent, wrong-source/phase/epoch/browser diagnostics fatal. The final refinement treats
 one coroutine singleton or one exact adjacent pair as the same shared signature, so pair plus singleton or any repeat is blocked. The affected
-WebKit focused rerun passed 4/4 in 1.3m. Candidate 5 remains failed; Candidate 6 must freeze and pass full Tier 3. Its live rerun is `NOT RUN`
-pending fresh action-time authorization.
+WebKit focused rerun passed 4/4 in 1.3m. Candidate 5 remains failed. Candidate 6 then failed its complete 26.0m matrix at 185 passed / 1 failed /
+0 skipped. The sole WebKit-1280 player failure retained unknown `Cache API operation failed: Context is stopped` during the second cross-document Back after all route
+behavior passed. Trace timing placed it between the known Compose-resource and coroutine teardown events while the old context was stopping; no
+whitelist was added. Two focused WebKit-1280/1920 attempts failed first at a stale query-bearing URL assertion and then at a missing diagnostic
+re-entry role projection. The bounded correction now enters through projected `Player ID`/production `pushState`, verifies Escape/Back cleanup,
+reopens with browser Forward/`popstate`, and verifies final Back disposal. Its exact affected rerun passed 2/2 in 13.0s with exit code 0 and exact
+session/listener/timer/video disposal plus close-count increments. Candidate 6 remains failed. Candidate 7 must freeze and pass full Tier 3; its
+live rerun is authorized by the user in the current turn but remains `NOT RUN`, gated on green non-live checks, with no credential transmission yet.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
