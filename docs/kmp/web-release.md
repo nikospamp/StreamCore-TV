@@ -147,7 +147,7 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 
 1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
    journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 7's non-live gates are green and promotion still requires its
-   successful live rerun and cleanup.
+   successful corrected live rerun and cleanup.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
 4. Purge only `index.html` and `/config.json` where caches require it. Content-hashed assets remain immutable.
@@ -208,5 +208,11 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
   final Back disposal with exact route-scoped counters before clean diagnostics.
 - Candidate 7 `1cb7ca253182f5f61ed07e7c9905f18e1307c469` passed production/Binaryen distribution and artifact validation, locked install, the complete
   186/186 six-project matrix in 22.2m, current controls/settings visual inspection at both required viewports, and the combined Android/root gate
-  in 58s with 2,350 actionable tasks. Its live rerun is authorized by the user but remains **NOT RUN** until this evidence commit completes; no
-  Candidate 7 credential transmission has occurred.
+  in 58s with 2,350 actionable tasks.
+- Candidate 7 live attempt 1 **FAIL** at 0/1 in 50.4s after reaching the production Player/public Sintel. The projected `Pause` node appeared
+  enabled while the actual control rendered its disabled buffering spinner, so the pre-readiness click dispatched no playback command. A
+  credential-free real-media probe proved the unchanged production Player pauses correctly once literal rendered `Pause` is present
+  (`pauseCalls=1`, `playCalls=0`, native `paused=true`); all experimental z-order changes were reverted.
+- Test-only correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` requires exact rendered Play/Pause content before stable physical activation and retains native
+  state assertions. Fallback temporary-session and browser-storage cleanup for the failed attempt were confirmed by harness control flow. The
+  corrected live rerun is **NOT RUN** pending fresh action-time authorization.
