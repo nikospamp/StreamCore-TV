@@ -222,5 +222,7 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
 - Candidate 7 live attempt 3 **FAIL** at 0/1 in 58.4s at the same restored-Details checkpoint because consecutive projected centers still did not
   settle. Correction `b70eabf328c000dc27b85374e57a601d6dee0a68` retains unique positive-area bounds and post-hover remeasurement but clicks the latest center
   without cross-frame stability; the exact credential-free transition passed 1/1 in 21.3s.
-- Fallback temporary-session and browser-storage cleanup for all three failed Candidate 7 attempts were confirmed by harness control flow. The
-  further corrected live rerun is **NOT RUN** pending fresh action-time authorization.
+- Candidate 7 live attempt 4 **FAIL** at 0/1 in 56.2s after repeating all prior checkpoints because restored resumable content correctly exposed
+  `Resume`, while the harness queried `Play`. One-word correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` targets exact `Resume`.
+- Fallback temporary-session and browser-storage cleanup for all four failed Candidate 7 attempts were confirmed by harness control flow. The
+  further corrected live rerun is **NOT RUN** under the user's explicit standing authorization for every remaining rerun in this task.
