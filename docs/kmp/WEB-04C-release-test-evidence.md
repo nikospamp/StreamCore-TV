@@ -18,7 +18,7 @@
 - Current Safari/macOS: **WAIVED / NOT RUN** by explicit user decision on 2026-09-04; no pass is claimed
 - Live TMDB or public-media journey: Candidate 4 attempts 1 and 2 **FAIL** at 0/1 in 49.7s and 49.1s; Candidate 7 attempt 1 **FAIL** at 0/1 in
   50.4s, attempt 2 **FAIL** at 0/1 in 59.9s, attempt 3 **FAIL** at 0/1 in 58.4s, and attempt 4 **FAIL** at 0/1 in 56.2s; further Candidate 7
-  rerun **NOT RUN** under explicit standing authorization
+  attempt 5 **PASS** at 1/1 in 35.7s with application cleanup
 - WEB-04C accepted commit: published by the integration-owner handoff after this evidence commit
 
 The target architecture remains backend-agnostic. No production Kotlin/resource, playback, feature, core, build-logic, credential, real-config,
@@ -93,7 +93,8 @@ generated distribution, browser binary, node-module, or screenshot file was chan
   live execution followed.
 - Candidate 7 live attempt 4 **FAIL** at 0/1 in 56.2s after all prior checkpoints because restored Details correctly rendered `Resume` once progress
   crossed the resume threshold, while the harness still queried `Play`. One-word correction `1a7f2c3f57489c737a2c6c5de9db0773cb79a4cb` targets exact `Resume`;
-  fallback cleanup was confirmed and the next rerun is covered by standing authorization.
+  fallback cleanup was confirmed. Live attempt 5 **PASS** at 1/1 in 35.7s with the full product/player/resume/logout journey, all 16 required
+  endpoint classes observed only at 2xx, application session deletion confirmed, and browser storage cleared.
 
 The isolated WEB-04C observations are not runtime passes; integrated candidate results are labeled explicitly.
 
@@ -209,15 +210,15 @@ vendor and contains no deploy credential.
   Candidate 7 attempt 2 **FAIL** at 0/1 in 59.9s because centered control scaling never satisfied the all-edge bounds oracle after hard reload.
   Candidate 7 attempt 3 **FAIL** at 0/1 in 58.4s because the remaining center-stability oracle also did not settle after hard reload. Fallback
   session and browser-storage cleanup were confirmed after all three failures by the same control-flow contract. Candidate 7 attempt 4 **FAIL** at
-  0/1 in 56.2s because restored resumable content exposed `Resume`, not `Play`; fallback cleanup was again confirmed. Further rerun **NOT RUN** under
-  standing authorization.
+  0/1 in 56.2s because restored resumable content exposed `Resume`, not `Play`; fallback cleanup was again confirmed. Candidate 7 attempt 5 **PASS**
+  at 1/1 in 35.7s with application-driven cleanup.
 
 WEB-04C remains a reviewed test/docs input now merged into WEB-04D. Its isolated execution remains NOT RUN. Integrated Candidates 1, 2, and 3 passed
 artifact validation but failed their complete matrices at 144/42/0, 183/3/0, and 185/1/0; bounded corrections did not replace those failures.
 Candidate 4 passed distribution, artifact validation, the complete 186-test matrix, and final production visual inspection, but its evidence is
 now historical and it is not acceptance-eligible after the live production blocker and subsequent production correction. Current Safari/macOS is
 explicitly **WAIVED / NOT RUN**, not a pass. Candidates 5 and 6 failed their complete matrices at 183/3/0 and 185/1/0; Candidate 7 passed its
-complete non-live gate at 186/0/0, but live attempts 1–4 failed 0/1. The bounded harness corrections are committed and the next live execution
-remains **NOT RUN** under standing authorization.
+complete non-live gate at 186/0/0. After four failed, cleanup-confirmed harness attempts, live attempt 5 passed 1/1 with application cleanup;
+Candidate 7 is accepted for primary fast-forward.
 WEB-04D reconciled A/B fixture semantics without weakening assertions and made all 60 player project-test registrations mandatory; no merged-input
 or focused-rerun status is a release pass claim.
