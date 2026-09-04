@@ -191,7 +191,7 @@ test("valid TMDB session completes the browse journey and cleans up", async ({ p
     await expectProductRoute(page, "/details/550");
     await activateSemanticButton(
       page,
-      page.getByRole("button", { name: "Play", exact: true }),
+      page.getByRole("button", { name: "Resume", exact: true }),
     );
     await expectProductRoute(page, "/player/550");
     const resumedVideo = page.getByTestId("playback-video");
