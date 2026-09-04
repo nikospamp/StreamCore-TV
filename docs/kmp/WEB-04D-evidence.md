@@ -254,14 +254,40 @@ silently promoted by an affected rerun.
   12/12 with zero failures/errors/skips. APK sizes are 23,177,040 bytes (TMDB) and 23,012,604 bytes (ClientB).
 - Post-run cleanup restored WEB-04D to exact Candidate 7 and removed the verified generated primary `.android/` directory. The primary checkout
   remains `f9e13558b3fc1c68db89ba9715932e8db80813ae` with exactly its pre-existing untracked `.kotlin/` directory.
-- Every required non-live Candidate 7 gate is green. Current Safari/macOS remains explicitly **WAIVED / NOT RUN**, never `PASS`. The user-authorized
-  live TMDB/public-media journey remains **NOT RUN** until this evidence is committed; no Candidate 7 credential transmission has occurred yet.
+- Every required non-live Candidate 7 gate is green. Current Safari/macOS remains explicitly **WAIVED / NOT RUN**, never `PASS`. The first
+  user-authorized Candidate 7 live attempt subsequently failed and is recorded below; it does not invalidate the non-live gate.
+
+## Candidate 7 live attempt 1 and actionable-control correction
+
+- Candidate 7 live attempt 1 (overall live attempt 3) ran from clean evidence revision
+  `7827a7cdcc6d29248e09ced6e9dd640dfbb4dc20`. The redacted wrapper reported both ignored inputs configured, all six required environment values
+  configured, and `childEnvironmentMatched=True`; no secret value was printed.
+- The live journey **FAIL** at 0/1 in 50.4s. It completed real login/session, profile selection, search, Details/My List/Library navigation, entered
+  the production Player with public Sintel, found the production video, and verified computed video plus immediate-host `pointer-events:none`.
+  It then clicked projected `Pause` while native `video.paused` remained `false` for 30s.
+- Trace and credential-free instrumentation isolated the failure to the readiness oracle, not production playback. At the original click, the
+  Player was buffering and the Play/Pause control rendered its loading spinner, while its projected semantic name remained `Pause` and Playwright
+  reported it enabled. Canvas received the exact-center pointerdown/up/click, but the intentionally disabled loading control dispatched no command:
+  `pauseCalls=0`, `playCalls=0`, `pauseEvents=0`, and native `paused=false`.
+- A credential-free real Shaka/Sintel rerun gated the click on literal rendered `Pause` text. It passed both with an experimental z-order change and,
+  decisively, after that experiment was fully reverted to the original Candidate 7 production code: **PASS** 1/1 in 17.8s with
+  `pauseCalls=1`, `playCalls=0`, one pause event, and native `paused=true`. Temporary instrumentation, z-order source/tests, screenshots, and product
+  test changes were removed; no production change remains.
+- Test-only correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` filters the semantic Play/Pause locators by exact rendered `Play` or `Pause` text, requires exactly
+  one actionable control, re-resolves stable bounds, and retains native paused/playing plus opposite-label assertions. Credential/session routing,
+  endpoint assertions, and cleanup are unchanged. Live discovery remains exactly 1 test in 1 file.
+- The failed attempt stopped before application logout. Because a session had been captured, the harness `finally` path required fallback authenticated
+  `DELETE` success plus `{ success: true }` and would have replaced the original assertion with `Temporary-session cleanup was not confirmed` on
+  cleanup failure. The original Pause assertion remained terminal, and nested local/session-storage clearing completed; cleanup is therefore
+  confirmed by control flow, not claimed as application logout.
+- A corrected live rerun is **NOT RUN** and requires fresh action-time authorization before credential transmission. Candidate 7 production and its
+  complete non-live pass remain unchanged.
 
 ## Review and release gates
 
 - Current capped P0/P1 review status: **PASS across architecture/backend/DI, lifecycle/input/accessibility, security/release/E2E, the bounded
   production HtmlElementView host-pointer correction, and the Candidate 7 test-only navigation delta**. Candidate 7 non-live execution is green;
-  final acceptance remains gated only on the authorized live journey and cleanup.
+  final acceptance remains gated only on a corrected, freshly authorized live journey and cleanup.
 - Capped architecture/backend/DI review: `PASS` — no P0/P1 or acceptance blocker.
 - Capped lifecycle/input/accessibility review: initial `BLOCK` on hidden-controls key-handler modifier order; corrected regression passes 14/14 and
   delta re-review returned `PASS`.
@@ -277,7 +303,7 @@ silently promoted by an affected rerun.
   0 skipped; not acceptance-eligible.
 - Candidate 6: `308742ad6ef3574a0819ba6424f7e2d8dd5b45d1`; complete matrix `FAIL` in 26.0m at 185 passed / 1 failed / 0 skipped;
   not acceptance-eligible.
-- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`, live gate `NOT RUN`.
+- Candidate 7: `1cb7ca253182f5f61ed07e7c9905f18e1307c469`; complete non-live gate `PASS`, live attempt 1 `FAIL` at 0/1 in 50.4s; corrected rerun `NOT RUN`.
 - Production/Binaryen distribution and artifact validator: candidates 1, 2, 3, 4, 5, 6, and 7 `PASS`; Candidates 6 and 7 reused Candidate 5's
   unchanged production artifact.
 - Complete Chromium/Firefox/WebKit matrix: Candidate 1 `FAIL` (144/186), Candidate 2 `FAIL` (183/186), Candidate 3 `FAIL` (185/186), Candidate 4
@@ -290,6 +316,6 @@ silently promoted by an affected rerun.
 - Manual current Safari/macOS: `WAIVED / NOT RUN` by explicit user decision on 2026-09-04; Playwright WebKit cannot substitute, and no pass is
   claimed.
 - Final live TMDB/public-media journey and temporary-session cleanup: Candidate 4 attempt 1 `FAIL` at 0/1 in 49.7s; attempt 2 on `eb37969` `FAIL`
-  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 7 rerun is authorized by the user in the
-  current turn but remains `NOT RUN` until this evidence commit completes; all non-live checks are green and no credential transmission has occurred
-  in this candidate.
+  at 0/1 in 49.1s with native video still unpaused after the stable projected Pause click. Candidate 7 attempt 1 `FAIL` at 0/1 in 50.4s because the
+  harness clicked the buffering spinner under a false-enabled semantic projection; fallback session and storage cleanup were confirmed by control
+  flow. Correction `acc13d034a4d05bb0b3f945d6463e5299b9d5e7f` is committed; the corrected live rerun is `NOT RUN` pending fresh action-time authorization.
