@@ -1306,8 +1306,7 @@ async function strictPageErrors(
   }
   const filteredErrors = errors.filter((error) => error.message !== WEBKIT_AVATAR_ACCESS_ERROR);
   const retainedErrors: PageErrorEvidence[] = [];
-  let decoderTeardownPairCount = 0;
-  let expiryIoReadErrorCount = 0;
+  const decoderTeardownCounts: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
   const composeResourceAbortCounts: HardReloadErrorCounts = { restoration: 0, expiry: 0 };
   for (let index = 0; index < filteredErrors.length; index += 1) {
     const current = filteredErrors[index];
@@ -1323,22 +1322,25 @@ async function strictPageErrors(
         continue;
       }
     }
-    const isDecoderTeardownPair = current.phase === "restoration" &&
+    const isDecoderTeardownPair = current.phase !== null &&
       current.name === "Cannot load blob" &&
       WEBKIT_AVATAR_BLOB_ACCESS_ERROR.test(current.message) &&
-      next?.phase === "restoration" &&
+      next?.phase === current.phase &&
       next.name === "JsException" &&
       next.message === WEBKIT_AVATAR_IO_READ_ERROR;
-    if (isDecoderTeardownPair && decoderTeardownPairCount === 0) {
-      decoderTeardownPairCount += 1;
-      index += 1;
-      continue;
+    if (isDecoderTeardownPair && current.phase !== null) {
+      const phase = current.phase;
+      if (decoderTeardownCounts[phase] === 0) {
+        decoderTeardownCounts[phase] += 1;
+        index += 1;
+        continue;
+      }
     }
     const isExpiryIoReadTeardown = current.phase === "expiry" &&
       current.name === "JsException" &&
       current.message === WEBKIT_AVATAR_IO_READ_ERROR;
-    if (isExpiryIoReadTeardown && expiryIoReadErrorCount === 0) {
-      expiryIoReadErrorCount += 1;
+    if (isExpiryIoReadTeardown && decoderTeardownCounts.expiry === 0) {
+      decoderTeardownCounts.expiry += 1;
       continue;
     }
     retainedErrors.push(current);

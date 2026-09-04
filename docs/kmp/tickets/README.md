@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 5 pending freeze and full Tier 3.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 6 pending freeze and full Tier 3.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -69,7 +69,13 @@ confirmed only by live-smoke control flow. The root cause was production HtmlEle
 immediate video/host `pointer-events:none`, a bounded six-frame attachment retry, one post-attachment reapply, update reapplication, and
 update/release cancellation. Focused results are green: compile PASS after one initial failure, engine 21/21, player UI 14/14, WebApp 65/65,
 development distribution PASS, and six-project Play/Pause regression 6/6. Candidate 4's non-live results remain historical but it is not eligible
-for acceptance. Candidate 5 must freeze and pass full Tier 3; its live rerun is `NOT RUN` pending fresh action-time authorization.
+for acceptance. Candidate 5 then failed its complete 26.1m matrix at 183 passed / 3 failed / 0 skipped. Two product failures contained the same
+exact adjacent UUID blob→I/O pair during expiry; the WebKit-1920 player failure contained one exact Compose-resource event followed by an exact
+adjacent same-epoch coroutine pair during player exit. The bounded test-only consolidation applies per-phase/epoch totals, adjacency, and
+per-signature uniqueness while leaving unknown, extra, nonadjacent, wrong-source/phase/epoch/browser diagnostics fatal. The final refinement treats
+one coroutine singleton or one exact adjacent pair as the same shared signature, so pair plus singleton or any repeat is blocked. The affected
+WebKit focused rerun passed 4/4 in 1.3m. Candidate 5 remains failed; Candidate 6 must freeze and pass full Tier 3. Its live rerun is `NOT RUN`
+pending fresh action-time authorization.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three
