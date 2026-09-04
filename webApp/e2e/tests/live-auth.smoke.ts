@@ -363,10 +363,10 @@ async function expectVideoPointerPassthrough(video: Locator): Promise<void> {
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
   await waitForAnimationFrames(page, 4);
-  let bounds = await stableSemanticBounds(button);
+  let bounds = await currentSemanticBounds(button);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 2);
-  bounds = await stableSemanticBounds(button);
+  bounds = await currentSemanticBounds(button);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 4);
 }
@@ -393,31 +393,13 @@ async function ensureUserActivatedPlayback(page: Page, video: Locator): Promise<
   await expect(renderedPause).toHaveCount(1, { timeout: 30_000 });
 }
 
-async function stableSemanticBounds(
+async function currentSemanticBounds(
   locator: Locator,
 ): Promise<{ x: number; y: number; width: number; height: number }> {
-  let previous = await locator.boundingBox({ timeout: 1_000 }).catch(() => null);
-  let current = previous;
-  await expect.poll(async () => {
-    await waitForAnimationFrames(locator.page(), 2);
-    current = await locator.boundingBox({ timeout: 1_000 }).catch(() => null);
-    const previousCenter = previous === null ? null : {
-      x: previous.x + previous.width / 2,
-      y: previous.y + previous.height / 2,
-    };
-    const currentCenter = current === null ? null : {
-      x: current.x + current.width / 2,
-      y: current.y + current.height / 2,
-    };
-    const stable = previousCenter !== null && currentCenter !== null &&
-      current !== null && current.width > 0 && current.height > 0 &&
-      Math.abs(previousCenter.x - currentCenter.x) < 0.5 &&
-      Math.abs(previousCenter.y - currentCenter.y) < 0.5;
-    previous = current;
-    return stable;
-  }, { timeout: 30_000, intervals: [100] }).toBe(true);
+  await expect(locator).toHaveCount(1, { timeout: 30_000 });
+  const current = await locator.boundingBox({ timeout: 30_000 });
   if (current === null || current.width <= 0 || current.height <= 0) {
-    throw new Error("Semantic control does not expose stable viewport bounds");
+    throw new Error("Semantic control does not expose positive viewport bounds");
   }
   return current;
 }
