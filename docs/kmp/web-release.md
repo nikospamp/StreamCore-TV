@@ -145,7 +145,8 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 
 ## Rollback
 
-1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, current Safari, or the final live journey is not green.
+1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
+   journey is not green. For Candidate 4, Safari is explicitly waived as `WAIVED / NOT RUN`; the final live rerun remains required.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
 4. Purge only `index.html` and `/config.json` where caches require it. Content-hashed assets remain immutable.
@@ -158,13 +159,14 @@ ship an explicit forward/backward-compatible migration before promotion.
 
 ## Manual current Safari/macOS acceptance
 
-Automated Playwright WebKit is not Safari evidence. A qualified operator must run this checklist on a current public Safari build and record the
-browser and macOS versions. A blank or `NOT RUN` row blocks release acceptance.
+Automated Playwright WebKit is not Safari evidence. The user explicitly waived this gate on 2026-09-04. The checklist therefore remains
+**WAIVED / NOT RUN**, not `PASS`; no current Safari or macOS execution evidence is claimed. This explicit waiver removes the Safari gate as the
+current Candidate 4 blocker without treating Playwright WebKit as a substitute.
 
 | Field | Result |
 |---|---|
-| Status | **NOT RUN** |
-| Operator/date | NOT RUN |
+| Status | **WAIVED / NOT RUN** |
+| Operator/date | User waiver / 2026-09-04 |
 | macOS version/build | NOT RUN |
 | Safari version/build | NOT RUN |
 | Release identifier | NOT RUN |
@@ -179,3 +181,13 @@ browser and macOS versions. A blank or `NOT RUN` row blocks release acceptance.
 | Repeated enter/play/close leaves no video/session/timer/listener | NOT RUN |
 | Logout and temporary-session cleanup | NOT RUN |
 | Redacted observations | NOT RUN |
+
+## Candidate 4 live journey
+
+- Attempt 1 through the boolean-clean wrapper: **FAIL**, 0/1 in 49.7s.
+- Reached real login/session, search, Details, and public Sintel; failed while waiting for projected `Play` after an attempted `Pause`.
+- Fallback `DELETE` cleanup is confirmed only by live-smoke control flow because no cleanup exception replaced the original failure. Browser
+  local/session-storage cleanup was awaited.
+- The bounded test-only correction re-resolves stable projected bounds after hover/recomposition and uses native `HTMLVideoElement.paused` state
+  as the pause/play oracle. Delta review: **PASS**. Corrected live rerun: **NOT RUN**, pending fresh action-time authorization.
+- Candidate 4 remains green for all recorded production/non-live gates. Promotion remains blocked only by the authorized live rerun.
