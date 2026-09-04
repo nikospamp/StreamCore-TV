@@ -43,7 +43,7 @@ KMP-00A(done) -> KMP-00B -> [KMP-00C || KMP-00D || KMP-00E || KMP-00F] -> KMP-00
 Only KMP-03 and KMP-04 are safe to implement concurrently. Their agents must not independently change root build logic or the version catalog after
 KMP-02 has frozen those contracts.
 
-**Current gate (2026-09-04): WEB-04D Candidate 7 pending freeze and full Tier 3.** WEB-03 remains accepted at
+**Current gate (2026-09-04): WEB-04D Candidate 7 non-live PASS; authorized final live journey and cleanup NOT RUN.** WEB-03 remains accepted at
 `f9e13558b3fc1c68db89ba9715932e8db80813ae`. Reviewed WEB-04 inputs are A
 `631f4edbd4c7007c8cef3c19d60f2071168a0bd6`, B `718980793ef4eb4e89ad0c355b0ea2678e51adf6`, and C
 `3e3dc3618af19b9a0276f20d6d4674607f87d72b`; WEB-04D merged them in mandatory A→B→C order. Candidate 1
@@ -80,8 +80,11 @@ behavior passed. Trace timing placed it between the known Compose-resource and c
 whitelist was added. Two focused WebKit-1280/1920 attempts failed first at a stale query-bearing URL assertion and then at a missing diagnostic
 re-entry role projection. The bounded correction now enters through projected `Player ID`/production `pushState`, verifies Escape/Back cleanup,
 reopens with browser Forward/`popstate`, and verifies final Back disposal. Its exact affected rerun passed 2/2 in 13.0s with exit code 0 and exact
-session/listener/timer/video disposal plus close-count increments. Candidate 6 remains failed. Candidate 7 must freeze and pass full Tier 3; its
-live rerun is authorized by the user in the current turn but remains `NOT RUN`, gated on green non-live checks, with no credential transmission yet.
+session/listener/timer/video disposal plus close-count increments. Candidate 6 remains failed. Candidate 7 froze at
+`1cb7ca253182f5f61ed07e7c9905f18e1307c469`: production/Binaryen distribution and validation passed, the complete matrix passed 186/186 in
+22.2m with every project at 31/31 and zero failures/skips/retries, current controls/settings visuals passed at both required viewports, and the
+combined Android/root gate passed in 58s with 2,350 actionable tasks plus player-mobile 12/12. Its live rerun is authorized by the user but remains
+`NOT RUN` until this evidence commit completes; no Candidate 7 credential transmission has occurred yet.
 The target architecture remains backend-agnostic.
 
 WEB-03 and WEB-04 are milestone indexes, not executable mega-tickets. Their executable child tickets reserve disjoint paths and use at most three

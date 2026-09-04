@@ -146,8 +146,8 @@ matching on the URL path, and serve the same fallback behavior on reload and bro
 ## Rollback
 
 1. Stop promotion if artifact validation, browser tests, visual inspection, CSP/CORS checks, any non-waived current Safari gate, or the final live
-   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 7 still requires freeze, full Tier 3, and a successful live
-   rerun.
+   journey is not green. Safari is explicitly waived as `WAIVED / NOT RUN`; Candidate 7's non-live gates are green and promotion still requires its
+   successful live rerun and cleanup.
 2. Keep the previous application artifact and its compatible runtime config available as one rollback unit.
 3. Atomically repoint the origin root/release alias to that unit; do not copy individual files over a live release.
 4. Purge only `index.html` and `/config.json` where caches require it. Content-hashed assets remain immutable.
@@ -183,7 +183,7 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
 | Logout and temporary-session cleanup | NOT RUN |
 | Redacted observations | NOT RUN |
 
-## Candidate 4 live journey and post-candidate correction
+## Candidate 4 live journey, correction, and Candidate 7 status
 
 - Attempt 1 through the boolean-clean wrapper: **FAIL**, 0/1 in 49.7s.
 - Reached real login/session, search, Details, and public Sintel; failed while waiting for projected `Play` after an attempted `Pause`.
@@ -205,5 +205,8 @@ current WEB-04 blocker without treating Playwright WebKit as a substitute.
   pair plus singleton or any repeat remains fatal. The affected WebKit focused rerun passed 4/4 in 1.3m, but does not replace the failure.
   Candidate 6 subsequently failed its complete matrix at 185 passed / 1 failed / 0 skipped in 26.0m on unknown WebKit `Context is stopped` during
   cross-document Back. No whitelist was added: the test now uses projected Player navigation, Escape/Back disposal, browser Forward re-entry, and
-  final Back disposal with exact route-scoped counters before clean diagnostics. Candidate 7 is pending freeze and full Tier 3. Its live rerun is
-  authorized by the user in the current turn but remains **NOT RUN**, gated on green non-live checks; no credential transmission has occurred.
+  final Back disposal with exact route-scoped counters before clean diagnostics.
+- Candidate 7 `1cb7ca253182f5f61ed07e7c9905f18e1307c469` passed production/Binaryen distribution and artifact validation, locked install, the complete
+  186/186 six-project matrix in 22.2m, current controls/settings visual inspection at both required viewports, and the combined Android/root gate
+  in 58s with 2,350 actionable tasks. Its live rerun is authorized by the user but remains **NOT RUN** until this evidence commit completes; no
+  Candidate 7 credential transmission has occurred.
