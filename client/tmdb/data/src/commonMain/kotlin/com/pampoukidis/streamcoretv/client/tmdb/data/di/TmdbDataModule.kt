@@ -52,6 +52,7 @@ val tmdbDataModule = module {
             tmdbApi = get(),
             referenceDataSource = get(),
             callExecutor = get(),
+            profileRepository = get(),
         )
     } bind HomeRepository::class
     single {
@@ -59,6 +60,7 @@ val tmdbDataModule = module {
             tmdbApi = get(),
             referenceDataSource = get(),
             callExecutor = get(),
+            profileRepository = get(),
         )
     } bind DetailsRepository::class
     single {
@@ -73,6 +75,7 @@ val tmdbDataModule = module {
             tmdbApi = get(),
             referenceDataSource = get(),
             callExecutor = get(),
+            profileRepository = get(),
         )
     } bind SearchRepository::class
 }

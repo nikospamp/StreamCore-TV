@@ -3,14 +3,15 @@ package com.pampoukidis.streamcoretv.client.tmdb.data.catalog
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbErrorMapper
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.policyTestProfileRepository
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 
 class TmdbCatalogRepositoryTest {
@@ -20,12 +21,13 @@ class TmdbCatalogRepositoryTest {
         tmdbApi = api,
         referenceDataSource = TmdbReferenceDataSource(tmdbApi = api),
         callExecutor = TmdbCallExecutor(errorMapper = TmdbErrorMapper()),
+        profileRepository = policyTestProfileRepository(),
     )
 
     @Test
     fun `returns TMDB backed home rows`() {
         runTest {
-            val result = subject.getHomeRows("profile-1")
+            val result = subject.getHomeRows("tmdb-profile-owner")
 
             assertTrue(result is AppResult.Success)
             val rows = (result as AppResult.Success).value
@@ -61,7 +63,7 @@ class TmdbCatalogRepositoryTest {
         runTest {
             api.failure = IOException("offline")
 
-            val result = subject.getHomeRows("profile-1")
+            val result = subject.getHomeRows("tmdb-profile-owner")
 
             assertTrue(result is AppResult.Failure)
             assertTrue((result as AppResult.Failure).error is AppError.Network)

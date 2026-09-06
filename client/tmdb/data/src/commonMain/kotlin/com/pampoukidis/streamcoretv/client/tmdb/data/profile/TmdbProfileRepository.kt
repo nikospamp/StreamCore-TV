@@ -39,6 +39,18 @@ class TmdbProfileRepository constructor(
         }
     }
 
+    // Resolve each operation's policy from the validated, account-scoped profile snapshot.
+    internal suspend fun getContentPolicy(profileId: String): AppResult<TmdbProfileContentPolicy> {
+        return readSnapshot(GET_CONTENT_POLICY_OPERATION) { snapshot ->
+            val profile = snapshot.profiles.firstOrNull { it.id == profileId }
+                ?: return@readSnapshot profileFailure(
+                    GET_CONTENT_POLICY_OPERATION,
+                    "PROFILE_NOT_FOUND",
+                )
+            AppResult.Success(TmdbProfileContentPolicy(includeAdult = !profile.isKidsProfile))
+        }.flatten()
+    }
+
     override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> {
         return AppResult.Success(
             ProfileEditorOptionsModel(
@@ -300,6 +312,7 @@ class TmdbProfileRepository constructor(
 
     private companion object {
         const val CLIENT = "tmdb"
+        const val GET_CONTENT_POLICY_OPERATION = "getContentPolicy"
         const val GET_PROFILES_OPERATION = "getProfiles"
         const val CREATE_PROFILE_OPERATION = "createProfile"
         const val UPDATE_PROFILE_OPERATION = "updateProfile"

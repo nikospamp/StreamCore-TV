@@ -1,16 +1,17 @@
 package com.pampoukidis.streamcoretv.client.tmdb.data.catalog
 
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideoDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideosResponseDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbErrorMapper
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
-import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideoDto
-import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbVideosResponseDto
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.policyTestProfileRepository
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 
 class TmdbDetailsRepositoryTest {
 
@@ -19,6 +20,7 @@ class TmdbDetailsRepositoryTest {
         tmdbApi = api,
         referenceDataSource = TmdbReferenceDataSource(tmdbApi = api),
         callExecutor = TmdbCallExecutor(errorMapper = TmdbErrorMapper()),
+        profileRepository = policyTestProfileRepository(),
     )
 
     @Test
@@ -32,7 +34,7 @@ class TmdbDetailsRepositoryTest {
                     ),
                 ),
             )
-            val result = subject.getDetails(profileId = "profile-1", contentId = "1")
+            val result = subject.getDetails(profileId = "tmdb-profile-owner", contentId = "1")
             assertTrue(result is AppResult.Success)
             assertTrue(api.lastDetailsAppendToResponse.contains("videos"))
             assertEquals(
@@ -46,7 +48,7 @@ class TmdbDetailsRepositoryTest {
     fun `returns details for TMDB movie id`() {
         runTest {
             val result = subject.getDetails(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 contentId = "1",
             )
 
@@ -62,7 +64,7 @@ class TmdbDetailsRepositoryTest {
     fun `recommendations exclude selected content`() {
         runTest {
             val result = subject.getRecommendations(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 contentId = "1",
             )
 
@@ -88,7 +90,7 @@ class TmdbDetailsRepositoryTest {
     fun `invalid content id returns failure`() {
         runTest {
             val result = subject.getDetails(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 contentId = "tmdb-orbit-fall",
             )
 

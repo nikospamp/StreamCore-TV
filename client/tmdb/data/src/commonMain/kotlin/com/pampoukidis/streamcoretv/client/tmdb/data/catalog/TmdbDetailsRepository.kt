@@ -1,9 +1,9 @@
 package com.pampoukidis.streamcoretv.client.tmdb.data.catalog
 
-import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbMovieSummaryDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbApi
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.TmdbProfileRepository
 import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
@@ -16,6 +16,7 @@ class TmdbDetailsRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val referenceDataSource: TmdbReferenceDataSource,
     private val callExecutor: TmdbCallExecutor,
+    private val profileRepository: TmdbProfileRepository,
 ) : DetailsRepository {
 
     override suspend fun getDetails(
@@ -64,6 +65,11 @@ class TmdbDetailsRepository internal constructor(
             backendCode = "CONTENT_ID_INVALID",
         )
 
+        val policy = when (val result = profileRepository.getContentPolicy(profileId)) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
+
         return callExecutor.execute(operation = GET_RECOMMENDATIONS_OPERATION) {
             coroutineScope {
                 val referenceData = async { referenceDataSource.getReferenceData() }
@@ -72,7 +78,7 @@ class TmdbDetailsRepository internal constructor(
                 }
 
                 recommendations.await().results
-                    .contentVisibleForProfile(profileId = profileId)
+                    .filter { movie -> policy.includeAdult || !movie.adult }
                     .filterNot { movie -> movie.id == movieId }
                     .take(MAX_RECOMMENDATIONS)
                     .toModels(referenceData = referenceData.await())
@@ -106,16 +112,6 @@ class TmdbDetailsRepository internal constructor(
         return toIntOrNull()?.takeIf { movieId -> movieId > 0 }
     }
 
-    private fun List<TmdbMovieSummaryDto>.contentVisibleForProfile(
-        profileId: String,
-    ): List<TmdbMovieSummaryDto> {
-        if (profileId.contains(KIDS_PROFILE_MARKER, ignoreCase = true)) {
-            return filterNot { movie -> movie.adult }
-        }
-
-        return this
-    }
-
     private fun detailsFailure(
         operation: String,
         backendCode: String,
@@ -136,6 +132,5 @@ class TmdbDetailsRepository internal constructor(
         const val GET_DETAILS_OPERATION = "getDetails"
         const val GET_RECOMMENDATIONS_OPERATION = "getRecommendations"
         const val MAX_RECOMMENDATIONS = 12
-        const val KIDS_PROFILE_MARKER = "kids"
     }
 }
