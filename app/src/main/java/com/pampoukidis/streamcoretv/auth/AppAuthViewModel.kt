@@ -115,12 +115,11 @@ class AppAuthViewModel constructor(
             authenticateRepository.logoutUser()
         } catch (exception: CancellationException) {
             throw exception
-        } catch (throwable: Throwable) {
+        } catch (_: Throwable) {
             AppResult.Failure(
                 AppError.Unknown(
                     source = ErrorSource(
                         operation = LOGOUT_OPERATION,
-                        backendMessage = throwable.message,
                     ),
                 ),
             )
@@ -129,7 +128,7 @@ class AppAuthViewModel constructor(
 
     private fun bootstrapAuth() {
         viewModelScope.launch {
-            when (val result = authenticateRepository.bootstrapAuth()) {
+            when (val result = bootstrapResult()) {
                 is AppResult.Success -> {
                     bootstrapCompleted.value = true
                 }
@@ -139,6 +138,23 @@ class AppAuthViewModel constructor(
                     effectsChannel.send(AppAuthEffect.ShowError(error = result.error))
                 }
             }
+        }
+    }
+
+    private suspend fun bootstrapResult(): AppResult<AuthStateModel> {
+        return try {
+            authenticateRepository.bootstrapAuth()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Throwable) {
+            AppResult.Failure(
+                AppError.Unknown(
+                    source = ErrorSource(
+                        operation = "bootstrapAuth",
+                        backendCode = "AUTH_BOOTSTRAP_FAILURE",
+                    ),
+                ),
+            )
         }
     }
 

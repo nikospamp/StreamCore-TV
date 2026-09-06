@@ -7,11 +7,15 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -77,6 +81,43 @@ class AppAuthViewModelTest {
         )
         assertEquals(AppAuthEffect.ShowError(error), subject.effects.first())
         assertEquals(1, repository.bootstrapCalls)
+    }
+
+    @Test
+    fun `unexpected bootstrap storage exception resolves loading with a sanitized error`() {
+        runTest {
+            val repository = FakeAuthenticateRepository(
+                bootstrapThrowable = IllegalStateException("sensitive storage detail"),
+            )
+            val subject = AppAuthViewModel(authenticateRepository = repository)
+
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(AppAuthUiState.Ready(authState = AuthStateModel.LoggedOut), subject.uiState.value)
+            val error = (subject.effects.first() as AppAuthEffect.ShowError).error
+            assertTrue(error is AppError.Unknown)
+            assertEquals("AUTH_BOOTSTRAP_FAILURE", error.source?.backendCode)
+            assertNull(error.source?.backendMessage)
+            assertEquals(1, repository.bootstrapCalls)
+        }
+    }
+
+    @Test
+    fun `bootstrap cancellation does not become a ready outcome or error effect`() {
+        runTest {
+            val repository = FakeAuthenticateRepository(
+                bootstrapThrowable = CancellationException("cancelled bootstrap"),
+            )
+            val subject = AppAuthViewModel(authenticateRepository = repository)
+            val effect = async { subject.effects.first() }
+
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(AppAuthUiState.Loading, subject.uiState.value)
+            assertFalse(effect.isCompleted)
+            assertEquals(1, repository.bootstrapCalls)
+            effect.cancel()
+        }
     }
 
     @Test
@@ -228,6 +269,7 @@ class AppAuthViewModelTest {
     private class FakeAuthenticateRepository(
         private val bootstrapResult: AppResult<AuthStateModel> =
             AppResult.Success(AuthStateModel.LoggedOut),
+        private val bootstrapThrowable: Throwable? = null,
         private val logoutResult: AppResult<Unit> = AppResult.Success(Unit),
         private val logoutGate: CompletableDeferred<Unit>? = null,
         private val logoutThrowable: Throwable? = null,
@@ -244,6 +286,7 @@ class AppAuthViewModelTest {
 
         override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
             bootstrapCalls += 1
+            bootstrapThrowable?.let { throwable -> throw throwable }
 
             when (bootstrapResult) {
                 is AppResult.Success -> {
