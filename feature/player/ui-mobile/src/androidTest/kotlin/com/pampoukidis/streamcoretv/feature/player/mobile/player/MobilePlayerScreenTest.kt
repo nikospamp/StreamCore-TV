@@ -14,6 +14,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.WindowSize
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
@@ -82,6 +84,32 @@ class MobilePlayerScreenTest {
         )
         composeRule.onNodeWithTag(PlayerTestTags.Error).assertExists()
         composeRule.onNodeWithText("Retry").assertExists()
+    }
+
+    @Test
+    fun bottomPlayPauseCannotDispatchDuringPreparationAndIsEnabledWhenReady() {
+        val actions = mutableListOf<PlayerAction>()
+        var state by mutableStateOf(PlayerUiState(phase = PlaybackPhase.Preparing))
+        setPhoneLandscapePlayerContent(state = { state }, onAction = actions::add)
+
+        composeRule.onNodeWithTag(PlayerTestTags.Buffering).assertExists()
+        composeRule.onNodeWithContentDescription("Play")
+            .assertIsNotEnabled()
+            .performTouchInput { click(center) }
+        composeRule.mainClock.advanceTimeBy(SurfaceTapSettleMillis)
+        composeRule.runOnIdle {
+            assertEquals(0, actions.count { it == PlayerAction.TogglePlayPause })
+            state = readyState(isPlaying = true)
+        }
+
+        composeRule.onNodeWithTag(PlayerTestTags.Buffering).assertDoesNotExist()
+        // The center control precedes the bottom control in the semantics tree.
+        composeRule.onAllNodesWithContentDescription("Pause")[1]
+            .assertIsEnabled()
+            .performTouchInput { click(center) }
+        composeRule.runOnIdle {
+            assertEquals(1, actions.count { it == PlayerAction.TogglePlayPause })
+        }
     }
 
     @Test

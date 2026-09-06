@@ -278,6 +278,7 @@ private fun PlayerBottomControls(
             PlayerIconButton(
                 icon = if (state.isPlaying) R.drawable.ic_player_pause_24 else null,
                 description = if (state.isPlaying) "Pause" else "Play",
+                enabled = state.phase != PlaybackPhase.Preparing,
                 onClick = { onAction(PlayerAction.TogglePlayPause) },
             )
             PlayerIconButton(
