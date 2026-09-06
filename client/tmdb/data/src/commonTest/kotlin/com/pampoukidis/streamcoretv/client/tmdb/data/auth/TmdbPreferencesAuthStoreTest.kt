@@ -10,14 +10,37 @@ import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class TmdbPreferencesAuthStoreTest {
+
+    @Test
+    fun unreadableStorageIsNotReportedAsAnAbsentSession() {
+        runTest {
+            val failure = IOException("storage unavailable")
+            val dataStore = object : DataStore<Preferences> {
+                override val data: Flow<Preferences> = flow { throw failure }
+
+                override suspend fun updateData(
+                    transform: suspend (t: Preferences) -> Preferences,
+                ): Preferences {
+                    error("Read failure must not write preferences")
+                }
+            }
+
+            assertEquals(failure, assertFailsWith<IOException> {
+                TmdbPreferencesAuthStore(dataStore).currentSessionId()
+            })
+        }
+    }
 
     @Test
     fun preMigrationFilenameAndKeysRemainExact() {

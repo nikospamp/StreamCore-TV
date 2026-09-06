@@ -103,27 +103,45 @@ internal class WebProductCoordinator(
         }
     }
 
-    suspend fun loginSucceeded() {
+    suspend fun loginSucceeded(): AppError? {
         authenticated = true
-        clearSelectedProfile()
-        navigation.navigate(WebRoute.Profiles)
-    }
-
-    suspend fun profileSelected(profile: ProfileModel) {
-        selectedProfile = profile
-        authStore.edit { preferences ->
-            preferences[selectedProfileIdKey] = profile.id
+        // A previous session's profile must not become active in the new session.
+        selectedProfile = null
+        return try {
+            profileSelectionOperation { clearSelectedProfile() }
+        } finally {
+            navigation.navigate(WebRoute.Profiles)
         }
-        navigation.navigate(WebRoute.Home)
     }
 
-    suspend fun changeProfile() {
-        clearSelectedProfile()
-        navigation.navigate(WebRoute.Profiles)
+    suspend fun profileSelected(profile: ProfileModel): AppError? {
+        return profileSelectionOperation {
+            authStore.edit { preferences ->
+                preferences[selectedProfileIdKey] = profile.id
+            }
+            selectedProfile = profile
+            navigation.navigate(WebRoute.Home)
+        }
+    }
+
+    suspend fun changeProfile(): AppError? {
+        return profileSelectionOperation {
+            clearSelectedProfile()
+            navigation.navigate(WebRoute.Profiles)
+        }
     }
 
     suspend fun logout(): AppError? {
-        return when (val result = authenticateRepository.logoutUser()) {
+        val result = try {
+            authenticateRepository.logoutUser()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Throwable) {
+            return AppError.Unknown(
+                source = ErrorSource(operation = "logoutUser", backendCode = "AUTH_LOGOUT_FAILURE"),
+            )
+        }
+        return when (result) {
             is AppResult.Success -> {
                 authenticated = false
                 selectedProfile = null
@@ -139,26 +157,36 @@ internal class WebProductCoordinator(
                 navigation.replace(WebRoute.Login)
                 cleanupError
             }
-            is AppResult.Failure -> result.error
+            is AppResult.Failure -> {
+                // A rejected delete response is Authentication, but does not prove session expiry.
+                if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
+                    handleError(result.error)
+                }
+                result.error
+            }
         }
     }
 
-    suspend fun reconcileProfiles(profiles: List<ProfileModel>) {
-        val activeProfile = selectedProfile ?: return
+    suspend fun reconcileProfiles(profiles: List<ProfileModel>): AppError? {
+        val activeProfile = selectedProfile ?: return null
         val currentProfile = profiles.firstOrNull { profile -> profile.id == activeProfile.id }
         if (currentProfile == null) {
-            clearSelectedProfile()
+            // Repository validation is authoritative even if removing the stale id fails.
+            selectedProfile = null
+            return try {
+                profileSelectionOperation { clearSelectedProfile() }
+            } finally {
+                navigation.replace(safeProfileRestoreRoute())
+            }
         } else if (currentProfile != activeProfile) {
             selectedProfile = currentProfile
         }
+        return null
     }
 
     suspend fun reconcileProfilesFromRepository(): AppError? {
         return when (val result = profileRepository.getProfiles()) {
-            is AppResult.Success -> {
-                reconcileProfiles(result.value)
-                null
-            }
+            is AppResult.Success -> reconcileProfiles(result.value)
             is AppResult.Failure -> result.error
         }
     }
@@ -227,7 +255,11 @@ internal class WebProductCoordinator(
         }
         selectedProfile = profiles.firstOrNull { profile -> profile.id == selectedProfileId }
         if (selectedProfileId != null && selectedProfile == null) {
-            clearSelectedProfile()
+            val cleanupError = profileSelectionOperation { clearSelectedProfile() }
+            if (cleanupError != null) {
+                navigation.replace(safeProfileRestoreRoute())
+                return WebProductInitialization.ReadyWithError(cleanupError)
+            }
         }
         val requestedRoute = navigation.route.value
         val destination = when {
@@ -245,11 +277,22 @@ internal class WebProductCoordinator(
     }
 
     private suspend fun clearSelectedProfile() {
-        selectedProfile = null
         authStore.edit { preferences ->
             if (preferences[selectedProfileIdKey] != null) {
                 preferences.remove(selectedProfileIdKey)
             }
+        }
+        selectedProfile = null
+    }
+
+    private suspend fun profileSelectionOperation(block: suspend () -> Unit): AppError? {
+        return try {
+            block()
+            null
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Throwable) {
+            profileSelectionStorageError()
         }
     }
 

@@ -155,8 +155,14 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         state.navigationController.navigate(WebRoute.Profiles)
     }
     val changeProfile: () -> Unit = {
-        clearBrowseTransients()
-        scope.launch { coordinator.changeProfile() }
+        scope.launch {
+            val error = coordinator.changeProfile()
+            if (error == null) {
+                clearBrowseTransients()
+            } else {
+                handleProductError(error)
+            }
+        }
     }
     val logout: () -> Unit = {
         if (!logoutInProgress) {
@@ -240,7 +246,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                 WebRoute.Root -> Unit
                 WebRoute.Login -> WebLoginRoute(
                     onLoginSucceeded = {
-                        scope.launch { coordinator.loginSucceeded() }
+                        scope.launch { coordinator.loginSucceeded()?.let(handleProductError) }
                     },
                     onForgotPassword = {},
                     onCreateAccount = {},
@@ -250,8 +256,14 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                 WebRoute.Profiles -> WebProfilesRoute(
                     profilesRevision = profilesRevision,
                     onProfileSelected = { profile ->
-                        clearBrowseTransients()
-                        scope.launch { coordinator.profileSelected(profile) }
+                        scope.launch {
+                            val error = coordinator.profileSelected(profile)
+                            if (error == null) {
+                                clearBrowseTransients()
+                            } else {
+                                handleProductError(error)
+                            }
+                        }
                     },
                     onCreateProfile = { state.navigationController.navigate(WebRoute.CreateProfile) },
                     onEditProfile = { profileId ->
@@ -260,7 +272,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                     onBack = {},
                     onProfilesLoaded = { profiles ->
                         document.body?.setAttribute("data-profile-count", profiles.size.toString())
-                        scope.launch { coordinator.reconcileProfiles(profiles) }
+                        scope.launch { coordinator.reconcileProfiles(profiles)?.let(handleProductError) }
                     },
                     onError = handleProductError,
                 )

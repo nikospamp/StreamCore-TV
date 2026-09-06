@@ -32,11 +32,28 @@ class TmdbAuthenticateRepository internal constructor(
     private var pendingRevokedSessionId: String? = null
 
     override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
-        val sessionId = authStore.currentSessionId()
+        val sessionId = when (
+            val result = localAuthOperation(BOOTSTRAP_OPERATION, BOOTSTRAP_LOCAL_READ_FAILED_CODE) {
+                authStore.currentSessionId()
+            }
+        ) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> {
+                _authState.value = AuthStateModel.LoggedOut
+                return result
+            }
+        }
         if (sessionId == null) {
             pendingRevokedSessionId = null
             _authState.value = AuthStateModel.LoggedOut
             return AppResult.Success(AuthStateModel.LoggedOut)
+        }
+        if (sessionId == pendingRevokedSessionId) {
+            _authState.value = AuthStateModel.LoggedOut
+            return when (val result = clearSessionForLogout()) {
+                is AppResult.Success -> AppResult.Success(AuthStateModel.LoggedOut)
+                is AppResult.Failure -> result
+            }
         }
 
         return when (
@@ -51,10 +68,23 @@ class TmdbAuthenticateRepository internal constructor(
                 when (val accountResult = loadVerifiedAccount(sessionId = sessionId)) {
                     is AppResult.Success -> {
                         val authState = AuthStateModel.LoggedIn(account = accountResult.value)
-                        authStore.saveSession(
-                            sessionId = sessionId,
-                            account = accountResult.value,
-                        )
+                        when (
+                            val saveResult = localAuthOperation(
+                                BOOTSTRAP_OPERATION,
+                                BOOTSTRAP_LOCAL_WRITE_FAILED_CODE,
+                            ) {
+                                authStore.saveSession(
+                                    sessionId = sessionId,
+                                    account = accountResult.value,
+                                )
+                            }
+                        ) {
+                            is AppResult.Success -> Unit
+                            is AppResult.Failure -> {
+                                _authState.value = AuthStateModel.LoggedOut
+                                return saveResult
+                            }
+                        }
                         pendingRevokedSessionId = null
                         _authState.value = authState
                         AppResult.Success(authState)
@@ -217,7 +247,7 @@ class TmdbAuthenticateRepository internal constructor(
             is AppResult.Failure -> return result
         }
 
-        if (sessionId != null) {
+        if (sessionId != null && sessionId != pendingRevokedSessionId) {
             when (val result = callExecutor.execute(operation = LOGOUT_OPERATION) {
                 val response = tmdbApi.deleteSession(sessionId = sessionId)
                 if (!response.success) {
@@ -227,8 +257,13 @@ class TmdbAuthenticateRepository internal constructor(
                     )
                 }
             }) {
-                is AppResult.Success -> Unit
-                is AppResult.Failure -> return result
+                is AppResult.Success -> pendingRevokedSessionId = sessionId
+                is AppResult.Failure -> {
+                    if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
+                        return clearSessionAndFail(error = result.error)
+                    }
+                    return result
+                }
             }
         }
 
@@ -241,47 +276,38 @@ class TmdbAuthenticateRepository internal constructor(
     }
 
     private suspend fun readSessionForLogout(): AppResult<String?> {
-        return try {
-            AppResult.Success(authStore.currentSessionId())
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (throwable: Throwable) {
-            localLogoutFailure(
-                backendCode = LOGOUT_LOCAL_READ_FAILED_CODE,
-                message = throwable.message,
-            )
+        return localAuthOperation(LOGOUT_OPERATION, LOGOUT_LOCAL_READ_FAILED_CODE) {
+            authStore.currentSessionId()
         }
     }
 
     private suspend fun clearSessionForLogout(): AppResult<Unit> {
-        return try {
+        return localAuthOperation(LOGOUT_OPERATION, LOGOUT_LOCAL_CLEAR_FAILED_CODE) {
             authStore.clear()
             pendingRevokedSessionId = null
-            AppResult.Success(Unit)
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (throwable: Throwable) {
-            localLogoutFailure(
-                backendCode = LOGOUT_LOCAL_CLEAR_FAILED_CODE,
-                message = throwable.message,
-            )
         }
     }
 
-    private fun <T> localLogoutFailure(
+    private suspend fun <T> localAuthOperation(
+        operation: String,
         backendCode: String,
-        message: String?,
+        block: suspend () -> T,
     ): AppResult<T> {
-        return AppResult.Failure(
-            AppError.Unknown(
-                source = ErrorSource(
-                    client = CLIENT,
-                    operation = LOGOUT_OPERATION,
-                    backendCode = backendCode,
-                    backendMessage = message,
+        return try {
+            AppResult.Success(block())
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Throwable) {
+            AppResult.Failure(
+                AppError.Unknown(
+                    source = ErrorSource(
+                        client = CLIENT,
+                        operation = operation,
+                        backendCode = backendCode,
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 
     override suspend fun forgotPassword(
@@ -358,9 +384,9 @@ class TmdbAuthenticateRepository internal constructor(
     }
 
     private suspend fun <T> clearSessionAndFail(error: AppError): AppResult<T> {
-        authStore.clear()
-        pendingRevokedSessionId = null
+        // An authoritative rejection remains primary even when local cleanup is unavailable.
         _authState.value = AuthStateModel.LoggedOut
+        clearSessionForLogout()
         return AppResult.Failure(error)
     }
 
@@ -414,6 +440,7 @@ class TmdbAuthenticateRepository internal constructor(
     }
 
     private suspend fun <T> bootstrapFailure(error: AppError): AppResult<T> {
+        _authState.value = AuthStateModel.LoggedOut
         val normalizedError = error.toBootstrapFailure()
         if (normalizedError.invalidatesPersistedSession()) {
             return clearSessionAndFail(error = normalizedError)
@@ -479,6 +506,8 @@ class TmdbAuthenticateRepository internal constructor(
         const val INVALID_ACCOUNT_ID_CONFIGURATION_CODE = "INVALID_ACCOUNT_ID_CONFIGURATION"
         const val LOGOUT_LOCAL_READ_FAILED_CODE = "LOGOUT_LOCAL_READ_FAILED"
         const val LOGOUT_LOCAL_CLEAR_FAILED_CODE = "LOGOUT_LOCAL_CLEAR_FAILED"
+        const val BOOTSTRAP_LOCAL_READ_FAILED_CODE = "BOOTSTRAP_LOCAL_READ_FAILED"
+        const val BOOTSTRAP_LOCAL_WRITE_FAILED_CODE = "BOOTSTRAP_LOCAL_WRITE_FAILED"
     }
 }
 

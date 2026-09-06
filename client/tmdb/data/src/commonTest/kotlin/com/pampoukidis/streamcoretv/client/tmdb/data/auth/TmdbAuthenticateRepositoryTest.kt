@@ -13,7 +13,13 @@ import com.pampoukidis.streamcoretv.core.model.auth.AuthAccountModel
 import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.request.get
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -30,6 +36,206 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TmdbAuthenticateRepositoryTest {
+
+    @Test
+    fun `bootstrap read failure is sanitized and does not validate or clear a session`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply {
+                readFailure = IOException("sensitive storage detail")
+            }
+            val subject = repository(api = api, store = store)
+
+            val error = (subject.bootstrapAuth() as AppResult.Failure).error
+
+            assertTrue(error is AppError.Unknown)
+            assertEquals("BOOTSTRAP_LOCAL_READ_FAILED", error.source?.backendCode)
+            assertNull(error.source?.backendMessage)
+            assertEquals(0, api.movieAccountStatesCalls)
+            assertEquals(0, store.clearCalls)
+            assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+        }
+    }
+
+    @Test
+    fun `bootstrap validated session write failure is sanitized and retained for retry`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply {
+                saveSession("retained-session", null)
+                saveFailure = IOException("sensitive storage detail")
+            }
+            val subject = repository(api = api, store = store, accountId = "548")
+
+            val error = (subject.bootstrapAuth() as AppResult.Failure).error
+
+            assertTrue(error is AppError.Unknown)
+            assertEquals("BOOTSTRAP_LOCAL_WRITE_FAILED", error.source?.backendCode)
+            assertNull(error.source?.backendMessage)
+            assertEquals("retained-session", store.sessionId)
+            assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+            assertEquals(0, api.deleteSessionCalls)
+
+            store.saveFailure = null
+            assertTrue(subject.bootstrapAuth() is AppResult.Success)
+            assertTrue(subject.authState.value is AuthStateModel.LoggedIn)
+        }
+    }
+
+    @Test
+    fun `bootstrap invalid session clear failure preserves authoritative error and retries local cleanup`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply { saveSession("invalid-session", null) }
+            val subject = repository(api = api, store = store)
+            subject.bootstrapAuth()
+            api.failure = TmdbAuthenticationFailureException("INVALID_SESSION", "Session rejected")
+            store.clearFailure = IOException("sensitive storage detail")
+
+            val error = (subject.bootstrapAuth() as AppResult.Failure).error
+
+            assertTrue(error is AppError.SessionExpired)
+            assertEquals("INVALID_SESSION", error.source?.backendCode)
+            assertEquals("invalid-session", store.sessionId)
+            assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+
+            store.clearFailure = null
+            assertEquals(error, (subject.bootstrapAuth() as AppResult.Failure).error)
+            assertNull(store.sessionId)
+            assertEquals(0, api.deleteSessionCalls)
+        }
+    }
+
+    @Test
+    fun `bootstrap storage cancellation propagates at read write and invalid session clear`() {
+        runTest {
+            for (operation in listOf("read", "write", "clear")) {
+                val cancellation = CancellationException(operation)
+                val api = FakeTmdbApi()
+                val store = FakeTmdbAuthStore().apply { saveSession("retained-session", null) }
+                when (operation) {
+                    "read" -> store.readFailure = cancellation
+                    "write" -> store.saveFailure = cancellation
+                    "clear" -> {
+                        store.clearFailure = cancellation
+                        api.failure = TmdbAuthenticationFailureException("INVALID_SESSION", "Session rejected")
+                    }
+                }
+                val subject = repository(api = api, store = store)
+
+                assertEquals(cancellation, assertFailsWith<CancellationException> { subject.bootstrapAuth() })
+                assertEquals("retained-session", store.sessionId)
+                assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+            }
+        }
+    }
+
+    @Test
+    fun `logout retry does not repeat remote deletion after local cleanup fails`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply { saveSession("session-id", null) }
+            val subject = repository(api = api, store = store)
+            subject.bootstrapAuth()
+            store.clearFailureOnce = IOException("sensitive storage detail")
+
+            val error = (subject.logoutUser() as AppResult.Failure).error
+
+            assertEquals("LOGOUT_LOCAL_CLEAR_FAILED", error.source?.backendCode)
+            assertNull(error.source?.backendMessage)
+            assertEquals(1, api.deleteSessionCalls)
+            api.failure = IllegalStateException("Repeated remote deletion is unsupported")
+
+            assertEquals(AppResult.Success(Unit), subject.logoutUser())
+            assertEquals(1, api.deleteSessionCalls)
+            assertNull(store.sessionId)
+            assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+        }
+    }
+
+    @Test
+    fun `reload validates revoked session and clears it without repeating deletion`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply { saveSession("session-id", null) }
+            val subject = repository(api = api, store = store)
+            subject.bootstrapAuth()
+            store.clearFailureOnce = IOException("storage unavailable")
+            assertTrue(subject.logoutUser() is AppResult.Failure)
+            api.failure = TmdbAuthenticationFailureException("INVALID_SESSION", "Session rejected")
+
+            val reloaded = repository(api = api, store = store)
+            val error = (reloaded.bootstrapAuth() as AppResult.Failure).error
+
+            assertTrue(error is AppError.SessionExpired)
+            assertEquals(1, api.deleteSessionCalls)
+            assertNull(store.sessionId)
+            assertEquals(AuthStateModel.LoggedOut, reloaded.authState.value)
+        }
+    }
+
+    @Test
+    fun `logout cancellation during cleanup propagates and retry skips revoked remote session`() {
+        runTest {
+            val api = FakeTmdbApi()
+            val store = FakeTmdbAuthStore().apply { saveSession("session-id", null) }
+            val subject = repository(api = api, store = store)
+            val cancellation = CancellationException("cancel cleanup")
+            store.clearFailureOnce = cancellation
+
+            assertEquals(cancellation, assertFailsWith<CancellationException> { subject.logoutUser() })
+            api.failure = IllegalStateException("Repeated remote deletion is unsupported")
+            assertEquals(AppResult.Success(Unit), subject.logoutUser())
+            assertEquals(1, api.deleteSessionCalls)
+        }
+    }
+
+    @Test
+    fun `generic remote logout rejection retains session for retry`() {
+        runTest {
+            val api = CleanupTrackingTmdbApi(deleteResponse = TmdbDeleteSessionResponseDto(success = false))
+            val store = FakeTmdbAuthStore().apply { saveSession("session-id", null) }
+            val subject = repository(api = api, store = store)
+            subject.bootstrapAuth()
+
+            val error = (subject.logoutUser() as AppResult.Failure).error
+
+            assertTrue(error is AppError.Authentication)
+            assertEquals("DELETE_SESSION_FAILED", error.source?.backendCode)
+            assertEquals("session-id", store.sessionId)
+            assertEquals(0, store.clearCalls)
+            assertTrue(subject.authState.value is AuthStateModel.LoggedIn)
+        }
+    }
+
+    @Test
+    fun `unauthorized logout invalidates auth even when local cleanup fails`() {
+        runTest {
+            val client = HttpClient(MockEngine { respond("", HttpStatusCode.Unauthorized) })
+            try {
+                val rejection = ClientRequestException(client.get("https://tmdb.test/session"), "")
+                for (cleanupFails in listOf(false, true)) {
+                    val api = FakeTmdbApi()
+                    val store = FakeTmdbAuthStore().apply { saveSession("session-id", null) }
+                    val subject = repository(api = api, store = store)
+                    subject.bootstrapAuth()
+                    api.failure = rejection
+                    if (cleanupFails) {
+                        store.clearFailure = IOException("sensitive storage detail")
+                    }
+
+                    val error = (subject.logoutUser() as AppResult.Failure).error
+
+                    assertTrue(error is AppError.Unauthorized)
+                    assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
+                    assertEquals(1, store.clearCalls)
+                    assertEquals(if (cleanupFails) "session-id" else null, store.sessionId)
+                }
+            } finally {
+                client.close()
+            }
+        }
+    }
 
     @Test
     fun `bootstrap without saved session returns logged out without network`() = runTest {
@@ -769,6 +975,7 @@ class TmdbAuthenticateRepositoryTest {
     }
 
     private class FakeTmdbAuthStore : TmdbAuthStore {
+        var readFailure: Throwable? = null
         var cancelOnSave: Boolean = false
         var clearFailure: Throwable? = null
         var clearFailureOnce: Throwable? = null
@@ -785,6 +992,7 @@ class TmdbAuthenticateRepositoryTest {
             private set
 
         override suspend fun currentSessionId(): String? {
+            readFailure?.let { throwable -> throw throwable }
             return sessionId
         }
 

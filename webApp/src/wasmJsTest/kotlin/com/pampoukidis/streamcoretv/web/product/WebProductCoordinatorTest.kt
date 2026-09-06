@@ -40,6 +40,252 @@ import kotlin.test.assertTrue
 
 class WebProductCoordinatorTest {
     @Test
+    fun failedProfileSelectionPreservesMemoryPersistenceAndRouteUntilRetry(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.profileSelected(profile("original"))
+            fixture.navigation.replace(WebRoute.Profiles)
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val error = fixture.coordinator.profileSelected(profile("replacement"))
+
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertEquals("original", fixture.coordinator.selectedProfile?.id)
+            assertEquals("original", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+
+            authStore.updateFailure = null
+            assertNull(fixture.coordinator.profileSelected(profile("replacement")))
+            assertEquals("replacement", fixture.coordinator.selectedProfile?.id)
+            assertEquals("replacement", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun failedProfileSwitchPreservesMemoryPersistenceAndRouteUntilRetry(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.profileSelected(profile("selected"))
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val error = fixture.coordinator.changeProfile()
+
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
+            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+
+            authStore.updateFailure = null
+            assertNull(fixture.coordinator.changeProfile())
+            assertNull(fixture.coordinator.selectedProfile)
+            assertNull(authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun cancelledProfileSelectionAndSwitchPropagateWithoutChangingSelectionOrRoute(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.profileSelected(profile("selected"))
+            val cancellation = CancellationException("cancelled write")
+            authStore.updateFailure = cancellation
+
+            assertEquals(cancellation, assertFailsWith<CancellationException> {
+                fixture.coordinator.profileSelected(profile("replacement"))
+            })
+            assertEquals(cancellation, assertFailsWith<CancellationException> {
+                fixture.coordinator.changeProfile()
+            })
+            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
+            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun successfulLoginWithFailedSelectionCleanupRoutesSafelyAndReturnsSanitizedError(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.profileSelected(profile("previous-session"))
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val error = fixture.coordinator.loginSucceeded()
+
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertNull(fixture.coordinator.selectedProfile)
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Home))
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun staleSelectionCleanupFailureFinishesInitializationAtProfiles(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(
+                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
+                authStoreOverride = authStore,
+            )
+            fixture.coordinator.profileSelected(profile("deleted"))
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val initialization = fixture.coordinator.initialize()
+
+            val error = (initialization as WebProductInitialization.ReadyWithError).error
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertNull(fixture.coordinator.selectedProfile)
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+            assertEquals("deleted", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun deletedActiveProfileCleanupFailureStillClosesProtectedRoutes(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.loginSucceeded()
+            fixture.coordinator.profileSelected(profile("deleted"))
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val error = fixture.coordinator.reconcileProfilesFromRepository()
+
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertNull(fixture.coordinator.selectedProfile)
+            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
+            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Home))
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun authoritativeLogoutFailuresInvalidateSessionSelectionAndRouting(): TestResult {
+        return runTest {
+            for (error in listOf(AppError.Unauthorized(), AppError.SessionExpired())) {
+                val authStore = ControllablePreferencesDataStore()
+                val fixture = coordinatorFixture(
+                    authStoreOverride = authStore,
+                    logoutResult = AppResult.Failure(error),
+                )
+                fixture.coordinator.loginSucceeded()
+                fixture.coordinator.profileSelected(profile("selected"))
+                authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
+
+                assertEquals(error, fixture.coordinator.logout())
+
+                assertNull(authStore.snapshot()[stringPreferencesKey("session_id")])
+                assertNull(authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
+                assertNull(fixture.coordinator.selectedProfile)
+                assertEquals(WebRoute.Login, fixture.navigation.route.value)
+                assertEquals(WebRoute.Login, fixture.coordinator.canonicalRoute(WebRoute.Home))
+                fixture.close()
+            }
+        }
+    }
+
+    @Test
+    fun failedInvalidatingLogoutCleanupPreservesPrimaryErrorAndRoutesFailClosed(): TestResult {
+        return runTest {
+            val error = AppError.Unauthorized()
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(
+                authStoreOverride = authStore,
+                logoutResult = AppResult.Failure(error),
+            )
+            fixture.coordinator.loginSucceeded()
+            fixture.coordinator.profileSelected(profile("selected"))
+            authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            assertEquals(error, fixture.coordinator.logout())
+
+            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
+            assertNull(fixture.coordinator.selectedProfile)
+            assertEquals(WebRoute.Login, fixture.navigation.route.value)
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun genericLogoutRejectionPreservesAuthenticatedSessionSelectionAndRoute(): TestResult {
+        return runTest {
+            val error = AppError.Authentication()
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(
+                authStoreOverride = authStore,
+                logoutResult = AppResult.Failure(error),
+            )
+            fixture.coordinator.loginSucceeded()
+            fixture.coordinator.profileSelected(profile("selected"))
+            authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
+
+            assertEquals(error, fixture.coordinator.logout())
+
+            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
+            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
+            assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            assertEquals(WebRoute.Home, fixture.coordinator.canonicalRoute(WebRoute.Home))
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun logoutExceptionIsSanitizedWhileCancellationPropagates(): TestResult {
+        return runTest {
+            val failure = coordinatorFixture(logoutThrowable = IllegalStateException("sensitive detail"))
+            failure.coordinator.profileSelected(profile("selected"))
+            val error = failure.coordinator.logout()
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertEquals("selected", failure.coordinator.selectedProfile?.id)
+            failure.close()
+
+            val cancellation = CancellationException("cancelled logout")
+            val cancelled = coordinatorFixture(logoutThrowable = cancellation)
+            cancelled.coordinator.profileSelected(profile("selected"))
+            assertEquals(cancellation, assertFailsWith<CancellationException> { cancelled.coordinator.logout() })
+            assertEquals("selected", cancelled.coordinator.selectedProfile?.id)
+            cancelled.close()
+        }
+    }
+
+    @Test
+    fun successfulLogoutWithFailedSelectionCleanupStillRoutesToLogin(): TestResult {
+        return runTest {
+            val authStore = ControllablePreferencesDataStore()
+            val fixture = coordinatorFixture(authStoreOverride = authStore)
+            fixture.coordinator.loginSucceeded()
+            fixture.coordinator.profileSelected(profile("selected"))
+            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+
+            val error = fixture.coordinator.logout()
+
+            assertTrue(error is AppError.Unknown)
+            assertNull(error.source?.backendMessage)
+            assertNull(fixture.coordinator.selectedProfile)
+            assertEquals(WebRoute.Login, fixture.navigation.route.value)
+            assertEquals(WebRoute.Login, fixture.coordinator.canonicalRoute(WebRoute.Home))
+            fixture.close()
+        }
+    }
+
+    @Test
     fun unauthorizedEditorErrorClearsOnlyAuthAndScopedSelectionPreferences(): TestResult {
         return runTest {
             val fixture = coordinatorFixture()
@@ -515,7 +761,9 @@ class WebProductCoordinatorTest {
             val fixture = coordinatorFixture(
                 logoutResult = AppResult.Failure(error),
             )
+            fixture.coordinator.loginSucceeded()
             fixture.coordinator.profileSelected(profile("selected"))
+            fixture.authStore.edit { it[stringPreferencesKey("session_id")] = "retained-session" }
 
             assertEquals(error, fixture.coordinator.logout())
             assertEquals("selected", fixture.coordinator.selectedProfile?.id)
@@ -524,6 +772,8 @@ class WebProductCoordinatorTest {
                 fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)],
             )
             assertEquals(WebRoute.Home, fixture.navigation.route.value)
+            assertEquals(WebRoute.Home, fixture.coordinator.canonicalRoute(WebRoute.Home))
+            assertEquals("retained-session", fixture.authStore.data.first()[stringPreferencesKey("session_id")])
             fixture.close()
         }
     }
@@ -536,6 +786,7 @@ private fun coordinatorFixture(
     profilesResult: AppResult<List<ProfileModel>> = AppResult.Success(emptyList()),
     authStoreOverride: DataStore<Preferences>? = null,
     logoutResult: AppResult<Unit> = AppResult.Success(Unit),
+    logoutThrowable: Throwable? = null,
 ): CoordinatorFixture {
     val application = koinApplication {
         modules(
@@ -557,6 +808,7 @@ private fun coordinatorFixture(
         bootstrapResult = bootstrapResult,
         bootstrapThrowable = bootstrapThrowable,
         logoutResult = logoutResult,
+        logoutThrowable = logoutThrowable,
     )
     val profileRepository = StubProfileRepository(profilesResult)
     val coordinator = WebProductCoordinator(
@@ -606,6 +858,7 @@ private class StubAuthenticateRepository(
     private val bootstrapResult: AppResult<AuthStateModel>,
     private val bootstrapThrowable: Throwable?,
     private val logoutResult: AppResult<Unit>,
+    private val logoutThrowable: Throwable?,
 ) : AuthenticateRepository {
     override val authState: Flow<AuthStateModel> = MutableStateFlow(AuthStateModel.LoggedOut)
 
@@ -623,6 +876,7 @@ private class StubAuthenticateRepository(
     }
 
     override suspend fun logoutUser(): AppResult<Unit> {
+        logoutThrowable?.let { throwable -> throw throwable }
         return logoutResult
     }
 
