@@ -1,11 +1,11 @@
 package com.pampoukidis.streamcoretv.client.tmdb.data.search
 
 import com.pampoukidis.streamcoretv.client.tmdb.data.catalog.toModels
-import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbMovieSummaryDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbApi
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbTrendingTimeWindow
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.TmdbProfileRepository
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
@@ -18,6 +18,7 @@ class TmdbSearchRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val referenceDataSource: TmdbReferenceDataSource,
     private val callExecutor: TmdbCallExecutor,
+    private val profileRepository: TmdbProfileRepository,
 ) : SearchRepository {
 
     override suspend fun search(
@@ -32,19 +33,23 @@ class TmdbSearchRepository internal constructor(
             return validationFailure
         }
 
-        val isKidsProfile = profileId.isKidsProfile()
+        val policy = when (val result = profileRepository.getContentPolicy(profileId)) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
+
         return callExecutor.execute(operation = SEARCH_OPERATION) {
             coroutineScope {
                 val referenceData = async { referenceDataSource.getReferenceData() }
                 val searchResponse = async {
                     tmdbApi.searchMovies(
                         query = query,
-                        includeAdult = !isKidsProfile,
+                        includeAdult = policy.includeAdult,
                     )
                 }
 
                 searchResponse.await().results
-                    .contentVisibleForProfile(isKidsProfile = isKidsProfile)
+                    .filter { movie -> policy.includeAdult || !movie.adult }
                     .take(MAX_SEARCH_RESULTS)
                     .toModels(referenceData = referenceData.await())
             }
@@ -59,7 +64,11 @@ class TmdbSearchRepository internal constructor(
             )
         }
 
-        val isKidsProfile = profileId.isKidsProfile()
+        val policy = when (val result = profileRepository.getContentPolicy(profileId)) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
+        }
+
         return callExecutor.execute(operation = LOAD_TRENDING_OPERATION) {
             coroutineScope {
                 val referenceData = async { referenceDataSource.getReferenceData() }
@@ -68,7 +77,7 @@ class TmdbSearchRepository internal constructor(
                 }
 
                 trendingResponse.await().results
-                    .contentVisibleForProfile(isKidsProfile = isKidsProfile)
+                    .filter { movie -> policy.includeAdult || !movie.adult }
                     .take(MAX_TRENDING_RESULTS)
                     .toModels(referenceData = referenceData.await())
             }
@@ -96,20 +105,6 @@ class TmdbSearchRepository internal constructor(
         return null
     }
 
-    private fun String.isKidsProfile(): Boolean {
-        return contains(KIDS_PROFILE_MARKER, ignoreCase = true)
-    }
-
-    private fun List<TmdbMovieSummaryDto>.contentVisibleForProfile(
-        isKidsProfile: Boolean,
-    ): List<TmdbMovieSummaryDto> {
-        if (isKidsProfile) {
-            return filterNot { movie -> movie.adult }
-        }
-
-        return this
-    }
-
     private fun searchFailure(
         operation: String,
         backendCode: String,
@@ -129,7 +124,6 @@ class TmdbSearchRepository internal constructor(
         const val CLIENT = "tmdb"
         const val SEARCH_OPERATION = "search"
         const val LOAD_TRENDING_OPERATION = "loadTrending"
-        const val KIDS_PROFILE_MARKER = "kids"
         const val MAX_SEARCH_RESULTS = 20
         const val MAX_TRENDING_RESULTS = 6
     }

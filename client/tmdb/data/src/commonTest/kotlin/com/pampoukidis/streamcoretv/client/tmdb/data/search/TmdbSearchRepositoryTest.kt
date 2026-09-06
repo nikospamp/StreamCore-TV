@@ -5,13 +5,14 @@ import com.pampoukidis.streamcoretv.client.tmdb.data.model.TmdbMovieSummaryDto
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbErrorMapper
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.policyTestProfileRepository
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import kotlinx.coroutines.test.runTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.Test
+import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 
 class TmdbSearchRepositoryTest {
@@ -21,13 +22,14 @@ class TmdbSearchRepositoryTest {
         tmdbApi = api,
         referenceDataSource = TmdbReferenceDataSource(tmdbApi = api),
         callExecutor = TmdbCallExecutor(errorMapper = TmdbErrorMapper()),
+        profileRepository = policyTestProfileRepository(),
     )
 
     @Test
     fun `search preserves provider order and maps reference data`() {
         runTest {
             val result = subject.search(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 query = "orbit",
             )
 
@@ -47,7 +49,7 @@ class TmdbSearchRepositoryTest {
             api.searchMoviesResults = (1..25).map { index -> movie(index = index) }
 
             val result = subject.search(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 query = "movie",
             )
 
@@ -77,7 +79,7 @@ class TmdbSearchRepositoryTest {
         runTest {
             api.trendingWeekResults = (1..8).map { index -> movie(index = index) }
 
-            val result = subject.loadTrending(profileId = "profile-1")
+            val result = subject.loadTrending(profileId = "tmdb-profile-owner")
 
             assertTrue(result is AppResult.Success)
             assertEquals(listOf("1", "2", "3", "4", "5", "6"), (result as AppResult.Success).value.map { it.id })
@@ -98,7 +100,7 @@ class TmdbSearchRepositoryTest {
     fun `blank inputs return failures without calling search endpoint`() {
         runTest {
             assertTrue(subject.search(profileId = "", query = "orbit") is AppResult.Failure)
-            assertTrue(subject.search(profileId = "profile-1", query = " ") is AppResult.Failure)
+            assertTrue(subject.search(profileId = "tmdb-profile-owner", query = " ") is AppResult.Failure)
             assertTrue(subject.loadTrending(profileId = "") is AppResult.Failure)
             assertEquals(0, api.searchMoviesCalls)
         }
@@ -110,7 +112,7 @@ class TmdbSearchRepositoryTest {
             api.failure = IOException("offline")
 
             val result = subject.search(
-                profileId = "profile-1",
+                profileId = "tmdb-profile-owner",
                 query = "orbit",
             )
 

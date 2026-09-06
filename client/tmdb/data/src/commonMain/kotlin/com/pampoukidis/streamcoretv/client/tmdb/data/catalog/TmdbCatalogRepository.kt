@@ -6,6 +6,7 @@ import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbCallExecutor
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceData
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbReferenceDataSource
 import com.pampoukidis.streamcoretv.client.tmdb.data.network.TmdbTrendingTimeWindow
+import com.pampoukidis.streamcoretv.client.tmdb.data.profile.TmdbProfileRepository
 import com.pampoukidis.streamcoretv.core.domain.HomeRepository
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -19,11 +20,17 @@ class TmdbCatalogRepository internal constructor(
     private val tmdbApi: TmdbApi,
     private val referenceDataSource: TmdbReferenceDataSource,
     private val callExecutor: TmdbCallExecutor,
+    private val profileRepository: TmdbProfileRepository,
 ) : HomeRepository {
 
     override suspend fun getHomeRows(profileId: String): AppResult<List<RowModel>> {
         if (profileId.isBlank()) {
             return catalogFailure("PROFILE_ID_REQUIRED")
+        }
+
+        val policy = when (val result = profileRepository.getContentPolicy(profileId)) {
+            is AppResult.Success -> result.value
+            is AppResult.Failure -> return result
         }
 
         return callExecutor.execute(operation = GET_HOME_ROWS_OPERATION) {
@@ -50,7 +57,7 @@ class TmdbCatalogRepository internal constructor(
                         subtitle = "Movies people are watching now",
                         type = RowType.Featured,
                         content = trendingWeek.await().results,
-                        profileId = profileId,
+                        includeAdult = policy.includeAdult,
                         referenceData = references,
                     ),
                     contentRow(
@@ -59,7 +66,7 @@ class TmdbCatalogRepository internal constructor(
                         subtitle = "Trending on TMDB",
                         type = RowType.TopTen,
                         content = trendingDay.await().results.take(TOP_TEN_LIMIT),
-                        profileId = profileId,
+                        includeAdult = policy.includeAdult,
                         referenceData = references,
                     ),
                     contentRow(
@@ -68,7 +75,7 @@ class TmdbCatalogRepository internal constructor(
                         subtitle = "Most watched on TMDB",
                         type = RowType.Poster,
                         content = popular.await().results,
-                        profileId = profileId,
+                        includeAdult = policy.includeAdult,
                         referenceData = references,
                     ),
                     contentRow(
@@ -77,7 +84,7 @@ class TmdbCatalogRepository internal constructor(
                         subtitle = "Recently released movies",
                         type = RowType.Landscape,
                         content = nowPlaying.await().results,
-                        profileId = profileId,
+                        includeAdult = policy.includeAdult,
                         referenceData = references,
                     ),
                 ).filter { row -> row.content.isNotEmpty() }
@@ -91,7 +98,7 @@ class TmdbCatalogRepository internal constructor(
         subtitle: String,
         type: RowType,
         content: List<TmdbMovieSummaryDto>,
-        profileId: String,
+        includeAdult: Boolean,
         referenceData: TmdbReferenceData,
     ): RowModel {
         return RowModel(
@@ -100,23 +107,13 @@ class TmdbCatalogRepository internal constructor(
             subtitle = subtitle,
             type = type,
             content = content
-                .contentVisibleForProfile(profileId = profileId)
+                .filter { movie -> includeAdult || !movie.adult }
                 .take(ROW_CONTENT_LIMIT)
                 .toModels(
                     referenceData = referenceData,
                     row = id,
                 ),
         )
-    }
-
-    private fun List<TmdbMovieSummaryDto>.contentVisibleForProfile(
-        profileId: String,
-    ): List<TmdbMovieSummaryDto> {
-        if (profileId.contains(KIDS_PROFILE_MARKER, ignoreCase = true)) {
-            return filterNot { movie -> movie.adult }
-        }
-
-        return this
     }
 
     private fun catalogFailure(backendCode: String): AppResult.Failure {
@@ -135,7 +132,6 @@ class TmdbCatalogRepository internal constructor(
         const val CLIENT = "tmdb"
         const val GET_HOME_ROWS_OPERATION = "getHomeRows"
         const val DEFAULT_REGION = "US"
-        const val KIDS_PROFILE_MARKER = "kids"
         const val TOP_TEN_LIMIT = 10
         const val ROW_CONTENT_LIMIT = 20
     }
