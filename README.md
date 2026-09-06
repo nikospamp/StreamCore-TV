@@ -7,7 +7,8 @@ Compose-first Android VOD application for mobile, tablet, and TV. StreamCore TV 
 
 > [!IMPORTANT]
 > Android/KMP Phase 1 is Accepted at verified production commit `b8236b7`. The historical physical-device performance campaign remains
-> informational; a new campaign is optional and was owner-skipped for this gate. WEB-01 has not started and no Wasm target exists.
+> informational; a new campaign is optional and was owner-skipped for this gate. For browser development,
+> see [Run the web app locally](#run-the-web-app-locally).
 
 ## Highlights
 
@@ -124,6 +125,22 @@ From the command line:
 ```
 
 On Windows, replace `./gradlew` with `.\gradlew.bat`.
+
+### Run the web app locally
+
+Run `main()` in `webApp/src/wasmJsMain/kotlin/com/pampoukidis/streamcoretv/web/Main.kt` from Android Studio,
+or execute `./gradlew :webApp:wasmJsBrowserDevelopmentRun`.
+
+The development run automatically generates `/config.json` from the TMDB settings above. Values are resolved from Gradle properties,
+then root `local.properties`, then the file selected by `streamcoreLocalPropertiesPath` or `STREAMCORE_LOCAL_PROPERTIES`.
+`tmdbBaseUrl` optionally overrides the default `https://api.themoviedb.org/`.
+
+The generated file lives under `webApp/build/generated/webDevelopmentConfig` and is served only by the development server. There is no
+resource file to copy or revert. Restart the run after changing credentials. A missing setting fails the development run with guidance
+before the server starts. Browser runtime configuration is browser-visible.
+
+Production builds exclude real `config.json` resources and do not run this generator. Supply production configuration separately as described
+in [the web release contract](docs/kmp/web-release.md).
 
 ## Verification
 

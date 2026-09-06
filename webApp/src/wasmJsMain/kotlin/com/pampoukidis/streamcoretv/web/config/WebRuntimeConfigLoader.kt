@@ -33,7 +33,9 @@ class WebRuntimeConfigLoader(
             )
         } catch (_: ClientRequestException) {
             WebRuntimeConfigLoadResult.Failure(
-                "/config.json was not found. Copy config.example.json to config.json and provide deployment values.",
+                "/config.json was not found. For local development, configure TMDB in local.properties " +
+                        "and run :webApp:wasmJsBrowserDevelopmentRun. For deployment, serve /config.json " +
+                        "using the config.example.json schema.",
             )
         } catch (_: ServerResponseException) {
             WebRuntimeConfigLoadResult.Failure(

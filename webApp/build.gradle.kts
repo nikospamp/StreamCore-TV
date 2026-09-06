@@ -1,5 +1,9 @@
+import groovy.json.JsonOutput
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
+import java.net.URI
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -8,12 +12,89 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+@DisableCachingByDefault(because = "Local browser configuration must not enter the shared build cache")
+abstract class GenerateWebDevelopmentConfig : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    abstract val localPropertiesFiles: ConfigurableFileCollection
+
+    @get:Input
+    abstract val overrides: MapProperty<String, String>
+
+    @get:OutputFile
+    abstract val configFile: RegularFileProperty
+
+    @TaskAction
+    fun generate() {
+        val output = configFile.get().asFile
+        // A failed preflight must not leave a previously valid configuration available.
+        output.delete()
+        val values = mutableMapOf<String, String>()
+        localPropertiesFiles.forEach { file ->
+            if (file.isFile) {
+                val properties = Properties()
+                file.inputStream().use { properties.load(it) }
+                properties.stringPropertyNames().forEach { name ->
+                    values.putIfAbsent(name, properties.getProperty(name))
+                }
+            }
+        }
+        values.putAll(overrides.get())
+        val config = linkedMapOf(
+            "tmdbBaseUrl" to (values["tmdbBaseUrl"] ?: "https://api.themoviedb.org/"),
+            "tmdbReadAccessToken" to values["tmdbReadAccessToken"].orEmpty(),
+            "tmdbAccountId" to values["tmdbAccountId"].orEmpty(),
+        )
+        val missing = config.filterValues { it.isBlank() }.keys
+        check(missing.isEmpty()) {
+            "Missing web development configuration: ${missing.joinToString()}. " +
+                    "Set these in local.properties, Gradle properties, or a file selected by " +
+                    "-PstreamcoreLocalPropertiesPath / STREAMCORE_LOCAL_PROPERTIES."
+        }
+        val baseUrl = runCatching { URI(config.getValue("tmdbBaseUrl")) }.getOrNull()
+        check(baseUrl?.scheme == "https" && !baseUrl.host.isNullOrBlank()) {
+            "tmdbBaseUrl must be an absolute HTTPS URL."
+        }
+        output.parentFile.mkdirs()
+        output.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(config)) + "\n")
+        logger.lifecycle("Web development configuration generated (values redacted).")
+    }
+}
+
+val developmentConfigDirectory = layout.buildDirectory.dir("generated/webDevelopmentConfig")
+val generateWebDevelopmentConfig = tasks.register<GenerateWebDevelopmentConfig>("generateWebDevelopmentConfig") {
+    group = "development"
+    description = "Generates browser runtime configuration from the existing local TMDB settings."
+    localPropertiesFiles.from(rootProject.layout.projectDirectory.file("local.properties"))
+    val linkedPropertiesPath = providers.gradleProperty("streamcoreLocalPropertiesPath")
+        .orElse(providers.environmentVariable("STREAMCORE_LOCAL_PROPERTIES"))
+    if (linkedPropertiesPath.isPresent) {
+        localPropertiesFiles.from(rootProject.file(linkedPropertiesPath.get()))
+    }
+    overrides.convention(emptyMap())
+    listOf("tmdbBaseUrl", "tmdbReadAccessToken", "tmdbAccountId").forEach { name ->
+        val value = providers.gradleProperty(name)
+        if (value.isPresent) {
+            overrides.put(name, value)
+        }
+    }
+    configFile.set(developmentConfigDirectory.map { it.file("config.json") })
+}
+
 @OptIn(ExperimentalWasmDsl::class)
 kotlin {
     wasmJs {
         browser {
             commonWebpackConfig {
                 outputFileName = "streamcore-web.js"
+            }
+            runTask {
+                if (mode == KotlinWebpackConfig.Mode.DEVELOPMENT) {
+                    dependsOn(generateWebDevelopmentConfig)
+                    devServerProperty.set(devServerProperty.get().apply {
+                        static(developmentConfigDirectory.get().asFile.invariantSeparatorsPath)
+                    })
+                }
             }
             testTask {
                 useKarma {
@@ -26,6 +107,8 @@ kotlin {
 
     sourceSets {
         wasmJsMain {
+            // Runtime values are served by the dev server or deployment, never bundled.
+            resources.exclude("config.json")
             resources.srcDir(
                 project(":playback:web").file("src/wasmJsMain/resources"),
             )
