@@ -37,6 +37,7 @@ export function create(videoElement) {
         closed: false,
         destroyStarted: false,
         loaded: false,
+        playWhenReady: true,
         phase: "idle",
         failure: false,
         recoverable: true,
@@ -78,6 +79,7 @@ export function load(handle, generation, uri, mimeType, startSeconds) {
     }
     handle.generation = generation;
     handle.loaded = false;
+    handle.playWhenReady = true;
     handle.phase = "preparing";
     handle.failure = false;
     handle.recoverable = true;
@@ -103,6 +105,7 @@ export function reset(handle, generation) {
     }
     handle.generation = generation;
     handle.loaded = false;
+    handle.playWhenReady = false;
     handle.phase = "idle";
     handle.failure = false;
     handle.recoverable = true;
@@ -141,6 +144,9 @@ async function runLoad(handle, generation, uri, mimeType, startSeconds) {
         handle.loaded = true;
         handle.phase = handle.video.ended ? "ended" : "ready";
         refreshTracks(handle);
+        if (!handle.playWhenReady) {
+            return;
+        }
         try {
             await Promise.resolve(handle.video.play());
         } catch (_) {
@@ -156,16 +162,21 @@ async function runLoad(handle, generation, uri, mimeType, startSeconds) {
 }
 
 export function play(handle) {
-    if (handle.closed || !handle.loaded) {
+    if (handle.closed) {
         return;
     }
+    handle.playWhenReady = true;
+    if (!handle.loaded) {
+        return;
+    }
+    const generation = handle.generation;
     try {
         if (handle.video.ended || finiteDuration(handle.video.duration) <= handle.video.currentTime) {
             handle.video.currentTime = 0;
         }
         const playResult = handle.video.play();
         void Promise.resolve(playResult).catch(() => {
-            if (!handle.closed) {
+            if (isCurrent(handle, generation)) {
                 handle.phase = "ready";
             }
         });
@@ -178,6 +189,7 @@ export function pause(handle) {
     if (handle.closed) {
         return;
     }
+    handle.playWhenReady = false;
     safely(handle, () => {
         handle.video.pause();
         if (handle.loaded && handle.phase !== "ended" && handle.phase !== "error") {
@@ -453,6 +465,7 @@ export function close(handle) {
         return;
     }
     handle.closed = true;
+    handle.playWhenReady = false;
     handle.generation += 1;
     cancelAllFilmstripRequests(handle);
     handle.videoListeners.forEach(({ type, listener }) => {
