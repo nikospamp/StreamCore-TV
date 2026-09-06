@@ -103,7 +103,12 @@ class AppAuthViewModel constructor(
                 }
 
                 is AppResult.Failure -> {
-                    logoutState.update { state -> state.copy(isInProgress = false) }
+                    if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
+                        activeProfileId.value = null
+                        logoutState.value = LogoutState()
+                    } else {
+                        logoutState.update { state -> state.copy(isInProgress = false) }
+                    }
                     effectsChannel.send(AppAuthEffect.ShowError(error = result.error))
                 }
             }
