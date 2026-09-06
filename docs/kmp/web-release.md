@@ -28,6 +28,11 @@ or copy a real runtime config into the distribution tree.
 
 ## Runtime configuration
 
+Local development uses `:webApp:wasmJsBrowserDevelopmentRun` (also used when running `Main.kt` in the IDE). This task generates
+`webApp/build/generated/webDevelopmentConfig/config.json` from the existing TMDB Gradle/local properties and adds that directory only
+to the development server's static roots. No source-resource copying or reverting is required. Restart the run after changing properties.
+Real `config.json` files are excluded from main resources; the development output is never a production resource input.
+
 The deployment supplies `/config.json` out of band at the same origin as the application:
 
 ```json
