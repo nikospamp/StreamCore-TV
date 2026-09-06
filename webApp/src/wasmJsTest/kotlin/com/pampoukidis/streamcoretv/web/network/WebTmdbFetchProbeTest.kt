@@ -141,7 +141,8 @@ class WebTmdbFetchProbeTest {
             expectSuccess = true
             install(ContentNegotiation) { json() }
             defaultRequest {
-                url("https://tmdb.test/3/")
+                // KtorTmdbApi supplies the /3 path segment itself.
+                url("https://tmdb.test/")
                 header(HttpHeaders.Authorization, "Bearer fixture-token")
             }
         }
@@ -152,7 +153,7 @@ class WebTmdbFetchProbeTest {
                     module {
                         single<HttpClient> { client }
                         single<DataStore<Preferences>>(named(TMDB_AUTH_STORE_QUALIFIER)) { TestStore() }
-                        single { TmdbRuntimeConfig("https://tmdb.test/3/", "fixture-token", "probe-test") }
+                        single { TmdbRuntimeConfig("https://tmdb.test/", "fixture-token", "probe-test") }
                         if (profilesResult != null) {
                             single<ProfileRepository> {
                                 object : ProfileRepository by get<TmdbProfileRepository>() {
