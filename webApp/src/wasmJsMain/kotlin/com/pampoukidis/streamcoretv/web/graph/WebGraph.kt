@@ -19,28 +19,21 @@ import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
 import com.pampoukidis.streamcoretv.core.tracing.NoOpPerformanceTracer
 import com.pampoukidis.streamcoretv.core.tracing.PerformanceTracer
 import com.pampoukidis.streamcoretv.core.ui.error.coreUiModule
-import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.detailsUiModule
 import com.pampoukidis.streamcoretv.feature.details.domain.detailsDomainModule
-import com.pampoukidis.streamcoretv.feature.home.common.home.HomeViewModel
 import com.pampoukidis.streamcoretv.feature.home.common.home.homeUiModule
 import com.pampoukidis.streamcoretv.feature.home.domain.homeDomainModule
-import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryViewModel
 import com.pampoukidis.streamcoretv.feature.library.common.library.libraryUiModule
 import com.pampoukidis.streamcoretv.feature.library.data.libraryWebDataModule
 import com.pampoukidis.streamcoretv.feature.library.data.LIBRARY_STORE_QUALIFIER
 import com.pampoukidis.streamcoretv.feature.library.domain.libraryDomainModule
-import com.pampoukidis.streamcoretv.feature.login.common.login.LoginViewModel
 import com.pampoukidis.streamcoretv.feature.login.common.login.loginUiModule
 import com.pampoukidis.streamcoretv.feature.login.domain.loginDomainModule
 import com.pampoukidis.streamcoretv.feature.player.common.player.playerUiModule
 import com.pampoukidis.streamcoretv.feature.player.data.playbackWebDataModule
 import com.pampoukidis.streamcoretv.feature.player.data.PLAYBACK_PROGRESS_STORE_QUALIFIER
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorViewModel
-import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesViewModel
 import com.pampoukidis.streamcoretv.feature.profiles.common.profilesUiModule
 import com.pampoukidis.streamcoretv.feature.profiles.domain.profilesDomainModule
-import com.pampoukidis.streamcoretv.feature.search.common.search.SearchViewModel
 import com.pampoukidis.streamcoretv.feature.search.common.search.searchUiModule
 import com.pampoukidis.streamcoretv.feature.search.data.searchWebDataModule
 import com.pampoukidis.streamcoretv.feature.search.data.SEARCH_HISTORY_STORE_QUALIFIER
@@ -149,13 +142,6 @@ internal fun resolveWebGraph(koin: Koin): List<String> {
         resolve<LibraryRepository>(koin, "LibraryRepository")
         resolve<PlaybackProgressRepository>(koin, "PlaybackProgressRepository")
         resolve<PlaybackSourceRepository>(koin, "PlaybackSourceRepository")
-        resolve<LoginViewModel>(koin, "LoginViewModel")
-        resolve<ProfilesViewModel>(koin, "ProfilesViewModel")
-        resolve<ProfileEditorViewModel>(koin, "ProfileEditorViewModel")
-        resolve<HomeViewModel>(koin, "HomeViewModel")
-        resolve<SearchViewModel>(koin, "SearchViewModel")
-        resolve<DetailsViewModel>(koin, "DetailsViewModel")
-        resolve<LibraryViewModel>(koin, "LibraryViewModel")
         resolve<PlaybackSessionFactory>(koin, "PlaybackSessionFactory")
     }
 }
