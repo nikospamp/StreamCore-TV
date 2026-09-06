@@ -18,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 
 class PlayerViewModel constructor(
     private val sourceRepository: PlaybackSourceRepository,
@@ -46,7 +48,10 @@ class PlayerViewModel constructor(
     private var request: PlaybackRequestModel? = null
     private val session: PlaybackSession = sessionFactory.create()
     private val sessionStateJob: Job
+    private var preparationJob: Job? = null
     private var hasPreparedSession = false
+    private var isForeground = true
+    private var playWhenPrepared = true
     private val preparedSession: PlaybackSession?
         get() {
             return session.takeIf { hasPreparedSession }
@@ -93,6 +98,7 @@ class PlayerViewModel constructor(
     }
 
     override fun onCleared() {
+        preparationJob?.cancel()
         controlsJob?.cancel()
         filmstripJob?.cancel()
         feedbackJob?.cancel()
@@ -103,35 +109,53 @@ class PlayerViewModel constructor(
     }
 
     private fun load(newRequest: PlaybackRequestModel, isPipSupported: Boolean) {
-        if (request == newRequest && hasPreparedSession) {
+        if (isBackNavigationPending ||
+            (request == newRequest && (hasPreparedSession || preparationJob?.isActive == true))
+        ) {
             return
         }
         filmstripJob?.cancel()
         activeFilmstripPositions = emptyList()
         pendingFilmstripPositions = null
+        if (request != null && request != newRequest) {
+            playWhenPrepared = isForeground || _uiState.value.isInPip
+        }
         request = newRequest
         _uiState.value = PlayerUiState(
             title = newRequest.contentSnapshot.title,
             phase = PlaybackPhase.Preparing,
             isPipSupported = isPipSupported,
         )
-        viewModelScope.launch {
-            prepareSession(newRequest)
-        }
+        startPreparation(newRequest)
+    }
+
+    private fun startPreparation(activeRequest: PlaybackRequestModel) {
+        preparationJob?.cancel()
+        val previousSession = preparedSession
+        hasPreparedSession = false
+        previousSession?.pause()
+        resumeAfterScrub = false
+        preparationJob = viewModelScope.launch { prepareSession(activeRequest) }
     }
 
     private suspend fun prepareSession(activeRequest: PlaybackRequestModel) {
-        runCatching {
+        try {
             val progress = progressRepository.get(activeRequest.profileId, activeRequest.contentId)
+            coroutineContext.ensureActive()
+            val media = sourceRepository.resolve(activeRequest)
+            coroutineContext.ensureActive()
             lastValidPositionMillis = progress?.positionMillis ?: 0L
             lastSavedProgressBucket = lastValidPositionMillis / ProgressSaveIntervalMillis
-            val media = sourceRepository.resolve(activeRequest)
-            if (!hasPreparedSession) {
-                hasPreparedSession = true
-                _videoSurface.value = session.videoSurface
-            }
+            hasPreparedSession = true
+            _videoSurface.value = session.videoSurface
             session.prepare(media, lastValidPositionMillis)
-        }.onFailure {
+            if (!playWhenPrepared) {
+                session.pause()
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            coroutineContext.ensureActive()
             _uiState.update { state ->
                 state.copy(
                     phase = PlaybackPhase.Error,
@@ -147,6 +171,9 @@ class PlayerViewModel constructor(
     }
 
     private fun applyEngineState(engine: PlaybackEngineState) {
+        if (!hasPreparedSession || isBackNavigationPending) {
+            return
+        }
         val normalizedEngine = engine.normalizedForUi()
         if (normalizedEngine.positionMillis > 0L) {
             lastValidPositionMillis = normalizedEngine.positionMillis
@@ -221,7 +248,10 @@ class PlayerViewModel constructor(
 
     private fun togglePlayPause() {
         val state = _uiState.value
-        if (state.isPlaying) {
+        val shouldPause = if (state.phase == PlaybackPhase.Preparing) playWhenPrepared else state.isPlaying
+        playWhenPrepared = !shouldPause
+        if (shouldPause) {
+            resumeAfterScrub = false
             preparedSession?.pause()
             viewModelScope.launch { saveProgress() }
         } else {
@@ -390,16 +420,23 @@ class PlayerViewModel constructor(
             return
         }
         isBackNavigationPending = true
+        preparationJob?.cancel()
+        playWhenPrepared = false
+        resumeAfterScrub = false
+        preparedSession?.pause()
         viewModelScope.launch {
-            saveProgressBestEffort()
+            saveProgress()
             effectsChannel.send(PlayerEffect.NavigateBack)
         }
     }
 
     private fun retry() {
+        if (isBackNavigationPending) {
+            return
+        }
         val activeRequest = request ?: return
         _uiState.update { it.copy(phase = PlaybackPhase.Preparing, error = null) }
-        viewModelScope.launch { prepareSession(activeRequest) }
+        startPreparation(activeRequest)
     }
 
     private fun requestPip() {
@@ -420,7 +457,10 @@ class PlayerViewModel constructor(
     }
 
     private fun onForegroundChanged(isForeground: Boolean) {
+        this.isForeground = isForeground
         if (!isForeground && !_uiState.value.isInPip) {
+            playWhenPrepared = false
+            resumeAfterScrub = false
             preparedSession?.pause()
             viewModelScope.launch { saveProgress() }
         }
@@ -454,6 +494,10 @@ class PlayerViewModel constructor(
     }
 
     private suspend fun saveProgress(positionOverride: Long? = null) {
+        persistProgressBestEffort { writeProgress(positionOverride) }
+    }
+
+    private suspend fun writeProgress(positionOverride: Long?) {
         val activeRequest = request ?: return
         val state = _uiState.value
         if (state.durationMillis <= 0L) {
@@ -476,19 +520,21 @@ class PlayerViewModel constructor(
         )
     }
 
-    private suspend fun saveProgressBestEffort() {
+    private inline fun persistProgressBestEffort(block: () -> Unit) {
         try {
-            saveProgress()
+            block()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {
-            // Navigation must remain available when local progress persistence fails.
+            // Resume storage is optional; a failed write must not interrupt playback or navigation.
         }
     }
 
     private suspend fun removeProgress() {
         val activeRequest = request ?: return
-        progressRepository.remove(activeRequest.profileId, activeRequest.contentId)
+        persistProgressBestEffort {
+            progressRepository.remove(activeRequest.profileId, activeRequest.contentId)
+        }
     }
 
     private companion object {
