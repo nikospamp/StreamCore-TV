@@ -29,7 +29,8 @@ class TmdbAuthenticateRepository internal constructor(
     private val _authState = MutableStateFlow<AuthStateModel>(AuthStateModel.LoggedOut)
     override val authState: StateFlow<AuthStateModel> = _authState.asStateFlow()
 
-    private var pendingRevokedSessionId: String? = null
+    // Only a revoked or authoritatively rejected id can bypass remote deletion on retry.
+    private var pendingInvalidatedSessionId: String? = null
 
     override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
         val sessionId = when (
@@ -44,11 +45,11 @@ class TmdbAuthenticateRepository internal constructor(
             }
         }
         if (sessionId == null) {
-            pendingRevokedSessionId = null
+            pendingInvalidatedSessionId = null
             _authState.value = AuthStateModel.LoggedOut
             return AppResult.Success(AuthStateModel.LoggedOut)
         }
-        if (sessionId == pendingRevokedSessionId) {
+        if (sessionId == pendingInvalidatedSessionId) {
             _authState.value = AuthStateModel.LoggedOut
             return when (val result = clearSessionForLogout()) {
                 is AppResult.Success -> AppResult.Success(AuthStateModel.LoggedOut)
@@ -85,16 +86,16 @@ class TmdbAuthenticateRepository internal constructor(
                                 return saveResult
                             }
                         }
-                        pendingRevokedSessionId = null
+                        pendingInvalidatedSessionId = null
                         _authState.value = authState
                         AppResult.Success(authState)
                     }
 
-                    is AppResult.Failure -> bootstrapFailure(error = accountResult.error)
+                    is AppResult.Failure -> bootstrapFailure(error = accountResult.error, sessionId = sessionId)
                 }
             }
 
-            is AppResult.Failure -> bootstrapFailure(error = result.error)
+            is AppResult.Failure -> bootstrapFailure(error = result.error, sessionId = sessionId)
         }
     }
 
@@ -161,11 +162,11 @@ class TmdbAuthenticateRepository internal constructor(
             is AppResult.Failure -> return result
         }
         if (retainedSessionId == null) {
-            pendingRevokedSessionId = null
+            pendingInvalidatedSessionId = null
             return AppResult.Success(Unit)
         }
 
-        if (retainedSessionId != pendingRevokedSessionId) {
+        if (retainedSessionId != pendingInvalidatedSessionId) {
             when (
                 val result = callExecutor.execute(operation = LOGIN_OPERATION) {
                     val response = tmdbApi.deleteSession(sessionId = retainedSessionId)
@@ -177,7 +178,7 @@ class TmdbAuthenticateRepository internal constructor(
                     }
                 }
             ) {
-                is AppResult.Success -> pendingRevokedSessionId = retainedSessionId
+                is AppResult.Success -> pendingInvalidatedSessionId = retainedSessionId
                 is AppResult.Failure -> return result
             }
         }
@@ -188,7 +189,7 @@ class TmdbAuthenticateRepository internal constructor(
             }
         ) {
             is AppResult.Success -> {
-                pendingRevokedSessionId = null
+                pendingInvalidatedSessionId = null
                 _authState.value = AuthStateModel.LoggedOut
                 AppResult.Success(Unit)
             }
@@ -247,7 +248,7 @@ class TmdbAuthenticateRepository internal constructor(
             is AppResult.Failure -> return result
         }
 
-        if (sessionId != null && sessionId != pendingRevokedSessionId) {
+        if (sessionId != null && sessionId != pendingInvalidatedSessionId) {
             when (val result = callExecutor.execute(operation = LOGOUT_OPERATION) {
                 val response = tmdbApi.deleteSession(sessionId = sessionId)
                 if (!response.success) {
@@ -257,10 +258,10 @@ class TmdbAuthenticateRepository internal constructor(
                     )
                 }
             }) {
-                is AppResult.Success -> pendingRevokedSessionId = sessionId
+                is AppResult.Success -> pendingInvalidatedSessionId = sessionId
                 is AppResult.Failure -> {
                     if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
-                        return clearSessionAndFail(error = result.error)
+                        return clearSessionAndFail(error = result.error, sessionId = sessionId)
                     }
                     return result
                 }
@@ -284,7 +285,7 @@ class TmdbAuthenticateRepository internal constructor(
     private suspend fun clearSessionForLogout(): AppResult<Unit> {
         return localAuthOperation(LOGOUT_OPERATION, LOGOUT_LOCAL_CLEAR_FAILED_CODE) {
             authStore.clear()
-            pendingRevokedSessionId = null
+            pendingInvalidatedSessionId = null
         }
     }
 
@@ -383,8 +384,9 @@ class TmdbAuthenticateRepository internal constructor(
         )
     }
 
-    private suspend fun <T> clearSessionAndFail(error: AppError): AppResult<T> {
+    private suspend fun <T> clearSessionAndFail(error: AppError, sessionId: String): AppResult<T> {
         // An authoritative rejection remains primary even when local cleanup is unavailable.
+        pendingInvalidatedSessionId = sessionId
         _authState.value = AuthStateModel.LoggedOut
         clearSessionForLogout()
         return AppResult.Failure(error)
@@ -439,11 +441,11 @@ class TmdbAuthenticateRepository internal constructor(
         }
     }
 
-    private suspend fun <T> bootstrapFailure(error: AppError): AppResult<T> {
+    private suspend fun <T> bootstrapFailure(error: AppError, sessionId: String): AppResult<T> {
         _authState.value = AuthStateModel.LoggedOut
         val normalizedError = error.toBootstrapFailure()
         if (normalizedError.invalidatesPersistedSession()) {
-            return clearSessionAndFail(error = normalizedError)
+            return clearSessionAndFail(error = normalizedError, sessionId = sessionId)
         }
         return AppResult.Failure(normalizedError)
     }

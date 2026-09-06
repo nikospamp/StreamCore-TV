@@ -100,9 +100,98 @@ class TmdbAuthenticateRepositoryTest {
             assertEquals(AuthStateModel.LoggedOut, subject.authState.value)
 
             store.clearFailure = null
-            assertEquals(error, (subject.bootstrapAuth() as AppResult.Failure).error)
+            api.failure = IllegalStateException("Known invalid session must not be validated again")
+            assertEquals(AppResult.Success(AuthStateModel.LoggedOut), subject.bootstrapAuth())
             assertNull(store.sessionId)
             assertEquals(0, api.deleteSessionCalls)
+        }
+    }
+
+    @Test
+    fun `login clears rejected bootstrap session after storage recovers without remote deletion`() {
+        runTest {
+            val api = FakeTmdbApi().apply {
+                failure = TmdbAuthenticationFailureException("INVALID_SESSION", "Session rejected")
+                deleteSessionResponse = TmdbDeleteSessionResponseDto(success = false)
+            }
+            val store = FakeTmdbAuthStore().apply {
+                saveSession("rejected-session", null)
+                clearFailureOnce = IOException("storage unavailable")
+            }
+            val subject = repository(api = api, store = store)
+            assertTrue((subject.bootstrapAuth() as AppResult.Failure).error is AppError.SessionExpired)
+            assertEquals("rejected-session", store.sessionId)
+            api.failure = null
+
+            assertEquals(AppResult.Success(Unit), subject.loginUser(identifier = "lead", password = "fixture"))
+
+            assertEquals(0, api.deleteSessionCalls)
+            assertEquals(2, store.clearCalls)
+            assertEquals("session-id", store.sessionId)
+            assertTrue(subject.authState.value is AuthStateModel.LoggedIn)
+        }
+    }
+
+    @Test
+    fun `login and logout retry clear rejected logout session without repeating remote deletion`() {
+        runTest {
+            val client = HttpClient(MockEngine { respond("", HttpStatusCode.Unauthorized) })
+            try {
+                val rejection = ClientRequestException(client.get("https://tmdb.test/session"), "")
+                for (retryLogin in listOf(true, false)) {
+                    val api = CleanupTrackingTmdbApi(deleteFailure = rejection)
+                    val store = FakeTmdbAuthStore().apply {
+                        saveSession("rejected-session", null)
+                        clearFailureOnce = IOException("storage unavailable")
+                    }
+                    val subject = repository(api = api, store = store)
+                    assertTrue((subject.logoutUser() as AppResult.Failure).error is AppError.Unauthorized)
+                    assertEquals("rejected-session", store.sessionId)
+
+                    val result = if (retryLogin) {
+                        subject.loginUser(identifier = "lead", password = "fixture")
+                    } else {
+                        subject.logoutUser()
+                    }
+
+                    assertEquals(AppResult.Success(Unit), result)
+                    assertEquals(listOf("rejected-session"), api.deletedSessionIds)
+                    assertEquals(2, store.clearCalls)
+                    assertEquals(if (retryLogin) "session-id" else null, store.sessionId)
+                    assertEquals(
+                        if (retryLogin) AuthStateModel.LoggedIn(account = null) else AuthStateModel.LoggedOut,
+                        subject.authState.value,
+                    )
+                }
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `pending rejected session cleanup does not bypass revocation for a different stored id`() {
+        runTest {
+            val api = FakeTmdbApi().apply {
+                failure = TmdbAuthenticationFailureException("INVALID_SESSION", "Session rejected")
+                deleteSessionResponse = TmdbDeleteSessionResponseDto(success = false)
+            }
+            val store = FakeTmdbAuthStore().apply {
+                saveSession("rejected-session", null)
+                clearFailureOnce = IOException("storage unavailable")
+            }
+            val subject = repository(api = api, store = store)
+            assertTrue(subject.bootstrapAuth() is AppResult.Failure)
+            store.saveSession("different-session", null)
+            api.failure = null
+
+            val error = (subject.loginUser(identifier = "lead", password = "fixture") as AppResult.Failure).error
+
+            assertTrue(error is AppError.Authentication)
+            assertEquals("REPLACE_SESSION_DELETE_FAILED", error.source?.backendCode)
+            assertEquals("different-session", api.lastDeletedSessionId)
+            assertEquals("different-session", store.sessionId)
+            assertEquals(0, api.createSessionCalls)
         }
     }
 

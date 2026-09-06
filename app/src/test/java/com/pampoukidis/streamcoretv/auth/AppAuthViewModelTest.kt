@@ -241,6 +241,66 @@ class AppAuthViewModelTest {
     }
 
     @Test
+    fun `authoritative failed logout clears profile and confirmation and emits primary error`() {
+        runTest {
+            for (error in listOf(AppError.Unauthorized(), AppError.SessionExpired())) {
+                val repository = FakeAuthenticateRepository(
+                    bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
+                    logoutResult = AppResult.Failure(error),
+                    logoutAuthState = AuthStateModel.LoggedOut,
+                )
+                val subject = AppAuthViewModel(authenticateRepository = repository)
+                mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+                subject.onActiveProfileChanged("previous-profile")
+                subject.onAction(AppAuthAction.RequestLogout)
+                subject.onAction(AppAuthAction.ConfirmLogout)
+
+                mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+                assertEquals(AppAuthUiState.Ready(authState = AuthStateModel.LoggedOut), subject.uiState.value)
+                assertEquals(AppAuthEffect.ShowError(error), subject.effects.first())
+
+                repository.loginUser(identifier = "new-user", password = "fixture")
+                mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+                assertEquals(
+                    AppAuthUiState.Ready(authState = AuthStateModel.LoggedIn(account = null)),
+                    subject.uiState.value,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `generic failed logout keeps confirmation and active profile for retry`() {
+        runTest {
+            val authState = AuthStateModel.LoggedIn(account = null)
+            for (error in listOf(AppError.Authentication(), AppError.Unknown())) {
+                val repository = FakeAuthenticateRepository(
+                    bootstrapResult = AppResult.Success(authState),
+                    logoutResult = AppResult.Failure(error),
+                )
+                val subject = AppAuthViewModel(authenticateRepository = repository)
+                mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+                subject.onActiveProfileChanged("profile-1")
+                subject.onAction(AppAuthAction.RequestLogout)
+                subject.onAction(AppAuthAction.ConfirmLogout)
+
+                mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+                assertEquals(
+                    AppAuthUiState.Ready(
+                        authState = authState,
+                        activeProfileId = "profile-1",
+                        isLogoutConfirmationVisible = true,
+                    ),
+                    subject.uiState.value,
+                )
+                assertEquals(AppAuthEffect.ShowError(error), subject.effects.first())
+            }
+        }
+    }
+
+    @Test
     fun `unexpected logout exception clears progress and emits unknown error`() = runTest {
         val authState = AuthStateModel.LoggedIn(account = null)
         val repository = FakeAuthenticateRepository(
@@ -271,6 +331,7 @@ class AppAuthViewModelTest {
             AppResult.Success(AuthStateModel.LoggedOut),
         private val bootstrapThrowable: Throwable? = null,
         private val logoutResult: AppResult<Unit> = AppResult.Success(Unit),
+        private val logoutAuthState: AuthStateModel? = null,
         private val logoutGate: CompletableDeferred<Unit>? = null,
         private val logoutThrowable: Throwable? = null,
     ) : AuthenticateRepository {
@@ -318,6 +379,7 @@ class AppAuthViewModelTest {
             logoutCalls += 1
             logoutGate?.await()
             logoutThrowable?.let { throwable -> throw throwable }
+            logoutAuthState?.let { state -> _authState.value = state }
             if (logoutResult is AppResult.Success) {
                 _authState.value = AuthStateModel.LoggedOut
             }
