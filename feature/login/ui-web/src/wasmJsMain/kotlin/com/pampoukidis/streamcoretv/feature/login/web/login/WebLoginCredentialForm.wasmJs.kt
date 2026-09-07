@@ -12,6 +12,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import kotlinx.browser.document
@@ -43,6 +45,7 @@ internal actual fun WebLoginCredentialForm(
     submitFocus: FocusRequester,
     modifier: Modifier,
 ) {
+    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
     val currentCallbacks = rememberUpdatedState(
         LoginCredentialCallbacks(
             isLoading = isLoading,
@@ -61,8 +64,7 @@ internal actual fun WebLoginCredentialForm(
         foreground = MaterialTheme.colorScheme.onSurface,
         supporting = MaterialTheme.colorScheme.onSurfaceVariant,
         outline = MaterialTheme.colorScheme.outline,
-        primary = MaterialTheme.colorScheme.primary,
-        onPrimary = MaterialTheme.colorScheme.onPrimary,
+        primary = controls.roles.primary,
         error = MaterialTheme.colorScheme.error,
         disabled = MaterialTheme.colorScheme.surfaceContainerHighest,
     )
@@ -84,7 +86,7 @@ internal actual fun WebLoginCredentialForm(
             val submit = form.button(LoginTestTags.SubmitButton)
 
             form.style.cssText = formStyle(colors)
-            form.styleElement().textContent = focusStyle(colors)
+            form.styleElement().textContent = focusStyle(colors, controls)
             form.label(LOGIN_IDENTIFIER_LABEL_ID).textContent = identifierLabel
             form.label(LOGIN_PASSWORD_LABEL_ID).textContent = passwordLabel
             if (identifierInput.value != identifier) identifierInput.value = identifier
@@ -92,6 +94,7 @@ internal actual fun WebLoginCredentialForm(
             identifierInput.disabled = isLoading
             passwordInput.disabled = isLoading
             visibility.disabled = isLoading
+            submit.setAttribute("aria-label", submitLabel)
             submit.disabled = isLoading
             submit.textContent = submitLabel
             form.setAttribute("aria-busy", isLoading.toString())
@@ -314,7 +317,6 @@ private data class LoginFormColors(
     val supporting: Color,
     val outline: Color,
     val primary: Color,
-    val onPrimary: Color,
     val error: Color,
     val disabled: Color,
 )
@@ -324,20 +326,22 @@ private fun formStyle(colors: LoginFormColors): String {
         "gap:12px;color:${colors.foreground.cssColor()};font-family:system-ui,Segoe UI,Arial,sans-serif;"
 }
 
-private fun focusStyle(colors: LoginFormColors): String {
+private fun focusStyle(colors: LoginFormColors, controls: StreamCoreWebControlStyle): String {
     return """
         .streamcore-login-field{display:flex;flex-direction:column;gap:6px;min-width:0}
         .streamcore-login-field label{font-size:14px;font-weight:600;line-height:20px;color:${colors.supporting.cssColor()}}
         .streamcore-login-input-row{display:flex;align-items:stretch;gap:8px;min-width:0}
-        .streamcore-login-input-row input{box-sizing:border-box;min-width:0;width:100%;height:${StreamCoreWebDimens.ControlHeight.value}px;padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${colors.outline.cssColor()};border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;background:${colors.surface.cssColor()};color:${colors.foreground.cssColor()};font:400 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;outline:none}
+        .streamcore-login-input-row input{box-sizing:border-box;min-width:0;width:100%;height:${StreamCoreWebDimens.ControlHeight.value}px;padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${colors.outline.cssColor()};${controls.input()}background:${colors.surface.cssColor()};color:${colors.foreground.cssColor()};outline:none}
         .streamcore-login-input-row button{flex:0 0 auto;min-width:112px}
-        [data-testid='${LoginTestTags.SubmitButton}'],[data-testid='${LoginTestTags.PasswordVisibilityToggle}']{box-sizing:border-box;min-height:${StreamCoreWebDimens.ControlHeight.value}px;padding:0 ${StreamCoreWebDimens.ActionPadding.value}px;border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid transparent;border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;font:600 16px system-ui,Segoe UI,Arial,sans-serif;cursor:pointer}
-        [data-testid='${LoginTestTags.SubmitButton}']{width:100%;background:${colors.primary.cssColor()};color:${colors.onPrimary.cssColor()}}
-        [data-testid='${LoginTestTags.PasswordVisibilityToggle}']{background:${colors.disabled.cssColor()};color:${colors.foreground.cssColor()}}
+        [data-testid='${LoginTestTags.SubmitButton}'],[data-testid='${LoginTestTags.PasswordVisibilityToggle}']{box-sizing:border-box;min-height:${StreamCoreWebDimens.ControlHeight.value}px;padding:0 ${StreamCoreWebDimens.ActionPadding.value}px;border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid transparent;${controls.button()}}
+        [data-testid='${LoginTestTags.SubmitButton}']{width:100%;${controls.button()}}
+        [data-testid='${LoginTestTags.PasswordVisibilityToggle}']{${controls.button(colors.disabled, colors.foreground)}}
         .streamcore-login-input-row input:focus-visible,[data-testid='${LoginTestTags.SubmitButton}']:focus-visible,[data-testid='${LoginTestTags.PasswordVisibilityToggle}']:focus-visible{outline:${StreamCoreWebDimens.FocusBorder.value}px solid ${colors.primary.cssColor()};outline-offset:2px}
         .streamcore-login-input-row input[aria-invalid='true']{border-color:${colors.error.cssColor()}}
         .streamcore-login-error{min-height:20px;font-size:14px;font-weight:500;line-height:20px;overflow-wrap:anywhere}
-        button:disabled,input:disabled{cursor:default;opacity:.55}
+        .streamcore-login-input-row input:disabled{cursor:default;opacity:${controls.roles.disabledInputOpacity}}
+        ${controls.buttonStates("[data-testid='${LoginTestTags.SubmitButton}']")}
+        ${controls.buttonStates("[data-testid='${LoginTestTags.PasswordVisibilityToggle}']")}
         @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
     """.trimIndent()
 }

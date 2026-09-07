@@ -1362,3 +1362,57 @@ const WEBKIT_HARD_RELOAD_COROUTINE_ERROR =
   /^Fatal exception in coroutines machinery for AwaitContinuation\(DispatchedContinuation\[FlushCoroutineDispatcher@\d+, kotlinx\.coroutines\.DeferredCoroutine\.\$awaitCOROUTINE\$@\d+\]\)\{Completed\}@\d+\. Please read KDoc to 'handleFatalException' method and report this incident to maintainers$/;
 const WEBKIT_HARD_RELOAD_RESPONSE_CLASS_CAST_ERROR =
   "ClassCastException: Cannot cast instance of Response to Response: incompatible types";
+
+
+test("shared control styles preserve native focus, loading labels and DOM identity", async ({ page }, testInfo) => {
+  let releaseRequest!: () => void;
+  const pending = new Promise<void>((resolve) => { releaseRequest = resolve; });
+  await page.route("**/authentication/token/validate_with_login", async (route) => {
+    await pending;
+    await route.fulfill({
+      status: 401,
+      headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
+      json: { success: false, status_code: 30, status_message: "fixture rejection" },
+    });
+  });
+  await page.goto("/login");
+  const submit = page.getByTestId("login:submit");
+  const identifier = page.getByTestId("login:identifier");
+  const password = page.getByTestId("login:password");
+  await expect(submit).toBeVisible({ timeout: 30_000 });
+  await expect(submit).toHaveCSS("border-radius", "999px");
+  await expect(submit).toHaveCSS("font-size", "14px");
+  await expect(submit).toHaveCSS("font-weight", "500");
+  await expect(identifier).toHaveCSS("border-radius", "6px");
+  await expect(identifier).toHaveCSS("font-size", "16px");
+  await expect(identifier).toHaveAttribute("autocomplete", "username");
+  const originalInput = await identifier.elementHandle();
+  await identifier.fill("style-viewer");
+  await password.fill("style-password");
+  await submit.focus();
+  await expect(submit).toBeFocused();
+  await expect(submit).toHaveCSS("outline-style", "solid");
+  await submit.hover();
+  await expect(submit).not.toHaveCSS("background-image", "none");
+  await page.mouse.down();
+  await expect(submit).toHaveCSS("background-color", "rgb(104, 37, 0)");
+  await page.mouse.move(0, 0);
+  await page.mouse.up();
+  await submit.screenshot({ path: testInfo.outputPath("shared-button-focused.png") });
+  try {
+    await submit.press("Enter");
+    await expect(submit).toBeDisabled();
+    await expect(submit).toHaveAccessibleName("Continue");
+    await expect(submit).toHaveCSS("opacity", "1");
+    await expect(submit).toHaveCSS("background-color", /^rgba\(228, 231, 235, 0\.10?\d*\)$/);
+    await expect(submit).toHaveCSS("color", /^rgba\(194, 200, 208, 0\.38\d*\)$/);
+    await expect(identifier).toBeDisabled();
+    expect(await identifier.evaluate((element, original) => element === original, originalInput)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("shared-button-loading.png") });
+  } finally {
+    releaseRequest();
+  }
+  await expect(submit).toBeEnabled();
+  expect(await identifier.evaluate((element, original) => element === original, originalInput)).toBe(true);
+  await expect(identifier).toHaveValue("style-viewer");
+});

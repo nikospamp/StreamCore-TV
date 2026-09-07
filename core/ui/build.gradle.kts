@@ -2,6 +2,14 @@ plugins {
     id("streamcore.kmp.compose.library")
 }
 
+dependencies {
+    // Android Studio's preview renderer needs ComposeViewAdapter on this module's classpath.
+    // Keep tooling off the published Android-KMP runtime variant.
+    "androidRuntimeClasspath"(
+        "org.jetbrains.compose.ui:ui-tooling:${libs.versions.composeMultiplatform.get()}"
+    )
+}
+
 compose.resources {
     publicResClass = true
 }
@@ -41,6 +49,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
         }
         getByName("androidDeviceTest").dependencies {
+            implementation(projects.core.uiWeb)
             implementation(libs.androidx.junit)
             implementation(libs.androidx.espresso.core)
             implementation("androidx.compose.ui:ui-test-junit4:${libs.versions.composeMultiplatform.get()}")

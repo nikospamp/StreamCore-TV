@@ -26,3 +26,9 @@ kotlin {
         }
     }
 }
+
+dependencies {
+    "androidRuntimeClasspath"(
+        "org.jetbrains.compose.ui:ui-tooling:${libs.versions.composeMultiplatform.get()}"
+    )
+}

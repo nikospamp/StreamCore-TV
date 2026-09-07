@@ -12,6 +12,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,23 +45,34 @@ fun StreamCoreButton(
             horizontal = StreamCoreDimens.Button.CompactHorizontalPadding,
         )
     }
+    val style = StreamCoreControlDefaults.style()
     val colors = when (variant) {
-        StreamCoreButtonVariant.Primary -> ButtonDefaults.buttonColors()
+        StreamCoreButtonVariant.Primary -> ButtonDefaults.buttonColors(
+            containerColor = style.primary,
+            contentColor = style.onPrimary,
+            disabledContainerColor = style.disabledContainer,
+            disabledContentColor = style.disabledContent,
+        )
         StreamCoreButtonVariant.Secondary -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = style.disabledContainer,
+            disabledContentColor = style.disabledContent,
         )
     }
 
     Button(
         onClick = onClick,
-        enabled = enabled,
+        enabled = enabled && !loading,
         colors = colors,
+        shape = style.buttonShape,
         contentPadding = contentPadding,
-        modifier = modifier.defaultMinSize(minHeight = minHeight),
+        modifier = modifier.defaultMinSize(minHeight = minHeight)
+            .semantics { if (loading) contentDescription = text },
     ) {
         if (loading) {
             CircularProgressIndicator(
+                color = LocalContentColor.current,
                 strokeWidth = StreamCoreDimens.Button.LoadingIndicatorStrokeWidth,
                 modifier = Modifier.size(StreamCoreDimens.Button.LoadingIndicatorSize),
             )
@@ -67,7 +82,7 @@ fun StreamCoreButton(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 leadingIcon?.invoke()
-                Text(text = text)
+                Text(text = text, style = style.buttonLabel)
             }
         }
     }

@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import kotlinx.browser.document
 import org.w3c.dom.HTMLInputElement
@@ -26,6 +28,7 @@ internal actual fun WebProfileNameField(
     errorMessage: String?,
     modifier: Modifier,
 ) {
+    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
     val currentCallbacks = rememberUpdatedState(
         WebProfileNameFieldCallbacks(
             enabled = enabled,
@@ -74,7 +77,7 @@ internal actual fun WebProfileNameField(
         update = { container ->
             val input = container.querySelector("[data-testid='profile-display-name']") as HTMLInputElement
             val error = container.querySelector("#$PROFILE_DISPLAY_NAME_ERROR_ID") as HTMLElement
-            input.style.cssText = inputStyle
+            input.style.cssText = inputStyle + controls.input(enabled)
             if (input.value != value) input.value = value
             input.disabled = !enabled
             if (errorMessage == null) {
@@ -147,9 +150,7 @@ private fun webInputStyle(
         "height:${StreamCoreWebDimens.ControlHeight.value}px;" +
         "padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;" +
         "border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${border.cssColor()};" +
-        "border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;" +
-        "background:${background.cssColor()};color:${foreground.cssColor()};" +
-        "font:400 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;"
+        "background:${background.cssColor()};color:${foreground.cssColor()};"
 }
 
 private fun webInputErrorStyle(color: Color): String {

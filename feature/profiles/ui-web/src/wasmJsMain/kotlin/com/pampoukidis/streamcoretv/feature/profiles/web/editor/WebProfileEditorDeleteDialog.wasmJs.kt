@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import kotlinx.browser.document
 import org.w3c.dom.HTMLButtonElement
@@ -26,6 +28,7 @@ internal actual fun WebProfileEditorDeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
     val currentCallbacks = rememberUpdatedState(
         WebDeleteDialogCallbacks(
             isSaving = isSaving,
@@ -82,16 +85,19 @@ internal actual fun WebProfileEditorDeleteDialog(
             }
             dialog.descriptionElement().style.cssText =
                 "margin:0;color:${muted.cssColor()};font:400 18px system-ui,Segoe UI,Arial,sans-serif;"
+            dialog.querySelector("style")?.textContent = "#$PROFILE_EDITOR_DELETE_DIALOG_ID::backdrop{background:rgba(0,0,0,.72)}" +
+                controls.buttonStates("#$PROFILE_EDITOR_DELETE_DIALOG_ID button")
             val actions = dialog.querySelector("[data-dialog-actions='true']") as HTMLElement
             actions.style.cssText = "display:flex;justify-content:flex-end;gap:${StreamCoreWebDimens.ActionGap.value}px;"
             dialog.cancelButton().apply {
                 disabled = isSaving
-                style.cssText = dialogButtonStyle(neutral, onSurface)
+                style.cssText = dialogButtonStyle(controls, !isSaving, neutral, onSurface)
             }
             dialog.confirmButton().apply {
                 disabled = isSaving
+                setAttribute("aria-label", "Delete")
                 textContent = if (isSaving) "Deleting…" else "Delete"
-                style.cssText = dialogButtonStyle(error, onError)
+                style.cssText = dialogButtonStyle(controls, !isSaving, error, onError)
             }
         },
         onRelease = { dialog ->
@@ -225,11 +231,15 @@ private fun dialogStyle(background: Color, foreground: Color): String {
         "display:flex;flex-direction:column;gap:24px;box-shadow:0 24px 80px rgba(0,0,0,.55);"
 }
 
-private fun dialogButtonStyle(background: Color, foreground: Color): String {
+private fun dialogButtonStyle(
+    controls: StreamCoreWebControlStyle,
+    enabled: Boolean,
+    background: Color,
+    foreground: Color,
+): String {
     return "box-sizing:border-box;min-height:${StreamCoreWebDimens.ControlHeight.value}px;" +
         "padding:0 ${StreamCoreWebDimens.ActionPadding.value}px;border:2px solid transparent;" +
-        "border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;background:${background.cssColor()};" +
-        "color:${foreground.cssColor()};font:600 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;cursor:pointer;"
+        controls.button(background, foreground, enabled)
 }
 
 private fun Color.cssColor(): String {

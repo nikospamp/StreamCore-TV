@@ -26,6 +26,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.semantics.contentDescription
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,7 +52,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -83,8 +85,12 @@ fun StreamCoreWebButton(
     val elevation by animateDpAsState(
         targetValue = if (focused || hovered) StreamCoreDimens.Elevation.Medium else 0.dp,
     )
+    val style = StreamCoreControlDefaults.style()
     val colors = when (variant) {
-        StreamCoreWebButtonVariant.Primary -> ButtonDefaults.buttonColors()
+        StreamCoreWebButtonVariant.Primary -> ButtonDefaults.buttonColors(
+            containerColor = style.primary,
+            contentColor = style.onPrimary,
+        )
         StreamCoreWebButtonVariant.Secondary -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             contentColor = MaterialTheme.colorScheme.onSurface,
@@ -107,8 +113,11 @@ fun StreamCoreWebButton(
         onClick = onClick,
         enabled = enabled && !loading,
         interactionSource = interactionSource,
-        colors = colors,
-        shape = MaterialTheme.shapes.small,
+        colors = colors.copy(
+            disabledContainerColor = style.disabledContainer,
+            disabledContentColor = style.disabledContent,
+        ),
+        shape = style.buttonShape,
         border = BorderStroke(
             width = if (focused) StreamCoreWebDimens.FocusBorder else StreamCoreWebDimens.FocusOuterBorder,
             color = if (focused) focusColor else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
@@ -121,7 +130,7 @@ fun StreamCoreWebButton(
         modifier = modifier
             .defaultMinSize(minHeight = StreamCoreWebDimens.ControlHeight)
             .scale(scale)
-            .hoverable(interactionSource)
+            .hoverable(interactionSource, enabled = enabled && !loading)
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
                 if (focusState.isFocused) {
@@ -129,18 +138,21 @@ fun StreamCoreWebButton(
                 }
             }
             .webSpaceActivation(enabled = enabled && !loading, onClick = onClick)
-            .semantics { role = Role.Button },
+            .semantics {
+                role = Role.Button
+                if (loading) contentDescription = text
+            },
     ) {
         if (loading) {
             CircularProgressIndicator(
+                color = LocalContentColor.current,
                 strokeWidth = StreamCoreDimens.Stroke.Progress,
                 modifier = Modifier.size(StreamCoreWebDimens.ButtonProgressSize),
             )
         } else {
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = style.buttonLabel,
             )
         }
     }
@@ -373,7 +385,12 @@ private fun Modifier.webSpaceActivation(
 private fun StreamCoreWebButtonPreview() {
     StreamCoreTheme(darkTheme = true) {
         Surface(modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge)) {
-            StreamCoreWebButton(text = "Continue", onClick = {})
+            Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
+                StreamCoreWebButton(text = "Continue", onClick = {})
+                StreamCoreWebButton(text = "Continue", onClick = {}, loading = true)
+                StreamCoreWebButton(text = "Disabled", onClick = {}, enabled = false)
+                StreamCoreWebButton(text = "Cancel", onClick = {}, variant = StreamCoreWebButtonVariant.Secondary)
+            }
         }
     }
 }

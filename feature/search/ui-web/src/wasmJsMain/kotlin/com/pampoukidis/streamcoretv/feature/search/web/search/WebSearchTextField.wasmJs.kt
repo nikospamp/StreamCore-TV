@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import com.pampoukidis.streamcoretv.feature.search.common.testing.SearchTestTags
 import kotlinx.browser.document
@@ -38,6 +40,7 @@ internal actual fun WebSearchTextField(
     modifier: Modifier,
 ) {
     val fieldHint = stringResource(Res.string.web_search_field_hint)
+    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
     val currentCallbacks = rememberUpdatedState(
         WebSearchTextFieldCallbacks(
             enabled = enabled,
@@ -63,7 +66,7 @@ internal actual fun WebSearchTextField(
             val input = container.searchInput()
             listeners.updateValueFromState(input = input, value = value)
             input.disabled = !enabled
-            input.style.cssText = fieldStyle(colors)
+            input.style.cssText = fieldStyle(colors) + controls.input(enabled)
             container.searchStyle().textContent = focusStyle(colors)
             input.setAttribute("aria-label", fieldHint)
             input.setAttribute("placeholder", fieldHint)
@@ -243,10 +246,8 @@ private fun fieldStyle(colors: WebSearchTextFieldColors): String {
     return "box-sizing:border-box;width:100%;height:${StreamCoreWebDimens.ControlHeight.value}px;" +
         "padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;" +
         "border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${colors.outline.cssColor()};" +
-        "border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;" +
         "background:${colors.background.cssColor()};color:${colors.foreground.cssColor()};" +
         "caret-color:${colors.focus.cssColor()};" +
-        "font:400 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;" +
         "outline:${StreamCoreWebDimens.FocusBorder.value}px solid transparent;outline-offset:2px;"
 }
 
@@ -262,7 +263,6 @@ private fun focusStyle(colors: WebSearchTextFieldColors): String {
         }
         [data-testid='${SearchTestTags.Field}']:disabled {
             cursor: default;
-            opacity: .55;
         }
         @media (prefers-reduced-motion: reduce) {
             [data-testid='${SearchTestTags.Field}'] {
