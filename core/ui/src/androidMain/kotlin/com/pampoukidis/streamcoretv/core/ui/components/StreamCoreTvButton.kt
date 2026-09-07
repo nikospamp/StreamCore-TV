@@ -5,9 +5,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTvButtonMaxRadius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -19,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
@@ -47,39 +55,54 @@ fun StreamCoreTvButton(
     variant: StreamCoreTvButtonVariant = StreamCoreTvButtonVariant.Standard,
     selected: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
+    shape: Shape? = null,
+    contentAlignment: Alignment.Horizontal? = null,
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    val resolvedShape = shape ?: streamCoreTvButtonCornerShape()
 
     Button(
         onClick = onClick,
         enabled = enabled && !loading,
         scale = streamCoreTvButtonScale(),
-        shape = streamCoreTvButtonShape(),
+        shape = streamCoreTvButtonShape(resolvedShape),
         colors = streamCoreTvButtonColors(
             variant = variant,
             selected = selected,
         ),
-        border = streamCoreTvButtonBorder(),
+        border = streamCoreTvButtonBorder(resolvedShape),
         tonalElevation = when {
             variant == StreamCoreTvButtonVariant.Standard -> 0.dp
             isFocused -> StreamCoreDimens.Elevation.Medium
             else -> StreamCoreDimens.Elevation.Low
         },
         modifier = modifier
+            // TV Surface's inner Box drops minimum constraints. Bound its height so the
+            // content can fill and center inside the entire padded button.
+            .height(IntrinsicSize.Min)
             .onFocusChanged { isFocused = it.isFocused }
             .semantics { if (loading) contentDescription = text },
     ) {
+        val horizontalContentModifier = if (contentAlignment != null) {
+            Modifier.weight(1f).wrapContentWidth(contentAlignment)
+        } else {
+            Modifier
+        }
+        val contentModifier = horizontalContentModifier
+            .fillMaxHeight()
+            .wrapContentHeight(Alignment.CenterVertically)
         CompositionLocalProvider(ComposeLocalContentColor provides TvLocalContentColor.current) {
             if (loading) {
                 CircularProgressIndicator(
                     color = TvLocalContentColor.current,
                     strokeWidth = StreamCoreDimens.Button.LoadingIndicatorStrokeWidth,
-                    modifier = Modifier.size(StreamCoreDimens.Button.LoadingIndicatorSize),
+                    modifier = contentModifier.size(StreamCoreDimens.Button.LoadingIndicatorSize),
                 )
             } else {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
                     verticalAlignment = Alignment.CenterVertically,
+                    modifier = contentModifier,
                 ) {
                     leadingIcon?.invoke()
                     Text(text = text, style = StreamCoreControlDefaults.style().buttonLabel)
@@ -149,11 +172,13 @@ private fun streamCoreTvButtonColors(
 }
 
 @Composable
-private fun streamCoreTvButtonBorder(): ButtonBorder = ButtonDefaults.border(
-    focusedBorder = focusedButtonBorder(),
-    pressedBorder = focusedButtonBorder(),
-    focusedDisabledBorder = disabledFocusedButtonBorder(),
-)
+internal fun streamCoreTvButtonBorder(shape: Shape): ButtonBorder {
+    return ButtonDefaults.border(
+        focusedBorder = focusedButtonBorder(shape),
+        pressedBorder = focusedButtonBorder(shape),
+        focusedDisabledBorder = disabledFocusedButtonBorder(shape),
+    )
+}
 
 private fun streamCoreTvButtonScale(): ButtonScale = ButtonDefaults.scale(
     focusedScale = 1f,
@@ -166,8 +191,7 @@ private fun streamCoreTvButtonCornerShape(): RoundedCornerShape {
 }
 
 @Composable
-private fun streamCoreTvButtonShape(): ButtonShape {
-    val shape = streamCoreTvButtonCornerShape()
+internal fun streamCoreTvButtonShape(shape: Shape): ButtonShape {
     return ButtonDefaults.shape(
         shape = shape,
         focusedShape = shape,
@@ -178,26 +202,26 @@ private fun streamCoreTvButtonShape(): ButtonShape {
 }
 
 @Composable
-private fun focusedButtonBorder(): Border {
+private fun focusedButtonBorder(shape: Shape): Border {
     return Border(
         border = BorderStroke(
             width = StreamCoreDimens.Tv.Focus.BorderWidth,
             color = StreamCoreControlDefaults.style().primary,
         ),
         inset = StreamCoreDimens.Tv.Focus.BorderPadding,
-        shape = streamCoreTvButtonCornerShape(),
+        shape = shape,
     )
 }
 
 @Composable
-private fun disabledFocusedButtonBorder(): Border {
+private fun disabledFocusedButtonBorder(shape: Shape): Border {
     return Border(
         border = BorderStroke(
             width = StreamCoreDimens.Tv.Focus.BorderWidth,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
         ),
         inset = StreamCoreDimens.Tv.Focus.BorderPadding,
-        shape = streamCoreTvButtonCornerShape(),
+        shape = shape,
     )
 }
 
@@ -213,6 +237,11 @@ private fun StreamCoreTvButtonPreview() {
                 text = "Continue",
                 onClick = {},
                 enabled = true,
+                shape = StreamCoreControlDefaults.style().buttonShape,
+                contentAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = StreamCoreDimens.Button.MinHeight),
             )
             StreamCoreTvButton(
                 text = "My List",

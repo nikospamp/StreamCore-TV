@@ -19,7 +19,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
-fun StreamCoreIconButton(
+fun StreamCoreArtworkIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -62,12 +62,12 @@ private const val ArtworkButtonContainerAlpha = 0.6f
 
 @Preview
 @Composable
-private fun StreamCoreIconButtonPreview() {
+private fun StreamCoreArtworkIconButtonPreview() {
     StreamCoreTheme(darkTheme = true) {
         Surface(
             color = MaterialTheme.colorScheme.error
         ) {
-            StreamCoreIconButton(
+            StreamCoreArtworkIconButton(
                 contentDescription = "Information",
                 onClick = {},
             ) {

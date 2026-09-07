@@ -44,6 +44,11 @@ baseline-profile producer's target SDK 36 runtime behavior. Module build scripts
 additionally applies Compose Multiplatform 1.12.0, the Kotlin Compose compiler plugin, Compose resources support, and Android-target-only
 `-Xlambdas=class`.
 
+The Compose convention also adds the matching `org.jetbrains.compose.ui:ui-tooling` renderer to each module's local
+`androidRuntimeClasspath` for Android Studio previews. The `ui-tooling-preview` dependency supplies annotations only; tooling declared in
+`:core:ui` does not provide a renderer to another module's preview classpath. The renderer is not added to common source sets or published Android
+runtime dependencies. After changing this setup, sync Gradle and refresh the preview in Android Studio.
+
 Test compilations are intentionally not enabled by either convention. A module containing `src/commonTest/kotlin/**/*.kt` must opt in with
 `streamCoreKmp { withHostTest() }`. This explicit module call invokes the official target's `withHostTest {}` without recreating the target. Root
 `verifyKmpTestTargets` compares common test sources with actual `testAndroidHostTest` tasks. `:core:domain` is compile-only: it removes the unused

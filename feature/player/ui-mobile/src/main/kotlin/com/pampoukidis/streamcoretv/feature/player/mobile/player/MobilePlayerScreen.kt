@@ -59,7 +59,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.onPlayerSurface
 import com.pampoukidis.streamcoretv.core.ui.extensions.playerSurface
@@ -203,7 +203,7 @@ private fun PlayerTopBar(
                 vertical = StreamCoreDimens.Mobile.Player.OverlayVerticalPadding,
             ),
     ) {
-        StreamCoreIconButton(
+        StreamCoreArtworkIconButton(
             contentDescription = "Back",
             onClick = { onAction(PlayerAction.BackSelected) },
         ) { StreamCoreBackIcon() }
@@ -539,7 +539,7 @@ private fun PlayerIconButton(
     enabled: Boolean = true,
     large: Boolean = false,
 ) {
-    StreamCoreIconButton(
+    StreamCoreArtworkIconButton(
         contentDescription = description,
         onClick = onClick,
         enabled = enabled,

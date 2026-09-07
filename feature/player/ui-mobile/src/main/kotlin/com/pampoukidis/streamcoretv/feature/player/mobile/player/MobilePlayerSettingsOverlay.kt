@@ -55,7 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -238,7 +238,7 @@ private fun PlayerSettingsHeader(
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         } else {
-            StreamCoreIconButton(
+            StreamCoreArtworkIconButton(
                 contentDescription = "Back to settings",
                 onClick = onBack,
             ) {

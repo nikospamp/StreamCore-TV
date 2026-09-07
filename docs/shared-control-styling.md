@@ -23,7 +23,9 @@ All three renderers disable activation while loading, retain the supplied action
 ## Renderer boundaries
 
 - Touch retains its existing minimum heights, content padding, Material state layers/ripple, and default appearance. Input roles are consumed by native web fields; this is not a touch text-field rewrite. `StreamCoreTextButton` remains a separate contract.
-- TV caps the chosen radius at 8dp to preserve the existing D-pad focus geometry. A smaller shared override still propagates. Focus borders, inset, scale, elevation, padding and D-pad mechanics remain TV-owned. `StreamCoreTheme` installs an Android-only TV Material mapping for colors, typography and shapes; commonMain has no TV Material dependency.
+- TV caps the chosen radius at 8dp by default to preserve existing D-pad focus geometry. A smaller shared override still propagates. `StreamCoreTvButton` accepts an optional `shape` with matching focus borders and an optional `contentAlignment`; login uses the shared pill shape, centered content, and the standard 52dp minimum height. Existing callers retain their defaults. Focus borders, inset, scale, elevation, padding and D-pad mechanics remain TV-owned. `StreamCoreTheme` installs an Android-only TV Material mapping for colors, typography and shapes; commonMain has no TV Material dependency.
+- Touch `StreamCoreTextButton` and Android `StreamCoreTvTextButton` share native Material text-button colors, shape, and label typography through internal defaults. Touch appearance is preserved. TV adds a 52dp minimum height, neutral focused surface, brand focus border, and fixed scale. Text actions remain a separate styling contract from filled buttons.
+- Android `StreamCoreTvIconButton` retains 48dp layout/focus bounds with an inset painted surface and focus border that clear the surrounding text-field outline, plus a TV-to-Compose content-color bridge. Login supplies the platform-neutral `LoginPasswordVisibilityIcon`; TV owns D-pad routing and IME handling.
 - Web Compose retains its existing keyboard activation, focus border, hover/scale, scrolling and minimum height. Button label typography and rounding now follow the shared roles.
 - `StreamCoreWebControlStyle` in `:core:ui-web` projects roles into CSS. `button()` supplies base or disabled declarations; `buttonStates(scopedSelector)` supplies native focus/hover/pressed/disabled rules; `input()` supplies text-field typography, rounding and disabled opacity. Callers own dimensions, borders, layout, element lifetime and event handlers. Hover/active rules intentionally override inline base declarations. Supply one scoped selector per call.
 - CSS preserves alpha with rgba, uses rem for the selected sp typography values, and uses the browser system font stack. The portable contract supports specified sp font size, line height and tracking, and font weight; arbitrary Compose font families, brushes, text transforms and em/unspecified units are not a CSS export contract.
@@ -44,3 +46,27 @@ Platform polish should consume this API and keep screen geometry in its owning p
 The focused Playwright product test checks actual native CSS, focus/hover/pressed/loading states, stable accessible action name, DOM identity, autofill attributes and retry readiness. Existing credential, profile dialog and search/product journeys cover browser-native interaction behavior.
 
 No new scopes, flows, listeners or retained DOM objects are introduced. Style objects/strings are composition-local values; this work makes no measured runtime-performance claim.
+
+## Android login harmonization
+
+`LoginHeader` shares explicit on-surface title/subtitle rendering across mobile, tablet, and TV. Screen modules retain typography overrides, spacing, panel geometry, and input behavior. Explicit title color avoids falling back to an inherited content color on translucent login panels.
+
+`LoginForm` is the single field/action implementation for Android mobile, tablet, and TV. It owns identifier/password rendering, validation errors,
+autofill semantics, saveable password visibility, IME submission, localized action labels, and test tags. `LoginFormLayout` supplies spacing;
+`LoginFormModifiers` supplies per-control modifiers. Three composable slots select primary, secondary, and password-visibility controls. TV supplies
+its native controls and keeps focus requesters, D-pad interception, and IME visibility handling in `TvLoginScreen`. The deprecated `LoginMaterialForm`
+symbol only forwards to `LoginForm` for source compatibility with deferred callers; it has no separate implementation.
+
+The touch defaults preserve the current 8dp form gaps, 24dp submit top padding, and 4dp secondary-action spacing/top padding. Existing touch eye
+activation during loading is retained; the TV eye remains disabled while loading. Normalizing that behavior is deferred beyond this refactor.
+
+TV login uses 16dp form gaps and 24dp from password to Continue. TV button renderers bound their intrinsic height and center content within the padded height to account for TV Material's internal surface dropping minimum constraints. This adds an intrinsic measurement query; it introduces no scopes, flows, or retained interaction state. Mobile/tablet rendering is unchanged by this TV correction.
+
+Automated regression coverage for this iteration is deferred until manual UI review is finalized:
+
+- Mobile appearance before/after shared heading, icon, and text-action extraction; tablet/TV title contrast.
+- TV password Right to reveal, Center to toggle, Left to field, vertical traversal, and caret navigation with IME open.
+- Continue and secondary actions in enabled, disabled, loading, and focused states; existing TV consumers retain default geometry.
+- TV label/icon/spinner vertical centering at minimum and content-driven heights; eye focus border clearance; login action spacing.
+- Long localized labels, large font scale, accessibility labels, and show/hide state.
+- Shared-form parity for field errors, autofill, IME submission, action dispatch, and password visibility across native control slots.

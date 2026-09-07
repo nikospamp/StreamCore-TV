@@ -95,37 +95,6 @@ fun StreamCoreBrowseTopBar(
 }
 
 @Composable
-fun StreamCoreBrandMark(modifier: Modifier = Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
-    val foreground = MaterialTheme.colorScheme.onSurface
-
-    Canvas(modifier = modifier.size(StreamCoreDimens.Icon.Medium)) {
-        drawRoundRect(
-            color = foreground,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                StreamCoreDimens.Spacing.Small.toPx(),
-            ),
-        )
-        drawArc(
-            color = primary,
-            startAngle = 0f,
-            sweepAngle = 180f,
-            useCenter = true,
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun StreamCoreBrandMarkPreview() {
-    StreamCoreTheme {
-        Surface {
-            StreamCoreBrandMark()
-        }
-    }
-}
-
-@Composable
 private fun ProfileGlyph(color: Color) {
     Canvas(modifier = Modifier.size(StreamCoreDimens.Icon.Medium)) {
         val strokeWidth = StreamCoreDimens.Stroke.Icon.toPx()

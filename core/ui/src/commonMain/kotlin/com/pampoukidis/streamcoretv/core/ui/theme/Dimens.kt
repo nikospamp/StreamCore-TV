@@ -280,6 +280,10 @@ object StreamCoreDimens {
             val BorderPadding = Stroke.Default
         }
 
+        object IconButton {
+            val SurfaceInset = 6.dp
+        }
+
         object Browse {
             val HeroHeight = 360.dp
             val FeaturedCardWidth = 360.dp

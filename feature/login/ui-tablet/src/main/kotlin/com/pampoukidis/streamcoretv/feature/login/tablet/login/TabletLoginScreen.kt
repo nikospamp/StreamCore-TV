@@ -7,20 +7,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import org.jetbrains.compose.resources.stringResource
-import streamcoretv.core.ui.generated.resources.Res
-import streamcoretv.core.ui.generated.resources.*
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
-import com.pampoukidis.streamcoretv.feature.login.common.login.LoginMaterialForm
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginHeader
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginForm
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
@@ -56,20 +53,14 @@ fun TabletLoginScreen(
                 Column(
                     modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
                 ) {
-                    Text(
-                        text = stringResource(Res.string.login_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    Text(
-                        text = stringResource(Res.string.login_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(
+                    LoginHeader(
+                        titleStyle = MaterialTheme.typography.headlineSmall,
+                        subtitleModifier = Modifier.padding(
                             top = StreamCoreDimens.Spacing.Small,
                             bottom = StreamCoreDimens.Spacing.ExtraLarge,
                         ),
                     )
-                    LoginMaterialForm(
+                    LoginForm(
                         state = state,
                         onAction = onAction,
                     )
