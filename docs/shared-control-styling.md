@@ -70,3 +70,16 @@ Automated regression coverage for this iteration is deferred until manual UI rev
 - TV label/icon/spinner vertical centering at minimum and content-driven heights; eye focus border clearance; login action spacing.
 - Long localized labels, large font scale, accessibility labels, and show/hide state.
 - Shared-form parity for field errors, autofill, IME submission, action dispatch, and password visibility across native control slots.
+
+## Android profiles harmonization
+
+`ProfileEditorContent` and `AvatarPickerContent` own the shared editor fields, action wiring, avatar artwork, and avatar grid. Mobile keeps its
+existing full-screen placement and control defaults. Tablet and TV own centered panel/dialog bounds; TV supplies focusable controls and retains
+its D-pad, IME, and dialog focus-restoration behavior. The unused legacy chip-based editor and initials-based profiles grid have been removed.
+
+Mobile/tablet reuse Android touch profile tiles and header rendering. Tablet places the tiles in a centered horizontal lazy row. `ProfilesBackdrop`
+owns portable drawing; `AndroidProfilesBackdrop` owns Android animation/accessibility policy. The backdrop still reads its animation in drawing.
+
+Deferred automated regression coverage: mobile appearance parity; tablet row centering/overflow and Manage actions; editor create/edit/save/delete
+states; avatar selection and dialog dismissal; TV D-pad traversal, offscreen avatar focus, focus restoration, and IME Done; large text and loading
+states. No new repository/ViewModel scopes or flows are introduced by this UI extraction.

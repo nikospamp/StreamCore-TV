@@ -27,18 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.TouchProfilesTopBar
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
@@ -75,7 +73,7 @@ fun MobileProfilesScreen(
                     .fillMaxSize()
                     .statusBarsPadding(),
             ) {
-                ProfilesTopBar(
+                TouchProfilesTopBar(
                     mode = state.mode,
                     showManageAction = !state.isLoading &&
                             state.loadError == null &&
@@ -116,72 +114,6 @@ fun MobileProfilesScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ProfilesTopBar(
-    mode: ProfilesMode,
-    showManageAction: Boolean,
-    showLogoutAction: Boolean,
-    profileActionEnabled: Boolean,
-    logoutEnabled: Boolean,
-    onLogoutRequested: () -> Unit,
-    onAction: (ProfilesAction) -> Unit,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(StreamCoreDimens.Mobile.Profiles.HeaderHeight)
-            .padding(horizontal = StreamCoreDimens.Mobile.Screen.HorizontalPadding),
-    ) {
-        Text(
-            text = if (mode == ProfilesMode.Selection) {
-                "Who's watching?"
-            } else {
-                "Manage profiles"
-            },
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(
-                horizontal = StreamCoreDimens.Mobile.Profiles.HeaderSideClearance,
-            ),
-        )
-        if (showLogoutAction) {
-            StreamCoreTextButton(
-                text = "Sign out",
-                onClick = onLogoutRequested,
-                enabled = logoutEnabled,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .testTag(ProfilesTestTags.SignOutButton),
-            )
-        }
-        if (showManageAction) {
-            StreamCoreTextButton(
-                text = if (mode == ProfilesMode.Selection) "Manage" else "Done",
-                onClick = {
-                    onAction(
-                        if (mode == ProfilesMode.Selection) {
-                            ProfilesAction.ManageProfiles
-                        } else {
-                            ProfilesAction.DoneManaging
-                        },
-                    )
-                },
-                enabled = profileActionEnabled,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .testTag(ProfilesTestTags.ManageProfilesButton),
-            )
         }
     }
 }

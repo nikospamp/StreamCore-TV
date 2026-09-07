@@ -1,44 +1,22 @@
 package com.pampoukidis.streamcoretv.feature.profiles.mobile.editor
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.AvatarPickerContent
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
-import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 
 @Composable
 internal fun MobileAvatarPickerDialog(
@@ -51,144 +29,14 @@ internal fun MobileAvatarPickerDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        MobileAvatarPickerDialogContent(
+        AvatarPickerContent(
             avatars = avatars,
             selectedAvatarId = selectedAvatarId,
             onAvatarSelected = onAvatarSelected,
             onDismissRequest = onDismissRequest,
+            modifier = Modifier.fillMaxWidth(0.9f)
+                .widthIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerMaxWidth),
         )
-    }
-}
-
-@Composable
-private fun MobileAvatarPickerDialogContent(
-    avatars: List<ProfileAvatarModel>,
-    selectedAvatarId: String,
-    onAvatarSelected: (String) -> Unit,
-    onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = StreamCoreDimens.Elevation.Medium,
-        modifier = modifier
-            .fillMaxWidth(0.9f)
-            .widthIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerMaxWidth)
-            .testTag(ProfilesTestTags.EditorAvatarDialog),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-            modifier = Modifier.padding(
-                start = StreamCoreDimens.Spacing.Large,
-                top = StreamCoreDimens.Spacing.Medium,
-                end = StreamCoreDimens.Spacing.Large,
-                bottom = StreamCoreDimens.Spacing.ExtraLarge,
-            ),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "Choose an avatar",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                StreamCoreCloseButton(
-                    onClick = onDismissRequest,
-                    enabled = true,
-                )
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(AvatarPickerColumnCount),
-                horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerGridMaxHeight),
-            ) {
-                itemsIndexed(
-                    items = avatars,
-                    key = { _, avatar -> avatar.id },
-                    contentType = { _, _ -> AvatarContentType },
-                ) { index, avatar ->
-                    AvatarPickerItem(
-                        avatar = avatar,
-                        avatarIndex = index,
-                        selected = avatar.id == selectedAvatarId,
-                        onClick = { onAvatarSelected(avatar.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AvatarPickerItem(
-    avatar: ProfileAvatarModel,
-    avatarIndex: Int,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val semanticLabel = if (selected) {
-        "Avatar ${avatarIndex + 1}, selected"
-    } else {
-        "Avatar ${avatarIndex + 1}"
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .semantics(mergeDescendants = true) {
-                contentDescription = semanticLabel
-                this.selected = selected
-            }
-            .clickable(
-                role = Role.RadioButton,
-                onClick = onClick,
-            )
-            .padding(StreamCoreDimens.Spacing.Tiny)
-            .testTag(ProfilesTestTags.EditorAvatarOptionPrefix + avatar.id),
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            border = if (selected) {
-                BorderStroke(StreamCoreDimens.Stroke.Default, MaterialTheme.colorScheme.primary)
-            } else {
-                null
-            },
-            modifier = Modifier.size(StreamCoreDimens.Mobile.Profiles.AvatarPickerItemSize),
-        ) {
-            StreamCoreProfileArtwork(
-                avatar = avatar,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        if (selected) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(
-                        x = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
-                        y = StreamCoreDimens.Mobile.Profiles.BadgeOffset,
-                    )
-                    .size(StreamCoreDimens.Mobile.Profiles.SelectedBadgeSize),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    StreamCoreCheckIcon(modifier = Modifier.size(StreamCoreDimens.Icon.Small))
-                }
-            }
-        }
     }
 }
 
@@ -201,16 +49,15 @@ private fun MobileAvatarPickerDialogPreview() {
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                MobileAvatarPickerDialogContent(
+                AvatarPickerContent(
                     avatars = ProfilesPreviewData.avatars,
                     selectedAvatarId = ProfilesPreviewData.avatars.first().id,
                     onAvatarSelected = {},
                     onDismissRequest = {},
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                        .widthIn(max = StreamCoreDimens.Mobile.Profiles.AvatarPickerMaxWidth),
                 )
             }
         }
     }
 }
-
-private const val AvatarPickerColumnCount = 4
-private const val AvatarContentType = "avatar"
