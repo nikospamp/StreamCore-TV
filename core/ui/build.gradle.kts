@@ -23,12 +23,12 @@ kotlin {
 
         commonMain.dependencies {
             implementation(projects.core.data)
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.animation)
-            implementation(compose.material3)
-            api(compose.components.resources)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.animation)
+            implementation(libs.compose.material3)
+            api(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.coil.compose)
