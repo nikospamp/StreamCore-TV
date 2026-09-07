@@ -301,6 +301,13 @@ Prefer:
 - Build cache
 - Parallel execution
 
+- Declare Compose Multiplatform dependencies through version-catalog aliases such as `libs.compose.runtime`, `libs.compose.foundation`,
+  `libs.compose.ui`, `libs.compose.animation`, `libs.compose.material3`, and `libs.compose.components.resources`. Do not use deprecated Compose
+  plugin dependency accessors such as `compose.runtime`, `compose.foundation`, `compose.ui`, `compose.animation`, `compose.material3`, or
+  `compose.components.resources` in dependency declarations.
+- Add missing aliases to `gradle/libs.versions.toml`. When replacing dependency accessors, preserve the resolved Maven coordinates, versions,
+  source-set placement, and `api`/`implementation` scope. Material 3 may use a different version from Compose Multiplatform; do not infer one
+  from the other. Valid plugin configuration blocks such as `compose.resources { ... }` are unaffected by this rule.
 - Compile every Android application, library, test, and Android-KMP target against API 37. Compose Multiplatform 1.12 Android artifacts publish
   that minimum compile SDK requirement. Keep the shipping application, benchmark, and baseline-profile `targetSdk` at 36 until a dedicated runtime
   behavior migration changes it.
