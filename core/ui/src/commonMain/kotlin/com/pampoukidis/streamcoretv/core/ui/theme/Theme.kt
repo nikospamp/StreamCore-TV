@@ -207,8 +207,9 @@ fun StreamCoreTheme(
         colorScheme = targetColorScheme.animateColorScheme(),
         typography = Typography,
         shapes = Shapes,
-        content = content,
-    )
+    ) {
+        StreamCorePlatformTheme(content)
+    }
 }
 
 @Composable

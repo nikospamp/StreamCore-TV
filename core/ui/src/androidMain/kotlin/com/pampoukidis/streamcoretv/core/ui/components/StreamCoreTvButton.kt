@@ -1,6 +1,8 @@
 package com.pampoukidis.streamcoretv.core.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTvButtonMaxRadius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonColors
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import androidx.tv.material3.ButtonBorder
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ButtonScale
@@ -46,7 +52,7 @@ fun StreamCoreTvButton(
 
     Button(
         onClick = onClick,
-        enabled = enabled,
+        enabled = enabled && !loading,
         scale = streamCoreTvButtonScale(),
         shape = streamCoreTvButtonShape(),
         colors = streamCoreTvButtonColors(
@@ -59,7 +65,9 @@ fun StreamCoreTvButton(
             isFocused -> StreamCoreDimens.Elevation.Medium
             else -> StreamCoreDimens.Elevation.Low
         },
-        modifier = modifier.onFocusChanged { isFocused = it.isFocused },
+        modifier = modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .semantics { if (loading) contentDescription = text },
     ) {
         CompositionLocalProvider(ComposeLocalContentColor provides TvLocalContentColor.current) {
             if (loading) {
@@ -74,7 +82,7 @@ fun StreamCoreTvButton(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     leadingIcon?.invoke()
-                    Text(text = text)
+                    Text(text = text, style = StreamCoreControlDefaults.style().buttonLabel)
                 }
             }
         }
@@ -85,57 +93,59 @@ fun StreamCoreTvButton(
 private fun streamCoreTvButtonColors(
     variant: StreamCoreTvButtonVariant,
     selected: Boolean,
-) = when (variant) {
-    StreamCoreTvButtonVariant.Standard -> ButtonDefaults.colors()
+): ButtonColors {
+    val style = StreamCoreControlDefaults.style()
+    return when (variant) {
+        StreamCoreTvButtonVariant.Standard,
+        StreamCoreTvButtonVariant.Primary -> ButtonDefaults.colors(
+            containerColor = style.primary,
+            contentColor = style.onPrimary,
+            focusedContainerColor = style.primary,
+            focusedContentColor = style.onPrimary,
+            pressedContainerColor = style.pressed,
+            pressedContentColor = style.onPressed,
+            disabledContainerColor = style.disabledContainer,
+            disabledContentColor = style.disabledContent,
+        )
 
-    StreamCoreTvButtonVariant.Primary -> ButtonDefaults.colors(
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        focusedContainerColor = MaterialTheme.colorScheme.primary,
-        focusedContentColor = MaterialTheme.colorScheme.onPrimary,
-        pressedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        pressedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    )
+        StreamCoreTvButtonVariant.Secondary -> ButtonDefaults.colors(
+            containerColor = if (selected) {
+                style.pressed
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+            contentColor = if (selected) {
+                style.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            focusedContainerColor = if (selected) {
+                style.pressed
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
+            focusedContentColor = if (selected) {
+                style.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            pressedContainerColor = style.pressed,
+            pressedContentColor = style.onPressed,
+            disabledContainerColor = style.disabledContainer,
+            disabledContentColor = style.disabledContent,
+        )
 
-    StreamCoreTvButtonVariant.Secondary -> ButtonDefaults.colors(
-        containerColor = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        contentColor = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        focusedContainerColor = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        },
-        focusedContentColor = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        pressedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        pressedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    )
-
-    StreamCoreTvButtonVariant.Tertiary -> ButtonDefaults.colors(
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-        contentColor = MaterialTheme.colorScheme.onBackground,
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        focusedContentColor = MaterialTheme.colorScheme.onSurface,
-        pressedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        pressedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    )
+        StreamCoreTvButtonVariant.Tertiary -> ButtonDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            focusedContentColor = MaterialTheme.colorScheme.onSurface,
+            pressedContainerColor = style.pressed,
+            pressedContentColor = style.onPressed,
+            disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+            disabledContentColor = style.disabledContent,
+        )
+    }
 }
 
 @Composable
@@ -151,8 +161,13 @@ private fun streamCoreTvButtonScale(): ButtonScale = ButtonDefaults.scale(
 )
 
 @Composable
+private fun streamCoreTvButtonCornerShape(): RoundedCornerShape {
+    return RoundedCornerShape(minOf(StreamCoreControlDefaults.style().buttonRadius, StreamCoreTvButtonMaxRadius))
+}
+
+@Composable
 private fun streamCoreTvButtonShape(): ButtonShape {
-    val shape = MaterialTheme.shapes.small
+    val shape = streamCoreTvButtonCornerShape()
     return ButtonDefaults.shape(
         shape = shape,
         focusedShape = shape,
@@ -167,10 +182,10 @@ private fun focusedButtonBorder(): Border {
     return Border(
         border = BorderStroke(
             width = StreamCoreDimens.Tv.Focus.BorderWidth,
-            color = MaterialTheme.colorScheme.primary,
+            color = StreamCoreControlDefaults.style().primary,
         ),
         inset = StreamCoreDimens.Tv.Focus.BorderPadding,
-        shape = MaterialTheme.shapes.small,
+        shape = streamCoreTvButtonCornerShape(),
     )
 }
 
@@ -182,7 +197,7 @@ private fun disabledFocusedButtonBorder(): Border {
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
         ),
         inset = StreamCoreDimens.Tv.Focus.BorderPadding,
-        shape = MaterialTheme.shapes.small,
+        shape = streamCoreTvButtonCornerShape(),
     )
 }
 

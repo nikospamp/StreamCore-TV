@@ -4,6 +4,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
+internal val StreamCoreButtonRadius = 999.dp
+internal val StreamCoreInputRadius = 6.dp
+internal val StreamCoreTvButtonMaxRadius = 8.dp
+
 val Shapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp),
     small = RoundedCornerShape(8.dp),

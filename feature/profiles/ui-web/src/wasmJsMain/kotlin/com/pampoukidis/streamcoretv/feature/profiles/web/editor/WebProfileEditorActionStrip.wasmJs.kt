@@ -8,8 +8,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import kotlinx.browser.document
 import org.w3c.dom.HTMLButtonElement
@@ -32,6 +33,7 @@ internal actual fun WebProfileEditorActionStrip(
     onDelete: () -> Unit,
     modifier: Modifier,
 ) {
+    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
     val currentCallbacks = rememberUpdatedState(
         WebProfileEditorActionCallbacks(
             isSaving = isSaving,
@@ -47,14 +49,20 @@ internal actual fun WebProfileEditorActionStrip(
         WebProfileEditorActionListeners(callbacks = { currentCallbacks.value })
     }
     val primaryStyle = buttonStyle(
-        background = MaterialTheme.colorScheme.primary,
-        foreground = MaterialTheme.colorScheme.onPrimary,
+        controls = controls,
+        enabled = !isSaving,
+        background = controls.roles.primary,
+        foreground = controls.roles.onPrimary,
     )
     val neutralStyle = buttonStyle(
+        controls = controls,
+        enabled = !isSaving,
         background = MaterialTheme.colorScheme.surfaceContainerHighest,
         foreground = MaterialTheme.colorScheme.onSurface,
     )
     val destructiveStyle = buttonStyle(
+        controls = controls,
+        enabled = !isSaving,
         background = MaterialTheme.colorScheme.errorContainer,
         foreground = MaterialTheme.colorScheme.onErrorContainer,
     )
@@ -65,6 +73,7 @@ internal actual fun WebProfileEditorActionStrip(
                 setAttribute("data-testid", "profile-editor-action-form")
                 setAttribute("aria-label", "Profile editor actions")
                 style.cssText = formStyle()
+                appendChild(document.createElement("style"))
                 appendChild(createButton("profile-editor-cancel", "Cancel", "button"))
                 appendChild(createButton("profile-editor-save", "Save", "button"))
                 appendChild(createButton("profile-editor-delete", "Delete", "button"))
@@ -72,6 +81,7 @@ internal actual fun WebProfileEditorActionStrip(
             }
         },
         update = { form ->
+            form.querySelector("style")?.textContent = controls.buttonStates("#" + PROFILE_EDITOR_FORM_ID + " button")
             val cancel = form.button("profile-editor-cancel")
             val save = form.button("profile-editor-save")
             val delete = form.button("profile-editor-delete")
@@ -82,6 +92,7 @@ internal actual fun WebProfileEditorActionStrip(
             save.disabled = isSaving
             delete.disabled = isSaving
             delete.hidden = !canDelete
+            save.setAttribute("aria-label", "Save")
             save.textContent = if (isSaving) "Saving…" else "Save"
             form.setAttribute("aria-busy", isSaving.toString())
         },
@@ -227,18 +238,17 @@ private fun formStyle(): String {
         "justify-content:flex-end;align-items:center;gap:${StreamCoreWebDimens.ActionGap.value}px;"
 }
 
-private fun buttonStyle(background: Color, foreground: Color): String {
+private fun buttonStyle(
+    controls: StreamCoreWebControlStyle,
+    enabled: Boolean,
+    background: Color,
+    foreground: Color,
+): String {
     return "box-sizing:border-box;min-height:${StreamCoreWebDimens.ControlHeight.value}px;" +
         "padding:0 ${StreamCoreWebDimens.ActionPadding.value}px;" +
         "border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid transparent;" +
-        "border-radius:${StreamCoreWebDimens.HtmlInputRadius.value}px;" +
-        "background:${background.cssColor()};color:${foreground.cssColor()};" +
-        "font:600 ${StreamCoreWebDimens.HtmlInputFontSize.value}px system-ui,Segoe UI,Arial,sans-serif;cursor:pointer;"
+        controls.button(background, foreground, enabled)
 }
 
-private fun Color.cssColor(): String {
-    val argb = toArgb()
-    return "rgb(${(argb shr 16) and 0xff},${(argb shr 8) and 0xff},${argb and 0xff})"
-}
 
 internal const val PROFILE_EDITOR_FORM_ID = "streamcore-profile-editor-form"
