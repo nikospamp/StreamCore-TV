@@ -2,50 +2,50 @@ package com.pampoukidis.streamcoretv.feature.login.tv.login
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import streamcoretv.core.ui.generated.resources.Res
-import streamcoretv.core.ui.generated.resources.*
+import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvTextButton
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginForm
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginFormLayout
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginFormModifiers
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginHeader
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
-import com.pampoukidis.streamcoretv.feature.login.common.login.passwordText
-import com.pampoukidis.streamcoretv.feature.login.common.login.text
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
 
@@ -55,16 +55,7 @@ fun TvLoginScreen(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val emailFocusRequester = remember { FocusRequester() }
-    val passwordFocusRequester = remember { FocusRequester() }
-    val submitFocusRequester = remember { FocusRequester() }
-    val forgotPasswordFocusRequester = remember { FocusRequester() }
-    val createAccountFocusRequester = remember { FocusRequester() }
-    val helpFocusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        emailFocusRequester.requestFocus()
-    }
+    val formModifiers = rememberTvLoginFormModifiers()
 
     LoginBackground(
         variant = LoginBackgroundVariant.Landscape,
@@ -91,29 +82,46 @@ fun TvLoginScreen(
                     modifier = Modifier.padding(StreamCoreDimens.Tv.Panel.Padding),
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(
-                        text = stringResource(Res.string.login_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = StreamCoreDimens.Spacing.Small),
-                    )
-                    Text(
-                        text = stringResource(Res.string.login_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(
+                    LoginHeader(
+                        titleModifier = Modifier.padding(top = StreamCoreDimens.Spacing.Small),
+                        subtitleModifier = Modifier.padding(
                             top = StreamCoreDimens.Spacing.Small,
                             bottom = StreamCoreDimens.Spacing.Small,
                         ),
                     )
-                    TvLoginForm(
+                    LoginForm(
                         state = state,
                         onAction = onAction,
-                        emailFocusRequester = emailFocusRequester,
-                        passwordFocusRequester = passwordFocusRequester,
-                        submitFocusRequester = submitFocusRequester,
-                        forgotPasswordFocusRequester = forgotPasswordFocusRequester,
-                        createAccountFocusRequester = createAccountFocusRequester,
-                        helpFocusRequester = helpFocusRequester,
+                        modifiers = formModifiers,
+                        primaryButton = { text, onClick, enabled, loading, buttonModifier ->
+                            StreamCoreTvButton(
+                                text = text,
+                                onClick = onClick,
+                                enabled = enabled,
+                                loading = loading,
+                                shape = StreamCoreControlDefaults.style().buttonShape,
+                                contentAlignment = Alignment.CenterHorizontally,
+                                modifier = buttonModifier.defaultMinSize(
+                                    minHeight = StreamCoreDimens.Button.MinHeight,
+                                ),
+                            )
+                        },
+                        secondaryButton = { text, onClick, enabled, buttonModifier ->
+                            StreamCoreTvTextButton(
+                                text = text,
+                                onClick = onClick,
+                                enabled = enabled,
+                                modifier = buttonModifier,
+                            )
+                        },
+                        passwordVisibilityControl = { onClick, enabled, controlModifier, content ->
+                            StreamCoreTvIconButton(
+                                onClick = onClick,
+                                enabled = enabled,
+                                modifier = controlModifier,
+                                content = content,
+                            )
+                        },
                     )
                 }
             }
@@ -121,151 +129,80 @@ fun TvLoginScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TvLoginForm(
-    state: LoginUiState,
-    onAction: (LoginAction) -> Unit,
-    emailFocusRequester: FocusRequester,
-    passwordFocusRequester: FocusRequester,
-    submitFocusRequester: FocusRequester,
-    forgotPasswordFocusRequester: FocusRequester,
-    createAccountFocusRequester: FocusRequester,
-    helpFocusRequester: FocusRequester,
-    modifier: Modifier = Modifier,
-) {
-    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
+private fun rememberTvLoginFormModifiers(): LoginFormModifiers {
+    val emailFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val passwordVisibilityFocusRequester = remember { FocusRequester() }
+    val submitFocusRequester = remember { FocusRequester() }
+    val forgotPasswordFocusRequester = remember { FocusRequester() }
+    val createAccountFocusRequester = remember { FocusRequester() }
+    val helpFocusRequester = remember { FocusRequester() }
+    var isPasswordFieldFocused by remember { mutableStateOf(false) }
+    val isImeVisible = WindowInsets.isImeVisible
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-    ) {
-        OutlinedTextField(
-            value = state.identifier,
-            onValueChange = { onAction(LoginAction.IdentifierChanged(it)) },
-            label = { Text(text = stringResource(Res.string.login_identifier_label)) },
-            singleLine = true,
-            isError = state.identifierError != null,
-            supportingText = state.identifierError?.let { { Text(text = it.text()) } },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            enabled = !state.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(emailFocusRequester)
-                .focusProperties {
-                    down = passwordFocusRequester
-                }
-                .testTag(LoginTestTags.IdentifierField),
-        )
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
-            label = { Text(text = stringResource(Res.string.login_password_label)) },
-            singleLine = true,
-            isError = state.passwordError != null,
-            supportingText = state.passwordError?.let { { Text(text = it.passwordText()) } },
-            visualTransformation = if (isPasswordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            trailingIcon = {
-                val contentDescription = if (isPasswordVisible) {
-                    stringResource(Res.string.login_password_hide)
-                } else {
-                    stringResource(Res.string.login_password_show)
-                }
-                IconButton(
-                    onClick = { isPasswordVisible = !isPasswordVisible },
-                    modifier = Modifier.testTag(LoginTestTags.PasswordVisibilityToggle),
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            resource = if (isPasswordVisible) {
-                                Res.drawable.ic_visibility_off_24
-                            } else {
-                                Res.drawable.ic_visibility_24
-                            },
-                        ),
-                        contentDescription = contentDescription,
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onAction(LoginAction.Submit) },
-            ),
-            enabled = !state.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(passwordFocusRequester)
-                .focusProperties {
-                    up = emailFocusRequester
-                    down = submitFocusRequester
-                }
-                .testTag(LoginTestTags.PasswordField),
-        )
-        StreamCoreTvButton(
-            text = stringResource(Res.string.login_continue),
-            enabled = state.isSubmitEnabled && !state.isLoading,
-            loading = state.isLoading,
-            onClick = { onAction(LoginAction.Submit) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(submitFocusRequester)
-                .focusProperties {
-                    up = passwordFocusRequester
-                    down = forgotPasswordFocusRequester
-                }
-                .testTag(LoginTestTags.SubmitButton),
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        ) {
-            StreamCoreTvButton(
-                text = stringResource(Res.string.login_forgot_password),
-                enabled = !state.isLoading,
-                onClick = { onAction(LoginAction.ForgotPassword) },
-                modifier = Modifier
-                    .focusRequester(forgotPasswordFocusRequester)
-                    .focusProperties {
-                        up = submitFocusRequester
-                        right = createAccountFocusRequester
-                        down = helpFocusRequester
-                    }
-                    .testTag(LoginTestTags.ForgotPasswordButton),
-            )
-            StreamCoreTvButton(
-                text = stringResource(Res.string.login_create_account),
-                enabled = !state.isLoading,
-                onClick = { onAction(LoginAction.CreateAccount) },
-                modifier = Modifier
-                    .focusRequester(createAccountFocusRequester)
-                    .focusProperties {
-                        up = submitFocusRequester
-                        left = forgotPasswordFocusRequester
-                        down = helpFocusRequester
-                    }
-                    .testTag(LoginTestTags.CreateAccountButton),
-            )
-        }
-        StreamCoreTvButton(
-            text = stringResource(Res.string.login_help),
-            enabled = !state.isLoading,
-            onClick = { onAction(LoginAction.Help) },
-            modifier = Modifier
-                .focusRequester(helpFocusRequester)
-                .focusProperties {
-                    up = forgotPasswordFocusRequester
-                }
-                .testTag(LoginTestTags.HelpButton),
-        )
+    LaunchedEffect(Unit) {
+        emailFocusRequester.requestFocus()
     }
+
+    return LoginFormModifiers(
+        identifier = Modifier
+            .focusRequester(emailFocusRequester)
+            .focusProperties {
+                down = passwordFocusRequester
+            },
+        password = Modifier
+            .focusRequester(passwordFocusRequester)
+            .onFocusChanged { isPasswordFieldFocused = it.isFocused }
+            .onPreviewKeyEvent { event ->
+                // Keep caret navigation while editing; otherwise Right reaches the reveal action.
+                if (isPasswordFieldFocused && !isImeVisible && event.key == Key.DirectionRight) {
+                    if (event.type == KeyEventType.KeyDown) {
+                        passwordVisibilityFocusRequester.requestFocus()
+                    }
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusProperties {
+                up = emailFocusRequester
+                down = submitFocusRequester
+            },
+        passwordVisibility = Modifier
+            .focusRequester(passwordVisibilityFocusRequester)
+            .focusProperties {
+                left = passwordFocusRequester
+                previous = passwordFocusRequester
+                next = submitFocusRequester
+            },
+        submit = Modifier
+            .focusRequester(submitFocusRequester)
+            .focusProperties {
+                up = passwordFocusRequester
+                down = forgotPasswordFocusRequester
+            },
+        forgotPassword = Modifier
+            .focusRequester(forgotPasswordFocusRequester)
+            .focusProperties {
+                up = submitFocusRequester
+                right = createAccountFocusRequester
+                down = helpFocusRequester
+            },
+        createAccount = Modifier
+            .focusRequester(createAccountFocusRequester)
+            .focusProperties {
+                up = submitFocusRequester
+                left = forgotPasswordFocusRequester
+                down = helpFocusRequester
+            },
+        help = Modifier
+            .focusRequester(helpFocusRequester)
+            .focusProperties {
+                up = forgotPasswordFocusRequester
+            },
+    )
 }
 
 @PreviewTV

@@ -27,7 +27,8 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
-import com.pampoukidis.streamcoretv.feature.login.common.login.LoginMaterialForm
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginHeader
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginForm
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
@@ -74,18 +75,9 @@ fun MobileLoginScreen(
                 Column(
                     modifier = Modifier.padding(StreamCoreDimens.Mobile.Screen.HorizontalPadding),
                 ) {
-                    Text(
-                        text = stringResource(Res.string.login_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(Res.string.login_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    LoginHeader()
                     Spacer(modifier = Modifier.height(StreamCoreDimens.Spacing.ExtraLarge))
-                    LoginMaterialForm(
+                    LoginForm(
                         state = state,
                         onAction = onAction,
                     )

@@ -56,7 +56,7 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreRefreshIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreShareIcon
@@ -495,14 +495,14 @@ private fun DetailsTopControls(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth(),
     ) {
-        StreamCoreIconButton(
+        StreamCoreArtworkIconButton(
             contentDescription = "Back",
             onClick = onBack,
             modifier = Modifier.testTag(DetailsTestTags.BackButton),
         ) {
             StreamCoreBackIcon()
         }
-        StreamCoreIconButton(
+        StreamCoreArtworkIconButton(
             contentDescription = "Refresh",
             onClick = onRefresh,
             isLoading = isLoading,
@@ -762,7 +762,7 @@ private fun DetailsUnavailableState(
             )
             .testTag(DetailsTestTags.Error),
     ) {
-        StreamCoreIconButton(
+        StreamCoreArtworkIconButton(
             contentDescription = "Back",
             onClick = { onAction(DetailsAction.BackSelected) },
             modifier = Modifier.testTag(DetailsTestTags.BackButton),

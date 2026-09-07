@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -19,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.platform.testTag
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
@@ -31,22 +29,64 @@ import streamcoretv.core.ui.generated.resources.Res
 import streamcoretv.core.ui.generated.resources.*
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
 
 @Composable
-fun LoginMaterialForm(
+fun LoginForm(
     state: LoginUiState,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
+    layout: LoginFormLayout = LoginFormLayout(),
+    modifiers: LoginFormModifiers = LoginFormModifiers(),
+    primaryButton: @Composable (
+        text: String,
+        onClick: () -> Unit,
+        enabled: Boolean,
+        loading: Boolean,
+        modifier: Modifier,
+    ) -> Unit = { text, onClick, enabled, loading, buttonModifier ->
+        StreamCoreButton(
+            text = text,
+            onClick = onClick,
+            enabled = enabled,
+            loading = loading,
+            modifier = buttonModifier,
+        )
+    },
+    secondaryButton: @Composable (
+        text: String,
+        onClick: () -> Unit,
+        enabled: Boolean,
+        modifier: Modifier,
+    ) -> Unit = { text, onClick, enabled, buttonModifier ->
+        StreamCoreTextButton(
+            text = text,
+            onClick = onClick,
+            enabled = enabled,
+            modifier = buttonModifier,
+        )
+    },
+    passwordVisibilityControl: @Composable (
+        onClick: () -> Unit,
+        enabled: Boolean,
+        modifier: Modifier,
+        content: @Composable () -> Unit,
+    ) -> Unit = { onClick, _, controlModifier, content ->
+        // Preserve the touch form's existing reveal action while consolidating platform rendering.
+        IconButton(
+            onClick = onClick,
+            modifier = controlModifier,
+            content = content,
+        )
+    },
 ) {
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        verticalArrangement = Arrangement.spacedBy(layout.verticalSpacing),
     ) {
         OutlinedTextField(
             value = state.identifier,
@@ -60,7 +100,7 @@ fun LoginMaterialForm(
                 imeAction = ImeAction.Next,
             ),
             enabled = !state.isLoading,
-            modifier = Modifier
+            modifier = modifiers.identifier
                 .fillMaxWidth()
                 .semantics {
                     contentType = ContentType.Username + ContentType.EmailAddress
@@ -80,25 +120,12 @@ fun LoginMaterialForm(
                 PasswordVisualTransformation()
             },
             trailingIcon = {
-                val contentDescription = if (isPasswordVisible) {
-                    stringResource(Res.string.login_password_hide)
-                } else {
-                    stringResource(Res.string.login_password_show)
-                }
-                IconButton(
-                    onClick = { isPasswordVisible = !isPasswordVisible },
-                    modifier = Modifier.testTag(LoginTestTags.PasswordVisibilityToggle),
+                passwordVisibilityControl(
+                    { isPasswordVisible = !isPasswordVisible },
+                    !state.isLoading,
+                    modifiers.passwordVisibility.testTag(LoginTestTags.PasswordVisibilityToggle),
                 ) {
-                    Icon(
-                        painter = painterResource(
-                            resource = if (isPasswordVisible) {
-                                Res.drawable.ic_visibility_24
-                            } else {
-                                Res.drawable.ic_visibility_off_24
-                            },
-                        ),
-                        contentDescription = contentDescription,
-                    )
+                    LoginPasswordVisibilityIcon(isPasswordVisible = isPasswordVisible)
                 }
             },
             keyboardOptions = KeyboardOptions(
@@ -109,55 +136,56 @@ fun LoginMaterialForm(
                 onDone = { onAction(LoginAction.Submit) },
             ),
             enabled = !state.isLoading,
-            modifier = Modifier
+            modifier = modifiers.password
                 .fillMaxWidth()
                 .semantics {
                     contentType = ContentType.Password
                 }
                 .testTag(LoginTestTags.PasswordField),
         )
-        StreamCoreButton(
-            text = stringResource(Res.string.login_continue),
-            onClick = { onAction(LoginAction.Submit) },
-            enabled = state.isSubmitEnabled && !state.isLoading,
-            loading = state.isLoading,
-            modifier = Modifier
+        primaryButton(
+            stringResource(Res.string.login_continue),
+            { onAction(LoginAction.Submit) },
+            state.isSubmitEnabled && !state.isLoading,
+            state.isLoading,
+            modifiers.submit
                 .fillMaxWidth()
+                .padding(top = layout.submitTopPadding)
                 .testTag(LoginTestTags.SubmitButton),
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+            horizontalArrangement = Arrangement.spacedBy(layout.secondaryActionsSpacing),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = StreamCoreDimens.Spacing.Tiny),
+                .padding(top = layout.secondaryActionsTopPadding),
         ) {
-            StreamCoreTextButton(
-                text = stringResource(Res.string.login_forgot_password),
-                onClick = { onAction(LoginAction.ForgotPassword) },
-                enabled = !state.isLoading,
-                modifier = Modifier.testTag(LoginTestTags.ForgotPasswordButton),
+            secondaryButton(
+                stringResource(Res.string.login_forgot_password),
+                { onAction(LoginAction.ForgotPassword) },
+                !state.isLoading,
+                modifiers.forgotPassword.testTag(LoginTestTags.ForgotPasswordButton),
             )
-            StreamCoreTextButton(
-                text = stringResource(Res.string.login_create_account),
-                onClick = { onAction(LoginAction.CreateAccount) },
-                enabled = !state.isLoading,
-                modifier = Modifier.testTag(LoginTestTags.CreateAccountButton),
+            secondaryButton(
+                stringResource(Res.string.login_create_account),
+                { onAction(LoginAction.CreateAccount) },
+                !state.isLoading,
+                modifiers.createAccount.testTag(LoginTestTags.CreateAccountButton),
             )
         }
-        StreamCoreTextButton(
-            text = stringResource(Res.string.login_help),
-            onClick = { onAction(LoginAction.Help) },
-            enabled = !state.isLoading,
-            modifier = Modifier.testTag(LoginTestTags.HelpButton),
+        secondaryButton(
+            stringResource(Res.string.login_help),
+            { onAction(LoginAction.Help) },
+            !state.isLoading,
+            modifiers.help.testTag(LoginTestTags.HelpButton),
         )
     }
 }
 
 @Preview
 @Composable
-private fun LoginMaterialFormPreview() {
+private fun LoginFormPreview() {
     StreamCoreTheme {
-        LoginMaterialForm(
+        LoginForm(
             state = LoginUiState(
                 identifier = "lead@streamcore.tv",
                 password = "password",
