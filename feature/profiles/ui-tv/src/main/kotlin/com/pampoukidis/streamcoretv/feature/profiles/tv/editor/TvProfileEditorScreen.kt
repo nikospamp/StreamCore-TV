@@ -1,114 +1,263 @@
 package com.pampoukidis.streamcoretv.feature.profiles.tv.editor
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvActionSurface
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvSettingsSwitchRow
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvTextButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorContent
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorFormUiState
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorLayout
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorModifiers
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorScreenUiState
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.AndroidProfilesBackdrop
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
 import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileFieldError
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TvProfileEditorScreen(
     state: ProfileEditorScreenUiState,
     onAction: (ProfileEditorAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val avatarFocusRequester = remember { FocusRequester() }
     val displayNameFocusRequester = remember { FocusRequester() }
-    val cancelFocusRequester = remember { FocusRequester() }
+    val kidsFocusRequester = remember { FocusRequester() }
+    val closeFocusRequester = remember { FocusRequester() }
     val saveFocusRequester = remember { FocusRequester() }
     val deleteFocusRequester = remember { FocusRequester() }
-    val isEditorReady = !state.isLoading && state.editor != null && state.editorOptions != null
-    val canDelete = state.mode == ProfileEditorMode.Edit && state.profile?.canDelete == true
-    val isDeleteConfirmationVisible = state.pendingDeleteProfile != null
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val isImeVisible = WindowInsets.isImeVisible
+    var isDisplayNameFocused by remember { mutableStateOf(false) }
+    var avatarPickerVisible by rememberSaveable { mutableStateOf(false) }
+    var restoreAvatarFocus by remember { mutableStateOf(false) }
     var restoreDeleteFocus by remember { mutableStateOf(false) }
+    val editor = state.editor
+    val options = state.editorOptions
+    val isEditorReady = !state.isLoading && editor != null && options != null
+    val canDelete = state.mode == ProfileEditorMode.Edit && state.profile?.canDelete == true
+    val canSave = editor?.hasChanges == true && editor.validation.isValid && !state.isSaving
+    val headerActionFocusRequester = if (canSave) saveFocusRequester else closeFocusRequester
+    val isDeleteConfirmationVisible = state.pendingDeleteProfile != null
 
     LaunchedEffect(isEditorReady) {
-        if (isEditorReady) {
+        if (isEditorReady && !avatarPickerVisible && !isDeleteConfirmationVisible) {
             displayNameFocusRequester.requestFocus()
         }
     }
-
-    LaunchedEffect(isDeleteConfirmationVisible, canDelete) {
+    LaunchedEffect(avatarPickerVisible, state.isSaving) {
+        if (avatarPickerVisible) {
+            restoreAvatarFocus = true
+        } else if (restoreAvatarFocus && isEditorReady && !state.isSaving) {
+            avatarFocusRequester.requestFocus()
+            restoreAvatarFocus = false
+        }
+    }
+    LaunchedEffect(isDeleteConfirmationVisible, canDelete, state.isSaving) {
         if (isDeleteConfirmationVisible) {
             restoreDeleteFocus = true
-        } else if (restoreDeleteFocus && canDelete) {
+        } else if (restoreDeleteFocus && canDelete && !state.isSaving) {
             deleteFocusRequester.requestFocus()
             restoreDeleteFocus = false
         }
     }
 
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = modifier
-            .fillMaxSize()
-            .testTag(ProfilesTestTags.EditorRoot),
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier.fillMaxSize().testTag(ProfilesTestTags.EditorRoot),
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
+        AndroidProfilesBackdrop(modifier = Modifier.matchParentSize())
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier
+                .padding(
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
+                )
+                .widthIn(max = StreamCoreDimens.Tv.Profiles.EditorPanelWidth)
+                .fillMaxWidth()
+                .heightIn(max = StreamCoreDimens.Tv.Profiles.EditorPanelMaxHeight)
+                .fillMaxHeight(),
         ) {
-            when {
-                state.isLoading -> CircularProgressIndicator()
-                state.editor == null || state.editorOptions == null -> Text(
-                    text = "Unable to load profile editor.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                else -> TvProfileEditorLoadedContent(
-                    state = state,
-                    canDelete = canDelete,
-                    displayNameFocusRequester = displayNameFocusRequester,
-                    cancelFocusRequester = cancelFocusRequester,
-                    saveFocusRequester = saveFocusRequester,
-                    deleteFocusRequester = deleteFocusRequester,
-                    onAction = onAction,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = StreamCoreDimens.Form.WideContentMaxWidth)
-                        .padding(StreamCoreDimens.Spacing.ExtraLarge),
-                )
-            }
+            ProfileEditorContent(
+                state = state,
+                onAction = onAction,
+                onAvatarClick = { avatarPickerVisible = true },
+                onDisplayNameDone = {
+                    keyboardController?.hide()
+                    kidsFocusRequester.requestFocus()
+                },
+                layout = ProfileEditorLayout(
+                    headerHeight = StreamCoreDimens.Tv.Profiles.HeaderHeight,
+                    headerSideWidth = StreamCoreDimens.Tv.Profiles.EditorTopBarSideWidth,
+                    contentHorizontalPadding = StreamCoreDimens.Tv.Panel.Padding,
+                    contentVerticalPadding = StreamCoreDimens.Spacing.Large,
+                    contentSpacing = StreamCoreDimens.Spacing.Large,
+                    avatarContainerSize = StreamCoreDimens.Tv.Profiles.EditorAvatarContainerSize,
+                    avatarSize = StreamCoreDimens.Tv.Profiles.EditorAvatarSize,
+                    avatarBadgeSize = StreamCoreDimens.Tv.Profiles.BadgeSize,
+                    avatarBadgeOffset = StreamCoreDimens.Tv.Profiles.BadgeOffsetY,
+                    avatarCaption = "Select to change",
+                ),
+                modifiers = ProfileEditorModifiers(
+                    close = Modifier
+                        .focusRequester(closeFocusRequester)
+                        .focusProperties {
+                            right = if (canSave) saveFocusRequester else avatarFocusRequester
+                            down = avatarFocusRequester
+                        }
+                        .testTag(ProfilesTestTags.EditorCancelButton),
+                    save = Modifier
+                        .focusRequester(saveFocusRequester)
+                        .focusProperties {
+                            left = closeFocusRequester
+                            down = avatarFocusRequester
+                        },
+                    avatar = Modifier
+                        .focusRequester(avatarFocusRequester)
+                        .focusProperties {
+                            up = headerActionFocusRequester
+                            down = displayNameFocusRequester
+                        },
+                    displayName = Modifier
+                        .focusRequester(displayNameFocusRequester)
+                        .onFocusChanged { isDisplayNameFocused = it.isFocused }
+                        .onPreviewKeyEvent { event ->
+                            val target = when (event.key) {
+                                Key.DirectionUp -> avatarFocusRequester
+                                Key.DirectionDown -> kidsFocusRequester
+                                else -> null
+                            }
+                            // Preserve caret movement while editing; otherwise traverse the form.
+                            if (isDisplayNameFocused && !isImeVisible && target != null) {
+                                if (event.type == KeyEventType.KeyDown) {
+                                    target.requestFocus()
+                                }
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        .focusProperties {
+                            up = avatarFocusRequester
+                            down = kidsFocusRequester
+                        },
+                    kids = Modifier
+                        .focusRequester(kidsFocusRequester)
+                        .focusProperties {
+                            up = displayNameFocusRequester
+                            down = if (canDelete) deleteFocusRequester else headerActionFocusRequester
+                        },
+                    delete = Modifier
+                        .focusRequester(deleteFocusRequester)
+                        .focusProperties {
+                            up = kidsFocusRequester
+                            down = headerActionFocusRequester
+                        },
+                ),
+                closeControl = { onClick, enabled, controlModifier ->
+                    StreamCoreTvIconButton(
+                        onClick = onClick,
+                        enabled = enabled,
+                        modifier = controlModifier.semantics { contentDescription = "Close" },
+                    ) {
+                        StreamCoreCloseIcon()
+                    }
+                },
+                saveControl = { text, onClick, enabled, controlModifier ->
+                    StreamCoreTvTextButton(
+                        text = text,
+                        onClick = onClick,
+                        enabled = enabled,
+                        modifier = controlModifier,
+                    )
+                },
+                avatarControl = { onClick, enabled, controlModifier, content ->
+                    StreamCoreTvActionSurface(
+                        onClick = onClick,
+                        enabled = enabled,
+                        modifier = controlModifier,
+                        content = content,
+                    )
+                },
+                kidsControl = { title, supportingText, checked, enabled, onCheckedChange, controlModifier ->
+                    StreamCoreTvSettingsSwitchRow(
+                        title = title,
+                        supportingText = supportingText,
+                        checked = checked,
+                        enabled = enabled,
+                        onCheckedChange = onCheckedChange,
+                        modifier = controlModifier,
+                    )
+                },
+                deleteControl = { text, onClick, enabled, controlModifier ->
+                    StreamCoreTvTextButton(
+                        text = text,
+                        onClick = onClick,
+                        enabled = enabled,
+                        contentColor = MaterialTheme.colorScheme.error,
+                        contentAlignment = Alignment.CenterHorizontally,
+                        modifier = controlModifier,
+                    )
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
         }
+    }
+
+    if (avatarPickerVisible && editor != null && options != null) {
+        TvAvatarPickerDialog(
+            avatars = options.avatars,
+            selectedAvatarId = editor.draft.avatarId,
+            onAvatarSelected = { avatarId ->
+                onAction(ProfileEditorAction.AvatarChanged(avatarId))
+                avatarPickerVisible = false
+            },
+            onDismissRequest = { avatarPickerVisible = false },
+        )
     }
 
     TvProfileDeleteConfirmationDialog(
@@ -117,221 +266,6 @@ fun TvProfileEditorScreen(
         onConfirmDelete = { onAction(ProfileEditorAction.ConfirmDeleteProfile) },
         onDismiss = { onAction(ProfileEditorAction.DismissDeleteConfirmation) },
     )
-}
-
-@Composable
-private fun TvProfileEditorLoadedContent(
-    state: ProfileEditorScreenUiState,
-    canDelete: Boolean,
-    displayNameFocusRequester: FocusRequester,
-    cancelFocusRequester: FocusRequester,
-    saveFocusRequester: FocusRequester,
-    deleteFocusRequester: FocusRequester,
-    onAction: (ProfileEditorAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val editor = requireNotNull(state.editor)
-    val options = requireNotNull(state.editorOptions)
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-        modifier = modifier.verticalScroll(rememberScrollState()),
-    ) {
-        Text(
-            text = if (state.mode == ProfileEditorMode.Create) "Create profile" else "Edit profile",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        TvProfileEditorFields(
-            editor = editor,
-            options = options,
-            isSaving = state.isSaving,
-            displayNameFocusRequester = displayNameFocusRequester,
-            cancelFocusRequester = cancelFocusRequester,
-            onAction = onAction,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        TvProfileEditorActions(
-            isSaving = state.isSaving,
-            canDelete = canDelete,
-            cancelFocusRequester = cancelFocusRequester,
-            saveFocusRequester = saveFocusRequester,
-            deleteFocusRequester = deleteFocusRequester,
-            onAction = onAction,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun TvProfileEditorFields(
-    editor: ProfileEditorFormUiState,
-    options: ProfileEditorOptionsModel,
-    isSaving: Boolean,
-    displayNameFocusRequester: FocusRequester,
-    cancelFocusRequester: FocusRequester,
-    onAction: (ProfileEditorAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        modifier = modifier.widthIn(
-            min = StreamCoreDimens.Form.FieldMinWidth,
-            max = StreamCoreDimens.Form.FieldMaxWidth,
-        ),
-    ) {
-        OutlinedTextField(
-            value = editor.draft.displayName,
-            onValueChange = { onAction(ProfileEditorAction.DisplayNameChanged(it)) },
-            label = { Text(text = "Display name") },
-            singleLine = true,
-            enabled = !isSaving,
-            isError = editor.validation.displayNameError != null,
-            supportingText = {
-                editor.validation.displayNameError?.let { error ->
-                    Text(text = error.message())
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(displayNameFocusRequester)
-                .testTag(ProfilesTestTags.EditorDisplayNameField),
-        )
-        TvOptionSection(title = "Avatar") {
-            options.avatars.forEach { avatar ->
-                FilterChip(
-                    selected = editor.draft.avatarId == avatar.id,
-                    onClick = { onAction(ProfileEditorAction.AvatarChanged(avatar.id)) },
-                    enabled = !isSaving,
-                    label = { Text(text = avatar.id.readableId()) },
-                )
-            }
-        }
-        editor.validation.avatarError?.let { error ->
-            TvFieldErrorText(error = error)
-        }
-        TvOptionSection(title = "Parental level") {
-            options.parentalLevels.forEach { parentalLevel ->
-                FilterChip(
-                    selected = editor.draft.parentalLevelId == parentalLevel.id,
-                    onClick = {
-                        onAction(ProfileEditorAction.ParentalLevelChanged(parentalLevel.id))
-                    },
-                    enabled = !isSaving,
-                    label = { Text(text = parentalLevel.label) },
-                    modifier = Modifier
-                        .focusProperties { down = cancelFocusRequester }
-                        .testTag(
-                            ProfilesTestTags.EditorParentalLevelOptionPrefix + parentalLevel.id,
-                        ),
-                )
-            }
-        }
-        editor.validation.parentalLevelError?.let { error ->
-            TvFieldErrorText(error = error)
-        }
-    }
-}
-
-@Composable
-private fun TvProfileEditorActions(
-    isSaving: Boolean,
-    canDelete: Boolean,
-    cancelFocusRequester: FocusRequester,
-    saveFocusRequester: FocusRequester,
-    deleteFocusRequester: FocusRequester,
-    onAction: (ProfileEditorAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(
-            space = StreamCoreDimens.Spacing.Medium,
-            alignment = Alignment.End,
-        ),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-        StreamCoreTvButton(
-            text = "Cancel",
-            onClick = { onAction(ProfileEditorAction.Cancel) },
-            enabled = !isSaving,
-            variant = StreamCoreTvButtonVariant.Tertiary,
-            modifier = Modifier
-                .focusRequester(cancelFocusRequester)
-                .focusProperties { right = saveFocusRequester }
-                .testTag(ProfilesTestTags.EditorCancelButton),
-        )
-        StreamCoreTvButton(
-            text = "Save",
-            onClick = { onAction(ProfileEditorAction.Submit) },
-            enabled = !isSaving,
-            loading = isSaving,
-            modifier = Modifier
-                .focusRequester(saveFocusRequester)
-                .focusProperties {
-                    left = cancelFocusRequester
-                    if (canDelete) {
-                        right = deleteFocusRequester
-                    }
-                }
-                .testTag(ProfilesTestTags.EditorSubmitButton),
-        )
-        if (canDelete) {
-            StreamCoreTvButton(
-                text = "Delete",
-                onClick = { onAction(ProfileEditorAction.RequestDeleteProfile) },
-                enabled = !isSaving,
-                variant = StreamCoreTvButtonVariant.Secondary,
-                modifier = Modifier
-                    .focusRequester(deleteFocusRequester)
-                    .focusProperties { left = saveFocusRequester }
-                    .testTag(ProfilesTestTags.EditorDeleteButton),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TvOptionSection(
-    title: String,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            content = content,
-        )
-    }
-}
-
-@Composable
-private fun TvFieldErrorText(error: ProfileFieldError) {
-    Text(
-        text = error.message(),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
-    )
-}
-
-private fun ProfileFieldError.message(): String {
-    return when (this) {
-        ProfileFieldError.Blank -> "Required"
-        ProfileFieldError.TooLong -> "Maximum 32 characters"
-        ProfileFieldError.MissingSelection -> "Select an option"
-        ProfileFieldError.UnknownSelection -> "Selection is unavailable"
-    }
-}
-
-private fun String.readableId(): String {
-    return substringAfterLast("-").replaceFirstChar { it.uppercase() }
 }
 
 private fun previewState(

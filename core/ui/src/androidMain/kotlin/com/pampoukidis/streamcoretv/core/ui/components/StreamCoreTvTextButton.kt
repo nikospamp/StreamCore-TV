@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.ButtonDefaults as TouchButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ fun StreamCoreTvTextButton(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     contentColor: Color? = null,
+    contentAlignment: Alignment.Horizontal? = null,
 ) {
     val colors = StreamCoreTextButtonDefaults.colors(contentColor)
     val shape = StreamCoreTextButtonDefaults.shape()
@@ -58,10 +61,15 @@ fun StreamCoreTvTextButton(
         tonalElevation = 0.dp,
         contentPadding = TouchButtonDefaults.TextButtonContentPadding,
     ) {
+        val horizontalContentModifier = if (contentAlignment != null) {
+            Modifier.weight(1f).wrapContentWidth(contentAlignment)
+        } else {
+            Modifier
+        }
         Text(
             text = text,
             style = StreamCoreTextButtonDefaults.labelStyle(),
-            modifier = Modifier
+            modifier = horizontalContentModifier
                 .fillMaxHeight()
                 .wrapContentHeight(Alignment.CenterVertically),
         )
@@ -79,6 +87,14 @@ private fun StreamCoreTvTextButtonPreview() {
             StreamCoreTvTextButton(text = "Forgot password?", onClick = {}, enabled = true)
             StreamCoreTvTextButton(text = "Create account", onClick = {}, enabled = true)
             StreamCoreTvTextButton(text = "Need help?", onClick = {}, enabled = false)
+            StreamCoreTvTextButton(
+                text = "Delete profile",
+                onClick = {},
+                enabled = true,
+                contentColor = MaterialTheme.colorScheme.error,
+                contentAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

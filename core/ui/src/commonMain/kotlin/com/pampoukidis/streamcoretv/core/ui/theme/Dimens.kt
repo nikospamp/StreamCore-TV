@@ -208,6 +208,13 @@ object StreamCoreDimens {
         object Profiles {
             val PanelWidth = 260.dp
             val GridMinCellWidth = 180.dp
+            val TileWidth = 168.dp
+            val HeaderHeight = 64.dp
+            val HeaderSideClearance = 160.dp
+            val EditorPanelWidth = 480.dp
+            val EditorPanelMaxHeight = 680.dp
+            val AvatarPickerMaxWidth = 400.dp
+            val AvatarPickerGridMaxHeight = 420.dp
         }
     }
 
@@ -326,6 +333,14 @@ object StreamCoreDimens {
             val BadgeOffsetY = Stroke.Default
             val BadgeSize = 36.dp
             val EditIconSize = Icon.Medium
+            val EditorPanelWidth = 480.dp
+            val EditorPanelMaxHeight = 480.dp
+            val EditorAvatarSize = 96.dp
+            val EditorAvatarContainerSize = 108.dp
+            val EditorTopBarSideWidth = 88.dp
+            val AvatarPickerMaxWidth = 420.dp
+            val AvatarPickerGridMaxHeight = 320.dp
+            val AvatarPickerItemSize = 64.dp
         }
     }
 }
