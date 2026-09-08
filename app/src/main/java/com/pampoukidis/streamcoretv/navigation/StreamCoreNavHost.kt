@@ -15,11 +15,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -101,7 +99,7 @@ internal fun StreamCoreNavHost(
         ?.destination
         ?.topLevelDestination()
     val currentTopLevelProfileId = currentBackStackEntry?.topLevelProfileId()
-    val mobileBottomContentPadding = WindowInsets.navigationBars
+    val touchBottomContentPadding = WindowInsets.navigationBars
         .asPaddingValues()
         .calculateBottomPadding() + StreamCoreDimens.Mobile.Navigation.BottomContentClearance
     var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
@@ -184,30 +182,10 @@ internal fun StreamCoreNavHost(
                 }
             },
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                if (platform == Platform.Tablet && currentTopLevelDestination != null) {
-                    TabletNavigationRail(
-                        selectedDestination = displayedTopLevelDestination,
-                        onDestinationSelected = { destination ->
-                            val profileId = displayedTopLevelProfileId
-                            if (profileId != null && destination != currentTopLevelDestination) {
-                                selectedContent = null
-                                selectedContentKey = null
-                                pendingTvFocusKey = null
-                                navController.navigateToTopLevel(
-                                    destination = destination,
-                                    profileId = profileId,
-                                )
-                            }
-                        },
-                    )
-                }
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+                modifier = Modifier.fillMaxSize(),
                 enterTransition = {
                     if (isTopLevelSwitch()) {
                         fadeIn(animationSpec = tween(TopLevelTransitionMillis))
@@ -391,7 +369,7 @@ internal fun StreamCoreNavHost(
                             consumedKey = consumedKey,
                         )
                     },
-                    mobileBottomContentPadding = mobileBottomContentPadding,
+                    touchBottomContentPadding = touchBottomContentPadding,
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
@@ -441,7 +419,7 @@ internal fun StreamCoreNavHost(
                             consumedKey = consumedKey,
                         )
                     },
-                    mobileBottomContentPadding = mobileBottomContentPadding,
+                    touchBottomContentPadding = touchBottomContentPadding,
                     onContentSelected = { content ->
                         selectedContent = content
                         selectedContentKey = content.sharedContentKey()
@@ -613,20 +591,19 @@ internal fun StreamCoreNavHost(
                 }
             }
             }
-            }
         }
         }
 
         AnimatedVisibility(
-            visible = platform == Platform.Mobile && currentTopLevelDestination != null,
-            enter = fadeIn(animationSpec = tween(MobileBarVisibilityMillis)) +
+            visible = platform != Platform.Tv && currentTopLevelDestination != null,
+            enter = fadeIn(animationSpec = tween(TouchBarVisibilityMillis)) +
                     slideInVertically(
-                        animationSpec = tween(MobileBarVisibilityMillis),
+                        animationSpec = tween(TouchBarVisibilityMillis),
                         initialOffsetY = { height -> height / 2 },
                     ),
-            exit = fadeOut(animationSpec = tween(MobileBarVisibilityMillis)) +
+            exit = fadeOut(animationSpec = tween(TouchBarVisibilityMillis)) +
                     slideOutVertically(
-                        animationSpec = tween(MobileBarVisibilityMillis),
+                        animationSpec = tween(TouchBarVisibilityMillis),
                         targetOffsetY = { height -> height / 2 },
                     ),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -715,7 +692,7 @@ private fun ContentModel.withSourceRow(sourceRow: String?): ContentModel {
 }
 
 private const val TopLevelTransitionMillis = 180
-private const val MobileBarVisibilityMillis = 160
+private const val TouchBarVisibilityMillis = 160
 
 internal fun startDestinationForAuthState(
     authState: AuthStateModel,
@@ -849,7 +826,7 @@ private fun HomeDestination(
     selectedContentKey: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
-    mobileBottomContentPadding: Dp,
+    touchBottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
     onProfileSelected: () -> Unit,
@@ -863,16 +840,18 @@ private fun HomeDestination(
             onContentSelected = onContentSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
-            bottomContentPadding = mobileBottomContentPadding,
+            bottomContentPadding = touchBottomContentPadding,
             sharedElementScope = sharedElementScope,
         )
 
         Platform.Tablet -> TabletHomeRoute(
             profileId = profileId,
+            activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
+            bottomContentPadding = touchBottomContentPadding,
             sharedElementScope = sharedElementScope,
         )
 
@@ -895,7 +874,7 @@ private fun SearchDestination(
     selectedContentKey: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
-    mobileBottomContentPadding: Dp,
+    touchBottomContentPadding: Dp,
     onContentSelected: (ContentModel) -> Unit,
     onBack: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -911,20 +890,33 @@ private fun SearchDestination(
             sharedElementScope = sharedElementScope,
         )
 
-        Platform.Tablet -> TabletSearchRoute(
-            profileId = profileId,
-            selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
-            onBack = onBack,
-            sharedElementScope = sharedElementScope,
-        )
+        Platform.Tablet -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars
+                            .union(WindowInsets.ime)
+                            .only(WindowInsetsSides.Bottom),
+                    )
+                    .padding(bottom = StreamCoreDimens.Mobile.Navigation.BottomContentClearance),
+            ) {
+                TabletSearchRoute(
+                    profileId = profileId,
+                    selectedContentKey = selectedContentKey,
+                    onContentSelected = onContentSelected,
+                    onBack = onBack,
+                    sharedElementScope = sharedElementScope,
+                )
+            }
+        }
 
         Platform.Mobile -> MobileSearchRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
             onContentSelected = onContentSelected,
             onBack = onBack,
-            bottomContentPadding = mobileBottomContentPadding,
+            bottomContentPadding = touchBottomContentPadding,
             sharedElementScope = sharedElementScope,
         )
     }
@@ -954,15 +946,28 @@ private fun LibraryDestination(
             sharedElementScope = sharedElementScope,
         )
 
-        Platform.Tablet -> TabletLibraryRoute(
-            profileId = profileId,
-            activeProfile = activeProfile,
-            selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
-            onProfileSelected = onProfileSelected,
-            onError = onError,
-            sharedElementScope = sharedElementScope,
-        )
+        Platform.Tablet -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars
+                            .union(WindowInsets.ime)
+                            .only(WindowInsetsSides.Bottom),
+                    )
+                    .padding(bottom = StreamCoreDimens.Mobile.Navigation.BottomContentClearance),
+            ) {
+                TabletLibraryRoute(
+                    profileId = profileId,
+                    activeProfile = activeProfile,
+                    selectedContentKey = selectedContentKey,
+                    onContentSelected = onContentSelected,
+                    onProfileSelected = onProfileSelected,
+                    onError = onError,
+                    sharedElementScope = sharedElementScope,
+                )
+            }
+        }
 
         Platform.Mobile -> MobileLibraryRoute(
             profileId = profileId,

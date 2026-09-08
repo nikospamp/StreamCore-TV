@@ -6,6 +6,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTvButtonMaxRadius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -57,6 +58,7 @@ fun StreamCoreTvButton(
     leadingIcon: (@Composable () -> Unit)? = null,
     shape: Shape? = null,
     contentAlignment: Alignment.Horizontal? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val resolvedShape = shape ?: streamCoreTvButtonCornerShape()
@@ -71,6 +73,7 @@ fun StreamCoreTvButton(
             selected = selected,
         ),
         border = streamCoreTvButtonBorder(resolvedShape),
+        contentPadding = contentPadding,
         tonalElevation = when {
             variant == StreamCoreTvButtonVariant.Standard -> 0.dp
             isFocused -> StreamCoreDimens.Elevation.Medium

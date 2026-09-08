@@ -20,6 +20,20 @@ val ColorScheme.transparentContainer: Color
         return Color.Transparent
     }
 
+/** Navigation chrome keeps artwork visible; foreground and focus indicators stay opaque. */
+val ColorScheme.navigationContainer: Color
+    get() {
+        return surfaceContainerHigh.copy(alpha = NavigationContainerOpacity)
+    }
+
+/** Subtle expanded-drawer veil using the same opacity as navigation chrome. */
+val ColorScheme.navigationScrim: Color
+    get() {
+        return scrim.copy(alpha = NavigationContainerOpacity)
+    }
+
+private const val NavigationContainerOpacity = 0.95f
+
 /** Opaque video-player background and overlay base. */
 val ColorScheme.playerSurface: Color
     get() {

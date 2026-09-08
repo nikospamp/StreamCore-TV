@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,6 +55,7 @@ import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreOverlayDuringSharedTransition
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
@@ -76,7 +77,6 @@ fun TvHomeScreen(
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     val content = remember(state.rows) { state.rows.toHomeContentModel() }
-    val refreshFocusRequester = remember { FocusRequester() }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -87,14 +87,8 @@ fun TvHomeScreen(
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = StreamCoreDimens.Tv.Screen.VerticalPadding),
+                .fillMaxSize(),
         ) {
-            HomeHeader(
-                isLoading = state.isLoading,
-                onAction = onAction,
-                focusRequester = refreshFocusRequester,
-            )
             if (state.isLoading && state.rows.isNotEmpty()) {
                 LinearProgressIndicator(
                     modifier = Modifier
@@ -109,7 +103,6 @@ fun TvHomeScreen(
                 state = state,
                 content = content,
                 onAction = onAction,
-                refreshFocusRequester = refreshFocusRequester,
                 selectedContentKey = selectedContentKey,
                 returnFocusKey = returnFocusKey,
                 onReturnFocusConsumed = onReturnFocusConsumed,
@@ -121,44 +114,10 @@ fun TvHomeScreen(
 }
 
 @Composable
-private fun HomeHeader(
-    isLoading: Boolean,
-    onAction: (HomeAction) -> Unit,
-    focusRequester: FocusRequester,
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
-                end = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-            ),
-    ) {
-        Text(
-            text = "Home",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
-        StreamCoreTvButton(
-            text = "Refresh",
-            onClick = { onAction(HomeAction.Refresh) },
-            enabled = !isLoading,
-            variant = StreamCoreTvButtonVariant.Tertiary,
-            modifier = Modifier
-                .focusRequester(focusRequester)
-                .testTag(HomeTestTags.RefreshButton),
-        )
-    }
-}
-
-@Composable
 private fun TvHomeBody(
     state: HomeUiState,
     content: HomeContentModel,
     onAction: (HomeAction) -> Unit,
-    refreshFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     selectedContentKey: String?,
     returnFocusKey: String?,
@@ -167,6 +126,7 @@ private fun TvHomeBody(
 ) {
     val listState = rememberLazyListState()
     val heroFocusRequester = remember { FocusRequester() }
+    val retryFocusRequester = remember { FocusRequester() }
     var hasAssignedFocus by remember { mutableStateOf(false) }
     val rows = remember(content) {
         buildList {
@@ -215,9 +175,9 @@ private fun TvHomeBody(
             content.featured.isEmpty() && rows.isEmpty() -> {
                 if (returnFocusKey == null) {
                     withFrameNanos { }
-                    refreshFocusRequester.requestFocus()
+                    retryFocusRequester.requestFocus()
                 } else {
-                    refreshFocusRequester.requestFocusWhenReady()
+                    retryFocusRequester.requestFocusWhenReady()
                 }
             }
 
@@ -237,11 +197,30 @@ private fun TvHomeBody(
     ) {
         when {
             state.isLoading && state.rows.isEmpty() -> TvHomeLoadingContent()
-            content.featured.isEmpty() && rows.isEmpty() -> Text(
-                text = "No content available.",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            content.featured.isEmpty() && rows.isEmpty() -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+                    modifier = Modifier.padding(
+                        start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
+                        end = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    ),
+                ) {
+                    Text(
+                        text = "No content available.",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    StreamCoreTvButton(
+                        text = "Retry",
+                        onClick = { onAction(HomeAction.Refresh) },
+                        enabled = !state.isLoading,
+                        modifier = Modifier
+                            .focusRequester(retryFocusRequester)
+                            .testTag(HomeTestTags.RefreshButton),
+                    )
+                }
+            }
 
             else -> LazyColumn(
                 state = listState,
@@ -318,10 +297,6 @@ private fun TvHomeHeroCarousel(
         modifier = Modifier
             .fillMaxWidth()
             .height(StreamCoreDimens.Tv.Browse.HeroHeight)
-            .padding(
-                start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
-                end = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-            )
             .testTag(HomeTestTags.Hero),
     ) { index ->
         val item = content[index]
@@ -343,13 +318,12 @@ private fun TvHomeHero(
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
 ) {
-    val heroShape = MaterialTheme.shapes.extraLarge
+    val heroShape = RectangleShape
     val elementScope = sharedElementScope.takeIf { useSharedTransition }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(heroShape)
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
         StreamCoreContentImage(
@@ -387,18 +361,30 @@ private fun TvHomeHero(
                             MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f),
                         ),
                     ),
+                )
+                .background(
+                    Brush.verticalGradient(
+                        0f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        0.5f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        1f to MaterialTheme.colorScheme.background,
+                    ),
                 ),
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .fillMaxWidth(0.56f)
+                .fillMaxWidth(0.62f)
                 .streamCoreOverlayDuringSharedTransition(
                     sharedElementScope = elementScope,
                     zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                 )
-                .padding(StreamCoreDimens.Spacing.ExtraLarge),
+                .padding(
+                    start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
+                    end = StreamCoreDimens.Spacing.ExtraLarge,
+                    top = StreamCoreDimens.Tv.Screen.VerticalPadding,
+                    bottom = StreamCoreDimens.Tv.Screen.VerticalPadding,
+                ),
         ) {
             Text(
                 text = "Featured movie",
@@ -441,8 +427,13 @@ private fun TvHomeHero(
                 onClick = onClick,
                 enabled = true,
                 variant = StreamCoreTvButtonVariant.Primary,
+                shape = StreamCoreControlDefaults.style().buttonShape,
+                contentPadding = PaddingValues(
+                    horizontal = StreamCoreDimens.Button.CompactHorizontalPadding,
+                ),
                 leadingIcon = { StreamCoreInfoIcon() },
                 modifier = Modifier
+                    .defaultMinSize(minHeight = StreamCoreDimens.Button.CompactHeight)
                     .focusRequester(focusRequester)
                     .testTag(HomeTestTags.HeroDetails),
             )
@@ -632,6 +623,17 @@ private fun TvHomeScreenPreview() {
                 isLoading = false,
                 rows = HomePreviewData.rows,
             ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTV
+@Composable
+private fun TvHomeEmptyScreenPreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TvHomeScreen(
+            state = HomeUiState(isLoading = false),
             onAction = {},
         )
     }

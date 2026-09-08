@@ -61,6 +61,8 @@ import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLibraryIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePersonIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.navigationContainer
+import com.pampoukidis.streamcoretv.core.ui.extensions.navigationScrim
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreMotionDurations
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -88,8 +90,7 @@ internal fun TvNavigationDrawer(
         drawerState = drawerState,
         scrimBrush = Brush.horizontalGradient(
             colors = listOf(
-                MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
-                MaterialTheme.colorScheme.scrim.copy(alpha = 0.36f),
+                MaterialTheme.colorScheme.navigationScrim,
                 MaterialTheme.colorScheme.transparentContainer,
             ),
         ),
@@ -175,9 +176,9 @@ private fun TvDrawerContent(
         modifier = Modifier
             .width(width)
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(MaterialTheme.colorScheme.navigationContainer)
             .padding(
-                horizontal = StreamCoreDimens.Spacing.Small,
+                horizontal = StreamCoreDimens.Spacing.Tiny,
                 vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
             )
             .testTag(TvNavigationTestTags.Drawer)
@@ -209,9 +210,9 @@ private fun TvDrawerContent(
                     onClick = { onDestinationSelected(destination) },
                     icon = {
                         when (destination) {
-                            TopLevelDestination.Home -> StreamCoreHomeIcon()
-                            TopLevelDestination.Search -> StreamCoreSearchIcon()
-                            TopLevelDestination.Library -> StreamCoreLibraryIcon()
+                            TopLevelDestination.Home -> StreamCoreHomeIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize))
+                            TopLevelDestination.Search -> StreamCoreSearchIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize))
+                            TopLevelDestination.Library -> StreamCoreLibraryIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize))
                         }
                     },
                     modifier = Modifier.testTag(
@@ -237,13 +238,13 @@ private fun TvDrawerContent(
             onClick = onProfileSelected,
             icon = {
                 if (activeProfile == null) {
-                    StreamCorePersonIcon()
+                    StreamCorePersonIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize))
                 } else {
                     StreamCoreProfileArtwork(
                         avatar = activeProfile.avatar,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(StreamCoreDimens.Icon.Large)
+                            .size(StreamCoreDimens.Tv.Navigation.IconSize)
                             .testTag(TvNavigationTestTags.Avatar)
                             .streamCoreSharedBounds(
                                 sharedElementScope = sharedElementScope,
@@ -263,14 +264,14 @@ private fun TvDrawerContent(
 @Composable
 private fun TvDrawerBrand(expanded: Boolean) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .height(StreamCoreDimens.Tv.Navigation.ItemHeight)
-            .padding(horizontal = StreamCoreDimens.Spacing.Large),
+            .padding(horizontal = StreamCoreDimens.Spacing.Small),
     ) {
-        StreamCoreBrandMark(modifier = Modifier.size(StreamCoreDimens.Icon.Standard))
+        StreamCoreBrandMark(modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize))
         if (expanded) {
             Text(
                 text = "StreamCore",
@@ -296,7 +297,7 @@ private fun TvDrawerItem(
     var isFocused by remember { mutableStateOf(false) }
     val containerColor = when {
         isFocused -> MaterialTheme.colorScheme.surfaceContainerHighest
-        selected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        selected -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.transparentContainer
     }
     val contentColor = when {
@@ -328,17 +329,17 @@ private fun TvDrawerItem(
             },
     ) {
         Row(
-            horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = if (expanded) Arrangement.Start else Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = StreamCoreDimens.Spacing.Medium),
+                .padding(horizontal = StreamCoreDimens.Spacing.Small),
         ) {
             // The collapsed rail must leave a full square slot after both padding layers.
             // Keep this slot fixed while labels appear/disappear so artwork never compresses.
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(StreamCoreDimens.Icon.Large),
+                modifier = Modifier.size(StreamCoreDimens.Tv.Navigation.IconSize),
             ) {
                 CompositionLocalProvider(LocalContentColor provides contentColor) {
                     icon()

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.extensions.navigationContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 /**
@@ -76,7 +77,7 @@ fun StreamCoreFloatingBottomNavigation(
 
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MaterialTheme.colorScheme.navigationContainer,
         tonalElevation = StreamCoreDimens.Elevation.Low,
         modifier = modifier
             .widthIn(max = StreamCoreDimens.Mobile.Navigation.MaxWidth)
