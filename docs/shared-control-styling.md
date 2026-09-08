@@ -83,3 +83,21 @@ owns portable drawing; `AndroidProfilesBackdrop` owns Android animation/accessib
 Deferred automated regression coverage: mobile appearance parity; tablet row centering/overflow and Manage actions; editor create/edit/save/delete
 states; avatar selection and dialog dismissal; TV D-pad traversal, offscreen avatar focus, focus restoration, and IME Done; large text and loading
 states. No new repository/ViewModel scopes or flows are introduced by this UI extraction.
+
+## Android Home harmonization
+
+Tablet uses the same app-owned floating bottom navigation as mobile, retaining its width cap, destination state, visibility rules, and keyboard
+insets. Home reserves bottom scroll clearance; tablet Search/Library retain destination-local clearance. The tablet browse header receives the
+active profile's avatar, and the tablet hero uses a 414dp height, 15% taller than its previous 360dp baseline.
+
+TV Home starts directly with content. The removed header's focus fallback now belongs to the empty-state Retry action. Its Details action uses
+the shared pill shape and compact padding while retaining TV Material focus behavior and native minimum sizing. The TV button padding override
+defaults to its previous native value, preserving existing consumers.
+
+Deferred regression coverage: mobile rendering; tablet top-level switching, Back/state restoration, IME and last-item clearance; tablet avatar
+updates and hero sizing; TV empty Retry focus, hero-to-details return focus, and carousel button states.
+
+Tablet/TV Home hero artwork extends edge to edge behind navigation/header overlays, with gradients protecting copy and blending into the page.
+The shared navigation container uses 95% opacity (5% transparent); content, selection indicators, and focus borders keep their own opacity.
+TV navigation uses narrower expanded/collapsed geometry and smaller icons while preserving its usable focus targets. Mobile hero layout remains
+unchanged. Include bright-artwork contrast and expanded-drawer overlap in the deferred visual regression checks.

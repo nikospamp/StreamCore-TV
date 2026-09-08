@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -24,10 +24,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -43,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
@@ -82,6 +85,8 @@ fun TabletHomeScreen(
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
+    activeProfile: ProfileModel? = null,
+    bottomContentPadding: Dp = StreamCoreDimens.Spacing.ExtraLarge,
 ) {
     val content = remember(state.rows) {
         state.rows.toHomeContentModel()
@@ -93,18 +98,7 @@ fun TabletHomeScreen(
             .fillMaxSize()
             .testTag(HomeTestTags.Root),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-        ) {
-            StreamCoreBrowseTopBar(
-                onProfileSelected = onProfileSelected,
-                modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
-                ),
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = state.isLoading && state.rows.isNotEmpty(),
                 onRefresh = { onAction(HomeAction.Refresh) },
@@ -120,6 +114,23 @@ fun TabletHomeScreen(
                     },
                     selectedContentKey = selectedContentKey,
                     sharedElementScope = sharedElementScope,
+                    bottomContentPadding = bottomContentPadding,
+                )
+            }
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onArtwork) {
+                StreamCoreBrowseTopBar(
+                    onProfileSelected = onProfileSelected,
+                    profileAvatar = activeProfile?.avatar,
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                0f to MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f),
+                                0.85f to MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
+                                1f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                            ),
+                        )
+                        .statusBarsPadding()
+                        .padding(horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding),
                 )
             }
         }
@@ -133,6 +144,7 @@ private fun TabletHomeContent(
     onContentSelected: (ContentModel) -> Unit,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
+    bottomContentPadding: Dp,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -147,7 +159,7 @@ private fun TabletHomeContent(
             )
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(bottom = StreamCoreDimens.Spacing.ExtraLarge),
+                contentPadding = PaddingValues(bottom = bottomContentPadding),
                 verticalArrangement = Arrangement.spacedBy(
                     StreamCoreDimens.Tablet.Browse.SectionSpacing,
                 ),
@@ -159,11 +171,20 @@ private fun TabletHomeContent(
                 ) {
                     TabletHeroArea(
                         featured = content.featured,
-                        continueWatching = content.continueWatching,
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
                         onContentSelected = onContentSelected,
                     )
+                }
+                content.continueWatching?.let { row ->
+                    item(key = row.id, contentType = row.type) {
+                        ContinueWatchingShelf(
+                            row = row,
+                            selectedContentKey = selectedContentKey,
+                            sharedElementScope = sharedElementScope,
+                            onContentSelected = onContentSelected,
+                        )
+                    }
                 }
                 items(
                     items = content.shelves,
@@ -185,45 +206,17 @@ private fun TabletHomeContent(
 @Composable
 private fun TabletHeroArea(
     featured: List<ContentModel>,
-    continueWatching: RowModel?,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
 ) {
-    val heroSizeModifier = if (continueWatching == null) {
-        Modifier.aspectRatio(StreamCoreDimens.Tablet.Browse.ExpandedHeroAspectRatio)
-    } else {
-        Modifier.height(StreamCoreDimens.Tablet.Browse.HeroHeight)
-    }
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
-            )
-            .then(heroSizeModifier),
-    ) {
-        TabletHeroPager(
-            content = featured,
-            selectedContentKey = selectedContentKey,
-            sharedElementScope = sharedElementScope,
-            onContentSelected = onContentSelected,
-            modifier = Modifier.weight(1f),
-        )
-        continueWatching?.let { row ->
-            ContinueWatchingPanel(
-                row = row,
-                selectedContentKey = selectedContentKey,
-                sharedElementScope = sharedElementScope,
-                onContentSelected = onContentSelected,
-                modifier = Modifier.width(
-                    StreamCoreDimens.Tablet.Browse.BookmarkPanelWidth,
-                ),
-            )
-        }
-    }
+    TabletHeroPager(
+        content = featured,
+        selectedContentKey = selectedContentKey,
+        sharedElementScope = sharedElementScope,
+        onContentSelected = onContentSelected,
+        modifier = Modifier.fillMaxWidth().height(StreamCoreDimens.Tablet.Browse.HeroHeight),
+    )
 }
 
 @Composable
@@ -264,12 +257,11 @@ private fun TabletHeroCard(
 ) {
     val useSharedTransition = content.sharedIdentity() == selectedContentKey
     val elementScope = sharedElementScope.takeIf { useSharedTransition }
-    val heroShape = MaterialTheme.shapes.extraLarge
+    val heroShape = RectangleShape
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(heroShape)
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
         StreamCoreContentImage(
@@ -304,8 +296,15 @@ private fun TabletHeroCard(
                         colors = listOf(
                             MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f),
                             MaterialTheme.colorScheme.scrim.copy(alpha = 0.22f),
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f),
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
                         ),
+                    ),
+                )
+                .background(
+                    Brush.verticalGradient(
+                        0f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        0.5f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
+                        1f to MaterialTheme.colorScheme.background,
                     ),
                 ),
         )
@@ -313,14 +312,15 @@ private fun TabletHeroCard(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
             modifier = Modifier
                 .align(Alignment.BottomStart)
+                .widthIn(max = StreamCoreDimens.Tablet.Browse.HeroCopyMaxWidth)
                 .fillMaxWidth()
                 .streamCoreOverlayDuringSharedTransition(
                     sharedElementScope = elementScope,
                     zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                 )
                 .padding(
-                    start = StreamCoreDimens.Spacing.ExtraLarge,
-                    end = StreamCoreDimens.Spacing.ExtraLarge,
+                    start = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
+                    end = StreamCoreDimens.Tablet.Screen.HorizontalPadding,
                     top = StreamCoreDimens.Spacing.ExtraLarge,
                     bottom = StreamCoreDimens.Spacing.ExtraLarge + StreamCoreDimens.Indicator.DotSize +
                         StreamCoreDimens.Spacing.Small,
@@ -375,38 +375,34 @@ private fun TabletHeroCard(
 }
 
 @Composable
-private fun ContinueWatchingPanel(
+private fun ContinueWatchingShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onContentSelected: (ContentModel) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier
-            .fillMaxHeight()
-            .testTag(HomeTestTags.RowPrefix + row.id),
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
+        modifier = Modifier.fillMaxWidth().testTag(HomeTestTags.RowPrefix + row.id),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-            modifier = Modifier.padding(StreamCoreDimens.Spacing.Large),
+        ShelfHeader(
+            title = row.title,
+            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
+            contentPadding = PaddingValues(horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = row.title,
-                    style = MaterialTheme.typography.titleSmall,
-                )
-            }
-            row.content.take(4).forEach { item ->
-                ContinueWatchingItem(
-                    rowId = row.id,
-                    content = item,
-                    selectedContentKey = selectedContentKey,
-                    sharedElementScope = sharedElementScope,
-                    onClick = { onContentSelected(item) },
-                )
+            items(items = row.content, key = { it.id }, contentType = { row.type }) { item ->
+                Box(modifier = Modifier.width(StreamCoreDimens.Tablet.Browse.LandscapeWidth)) {
+                    ContinueWatchingItem(
+                        rowId = row.id,
+                        content = item,
+                        selectedContentKey = selectedContentKey,
+                        sharedElementScope = sharedElementScope,
+                        onClick = { onContentSelected(item) },
+                    )
+                }
             }
         }
     }

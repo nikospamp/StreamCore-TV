@@ -189,8 +189,9 @@ object StreamCoreDimens {
         object Browse {
             val SectionSpacing = Spacing.ExtraLarge
             val RowSpacing = Spacing.Medium
-            val HeroHeight = 360.dp
-            val ExpandedHeroAspectRatio = 4f
+            val HeroHeight = 414.dp
+            val HeroCopyMaxWidth = 640.dp
+            val ExpandedHeroAspectRatio = 4f / 1.15f
             val BookmarkPanelWidth = 206.dp
             val BookmarkThumbnailWidth = 82.dp
             val BookmarkThumbnailHeight = 56.dp
@@ -261,8 +262,9 @@ object StreamCoreDimens {
 
     object Tv {
         object Navigation {
-            val CollapsedWidth = 72.dp
-            val ExpandedWidth = 248.dp
+            val CollapsedWidth = 56.dp
+            val ExpandedWidth = 208.dp
+            val IconSize = 20.dp
             val ContentStartPadding = CollapsedWidth + Screen.HorizontalPadding
             val ItemHeight = 52.dp
         }
