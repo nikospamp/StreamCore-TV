@@ -8,28 +8,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,30 +29,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
-import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreRefreshIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreShareIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.bottomRounded
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
@@ -72,10 +51,13 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsOverview
+import com.pampoukidis.streamcoretv.feature.details.common.touch.details.DetailsTouchActions
+import com.pampoukidis.streamcoretv.feature.details.common.touch.details.DetailsTouchTopControls
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRecommendationArtwork
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTags
-import com.pampoukidis.streamcoretv.feature.details.mobile.R
 
 @Composable
 fun MobileDetailsScreen(
@@ -169,7 +151,7 @@ private fun DetailsContent(
             key = "${content.id}:actions",
             contentType = "actions",
         ) {
-            DetailsLibraryActions(
+            DetailsTouchActions(
                 isLibraryAvailable = isLibraryAvailable,
                 isLiked = isLiked,
                 isInMyList = isInMyList,
@@ -220,166 +202,6 @@ private fun DetailsContent(
 }
 
 @Composable
-private fun DetailsLibraryActions(
-    isLibraryAvailable: Boolean,
-    isLiked: Boolean,
-    isInMyList: Boolean,
-    isLikeMutationPending: Boolean,
-    isMyListMutationPending: Boolean,
-    isTrailerAvailable: Boolean,
-    onLikeClick: () -> Unit,
-    onMyListClick: () -> Unit,
-    onTrailerClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        DetailsLabeledAction(
-            label = stringResource(
-                if (isLiked) R.string.details_action_liked else R.string.details_action_like,
-            ),
-            stateDescription = stringResource(
-                if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
-            ),
-            selected = isLiked,
-            enabled = isLibraryAvailable,
-            isLoading = isLikeMutationPending,
-            onClick = onLikeClick,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(DetailsTestTags.LikeAction),
-        ) {
-            StreamCoreHeartIcon(filled = isLiked)
-        }
-        DetailsLabeledAction(
-            label = stringResource(R.string.details_action_my_list),
-            stateDescription = stringResource(
-                if (isInMyList) {
-                    R.string.details_my_list_selected
-                } else {
-                    R.string.details_my_list_unselected
-                },
-            ),
-            selected = isInMyList,
-            enabled = isLibraryAvailable,
-            isLoading = isMyListMutationPending,
-            onClick = onMyListClick,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(DetailsTestTags.MyListAction),
-        ) {
-            StreamCoreBookmarkIcon(filled = isInMyList)
-        }
-        DetailsLabeledAction(
-            label = stringResource(R.string.details_action_trailer),
-            stateDescription = stringResource(
-                if (isTrailerAvailable) R.string.details_trailer_open else R.string.details_trailer_unavailable,
-            ),
-            selected = null,
-            enabled = isTrailerAvailable,
-            isLoading = false,
-            onClick = onTrailerClick,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(DetailsTestTags.TrailerAction),
-        ) {
-            StreamCoreTrailerIcon()
-        }
-        DetailsLabeledAction(
-            label = stringResource(R.string.details_action_share),
-            stateDescription = stringResource(R.string.details_action_not_available),
-            selected = null,
-            enabled = false,
-            isLoading = false,
-            onClick = {},
-            modifier = Modifier
-                .weight(1f)
-                .testTag(DetailsTestTags.ShareAction),
-        ) {
-            StreamCoreShareIcon()
-        }
-    }
-}
-
-@Composable
-private fun DetailsLabeledAction(
-    label: String,
-    stateDescription: String,
-    selected: Boolean?,
-    enabled: Boolean,
-    isLoading: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-) {
-    val contentColor = when {
-        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledActionAlpha)
-        selected == true -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val interactionModifier = if (selected != null) {
-        Modifier.toggleable(
-            value = selected,
-            enabled = enabled && !isLoading,
-            role = Role.Checkbox,
-            onValueChange = { onClick() },
-        )
-    } else {
-        Modifier.clickable(
-            enabled = enabled && !isLoading,
-            role = Role.Button,
-            onClick = onClick,
-        )
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
-        modifier = modifier
-            .sizeIn(
-                minWidth = StreamCoreDimens.Icon.TouchTarget,
-                minHeight = DetailsActionMinHeight,
-            )
-            .then(interactionModifier)
-            .semantics(mergeDescendants = true) {
-                contentDescription = label
-                this.stateDescription = stateDescription
-                if (!enabled) {
-                    disabled()
-                }
-            }
-            .padding(vertical = StreamCoreDimens.Spacing.Small),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(StreamCoreDimens.Icon.Large),
-        ) {
-            CompositionLocalProvider(LocalContentColor provides contentColor) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = contentColor,
-                        strokeWidth = StreamCoreDimens.Stroke.Default,
-                        modifier = Modifier.size(StreamCoreDimens.Icon.Loading),
-                    )
-                } else {
-                    icon()
-                }
-            }
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun DetailsHero(
     content: ContentModel,
     isLoading: Boolean,
@@ -414,7 +236,7 @@ private fun DetailsHero(
             modifier = Modifier.fillMaxSize(),
         )
         HeroScrim()
-        DetailsTopControls(
+        DetailsTouchTopControls(
             isLoading = isLoading,
             onBack = onBack,
             onRefresh = onRefresh,
@@ -484,92 +306,6 @@ private fun HeroScrim() {
 }
 
 @Composable
-private fun DetailsTopControls(
-    isLoading: Boolean,
-    onBack: () -> Unit,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        StreamCoreArtworkIconButton(
-            contentDescription = "Back",
-            onClick = onBack,
-            modifier = Modifier.testTag(DetailsTestTags.BackButton),
-        ) {
-            StreamCoreBackIcon()
-        }
-        StreamCoreArtworkIconButton(
-            contentDescription = "Refresh",
-            onClick = onRefresh,
-            isLoading = isLoading,
-            modifier = Modifier.testTag(DetailsTestTags.RefreshButton),
-        ) {
-            StreamCoreRefreshIcon()
-        }
-    }
-}
-
-@Composable
-private fun DetailsOverview(
-    content: ContentModel,
-    modifier: Modifier = Modifier,
-) {
-    val genreText = remember(content.genres) {
-        content.genres.joinToString(separator = " · ") { genre -> genre.name }
-    }
-    val castText = remember(content.cast) {
-        content.cast.joinToString(separator = " · ") { cast ->
-            cast.characterName?.let { characterName ->
-                "${cast.name} as $characterName"
-            } ?: cast.name
-        }
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(DetailsTestTags.Overview),
-    ) {
-        Text(
-            text = "Overview",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        if (genreText.isNotBlank()) {
-            Text(
-                text = genreText,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Text(
-            text = content.description,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        if (castText.isNotBlank()) {
-            Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
-                Text(
-                    text = "Cast",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = castText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun RecommendationsRow(
     recommendations: List<ContentModel>,
     onAction: (DetailsAction) -> Unit,
@@ -617,64 +353,12 @@ private fun RecommendationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+    DetailsRecommendationArtwork(
+        content = content,
         modifier = modifier
             .width(StreamCoreDimens.Mobile.Details.RecommendationCardWidth)
             .clickable(onClick = onClick)
             .testTag(DetailsTestTags.RecommendationPrefix + content.id),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
-                .clip(MaterialTheme.shapes.medium),
-        ) {
-            StreamCoreContentImage(
-                imageUrl = content.poster,
-                contentDescription = content.title,
-                fallbackText = content.fallbackText(),
-                contentScale = ContentScale.Crop,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                fallbackTextStyle = MaterialTheme.typography.displayMedium,
-                modifier = Modifier.fillMaxSize(),
-            )
-            RecommendationScrim()
-            Text(
-                text = content.title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onArtwork,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(StreamCoreDimens.Artwork.ContentPadding),
-            )
-        }
-        Text(
-            text = content.homeMetadataText(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun RecommendationScrim() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        MaterialTheme.colorScheme.scrim.copy(alpha = RecommendationScrimAlpha),
-                    ),
-                ),
-            ),
     )
 }
 
@@ -697,7 +381,7 @@ private fun DetailsLoadingState(
                     .fillMaxWidth()
                     .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
             ) {
-                DetailsTopControls(
+                DetailsTouchTopControls(
                     isLoading = true,
                     onBack = onBack,
                     onRefresh = {},
@@ -805,7 +489,6 @@ private const val HeroSupportingContentAlpha = 0.84f
 private const val HeroTopScrimAlpha = 0.48f
 private const val HeroBottomScrimAlpha = 0.9f
 private const val HeroScrimClearStop = 0.42f
-private const val RecommendationScrimAlpha = 0.78f
 private const val LoadingTitleWidthFraction = 0.58f
 private const val LoadingMetadataWidthFraction = 0.36f
 private val LoadingTitleHeight = StreamCoreDimens.Spacing.ExtraLarge
@@ -813,8 +496,6 @@ private val LoadingTextHeight = StreamCoreDimens.Spacing.Large
 private val LoadingBodyHeight = StreamCoreDimens.Icon.TouchTarget
 private const val OverviewEntranceDelayMillis = 80
 private const val RecommendationsEntranceDelayMillis = 150
-private val DetailsActionMinHeight = StreamCoreDimens.Icon.TouchTarget + StreamCoreDimens.Spacing.ExtraLarge
-private const val DisabledActionAlpha = 0.38f
 
 @PreviewMobile
 @Composable

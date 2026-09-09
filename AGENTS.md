@@ -242,6 +242,17 @@ Feature UI should compose standardized components from `:common` / design-system
 
 Every reusable UI component must follow the Compose preview rules.
 
+### Shape consistency
+
+- Resolve one shape from the design-system tokens per component and use it consistently for the container, background, content clip,
+  interaction indication, and border. Keep these layers aligned in default, focused, pressed, selected, disabled, and loading states;
+  intentional state-specific shapes must update all affected layers together.
+- `Surface(shape = ...)` does not clip an indication attached to its caller modifier. Prefer a shaped interactive primitive, or place
+  `clip(shape)` before `clickable`/`indication`. Preserve intentional outer TV focus rings outside the content clip and reserve their painted
+  extent when sizing or scrolling; do not fix an indication leak by clipping away the focus ring.
+- When changing a control, inspect modifier/draw order and equivalent consumers for the same issue. Include corner alignment and focus-ring
+  visibility at scroll edges in manual UI review or focused tests when enabled.
+
 ## Performance Rules
 
 Use immutable UI state.

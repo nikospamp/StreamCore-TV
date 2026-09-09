@@ -2,8 +2,7 @@ package com.pampoukidis.streamcoretv.feature.details.tablet.details
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,27 +31,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
+import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreDelayedEntrance
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
@@ -64,12 +51,14 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsOverview
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRecommendationArtwork
+import com.pampoukidis.streamcoretv.feature.details.common.touch.details.DetailsTouchActions
+import com.pampoukidis.streamcoretv.feature.details.common.touch.details.DetailsTouchTopControls
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTags
 import com.pampoukidis.streamcoretv.feature.details.tablet.R
-import java.util.Calendar
-import java.util.TimeZone
 
 @Composable
 fun TabletDetailsScreen(
@@ -92,9 +81,10 @@ fun TabletDetailsScreen(
                 .statusBarsPadding()
                 .padding(vertical = StreamCoreDimens.Tablet.Screen.VerticalPadding),
         ) {
-            DetailsHeader(
+            DetailsTouchTopControls(
                 isLoading = state.isLoading,
-                onAction = onAction,
+                onBack = { onAction(DetailsAction.BackSelected) },
+                onRefresh = { onAction(DetailsAction.Refresh) },
                 modifier = Modifier.padding(horizontal = StreamCoreDimens.Tablet.Screen.HorizontalPadding),
             )
             DetailsBody(
@@ -104,32 +94,6 @@ fun TabletDetailsScreen(
                 modifier = Modifier.weight(1f),
             )
         }
-    }
-}
-
-@Composable
-private fun DetailsHeader(
-    isLoading: Boolean,
-    onAction: (DetailsAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        StreamCoreTextButton(
-            text = "Back",
-            onClick = { onAction(DetailsAction.BackSelected) },
-            enabled = true,
-            modifier = Modifier.testTag(DetailsTestTags.BackButton),
-        )
-        StreamCoreTextButton(
-            text = "Refresh",
-            onClick = { onAction(DetailsAction.Refresh) },
-            enabled = !isLoading,
-            modifier = Modifier.testTag(DetailsTestTags.RefreshButton),
-        )
     }
 }
 
@@ -219,7 +183,7 @@ private fun SummarySection(
                 .weight(0.44f)
                 .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
         )
-        DetailsMetadata(
+        DetailsInformation(
             state = state,
             onAction = onAction,
             sharedElementScope = sharedElementScope,
@@ -259,31 +223,21 @@ private fun DetailsHero(
 }
 
 @Composable
-private fun DetailsMetadata(
-    state: DetailsUiState,
-    onAction: (DetailsAction) -> Unit,
+private fun DetailsTitle(
+    content: ContentModel,
     sharedElementScope: StreamCoreSharedElementScope?,
     modifier: Modifier = Modifier,
 ) {
-    val content = requireNotNull(state.content)
-    val genreText = remember(content.genres) {
-        content.genres.joinToString(separator = " · ") { it.name }
-    }
-    val castText = remember(content.cast) {
-        content.cast.joinToString(separator = " · ") { cast ->
-            cast.characterName?.let { "${cast.name} as $it" } ?: cast.name
-        }
-    }
-
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Text(
             text = content.title,
             style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.streamCoreSharedBounds(
                 sharedElementScope = sharedElementScope,
@@ -295,50 +249,52 @@ private fun DetailsMetadata(
                 zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
             ),
         )
+        Text(
+            text = content.heroMetadata(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun DetailsInformation(
+    state: DetailsUiState,
+    onAction: (DetailsAction) -> Unit,
+    sharedElementScope: StreamCoreSharedElementScope?,
+    modifier: Modifier = Modifier,
+) {
+    val content = requireNotNull(state.content)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+        modifier = modifier,
+    ) {
+        DetailsTitle(
+            content = content,
+            sharedElementScope = sharedElementScope,
+        )
+        DetailsActions(
+            hasResumableProgress = state.hasResumableProgress,
+            isTrailerAvailable = content.trailers.isNotEmpty(),
+            isLibraryAvailable = state.isLibraryAvailable,
+            isLiked = state.isLiked,
+            isInMyList = state.isInMyList,
+            isLikeMutationPending = state.isLikeMutationPending,
+            isMyListMutationPending = state.isMyListMutationPending,
+            onPlayClick = { onAction(DetailsAction.PlaySelected) },
+            onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
+            onLikeClick = { onAction(DetailsAction.LikeToggled) },
+            onMyListClick = { onAction(DetailsAction.MyListToggled) },
+        )
         StreamCoreDelayedEntrance(
             visibleKey = content.id,
             delayMillis = MetadataEntranceDelayMillis,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "${releaseYear(content.releaseDate)} · ${content.pgRatingName} · ${content.rating}/10",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = genreText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DetailsActions(
-                    hasResumableProgress = state.hasResumableProgress,
-                    isTrailerAvailable = content.trailers.isNotEmpty(),
-                    isLibraryAvailable = state.isLibraryAvailable,
-                    isLiked = state.isLiked,
-                    isInMyList = state.isInMyList,
-                    isLikeMutationPending = state.isLikeMutationPending,
-                    isMyListMutationPending = state.isMyListMutationPending,
-                    onPlayClick = { onAction(DetailsAction.PlaySelected) },
-                    onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
-                    onLikeClick = { onAction(DetailsAction.LikeToggled) },
-                    onMyListClick = { onAction(DetailsAction.MyListToggled) },
-                )
-                Text(
-                    text = content.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                if (castText.isNotBlank()) {
-                    Text(
-                        text = castText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            DetailsOverview(content = content)
         }
     }
 }
@@ -375,109 +331,18 @@ private fun DetailsActions(
                 .fillMaxWidth()
                 .testTag(DetailsTestTags.PlayButton),
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            DetailsLibraryButton(
-                label = stringResource(
-                    if (isLiked) R.string.details_action_liked else R.string.details_action_like,
-                ),
-                selectedStateDescription = stringResource(
-                    if (isLiked) R.string.details_like_selected else R.string.details_like_unselected,
-                ),
-                selected = isLiked,
-                isAvailable = isLibraryAvailable,
-                isLoading = isLikeMutationPending,
-                onClick = onLikeClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(DetailsTestTags.LikeAction),
-            ) {
-                StreamCoreHeartIcon(filled = isLiked)
-            }
-            DetailsLibraryButton(
-                label = stringResource(R.string.details_action_my_list),
-                selectedStateDescription = stringResource(
-                    if (isInMyList) {
-                        R.string.details_my_list_selected
-                    } else {
-                        R.string.details_my_list_unselected
-                    },
-                ),
-                selected = isInMyList,
-                isAvailable = isLibraryAvailable,
-                isLoading = isMyListMutationPending,
-                onClick = onMyListClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(DetailsTestTags.MyListAction),
-            ) {
-                StreamCoreBookmarkIcon(filled = isInMyList)
-            }
-            if (isTrailerAvailable) {
-                StreamCoreButton(
-                    text = stringResource(R.string.details_action_trailer),
-                    onClick = onTrailerClick,
-                    enabled = true,
-                    variant = StreamCoreButtonVariant.Secondary,
-                    leadingIcon = { StreamCoreTrailerIcon() },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(DetailsTestTags.TrailerAction),
-                )
-            }
-        }
+        DetailsTouchActions(
+            isLibraryAvailable = isLibraryAvailable,
+            isLiked = isLiked,
+            isInMyList = isInMyList,
+            isLikeMutationPending = isLikeMutationPending,
+            isMyListMutationPending = isMyListMutationPending,
+            isTrailerAvailable = isTrailerAvailable,
+            onLikeClick = onLikeClick,
+            onMyListClick = onMyListClick,
+            onTrailerClick = onTrailerClick,
+        )
     }
-}
-
-@Composable
-private fun DetailsLibraryButton(
-    label: String,
-    selectedStateDescription: String,
-    selected: Boolean,
-    isAvailable: Boolean,
-    isLoading: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-) {
-    val stateDescription = when {
-        !isAvailable -> stringResource(R.string.details_action_not_available)
-        isLoading -> stringResource(R.string.details_action_updating)
-        else -> selectedStateDescription
-    }
-    val iconColor = animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        animationSpec = tween(durationMillis = ActionStateAnimationMillis),
-        label = "detailsLibraryActionColor",
-    )
-
-    StreamCoreButton(
-        text = label,
-        onClick = onClick,
-        enabled = isAvailable && !isLoading,
-        loading = isLoading,
-        variant = StreamCoreButtonVariant.Secondary,
-        leadingIcon = {
-            CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides iconColor.value) {
-                icon()
-            }
-        },
-        modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = label
-            this.stateDescription = stateDescription
-            this.selected = selected
-            role = Role.Checkbox
-            if (!isAvailable || isLoading) {
-                disabled()
-            }
-        },
-    )
 }
 
 @Composable
@@ -530,62 +395,19 @@ private fun RecommendationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = StreamCoreDimens.Elevation.Low,
+    DetailsRecommendationArtwork(
+        content = content,
         modifier = modifier
             .width(StreamCoreDimens.Tablet.Details.RecommendationCardWidth)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {}
             .testTag(DetailsTestTags.RecommendationPrefix + content.id),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
-            StreamCoreContentImage(
-                imageUrl = content.poster,
-                contentDescription = content.title,
-                fallbackText = content.fallbackText(),
-                contentScale = ContentScale.Crop,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                fallbackTextStyle = MaterialTheme.typography.displayLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
-                    .clip(MaterialTheme.shapes.large),
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
-                modifier = Modifier.padding(
-                    horizontal = StreamCoreDimens.Spacing.Medium,
-                    vertical = StreamCoreDimens.Spacing.Medium,
-                ),
-            ) {
-                Text(
-                    text = content.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${content.rating}/10 · ${content.pgRatingName}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-private fun releaseYear(epochMillis: Long): Int {
-    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    calendar.timeInMillis = epochMillis
-    return calendar.get(Calendar.YEAR)
+    )
 }
 
 private const val MetadataEntranceDelayMillis = 80
 private const val RecommendationsEntranceDelayMillis = 150
-private const val ActionStateAnimationMillis = 180
 private val DetailsActionsMaxWidth = StreamCoreDimens.Tablet.Details.ActionsMaxWidth
 
 @PreviewTablet
@@ -671,6 +493,24 @@ private fun TabletDetailsScreenTrailerPreview() {
                             url = "https://example.test/trailer",
                         ),
                     ),
+                ),
+                recommendations = DetailsPreviewData.recommendations,
+                isLibraryAvailable = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@PreviewTablet
+@Composable
+private fun TabletDetailsScreenLongTitlePreview() {
+    StreamCoreTheme(darkTheme = true) {
+        TabletDetailsScreen(
+            state = DetailsUiState(
+                isLoading = false,
+                content = DetailsPreviewData.content.copy(
+                    title = "The Extraordinary Adventures Beyond the Edge of the Known Universe",
                 ),
                 recommendations = DetailsPreviewData.recommendations,
                 isLibraryAvailable = true,
