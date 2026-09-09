@@ -8,10 +8,15 @@ streamCoreKmp {
 }
 
 kotlin {
+    targets.withType<com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget>().configureEach {
+        androidResources.enable = true
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.domain)
             implementation(projects.core.data)
+            implementation(projects.core.ui)
             api(projects.feature.details.data)
             api(projects.feature.details.domain)
             implementation(projects.feature.library.domain)
@@ -20,6 +25,9 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.compose.components.resources)
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.koin.core)
@@ -31,4 +39,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.pampoukidis.streamcoretv.feature.details.common.resources"
 }

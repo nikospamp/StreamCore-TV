@@ -101,3 +101,32 @@ Tablet/TV Home hero artwork extends edge to edge behind navigation/header overla
 The shared navigation container uses 95% opacity (5% transparent); content, selection indicators, and focus borders keep their own opacity.
 TV navigation uses narrower expanded/collapsed geometry and smaller icons while preserving its usable focus targets. Mobile hero layout remains
 unchanged. Include bright-artwork contrast and expanded-drawer overlap in the deferred visual regression checks.
+
+## Android Details harmonization
+
+`DetailsRecommendationArtwork` shares portrait artwork, a protective gradient, and title/rating rendering inside the poster. Platform screens own
+card widths, activation, shared transitions, and TV focus borders. The TV recommendation width is 160dp; typography changes stay in TV Details.
+
+`DetailsActionContent` shares icon-over-label rendering. Android touch wrappers share mobile/tablet actions and circular artwork Back/Refresh
+controls. Share retains mobile's disabled state; TV omits it. TV owns its full-width Play/Resume action, secondary-action focus navigation, and
+error Retry focus. Remote Back remains available after removing the TV header. Shared contracts remain backend-agnostic.
+
+Tablet Details place artwork in the left column and title plus mobile's `heroMetadata()` above playback in the right column. TV places artwork,
+title, metadata, and Play/Resume in the left column. Its right column starts with secondary actions. Both use shared `DetailsOverview`:
+Overview heading, accent genres, complete description, Cast heading, and cast text.
+Mobile retains its existing layout and typography; TV supplies smaller text styles. Genre/cast formatting is remembered by its source data.
+
+TV Details restores the summary to the top when focus returns from recommendations to its actions. Its vertical relocation policy uses live
+summary bounds and Compose's existing scroll animation; larger text keeps the focused control visible when the full summary cannot fit.
+Relocation reserves the TV button border's painted extent. The viewport reaches the screen bottom; final-item clearance scrolls with the content.
+Horizontal recommendation scrolling retains its previous policy. Summary restoration adds no independent animation or persistent listener.
+TV's focusable reading area allows D-pad scrolling through long descriptions/cast using the same outer viewport. Left returns to Play; boundary
+Up returns to actions and boundary Down enters recommendations. Play Right restores secondary-action focus; recommendation Up returns to Play.
+Reading scroll jobs belong to the composition and cancel when it leaves.
+
+TV Details secondary actions and recommendation cards clip caller-side click/focus indications to the same resolved shape as their Material
+surface and inset border. Native TV buttons retain their separate outer focus-ring clearance. The clips add no state, scopes, or flows.
+
+Deferred regression coverage: mobile appearance parity; title/rating contrast and truncation; tablet shared controls and disabled Share/Trailer;
+TV action/recommendation traversal, long-text reading and its boundary navigation, summary scroll restoration and return focus, pending mutations,
+loading/error recovery, and long labels at larger font scales. No new flows are introduced; runtime performance has not been measured.
