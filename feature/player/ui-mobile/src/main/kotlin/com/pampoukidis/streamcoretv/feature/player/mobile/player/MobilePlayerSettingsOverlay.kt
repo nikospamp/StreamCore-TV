@@ -1,13 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.player.mobile.player
 
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -17,54 +16,50 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsHeaderContent
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsIconContainer
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsIconType
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsNavigationContent
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsSpeedOptions
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsResizeModeOptions
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsSelectionContent
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.feature.player.common.testing.PlayerTestTags
-import com.pampoukidis.streamcoretv.feature.player.mobile.R
-import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import kotlin.math.roundToInt
@@ -224,18 +219,19 @@ private fun PlayerSettingsHeader(
     page: PlayerSettingsPage,
     onBack: () -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        verticalAlignment = Alignment.CenterVertically,
+    PlayerSettingsHeaderContent(
+        page = page,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = StreamCoreDimens.Spacing.ExtraLarge)
             .height(SettingsHeaderHeight),
     ) {
         if (page == PlayerSettingsPage.Root) {
-            SettingsIconContainer(
-                icon = R.drawable.ic_player_settings_24,
+            PlayerSettingsIconContainer(
+                icon = PlayerSettingsIconType.Settings,
                 tint = MaterialTheme.colorScheme.onSurface,
+                containerSize = SettingsIconContainerSize,
+                iconSize = SettingsIconSize,
             )
         } else {
             StreamCoreArtworkIconButton(
@@ -244,24 +240,6 @@ private fun PlayerSettingsHeader(
             ) {
                 StreamCoreBackIcon()
             }
-        }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(
-                text = page.title(),
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = page.supportingText(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -283,7 +261,7 @@ private fun SettingsRoot(
                 SettingsNavigationRow(
                     title = "Quality",
                     value = selectedVideoLabel(state),
-                    icon = R.drawable.ic_player_quality_24,
+                    icon = PlayerSettingsIconType.Quality,
                     onClick = {
                         onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Quality))
                     },
@@ -295,7 +273,7 @@ private fun SettingsRoot(
                 SettingsNavigationRow(
                     title = "Audio",
                     value = selectedLabel(state.audioTracks, state.selectedAudioTrackId),
-                    icon = R.drawable.ic_player_audio_24,
+                    icon = PlayerSettingsIconType.Audio,
                     onClick = {
                         onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Audio))
                     },
@@ -307,7 +285,7 @@ private fun SettingsRoot(
                 SettingsNavigationRow(
                     title = "Subtitles",
                     value = selectedLabel(state.textTracks, state.selectedTextTrackId) ?: "Off",
-                    icon = R.drawable.ic_player_subtitles_24,
+                    icon = PlayerSettingsIconType.Subtitles,
                     onClick = {
                         onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Subtitles))
                     },
@@ -318,7 +296,7 @@ private fun SettingsRoot(
             SettingsNavigationRow(
                 title = "Speed",
                 value = "${state.speed}×",
-                icon = R.drawable.ic_player_speed_24,
+                icon = PlayerSettingsIconType.Speed,
                 onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Speed)) },
             )
         }
@@ -326,7 +304,7 @@ private fun SettingsRoot(
             SettingsNavigationRow(
                 title = "Resize mode",
                 value = state.resizeMode.name,
-                icon = R.drawable.ic_player_resize_mode_24,
+                icon = PlayerSettingsIconType.ResizeMode,
                 onClick = {
                     onAction(PlayerAction.OpenSettings(PlayerSettingsPage.ResizeMode))
                 },
@@ -339,7 +317,7 @@ private fun SettingsRoot(
 private fun SettingsNavigationRow(
     title: String,
     value: String?,
-    @DrawableRes icon: Int,
+    icon: PlayerSettingsIconType,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -350,67 +328,19 @@ private fun SettingsNavigationRow(
             .fillMaxWidth()
             .height(SettingsRowHeight),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-            verticalAlignment = Alignment.CenterVertically,
+        PlayerSettingsNavigationContent(
+            title = title,
+            value = value,
+            icon = icon,
+            iconContainerSize = SettingsIconContainerSize,
+            iconSize = SettingsIconSize,
             modifier = Modifier.padding(horizontal = StreamCoreDimens.Spacing.ExtraLarge),
-        ) {
-            SettingsIconContainer(
-                icon = icon,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            value?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                painter = painterResource(R.drawable.ic_player_chevron_right_24),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(StreamCoreDimens.Icon.Medium),
-            )
-        }
+        )
     }
     HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = SettingsDividerAlpha),
         modifier = Modifier.padding(start = SettingsDividerStartPadding),
     )
-}
-
-@Composable
-private fun SettingsIconContainer(
-    @DrawableRes icon: Int,
-    tint: Color,
-) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
-            alpha = SettingsIconContainerAlpha,
-        ),
-        contentColor = tint,
-        modifier = Modifier.size(SettingsIconContainerSize),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(SettingsIconSize),
-            )
-        }
-    }
 }
 
 @Composable
@@ -457,7 +387,7 @@ private fun SpeedSettings(
     onAction: (PlayerAction) -> Unit,
 ) {
     SelectionSettings(
-        options = PlaybackSpeedOptions,
+        options = PlayerSettingsSpeedOptions,
         selected = state.speed,
         onSelected = { onAction(PlayerAction.SelectSpeed(it)) },
     )
@@ -469,7 +399,7 @@ private fun ResizeSettings(
     onAction: (PlayerAction) -> Unit,
 ) {
     SelectionSettings(
-        options = PlaybackResizeModeOptions,
+        options = PlayerSettingsResizeModeOptions,
         selected = state.resizeMode,
         onSelected = { onAction(PlayerAction.SelectResizeMode(it)) },
     )
@@ -524,8 +454,9 @@ private fun SelectionRow(
         contentColor = contentColor,
         shape = MaterialTheme.shapes.medium,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        PlayerSettingsSelectionContent(
+            label = label,
+            selected = selected,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(SettingsSelectionRowHeight)
@@ -535,50 +466,14 @@ private fun SelectionRow(
                     onClick = onClick,
                 )
                 .padding(horizontal = StreamCoreDimens.Spacing.Large),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            if (selected) {
-                StreamCoreCheckIcon(
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
+        )
     }
 }
-
 private fun PlayerSettingsPage?.dismissLabel(): String {
     return if (this == PlayerSettingsPage.Root) {
         "Dismiss playback settings"
     } else {
         "Back to settings"
-    }
-}
-
-private fun PlayerSettingsPage.title(): String {
-    return when (this) {
-        PlayerSettingsPage.Root -> "Settings"
-        PlayerSettingsPage.Quality -> "Quality"
-        PlayerSettingsPage.Audio -> "Audio"
-        PlayerSettingsPage.Subtitles -> "Subtitles"
-        PlayerSettingsPage.Speed -> "Speed"
-        PlayerSettingsPage.ResizeMode -> "Resize mode"
-    }
-}
-
-private fun PlayerSettingsPage.supportingText(): String {
-    return when (this) {
-        PlayerSettingsPage.Root -> "Playback preferences"
-        PlayerSettingsPage.Quality -> "Video resolution and data usage"
-        PlayerSettingsPage.Audio -> "Spoken language"
-        PlayerSettingsPage.Subtitles -> "Captions and language"
-        PlayerSettingsPage.Speed -> "Playback rate"
-        PlayerSettingsPage.ResizeMode -> "Picture fit"
     }
 }
 
@@ -603,7 +498,6 @@ private const val SettingsPanelMaxWidthDp = 420
 private const val SettingsPanelAlpha = 0.995f
 private const val SettingsScrimAlpha = 0.46f
 private const val SettingsDividerAlpha = 0.5f
-private const val SettingsIconContainerAlpha = 0.72f
 private const val SelectedRowAlpha = 0.72f
 private val SettingsHeaderHeight = StreamCoreDimens.Mobile.Player.SettingsHeaderHeight
 private val SettingsRowHeight = StreamCoreDimens.Mobile.Player.SettingsRowHeight
@@ -611,18 +505,6 @@ private val SettingsSelectionRowHeight = StreamCoreDimens.Mobile.Player.Settings
 private val SettingsIconContainerSize = StreamCoreDimens.Mobile.Player.SettingsIconContainerSize
 private val SettingsIconSize = StreamCoreDimens.Mobile.Player.SettingsIconSize
 private val SettingsDividerStartPadding = StreamCoreDimens.Mobile.Player.SettingsDividerStartPadding
-private val PlaybackSpeedOptions = listOf(
-    "0.5×" to 0.5f,
-    "0.75×" to 0.75f,
-    "1.0×" to 1f,
-    "1.25×" to 1.25f,
-    "1.5×" to 1.5f,
-    "2.0×" to 2f,
-)
-private val PlaybackResizeModeOptions = PlaybackResizeMode.entries.map { mode ->
-    mode.name to mode
-}
-
 @Preview(widthDp = 800, heightDp = 560, showBackground = true)
 @Composable
 private fun PlayerSettingsOverlayPreview() {

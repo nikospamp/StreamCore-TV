@@ -9,18 +9,14 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,32 +40,31 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.extensions.onPlayerSurface
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.extensions.playerSurface
 import com.pampoukidis.streamcoretv.core.ui.extensions.playerThumbnailPlaceholder
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIcon
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIconType
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerTimelineTrack
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.feature.player.common.testing.PlayerTestTags
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
@@ -86,6 +81,7 @@ fun TvPlayerScreen(
     val backFocusRequester = remember { FocusRequester() }
     val rewindFocusRequester = remember { FocusRequester() }
     val playFocusRequester = remember { FocusRequester() }
+    val centerFocusRequester = remember { FocusRequester() }
     val forwardFocusRequester = remember { FocusRequester() }
     val timelineFocusRequester = remember { FocusRequester() }
     val settingsFocusRequester = remember { FocusRequester() }
@@ -94,6 +90,7 @@ fun TvPlayerScreen(
     var playbackFocusInitialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.controlsVisible, state.phase) {
+        if (state.settingsPage != null || state.error != null) return@LaunchedEffect
         if (!state.controlsVisible) {
             rootFocusRequester.requestFocus()
         } else if (!controlsWereVisible) {
@@ -159,6 +156,7 @@ fun TvPlayerScreen(
                 backFocusRequester = backFocusRequester,
                 rewindFocusRequester = rewindFocusRequester,
                 playFocusRequester = playFocusRequester,
+                centerFocusRequester = centerFocusRequester,
                 forwardFocusRequester = forwardFocusRequester,
                 timelineFocusRequester = timelineFocusRequester,
                 settingsFocusRequester = settingsFocusRequester,
@@ -177,6 +175,11 @@ fun TvPlayerScreen(
             )
         }
 
+        if (state.error == null) {
+            state.settingsPage?.let { page ->
+                TvPlayerSettingsOverlay(state = state, page = page, onAction = onAction)
+            }
+        }
     }
 
     val error = state.error
@@ -187,231 +190,232 @@ fun TvPlayerScreen(
             onRetry = { onAction(PlayerAction.Retry) },
             onBack = { onAction(PlayerAction.BackSelected) },
         )
-    } else {
-        state.settingsPage?.let { settingsPage ->
-        TvPlayerSettingsDialog(
-            state = state,
-            page = settingsPage,
-            onAction = onAction,
-        )
-        }
     }
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun BoxScope.TvPlayerControls(
     state: PlayerUiState,
     backFocusRequester: FocusRequester,
     rewindFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
+    centerFocusRequester: FocusRequester,
     forwardFocusRequester: FocusRequester,
     timelineFocusRequester: FocusRequester,
     settingsFocusRequester: FocusRequester,
     onAction: (PlayerAction) -> Unit,
 ) {
+    val isLoading = state.phase == PlaybackPhase.Preparing || state.isBuffering
+    val playPauseLabel = when {
+        state.isEnded -> "Replay"
+        state.isPlaying -> "Pause"
+        else -> "Play"
+    }
+    val playPauseIcon = when {
+        state.isEnded -> PlayerControlIconType.Replay
+        state.isPlaying -> PlayerControlIconType.Pause
+        else -> PlayerControlIconType.Play
+    }
+    val upperFocusRequester = centerFocusRequester
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .align(Alignment.TopCenter)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.playerSurface.copy(alpha = OverlayAlpha))
             .padding(
                 horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-                vertical = StreamCoreDimens.Spacing.Large,
+                vertical = StreamCoreDimens.Tv.Player.OverlayVerticalPadding,
             ),
     ) {
-        StreamCoreTvButton(
-            text = "Back",
+        StreamCoreTvArtworkIconButton(
+            contentDescription = "Back",
             onClick = { onAction(PlayerAction.BackSelected) },
-            enabled = true,
-            variant = StreamCoreTvButtonVariant.Tertiary,
-            leadingIcon = { StreamCoreBackIcon() },
             modifier = Modifier
                 .focusRequester(backFocusRequester)
                 .focusProperties {
+                    up = FocusRequester.Cancel
+                    left = FocusRequester.Cancel
                     right = FocusRequester.Cancel
-                    down = playFocusRequester
+                    down = centerFocusRequester
                 }
                 .testTag(PlayerTestTags.Back),
-        )
+        ) {
+            StreamCoreBackIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Player.ControlIconSize))
+        }
         Text(
             text = state.title,
             color = MaterialTheme.colorScheme.onPlayerSurface,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
     }
-
+    // Keep the native TV focus target mounted when playback enters or leaves buffering.
+    StreamCoreTvArtworkIconButton(
+        contentDescription = playPauseLabel,
+        onClick = { onAction(PlayerAction.TogglePlayPause) },
+        enabled = state.phase != PlaybackPhase.Preparing,
+        isLoading = isLoading,
+        modifier = Modifier
+            .align(Alignment.Center)
+            .size(StreamCoreDimens.Tv.Player.LargeControlSize)
+            .focusRequester(centerFocusRequester)
+            .focusProperties {
+                up = backFocusRequester
+                down = if (state.canSeek) timelineFocusRequester else playFocusRequester
+                left = FocusRequester.Cancel
+                right = FocusRequester.Cancel
+            }
+            .then(if (isLoading) Modifier.testTag(PlayerTestTags.Buffering) else Modifier),
+    ) {
+        PlayerControlIcon(
+            icon = playPauseIcon,
+            modifier = Modifier.size(StreamCoreDimens.Tv.Player.LargeControlIconSize),
+        )
+    }
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.playerSurface.copy(alpha = OverlayAlpha))
             .padding(
                 horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
-                vertical = StreamCoreDimens.Spacing.Large,
+                vertical = StreamCoreDimens.Tv.Player.OverlayVerticalPadding,
             ),
     ) {
-        if (state.isScrubbing) {
-            TvPlayerFilmstrip(state)
-        }
-
+        if (state.isScrubbing) TvPlayerFilmstrip(state)
+        val duration = state.durationMillis.coerceAtLeast(1L)
+        val position = if (state.isScrubbing) state.scrubPositionMillis else state.positionMillis
+        Slider(
+            value = position.toFloat().coerceIn(0f, duration.toFloat()),
+            onValueChange = { value ->
+                if (!state.isScrubbing) onAction(PlayerAction.ScrubStarted)
+                onAction(PlayerAction.ScrubChanged(value.roundToLong()))
+            },
+            onValueChangeFinished = { onAction(PlayerAction.ScrubFinished) },
+            enabled = state.canSeek,
+            valueRange = 0f..duration.toFloat(),
+            colors = SliderDefaults.colors(
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.transparentContainer,
+                thumbColor = MaterialTheme.colorScheme.primary,
+            ),
+            track = { sliderState ->
+                PlayerTimelineTrack(
+                    sliderState = sliderState,
+                    durationMillis = duration,
+                    bufferedPositionMillis = state.bufferedPositionMillis,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    bufferedTrackHeight = StreamCoreDimens.Tv.Player.TimelineBufferedTrackHeight,
+                    activeTrackHeight = StreamCoreDimens.Tv.Player.TimelineActiveTrackHeight,
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(timelineFocusRequester)
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (event.key) {
+                        Key.DirectionUp -> {
+                            upperFocusRequester.requestFocus()
+                            true
+                        }
+                        Key.DirectionDown -> {
+                            playFocusRequester.requestFocus()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                .focusProperties {
+                    up = upperFocusRequester
+                    down = playFocusRequester
+                }
+                .testTag(PlayerTestTags.Timeline),
+        )
         Row(
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            StreamCoreTvButton(
-                text = "Back 10 seconds",
+            StreamCoreTvArtworkIconButton(
+                contentDescription = "Back 10 seconds",
                 onClick = { onAction(PlayerAction.SeekBy(-SeekIntervalMillis, showFeedback = true)) },
                 enabled = state.canSeek,
-                variant = StreamCoreTvButtonVariant.Secondary,
                 modifier = Modifier
                     .focusRequester(rewindFocusRequester)
                     .focusProperties {
-                        up = backFocusRequester
+                        up = timelineFocusRequester
                         left = FocusRequester.Cancel
                         right = playFocusRequester
-                        down = timelineFocusRequester
+                        down = FocusRequester.Cancel
                     }
                     .testTag(PlayerTestTags.Rewind),
-            )
-            val playPauseLabel = when {
-                    state.isEnded -> "Replay"
-                    state.isPlaying -> "Pause"
-                    else -> "Play"
-                }
-            StreamCoreTvButton(
-                text = playPauseLabel,
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Rewind, Modifier.size(StreamCoreDimens.Tv.Player.ControlIconSize))
+            }
+            StreamCoreTvArtworkIconButton(
+                contentDescription = playPauseLabel,
                 onClick = { onAction(PlayerAction.TogglePlayPause) },
                 enabled = state.phase != PlaybackPhase.Preparing,
-                loading = state.phase == PlaybackPhase.Preparing || state.isBuffering,
-                variant = StreamCoreTvButtonVariant.Primary,
-                leadingIcon = if (state.isPlaying || state.phase == PlaybackPhase.Preparing) {
-                    null
-                } else {
-                    { StreamCorePlayIcon() }
-                },
+                isLoading = isLoading,
                 modifier = Modifier
                     .focusRequester(playFocusRequester)
                     .focusProperties {
-                        up = backFocusRequester
-                        left = rewindFocusRequester
-                        right = forwardFocusRequester
-                        down = timelineFocusRequester
+                        up = if (state.canSeek) timelineFocusRequester else upperFocusRequester
+                        left = if (state.canSeek) rewindFocusRequester else FocusRequester.Cancel
+                        right = if (state.canSeek) forwardFocusRequester else settingsFocusRequester
+                        down = FocusRequester.Cancel
                     }
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = playPauseLabel
-                        stateDescription = state.phase.name
-                    }
+                    .semantics { stateDescription = state.phase.name }
                     .testTag(PlayerTestTags.PlayPause),
-            )
-            StreamCoreTvButton(
-                text = "Forward 10 seconds",
+            ) {
+                PlayerControlIcon(playPauseIcon, Modifier.size(StreamCoreDimens.Tv.Player.ControlIconSize))
+            }
+            StreamCoreTvArtworkIconButton(
+                contentDescription = "Forward 10 seconds",
                 onClick = { onAction(PlayerAction.SeekBy(SeekIntervalMillis, showFeedback = true)) },
                 enabled = state.canSeek,
-                variant = StreamCoreTvButtonVariant.Secondary,
                 modifier = Modifier
                     .focusRequester(forwardFocusRequester)
                     .focusProperties {
-                        up = backFocusRequester
+                        up = timelineFocusRequester
                         left = playFocusRequester
-                        right = FocusRequester.Cancel
-                        down = timelineFocusRequester
+                        right = settingsFocusRequester
+                        down = FocusRequester.Cancel
                     }
                     .testTag(PlayerTestTags.Forward),
-            )
-            Spacer(modifier = Modifier.weight(1f))
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Forward, Modifier.size(StreamCoreDimens.Tv.Player.ControlIconSize))
+            }
             Text(
-                text = "${formatTime(state.positionMillis)} / ${formatTime(state.durationMillis)}",
+                text = formatTime(state.positionMillis) + " / " + formatTime(state.durationMillis),
                 color = MaterialTheme.colorScheme.onPlayerSurface,
                 style = MaterialTheme.typography.titleMedium,
             )
-        }
-
-        Box(contentAlignment = Alignment.Center) {
-            LinearProgressIndicator(
-                progress = {
-                    if (state.durationMillis > 0L) {
-                        (state.bufferedPositionMillis.toFloat() / state.durationMillis).coerceIn(0f, 1f)
-                    } else {
-                        0f
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            val duration = state.durationMillis.coerceAtLeast(1L)
-            val position = if (state.isScrubbing) state.scrubPositionMillis else state.positionMillis
-            Slider(
-                value = position.toFloat().coerceIn(0f, duration.toFloat()),
-                onValueChange = { value ->
-                    if (!state.isScrubbing) {
-                        onAction(PlayerAction.ScrubStarted)
-                    }
-                    onAction(PlayerAction.ScrubChanged(value.roundToLong()))
-                },
-                onValueChangeFinished = { onAction(PlayerAction.ScrubFinished) },
-                enabled = state.canSeek,
-                valueRange = 0f..duration.toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(timelineFocusRequester)
-                    .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) {
-                            return@onPreviewKeyEvent false
-                        }
-                        when (event.key) {
-                            Key.DirectionUp -> {
-                                playFocusRequester.requestFocus()
-                                true
-                            }
-
-                            Key.DirectionDown -> {
-                                settingsFocusRequester.requestFocus()
-                                true
-                            }
-
-                            else -> false
-                        }
-                    }
-                    .focusProperties {
-                        up = playFocusRequester
-                        down = settingsFocusRequester
-                    }
-                    .testTag(PlayerTestTags.Timeline),
-            )
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.End,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            StreamCoreTvButton(
-                text = "Playback settings",
+            Spacer(modifier = Modifier.weight(1f))
+            StreamCoreTvArtworkIconButton(
+                contentDescription = "Playback settings",
                 onClick = { onAction(PlayerAction.OpenSettings()) },
                 enabled = state.phase != PlaybackPhase.Preparing,
-                variant = StreamCoreTvButtonVariant.Tertiary,
                 modifier = Modifier
                     .focusRequester(settingsFocusRequester)
                     .focusProperties {
-                        up = timelineFocusRequester
+                        up = if (state.canSeek) timelineFocusRequester else upperFocusRequester
+                        left = if (state.canSeek) forwardFocusRequester else playFocusRequester
+                        right = FocusRequester.Cancel
                         down = FocusRequester.Cancel
                     }
                     .testTag(PlayerTestTags.SettingsButton),
-            )
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Settings, Modifier.size(StreamCoreDimens.Tv.Player.ControlIconSize))
+            }
         }
-    }
-
-    if (state.phase == PlaybackPhase.Preparing || state.isBuffering) {
-        CircularProgressIndicator(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .testTag(PlayerTestTags.Buffering),
-        )
     }
 }
 
@@ -458,227 +462,6 @@ private fun TvPlayerFilmstrip(state: PlayerUiState) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TvPlayerSettingsDialog(
-    state: PlayerUiState,
-    page: PlayerSettingsPage,
-    onAction: (PlayerAction) -> Unit,
-) {
-    val firstItemFocusRequester = remember { FocusRequester() }
-    val items = remember(state, page, onAction) {
-        settingsItems(state, page, onAction)
-    }
-
-    LaunchedEffect(page, items.firstOrNull()?.key) {
-        if (items.isNotEmpty()) {
-            firstItemFocusRequester.requestFocus()
-        }
-    }
-
-    Dialog(
-        onDismissRequest = { onAction(PlayerAction.CloseSettings) },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            contentAlignment = Alignment.CenterEnd,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim),
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier
-                    .width(StreamCoreDimens.Tv.Player.SettingsPanelWidth)
-                    .heightIn(max = StreamCoreDimens.Tv.Player.SettingsPanelMaxHeight)
-                    .fillMaxHeight()
-                    .testTag(PlayerTestTags.Settings),
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-                    modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
-                ) {
-                    Text(
-                        text = settingsTitle(page),
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    Text(
-                        text = if (page == PlayerSettingsPage.Root) {
-                            "Choose a playback preference"
-                        } else {
-                            "Press Back to return to playback settings"
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        itemsIndexed(
-                            items = items,
-                            key = { _, item -> item.key },
-                            contentType = { _, _ -> "tv-player-setting" },
-                        ) { index, item ->
-                            StreamCoreTvButton(
-                                text = item.label,
-                                onClick = item.onClick,
-                                enabled = true,
-                                selected = item.selected,
-                                variant = StreamCoreTvButtonVariant.Secondary,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (index == 0) {
-                                            Modifier.focusRequester(firstItemFocusRequester)
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
-                                    .semantics {
-                                        if (page != PlayerSettingsPage.Root) {
-                                            selected = item.selected
-                                            role = Role.RadioButton
-                                        }
-                                    }
-                                    .testTag(PlayerTestTags.SettingsOptionPrefix + item.key),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private data class TvPlayerSettingItem(
-    val key: String,
-    val label: String,
-    val selected: Boolean = false,
-    val onClick: () -> Unit,
-)
-
-private fun settingsItems(
-    state: PlayerUiState,
-    page: PlayerSettingsPage,
-    onAction: (PlayerAction) -> Unit,
-): List<TvPlayerSettingItem> {
-    return when (page) {
-        PlayerSettingsPage.Root -> buildList {
-            if (state.videoTracks.isNotEmpty()) {
-                add(
-                    TvPlayerSettingItem(
-                        key = "quality",
-                        label = "Quality · ${selectedLabel(state.videoTracks, state.selectedVideoTrackId) ?: "Auto"}",
-                        onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Quality)) },
-                    ),
-                )
-            }
-            if (state.audioTracks.size > 1) {
-                add(
-                    TvPlayerSettingItem(
-                        key = "audio",
-                        label = "Audio · ${selectedLabel(state.audioTracks, state.selectedAudioTrackId) ?: "Default"}",
-                        onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Audio)) },
-                    ),
-                )
-            }
-            if (state.textTracks.isNotEmpty()) {
-                add(
-                    TvPlayerSettingItem(
-                        key = "subtitles",
-                        label = "Subtitles · ${selectedLabel(state.textTracks, state.selectedTextTrackId) ?: "Off"}",
-                        onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Subtitles)) },
-                    ),
-                )
-            }
-            add(
-                TvPlayerSettingItem(
-                    key = "speed",
-                    label = "Speed · ${state.speed}×",
-                    onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.Speed)) },
-                ),
-            )
-            add(
-                TvPlayerSettingItem(
-                    key = "resize",
-                    label = "Resize mode · ${state.resizeMode.name}",
-                    onClick = { onAction(PlayerAction.OpenSettings(PlayerSettingsPage.ResizeMode)) },
-                ),
-            )
-        }
-
-        PlayerSettingsPage.Quality -> trackItems(
-            tracks = state.videoTracks,
-            selectedId = state.selectedVideoTrackId,
-            automaticLabel = "Auto",
-            onSelected = { onAction(PlayerAction.SelectVideoTrack(it)) },
-        )
-
-        PlayerSettingsPage.Audio -> trackItems(
-            tracks = state.audioTracks,
-            selectedId = state.selectedAudioTrackId,
-            onSelected = { onAction(PlayerAction.SelectAudioTrack(it)) },
-        )
-
-        PlayerSettingsPage.Subtitles -> trackItems(
-            tracks = state.textTracks,
-            selectedId = state.selectedTextTrackId,
-            automaticLabel = "Off",
-            onSelected = { onAction(PlayerAction.SelectTextTrack(it)) },
-        )
-
-        PlayerSettingsPage.Speed -> PlaybackSpeedOptions.map { option ->
-            TvPlayerSettingItem(
-                key = option.second.toString(),
-                label = option.first,
-                selected = option.second == state.speed,
-                onClick = { onAction(PlayerAction.SelectSpeed(option.second)) },
-            )
-        }
-
-        PlayerSettingsPage.ResizeMode -> PlaybackResizeMode.entries.map { mode ->
-            TvPlayerSettingItem(
-                key = mode.name,
-                label = mode.name,
-                selected = mode == state.resizeMode,
-                onClick = { onAction(PlayerAction.SelectResizeMode(mode)) },
-            )
-        }
-    }
-}
-
-private fun trackItems(
-    tracks: List<PlaybackTrackModel>,
-    selectedId: String?,
-    automaticLabel: String? = null,
-    onSelected: (String?) -> Unit,
-): List<TvPlayerSettingItem> {
-    return buildList {
-        automaticLabel?.let { label ->
-            add(
-                TvPlayerSettingItem(
-                    key = "automatic",
-                    label = label,
-                    selected = selectedId == null,
-                    onClick = { onSelected(null) },
-                ),
-            )
-        }
-        tracks.forEach { track ->
-            add(
-                TvPlayerSettingItem(
-                    key = track.id,
-                    label = track.label,
-                    selected = track.id == selectedId,
-                    onClick = { onSelected(track.id) },
-                ),
-            )
         }
     }
 }
@@ -755,21 +538,6 @@ private fun TvPlayerErrorDialog(
     }
 }
 
-private fun settingsTitle(page: PlayerSettingsPage): String {
-    return when (page) {
-        PlayerSettingsPage.Root -> "Playback settings"
-        PlayerSettingsPage.Quality -> "Quality"
-        PlayerSettingsPage.Audio -> "Audio"
-        PlayerSettingsPage.Subtitles -> "Subtitles"
-        PlayerSettingsPage.Speed -> "Speed"
-        PlayerSettingsPage.ResizeMode -> "Resize mode"
-    }
-}
-
-private fun selectedLabel(tracks: List<PlaybackTrackModel>, id: String?): String? {
-    return tracks.firstOrNull { it.id == id }?.label
-}
-
 private fun formatTime(millis: Long): String {
     val totalSeconds = millis.coerceAtLeast(0L) / 1_000L
     val hours = totalSeconds / 3_600L
@@ -783,14 +551,7 @@ private fun formatTime(millis: Long): String {
 }
 
 private const val SeekIntervalMillis = 10_000L
-private val PlaybackSpeedOptions = listOf(
-    "0.5×" to 0.5f,
-    "0.75×" to 0.75f,
-    "1.0×" to 1f,
-    "1.25×" to 1.25f,
-    "1.5×" to 1.5f,
-    "2.0×" to 2f,
-)
+private const val OverlayAlpha = 0.68f
 
 private val previewTracks = listOf(
     PlaybackTrackModel("video-1080", PlaybackTrackType.Video, "1080p"),

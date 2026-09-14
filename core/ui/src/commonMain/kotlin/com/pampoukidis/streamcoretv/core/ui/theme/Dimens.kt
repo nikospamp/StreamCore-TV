@@ -320,8 +320,22 @@ object StreamCoreDimens {
             val FilmstripFrameWidth = 144.dp
             val FilmstripFocusedFrameHeight = 100.dp
             val FilmstripFrameHeight = 84.dp
-            val SettingsPanelWidth = 560.dp
-            val SettingsPanelMaxHeight = 760.dp
+            val ControlSize = 52.dp
+            val ControlIconSize = 28.dp
+            val LargeControlSize = 72.dp
+            val LargeControlIconSize = 36.dp
+            val OverlayVerticalPadding = 16.dp
+            val TimelineBufferedTrackHeight = Spacing.Tiny
+            val TimelineActiveTrackHeight = Spacing.Large
+            val SettingsPanelWidth = 440.dp
+            val SettingsHeaderHeight = 104.dp
+            val SettingsRowHeight = 68.dp
+            val SettingsSelectionRowHeight = 60.dp
+            val SettingsIconContainerSize = 40.dp
+            val SettingsIconSize = 24.dp
+            val SettingsHorizontalPadding = 24.dp
+            val SettingsSafeInset = 24.dp
+            val SettingsValueMaxWidth = 144.dp
             val ErrorMaxWidth = 520.dp
         }
 

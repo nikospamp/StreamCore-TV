@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -21,18 +20,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,37 +36,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreArtworkIconButton
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.onPlayerSurface
 import com.pampoukidis.streamcoretv.core.ui.extensions.playerSurface
 import com.pampoukidis.streamcoretv.core.ui.extensions.playerThumbnailPlaceholder
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIcon
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIconType
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerTimelineTrack
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.feature.player.common.testing.PlayerTestTags
-import com.pampoukidis.streamcoretv.feature.player.mobile.R
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import kotlin.math.roundToLong
@@ -229,14 +217,14 @@ private fun PlayerCenterControl(
         )
 
         state.isEnded -> PlayerIconButton(
-            icon = R.drawable.ic_player_replay_24,
+            icon = PlayerControlIconType.Replay,
             description = "Replay",
             onClick = { onAction(PlayerAction.TogglePlayPause) },
             large = true,
         )
 
         else -> PlayerIconButton(
-            icon = if (state.isPlaying) R.drawable.ic_player_pause_24 else null,
+            icon = if (state.isPlaying) PlayerControlIconType.Pause else PlayerControlIconType.Play,
             description = if (state.isPlaying) "Pause" else "Play",
             onClick = { onAction(PlayerAction.TogglePlayPause) },
             large = true,
@@ -270,19 +258,19 @@ private fun PlayerBottomControls(
             modifier = Modifier.fillMaxWidth(),
         ) {
             PlayerIconButton(
-                icon = R.drawable.ic_replay_10_24dp,
+                icon = PlayerControlIconType.Rewind,
                 description = "Back 10 seconds",
                 enabled = state.canSeek,
                 onClick = { onAction(PlayerAction.SeekBy(-SeekIntervalMillis)) },
             )
             PlayerIconButton(
-                icon = if (state.isPlaying) R.drawable.ic_player_pause_24 else null,
+                icon = if (state.isPlaying) PlayerControlIconType.Pause else PlayerControlIconType.Play,
                 description = if (state.isPlaying) "Pause" else "Play",
                 enabled = state.phase != PlaybackPhase.Preparing,
                 onClick = { onAction(PlayerAction.TogglePlayPause) },
             )
             PlayerIconButton(
-                icon = R.drawable.ic_forward_10_24dp,
+                icon = PlayerControlIconType.Forward,
                 description = "Forward 10 seconds",
                 enabled = state.canSeek,
                 onClick = { onAction(PlayerAction.SeekBy(SeekIntervalMillis)) },
@@ -294,13 +282,13 @@ private fun PlayerBottomControls(
             )
             Spacer(Modifier.weight(1f))
             PlayerIconButton(
-                icon = R.drawable.ic_player_settings_24,
+                icon = PlayerControlIconType.Settings,
                 description = "Playback settings",
                 onClick = { onAction(PlayerAction.OpenSettings()) },
             )
             if (state.isPipSupported) {
                 PlayerIconButton(
-                    icon = R.drawable.ic_player_pip_24,
+                    icon = PlayerControlIconType.PictureInPicture,
                     description = "Picture in picture",
                     onClick = { onAction(PlayerAction.PipSelected) },
                 )
@@ -342,111 +330,12 @@ private fun BufferedTimeline(
                     durationMillis = duration,
                     bufferedPositionMillis = state.bufferedPositionMillis,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
+                    bufferedTrackHeight = StreamCoreDimens.Mobile.Player.TimelineBufferedTrackHeight,
+                    activeTrackHeight = StreamCoreDimens.Mobile.Player.TimelineActiveTrackHeight,
                 )
             },
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-}
-
-/**
- * Draws the buffered and played layers inside the [Slider]'s track coordinate space.
- *
- * The configurable Material 3 [SliderDefaults.Track] omits the active segment while its width is
- * less than or equal to the track's outside corner radius. With our 16 dp active track, that creates
- * an 8 dp dead zone which can represent several seconds of a long video. This custom active layer
- * shrinks only that outside radius until the segment reaches 8 dp, then matches the Material shape.
- *
- * The [Slider] still owns gestures, semantics, value clamping, and thumb rendering. This composable
- * only draws the thin buffered track and the thick orange played segment within the exact bounds
- * provided by the slider's `track` slot.
- */
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun PlayerTimelineTrack(
-    sliderState: SliderState,
-    durationMillis: Long,
-    bufferedPositionMillis: Long,
-    activeTrackColor: Color,
-) {
-    // Canvas redraws as SliderState changes; reuse the mutable path to avoid allocating one per tick.
-    val activeTrackPath = remember { Path() }
-    Box(contentAlignment = Alignment.Center) {
-        // Base layer: unbuffered track plus the lighter buffered range.
-        LinearProgressIndicator(
-            progress = {
-                (bufferedPositionMillis.toFloat() / durationMillis).coerceIn(0f, 1f)
-            },
-            color = MaterialTheme.colorScheme.onPlayerSurface.copy(alpha = 0.5f),
-            trackColor = MaterialTheme.colorScheme.onPlayerSurface.copy(alpha = 0.18f),
-            strokeCap = StrokeCap.Round,
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(StreamCoreDimens.Mobile.Player.TimelineBufferedTrackHeight),
-        )
-
-        // Foreground layer: played progress, kept at the Material 3 active-track height.
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(StreamCoreDimens.Mobile.Player.TimelineActiveTrackHeight),
-        ) {
-            // Map the current slider value to this track's physical width.
-            val playedFraction = (sliderState.value / durationMillis).coerceIn(0f, 1f)
-            val activeTrackWidth = size.width * playedFraction
-            if (activeTrackWidth <= 0f) {
-                return@Canvas
-            }
-
-            // Shrink the outside radius for early progress; cap it at the normal 8 dp radius later.
-            val outsideCornerRadius = activeTrackWidth.coerceAtMost(size.height / 2f)
-            val outsideCorner = CornerRadius(outsideCornerRadius, outsideCornerRadius)
-            val insideCorner = CornerRadius(0f, 0f)
-
-            // Anchor progress to the logical start: left in LTR, right in RTL.
-            val isRtl = layoutDirection == LayoutDirection.Rtl
-            val bounds = if (isRtl) {
-                Rect(
-                    left = size.width - activeTrackWidth,
-                    top = 0f,
-                    right = size.width,
-                    bottom = size.height,
-                )
-            } else {
-                Rect(
-                    left = 0f,
-                    top = 0f,
-                    right = activeTrackWidth,
-                    bottom = size.height,
-                )
-            }
-
-            // Round only the outer edge. The thumb-facing edge stays square beneath the thumb.
-            val track = if (isRtl) {
-                RoundRect(
-                    rect = bounds,
-                    topLeft = insideCorner,
-                    topRight = outsideCorner,
-                    bottomRight = outsideCorner,
-                    bottomLeft = insideCorner,
-                )
-            } else {
-                RoundRect(
-                    rect = bounds,
-                    topLeft = outsideCorner,
-                    topRight = insideCorner,
-                    bottomRight = insideCorner,
-                    bottomLeft = outsideCorner,
-                )
-            }
-
-            // Path is cleared after drawing so the remembered instance is ready for the next frame.
-            activeTrackPath.addRoundRect(track)
-            drawPath(activeTrackPath, activeTrackColor)
-            activeTrackPath.rewind()
-        }
     }
 }
 
@@ -533,7 +422,7 @@ private fun BoxScope.PlayerError(message: String, onAction: (PlayerAction) -> Un
 
 @Composable
 private fun PlayerIconButton(
-    icon: Int?,
+    icon: PlayerControlIconType,
     description: String,
     onClick: () -> Unit,
     enabled: Boolean = true,
@@ -545,29 +434,16 @@ private fun PlayerIconButton(
         enabled = enabled,
         modifier = if (large) Modifier.size(StreamCoreDimens.Mobile.Player.LargeControlSize) else Modifier,
     ) {
-        if (icon == null) {
-            StreamCorePlayIcon(
-                Modifier.size(
-                    if (large) {
-                        StreamCoreDimens.Mobile.Player.LargeControlIconSize
-                    } else {
-                        StreamCoreDimens.Icon.Standard
-                    },
-                ),
-            )
-        } else {
-            Image(
-                painter = painterResource(icon),
-                contentDescription = null,
-                modifier = Modifier.size(
-                    if (large) {
-                        StreamCoreDimens.Mobile.Player.LargeControlIconSize
-                    } else {
-                        StreamCoreDimens.Icon.Standard
-                    },
-                ),
-            )
-        }
+        PlayerControlIcon(
+            icon = icon,
+            modifier = Modifier.size(
+                if (large) {
+                    StreamCoreDimens.Mobile.Player.LargeControlIconSize
+                } else {
+                    StreamCoreDimens.Icon.Standard
+                },
+            ),
+        )
     }
 }
 
