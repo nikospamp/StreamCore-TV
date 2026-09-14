@@ -108,25 +108,41 @@ unchanged. Include bright-artwork contrast and expanded-drawer overlap in the de
 card widths, activation, shared transitions, and TV focus borders. The TV recommendation width is 160dp; typography changes stay in TV Details.
 
 `DetailsActionContent` shares icon-over-label rendering. Android touch wrappers share mobile/tablet actions and circular artwork Back/Refresh
-controls. Share retains mobile's disabled state; TV omits it. TV owns its full-width Play/Resume action, secondary-action focus navigation, and
+controls. Share retains mobile's disabled state; TV omits it. TV owns its compact Play/Resume action, secondary-action focus navigation, and
 error Retry focus. Remote Back remains available after removing the TV header. Shared contracts remain backend-agnostic.
 
-Tablet Details place artwork in the left column and title plus mobile's `heroMetadata()` above playback in the right column. TV places artwork,
-title, metadata, and Play/Resume in the left column. Its right column starts with secondary actions. Both use shared `DetailsOverview`:
-Overview heading, accent genres, complete description, Cast heading, and cast text.
-Mobile retains its existing layout and typography; TV supplies smaller text styles. Genre/cast formatting is remembered by its source data.
+Tablet/TV use the approved Panorama direction. Shared `DetailsPanoramaHero` spans the top and side edges, with square top corners, rounded bottom
+corners, a protective scrim, and title/metadata over the artwork. Platforms own height, text insets, and interactive overlays. Image alignment is
+top-center; the new `StreamCoreContentImage.alignment` parameter defaults to center, preserving existing consumers.
+A compact Play/Resume and secondary-action row overlays the taller hero beneath its title/metadata, protected by a stronger lower gradient.
+Tablet and TV use minimum hero heights of 420dp and 368dp; content can grow for larger text. Tablet overlay action colors use explicit artwork
+roles while their defaults preserve mobile. TV Details uses smaller local text roles without shrinking focus targets.
+`DetailsSynopsis` and `DetailsCast` form a two-column reading band with
+expand/collapse controls. Mobile retains `DetailsOverview`, its original vertical layout, and typography; it reuses the same text renderers.
+Genre/cast formatting is remembered by source data. Expansion is local presentation state; shared contracts remain backend-agnostic.
 
-TV Details restores the summary to the top when focus returns from recommendations to its actions. Its vertical relocation policy uses live
-summary bounds and Compose's existing scroll animation; larger text keeps the focused control visible when the full summary cannot fit.
+Panorama transitions move image and gradient together in `StreamCoreSharedArtworkImage`, a drawing-only shared leaf with fixed decode sizes.
+Text and controls retain their own geometry. Presentation actions/effects and navigation retain the exact clicked image URL without adding
+provider details to domain contracts. Existing callbacks remain compatible.
+Tablet/TV navigation prepares the source/backdrop images at window resolution before movement, with cancellable origin-owned work. If preparation
+fails or exceeds two seconds, it retains the source artwork. The destination URL and painters stay fixed throughout the transition.
+A-to-B opacity and center-to-destination crop alignment follow the same 240ms bounds timeline. There is no post-settle image switch or second
+handoff animation. Normal cards skip handoff state and cached-image fallback text measurement. The earlier Benchmark samples still contained
+Home reconstruction stalls; these rendering changes do not constitute a claim of measured 60fps performance.
+
+TV Details restores the hero to the top when focus returns from recommendations to its actions. Its vertical relocation policy uses live
+hero/action bounds and Compose's existing scroll animation; larger text keeps the focused control visible when the full hero cannot fit.
 Relocation reserves the TV button border's painted extent. The viewport reaches the screen bottom; final-item clearance scrolls with the content.
 Horizontal recommendation scrolling retains its previous policy. Summary restoration adds no independent animation or persistent listener.
-TV's focusable reading area allows D-pad scrolling through long descriptions/cast using the same outer viewport. Left returns to Play; boundary
-Up returns to actions and boundary Down enters recommendations. Play Right restores secondary-action focus; recommendation Up returns to Play.
-Reading scroll jobs belong to the composition and cancel when it leaves.
+TV's expand controls expose the full text to a focusable reading area using the same outer viewport. Left/Right switch reading columns;
+boundary Up returns to Play and boundary Down reaches the collapse control and recommendations. Play Right restores secondary-action focus;
+recommendation Up returns to Play. Reading scroll jobs belong to the composition and cancel when it leaves.
 
 TV Details secondary actions and recommendation cards clip caller-side click/focus indications to the same resolved shape as their Material
 surface and inset border. Native TV buttons retain their separate outer focus-ring clearance. The clips add no state, scopes, or flows.
 
-Deferred regression coverage: mobile appearance parity; title/rating contrast and truncation; tablet shared controls and disabled Share/Trailer;
+Deferred regression coverage: mobile appearance parity; hero edge/corner clipping, focal crop and long-title contrast; tablet 600dp action fit,
+insets and disabled Share/Trailer; compact/full Overview and Cast content; warm/cold artwork transitions in both directions and changing image
+URLs during a load; minimum-height hero growth, gradient contrast, and over-artwork focus states;
 TV action/recommendation traversal, long-text reading and its boundary navigation, summary scroll restoration and return focus, pending mutations,
 loading/error recovery, and long labels at larger font scales. No new flows are introduced; runtime performance has not been measured.

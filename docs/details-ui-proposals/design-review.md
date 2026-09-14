@@ -1,6 +1,12 @@
 # Details directions: tablet and TV
 
-Recommend **Cinematic split**. It gives the title and its controls a clear home, lets the artwork carry the atmosphere, and keeps the approved mobile vocabulary recognizable. The target architecture remains backend-agnostic; this is a presentation proposal only.
+## Selected direction
+
+The user selected **B: Panorama**. Native tablet and TV use full-width artwork flush with the top and side edges, with rounded bottom corners
+only, following mobile. The alternatives below remain the original comparison brief; the native implementation follows this selection.
+The next approved iteration extends the image behind the action row, adds a stronger bottom gradient, and reduces TV-only text sizes.
+
+The initial recommendation was **Cinematic split**. The target architecture remains backend-agnostic; this document records the presentation exploration.
 
 ## Keep in every direction
 
