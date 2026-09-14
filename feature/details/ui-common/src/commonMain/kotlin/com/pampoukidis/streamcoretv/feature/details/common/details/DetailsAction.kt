@@ -9,7 +9,10 @@ sealed interface DetailsAction {
         val initialContent: ContentModel? = null,
     ) : DetailsAction
     data object Refresh : DetailsAction
-    data class RecommendationSelected(val content: ContentModel) : DetailsAction
+    data class RecommendationSelected(
+        val content: ContentModel,
+        val sourceArtworkUrl: String? = null,
+    ) : DetailsAction
     data object PlaySelected : DetailsAction
     data object TrailerSelected : DetailsAction
     data object LikeToggled : DetailsAction

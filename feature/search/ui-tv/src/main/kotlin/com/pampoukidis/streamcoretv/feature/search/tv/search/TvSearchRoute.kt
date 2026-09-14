@@ -24,6 +24,7 @@ fun TvSearchRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onBack: () -> Unit,
     returnFocusKey: String? = null,
     onReturnFocusConsumed: (String) -> Unit = {},
@@ -57,6 +58,12 @@ fun TvSearchRoute(
         onContentSelected = { content ->
             keyboardController?.hide()
             onContentSelected(content)
+        },
+        onContentArtworkSelected = onContentArtworkSelected?.let { artworkSelected ->
+            { content, sourceArtworkUrl ->
+                keyboardController?.hide()
+                artworkSelected(content, sourceArtworkUrl)
+            }
         },
     )
 

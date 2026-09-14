@@ -68,8 +68,16 @@ class SearchViewModel constructor(
             is SearchAction.RecentSelected -> selectRecent(action.query)
             is SearchAction.RecentRemoved -> removeRecent(action.query)
             SearchAction.ClearRecent -> clearRecent()
-            is SearchAction.TrendingSelected -> selectContent(action.content, recordQuery = false)
-            is SearchAction.ResultSelected -> selectContent(action.content, recordQuery = true)
+            is SearchAction.TrendingSelected -> selectContent(
+                content = action.content,
+                recordQuery = false,
+                sourceArtworkUrl = action.sourceArtworkUrl,
+            )
+            is SearchAction.ResultSelected -> selectContent(
+                content = action.content,
+                recordQuery = true,
+                sourceArtworkUrl = action.sourceArtworkUrl,
+            )
             SearchAction.Retry -> retry()
         }
     }
@@ -296,6 +304,7 @@ class SearchViewModel constructor(
     private fun selectContent(
         content: ContentModel,
         recordQuery: Boolean,
+        sourceArtworkUrl: String?,
     ) {
         viewModelScope.launch {
             val profileId = activeProfileId
@@ -303,7 +312,7 @@ class SearchViewModel constructor(
             if (recordQuery && profileId != null && resultQuery != null) {
                 addRecentSearch(profileId, resultQuery)
             }
-            effectsChannel.send(SearchEffect.ContentSelected(content))
+            effectsChannel.send(SearchEffect.ContentSelected(content, sourceArtworkUrl))
         }
     }
 

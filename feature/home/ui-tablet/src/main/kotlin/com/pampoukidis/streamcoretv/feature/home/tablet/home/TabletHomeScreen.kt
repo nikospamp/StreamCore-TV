@@ -40,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,7 +53,7 @@ import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBrowseTopBar
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButtonSize
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePagerCarousel
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
@@ -62,7 +61,6 @@ import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreOverlayDuringSharedTransition
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTextStyles
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -109,8 +107,13 @@ fun TabletHomeScreen(
                 TabletHomeContent(
                     state = state,
                     content = content,
-                    onContentSelected = { selected ->
-                        onAction(HomeAction.ContentSelected(selected))
+                    onContentSelected = { selected, sourceArtworkUrl ->
+                        onAction(
+                            HomeAction.ContentSelected(
+                                content = selected,
+                                sourceArtworkUrl = sourceArtworkUrl,
+                            ),
+                        )
                     },
                     selectedContentKey = selectedContentKey,
                     sharedElementScope = sharedElementScope,
@@ -141,7 +144,7 @@ fun TabletHomeScreen(
 private fun TabletHomeContent(
     state: HomeUiState,
     content: HomeContentModel,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     bottomContentPadding: Dp,
@@ -208,7 +211,7 @@ private fun TabletHeroArea(
     featured: List<ContentModel>,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
 ) {
     TabletHeroPager(
         content = featured,
@@ -224,7 +227,7 @@ private fun TabletHeroPager(
     content: List<ContentModel>,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Count and retained pager callbacks share one list snapshot during catalogue updates.
@@ -243,7 +246,7 @@ private fun TabletHeroPager(
             content = item,
             selectedContentKey = selectedContentKey,
             sharedElementScope = sharedElementScope,
-            onClick = { onContentSelected(item) },
+            onClick = { onContentSelected(item, item.backdrop ?: item.poster) },
         )
     }
 }
@@ -258,55 +261,42 @@ private fun TabletHeroCard(
     val useSharedTransition = content.sharedIdentity() == selectedContentKey
     val elementScope = sharedElementScope.takeIf { useSharedTransition }
     val heroShape = RectangleShape
+    val scrimColor = MaterialTheme.colorScheme.scrim
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val artworkScrims = remember(scrimColor, backgroundColor) {
+        listOf(
+            Brush.horizontalGradient(
+                colors = listOf(
+                    scrimColor.copy(alpha = 0.9f),
+                    scrimColor.copy(alpha = 0.22f),
+                    scrimColor.copy(alpha = 0f),
+                ),
+            ),
+            Brush.verticalGradient(
+                0f to scrimColor.copy(alpha = 0f),
+                0.5f to scrimColor.copy(alpha = 0f),
+                1f to backgroundColor,
+            ),
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
-        StreamCoreContentImage(
+        StreamCoreSharedArtworkImage(
             imageUrl = content.backdrop ?: content.poster,
             contentDescription = content.title,
             fallbackText = content.fallbackText(),
-            contentScale = ContentScale.Crop,
+            sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+            clipShape = heroShape,
+            sharedElementScope = elementScope,
+            scrims = artworkScrims,
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             fallbackTextStyle = MaterialTheme.typography.displayLarge,
-            modifier = Modifier
-                .fillMaxSize()
-                .streamCoreSharedBounds(
-                    sharedElementScope = elementScope,
-                    key = StreamCoreSharedKey.artwork(
-                        contentId = content.id,
-                        row = content.row,
-                    ),
-                    clipShape = heroShape,
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .streamCoreOverlayDuringSharedTransition(
-                    sharedElementScope = elementScope,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Scrim,
-                    clipShape = heroShape,
-                )
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.22f),
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        ),
-                    ),
-                )
-                .background(
-                    Brush.verticalGradient(
-                        0f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        0.5f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        1f to MaterialTheme.colorScheme.background,
-                    ),
-                ),
+            modifier = Modifier.fillMaxSize(),
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
@@ -338,15 +328,6 @@ private fun TabletHeroCard(
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.streamCoreSharedBounds(
-                    sharedElementScope = elementScope,
-                    key = StreamCoreSharedKey.title(
-                        contentId = content.id,
-                        row = content.row,
-                    ),
-                    clipShape = RectangleShape,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
-                ),
             )
             Text(
                 text = content.heroMetadata(),
@@ -379,7 +360,7 @@ private fun ContinueWatchingShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
@@ -400,7 +381,7 @@ private fun ContinueWatchingShelf(
                         content = item,
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
-                        onClick = { onContentSelected(item) },
+                        onClick = { onContentSelected(item, item.backdrop ?: item.poster) },
                     )
                 }
             }
@@ -435,21 +416,14 @@ private fun ContinueWatchingItem(
                 .height(StreamCoreDimens.Tablet.Browse.BookmarkThumbnailHeight)
                 .clip(shape),
         ) {
-            StreamCoreContentImage(
+            StreamCoreSharedArtworkImage(
                 imageUrl = content.backdrop ?: content.poster,
                 contentDescription = content.title,
                 fallbackText = content.fallbackText(),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .streamCoreSharedBounds(
-                        sharedElementScope = elementScope,
-                        key = StreamCoreSharedKey.artwork(
-                            contentId = content.id,
-                            row = content.row,
-                        ),
-                        clipShape = shape,
-                    ),
+                sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+                clipShape = shape,
+                sharedElementScope = elementScope,
+                modifier = Modifier.fillMaxSize(),
             )
             LinearProgressIndicator(
                 progress = { progress },
@@ -491,7 +465,7 @@ private fun TabletShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
@@ -528,7 +502,7 @@ private fun TabletShelf(
                         showMetadata = true,
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
-                        onClick = { onContentSelected(item) },
+                        onClick = { onContentSelected(item, item.poster) },
                     )
 
                     RowType.TopTen -> TabletTopTenCard(
@@ -537,7 +511,7 @@ private fun TabletShelf(
                         rank = index + 1,
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
-                        onClick = { onContentSelected(item) },
+                        onClick = { onContentSelected(item, item.poster) },
                     )
 
                     RowType.Featured,
@@ -551,7 +525,7 @@ private fun TabletShelf(
                         showMetadata = false,
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
-                        onClick = { onContentSelected(item) },
+                        onClick = { onContentSelected(item, item.backdrop ?: item.poster) },
                     )
                 }
             }
@@ -600,28 +574,15 @@ private fun TabletArtworkCard(
                 .aspectRatio(aspectRatio)
                 .clip(shape),
         ) {
-            StreamCoreContentImage(
+            StreamCoreSharedArtworkImage(
                 imageUrl = imageUrl,
                 contentDescription = content.title,
                 fallbackText = content.fallbackText(),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .streamCoreSharedBounds(
-                        sharedElementScope = elementScope,
-                        key = StreamCoreSharedKey.artwork(
-                            contentId = content.id,
-                            row = content.row,
-                        ),
-                        clipShape = shape,
-                    ),
-            )
-            CardGradient(
-                modifier = Modifier.streamCoreOverlayDuringSharedTransition(
-                    sharedElementScope = elementScope,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Scrim,
-                    clipShape = shape,
-                ),
+                sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+                clipShape = shape,
+                sharedElementScope = elementScope,
+                scrims = rememberCardScrims(),
+                modifier = Modifier.fillMaxSize(),
             )
             Text(
                 text = content.title,
@@ -632,13 +593,8 @@ private fun TabletArtworkCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(StreamCoreDimens.Artwork.ContentPadding)
-                    .streamCoreSharedBounds(
+                    .streamCoreOverlayDuringSharedTransition(
                         sharedElementScope = elementScope,
-                        key = StreamCoreSharedKey.title(
-                            contentId = content.id,
-                            row = content.row,
-                        ),
-                        clipShape = RectangleShape,
                         zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                     ),
             )
@@ -681,28 +637,15 @@ private fun TabletTopTenCard(
                 .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
                 .clip(posterShape),
         ) {
-            StreamCoreContentImage(
+            StreamCoreSharedArtworkImage(
                 imageUrl = content.poster,
                 contentDescription = content.title,
                 fallbackText = content.fallbackText(),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .streamCoreSharedBounds(
-                        sharedElementScope = elementScope,
-                        key = StreamCoreSharedKey.artwork(
-                            contentId = content.id,
-                            row = content.row,
-                        ),
-                        clipShape = posterShape,
-                    ),
-            )
-            CardGradient(
-                modifier = Modifier.streamCoreOverlayDuringSharedTransition(
-                    sharedElementScope = elementScope,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Scrim,
-                    clipShape = posterShape,
-                ),
+                sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+                clipShape = posterShape,
+                sharedElementScope = elementScope,
+                scrims = rememberCardScrims(),
+                modifier = Modifier.fillMaxSize(),
             )
             Text(
                 text = content.title,
@@ -713,13 +656,8 @@ private fun TabletTopTenCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(StreamCoreDimens.Artwork.ContentPadding)
-                    .streamCoreSharedBounds(
+                    .streamCoreOverlayDuringSharedTransition(
                         sharedElementScope = elementScope,
-                        key = StreamCoreSharedKey.title(
-                            contentId = content.id,
-                            row = content.row,
-                        ),
-                        clipShape = RectangleShape,
                         zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
                     ),
             )
@@ -758,19 +696,15 @@ private fun TopTenRank(
 }
 
 @Composable
-private fun CardGradient(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.76f),
-                    ),
-                ),
+private fun rememberCardScrims(): List<Brush> {
+    val scrimColor = MaterialTheme.colorScheme.scrim
+    return remember(scrimColor) {
+        listOf(
+            Brush.verticalGradient(
+                colors = listOf(scrimColor.copy(alpha = 0f), scrimColor.copy(alpha = 0.76f)),
             ),
-    )
+        )
+    }
 }
 
 private fun ContentModel.sharedIdentity(): String {

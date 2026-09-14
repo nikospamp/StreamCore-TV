@@ -29,6 +29,7 @@ fun MobileSearchRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onBack: () -> Unit,
     bottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope? = null,
@@ -74,6 +75,12 @@ fun MobileSearchRoute(
         onContentSelected = { content ->
             keyboardController?.hide()
             onContentSelected(content)
+        },
+        onContentArtworkSelected = onContentArtworkSelected?.let { artworkSelected ->
+            { content, sourceArtworkUrl ->
+                keyboardController?.hide()
+                artworkSelected(content, sourceArtworkUrl)
+            }
         },
     )
 

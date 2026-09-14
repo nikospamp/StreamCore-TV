@@ -53,7 +53,7 @@ class DetailsViewModel constructor(
                 initialContent = action.initialContent,
             )
             DetailsAction.Refresh -> refresh()
-            is DetailsAction.RecommendationSelected -> selectRecommendation(action.content)
+            is DetailsAction.RecommendationSelected -> selectRecommendation(action.content, action.sourceArtworkUrl)
             DetailsAction.PlaySelected -> selectPlay()
             DetailsAction.TrailerSelected -> selectTrailer()
             DetailsAction.LikeToggled -> toggleLike()
@@ -118,9 +118,9 @@ class DetailsViewModel constructor(
         load(request = request, force = true)
     }
 
-    private fun selectRecommendation(content: ContentModel) {
+    private fun selectRecommendation(content: ContentModel, sourceArtworkUrl: String?) {
         viewModelScope.launch {
-            effectsChannel.send(DetailsEffect.RecommendationSelected(content))
+            effectsChannel.send(DetailsEffect.RecommendationSelected(content, sourceArtworkUrl))
         }
     }
 

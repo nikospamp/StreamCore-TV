@@ -17,6 +17,7 @@ fun TvLibraryRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onError: (AppError) -> Unit,
     returnFocusKey: String? = null,
     onReturnFocusConsumed: (String) -> Unit = {},
@@ -32,6 +33,7 @@ fun TvLibraryRoute(
     LibraryRouteEventEffect(
         viewModel = viewModel,
         onContentSelected = onContentSelected,
+        onContentArtworkSelected = onContentArtworkSelected,
         onError = onError,
     )
 

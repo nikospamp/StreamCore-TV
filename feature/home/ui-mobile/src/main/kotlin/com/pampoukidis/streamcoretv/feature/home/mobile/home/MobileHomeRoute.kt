@@ -19,6 +19,7 @@ fun MobileHomeRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     bottomContentPadding: Dp,
@@ -35,6 +36,7 @@ fun MobileHomeRoute(
     HomeRouteEventEffect(
         viewModel = viewModel,
         onContentSelected = onContentSelected,
+        onContentArtworkSelected = onContentArtworkSelected,
         onError = onError,
     )
 

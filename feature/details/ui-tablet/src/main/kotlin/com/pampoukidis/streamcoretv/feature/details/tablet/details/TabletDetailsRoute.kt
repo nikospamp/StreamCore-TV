@@ -20,10 +20,12 @@ fun TabletDetailsRoute(
     profileId: String,
     contentId: String,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
+    sourceArtworkUrl: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: DetailsViewModel = koinViewModel(),
 ) {
@@ -48,6 +50,7 @@ fun TabletDetailsRoute(
     DetailsRouteEventEffect(
         viewModel = viewModel,
         onRecommendationSelected = onRecommendationSelected,
+        onRecommendationArtworkSelected = onRecommendationArtworkSelected,
         onPlaySelected = onPlaySelected,
         onBack = onBack,
         onError = onError,
@@ -55,6 +58,7 @@ fun TabletDetailsRoute(
 
     TabletDetailsScreen(
         state = displayState,
+        sourceArtworkUrl = sourceArtworkUrl,
         onAction = viewModel::onAction,
         sharedElementScope = sharedElementScope,
     )

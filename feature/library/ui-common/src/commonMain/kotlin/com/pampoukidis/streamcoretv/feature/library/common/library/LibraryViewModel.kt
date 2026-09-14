@@ -33,7 +33,7 @@ class LibraryViewModel constructor(
         when (action) {
             is LibraryAction.Load -> load(action.profileId)
             LibraryAction.Retry -> retry()
-            is LibraryAction.ContentSelected -> selectContent(action.content)
+            is LibraryAction.ContentSelected -> selectContent(action.content, action.sourceArtworkUrl)
         }
     }
 
@@ -77,9 +77,9 @@ class LibraryViewModel constructor(
         )
     }
 
-    private fun selectContent(content: ContentModel) {
+    private fun selectContent(content: ContentModel, sourceArtworkUrl: String?) {
         viewModelScope.launch {
-            effectsChannel.send(LibraryEffect.ContentSelected(content))
+            effectsChannel.send(LibraryEffect.ContentSelected(content, sourceArtworkUrl))
         }
     }
 }

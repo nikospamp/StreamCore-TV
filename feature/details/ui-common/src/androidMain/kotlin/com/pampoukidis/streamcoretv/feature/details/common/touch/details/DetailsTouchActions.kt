@@ -10,6 +10,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +55,8 @@ fun DetailsTouchActions(
     onMyListClick: () -> Unit,
     onTrailerClick: () -> Unit,
     modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedContentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
@@ -70,6 +73,8 @@ fun DetailsTouchActions(
             enabled = isLibraryAvailable,
             isLoading = isLikeMutationPending,
             onClick = onLikeClick,
+            baseContentColor = contentColor,
+            selectedContentColor = selectedContentColor,
             modifier = Modifier
                 .weight(1f)
                 .testTag(DetailsTestTags.LikeAction),
@@ -89,6 +94,8 @@ fun DetailsTouchActions(
             enabled = isLibraryAvailable,
             isLoading = isMyListMutationPending,
             onClick = onMyListClick,
+            baseContentColor = contentColor,
+            selectedContentColor = selectedContentColor,
             modifier = Modifier
                 .weight(1f)
                 .testTag(DetailsTestTags.MyListAction),
@@ -104,6 +111,8 @@ fun DetailsTouchActions(
             enabled = isTrailerAvailable,
             isLoading = false,
             onClick = onTrailerClick,
+            baseContentColor = contentColor,
+            selectedContentColor = selectedContentColor,
             modifier = Modifier
                 .weight(1f)
                 .testTag(DetailsTestTags.TrailerAction),
@@ -117,6 +126,8 @@ fun DetailsTouchActions(
             enabled = false,
             isLoading = false,
             onClick = {},
+            baseContentColor = contentColor,
+            selectedContentColor = selectedContentColor,
             modifier = Modifier
                 .weight(1f)
                 .testTag(DetailsTestTags.ShareAction),
@@ -134,13 +145,15 @@ private fun DetailsLabeledAction(
     enabled: Boolean,
     isLoading: Boolean,
     onClick: () -> Unit,
+    baseContentColor: Color,
+    selectedContentColor: Color,
     modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
 ) {
     val contentColor = when {
-        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledActionAlpha)
-        selected == true -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        !enabled -> baseContentColor.copy(alpha = DisabledActionAlpha)
+        selected == true -> selectedContentColor
+        else -> baseContentColor
     }
     val interactionModifier = if (selected != null) {
         Modifier.toggleable(

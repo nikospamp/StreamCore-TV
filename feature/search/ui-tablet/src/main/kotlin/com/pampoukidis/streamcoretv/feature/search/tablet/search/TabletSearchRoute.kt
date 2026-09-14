@@ -28,6 +28,7 @@ fun TabletSearchRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onBack: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: SearchViewModel = koinViewModel(),
@@ -72,6 +73,12 @@ fun TabletSearchRoute(
         onContentSelected = { content ->
             keyboardController?.hide()
             onContentSelected(content)
+        },
+        onContentArtworkSelected = onContentArtworkSelected?.let { artworkSelected ->
+            { content, sourceArtworkUrl ->
+                keyboardController?.hide()
+                artworkSelected(content, sourceArtworkUrl)
+            }
         },
     )
 

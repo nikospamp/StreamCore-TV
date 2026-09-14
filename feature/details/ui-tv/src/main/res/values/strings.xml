@@ -12,4 +12,9 @@
     <string name="details_like_unselected">Not liked</string>
     <string name="details_my_list_selected">In My List</string>
     <string name="details_my_list_unselected">Not in My List</string>
+    <string name="details_read_full_overview">Read full overview</string>
+    <string name="details_show_full_cast">Show full cast</string>
+    <string name="details_show_less">Show less</string>
+    <string name="details_text_expanded">Expanded</string>
+    <string name="details_text_collapsed">Collapsed</string>
 </resources>

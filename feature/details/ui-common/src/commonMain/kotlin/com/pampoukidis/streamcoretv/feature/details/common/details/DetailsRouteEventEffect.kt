@@ -19,9 +19,11 @@ fun DetailsRouteEventEffect(
     onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
+    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentRecommendationSelected by rememberUpdatedState(onRecommendationSelected)
+    val currentRecommendationArtworkSelected by rememberUpdatedState(onRecommendationArtworkSelected)
     val currentPlaySelected by rememberUpdatedState(onPlaySelected)
     val currentBack by rememberUpdatedState(onBack)
     val currentError by rememberUpdatedState(onError)
@@ -32,7 +34,12 @@ fun DetailsRouteEventEffect(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     is DetailsEffect.RecommendationSelected -> {
-                        currentRecommendationSelected(effect.content)
+                        val artworkSelected = currentRecommendationArtworkSelected
+                        if (artworkSelected != null) {
+                            artworkSelected(effect.content, effect.sourceArtworkUrl)
+                        } else {
+                            currentRecommendationSelected(effect.content)
+                        }
                     }
                     is DetailsEffect.PlaySelected -> currentPlaySelected(effect.request)
                     is DetailsEffect.OpenTrailer -> openDetailsTrailer(

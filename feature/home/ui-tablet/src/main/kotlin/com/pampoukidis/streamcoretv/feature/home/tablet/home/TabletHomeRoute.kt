@@ -20,6 +20,7 @@ fun TabletHomeRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
@@ -36,6 +37,7 @@ fun TabletHomeRoute(
     HomeRouteEventEffect(
         viewModel = viewModel,
         onContentSelected = onContentSelected,
+        onContentArtworkSelected = onContentArtworkSelected,
         onError = onError,
     )
 
