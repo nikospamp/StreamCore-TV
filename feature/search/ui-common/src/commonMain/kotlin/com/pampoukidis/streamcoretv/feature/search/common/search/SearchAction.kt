@@ -10,7 +10,13 @@ sealed interface SearchAction {
     data class RecentSelected(val query: String) : SearchAction
     data class RecentRemoved(val query: String) : SearchAction
     data object ClearRecent : SearchAction
-    data class TrendingSelected(val content: ContentModel) : SearchAction
-    data class ResultSelected(val content: ContentModel) : SearchAction
+    data class TrendingSelected(
+        val content: ContentModel,
+        val sourceArtworkUrl: String? = null,
+    ) : SearchAction
+    data class ResultSelected(
+        val content: ContentModel,
+        val sourceArtworkUrl: String? = null,
+    ) : SearchAction
     data object Retry : SearchAction
 }

@@ -15,16 +15,25 @@ fun LibraryRouteEventEffect(
     viewModel: LibraryViewModel,
     onContentSelected: (ContentModel) -> Unit,
     onError: (AppError) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentContentSelected by rememberUpdatedState(onContentSelected)
+    val currentContentArtworkSelected by rememberUpdatedState(onContentArtworkSelected)
     val currentError by rememberUpdatedState(onError)
 
     LaunchedEffect(lifecycleOwner, viewModel) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effects.collect { effect ->
                 when (effect) {
-                    is LibraryEffect.ContentSelected -> currentContentSelected(effect.content)
+                    is LibraryEffect.ContentSelected -> {
+                        val artworkSelected = currentContentArtworkSelected
+                        if (artworkSelected != null) {
+                            artworkSelected(effect.content, effect.sourceArtworkUrl)
+                        } else {
+                            currentContentSelected(effect.content)
+                        }
+                    }
                     is LibraryEffect.ShowError -> currentError(effect.error)
                 }
             }

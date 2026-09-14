@@ -13,15 +13,24 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 fun SearchRouteEventEffect(
     viewModel: SearchViewModel,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentContentSelected by rememberUpdatedState(onContentSelected)
+    val currentContentArtworkSelected by rememberUpdatedState(onContentArtworkSelected)
 
     LaunchedEffect(lifecycleOwner, viewModel) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effects.collect { effect ->
                 when (effect) {
-                    is SearchEffect.ContentSelected -> currentContentSelected(effect.content)
+                    is SearchEffect.ContentSelected -> {
+                        val artworkSelected = currentContentArtworkSelected
+                        if (artworkSelected != null) {
+                            artworkSelected(effect.content, effect.sourceArtworkUrl)
+                        } else {
+                            currentContentSelected(effect.content)
+                        }
+                    }
                 }
             }
         }

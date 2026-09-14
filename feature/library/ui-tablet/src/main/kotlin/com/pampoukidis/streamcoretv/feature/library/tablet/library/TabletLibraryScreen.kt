@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -41,15 +40,16 @@ import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePersonIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreOverlayDuringSharedTransition
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
@@ -111,7 +111,12 @@ fun TabletLibraryScreen(
                         selectedContentKey = selectedContentKey,
                         sharedElementScope = sharedElementScope,
                         onSelected = { content ->
-                            onAction(LibraryAction.ContentSelected(content))
+                            onAction(
+                                LibraryAction.ContentSelected(
+                                    content = content,
+                                    sourceArtworkUrl = content.tabletLibraryImageUrl(section.aspectRatio),
+                                ),
+                            )
                         },
                     )
                 }
@@ -272,35 +277,26 @@ private fun TabletLibraryCard(
             .clickable(onClick = onClick)
             .testTag(LibraryTestTags.ContentPrefix + content.row + ":" + content.id),
     ) {
-        StreamCoreContentImage(
-            imageUrl = if (aspectRatio == StreamCoreDimens.Artwork.LandscapeAspectRatio) {
-                content.backdrop ?: content.poster
-            } else {
-                content.poster
-            },
+        StreamCoreSharedArtworkImage(
+            imageUrl = content.tabletLibraryImageUrl(aspectRatio),
             contentDescription = null,
             fallbackText = content.fallbackText(),
-            contentScale = ContentScale.Crop,
+            sharedKey = StreamCoreSharedKey.artwork(content.id, content.row),
+            clipShape = shape,
+            sharedElementScope = sharedElementScope,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(aspectRatio)
-                .clip(shape)
-                .streamCoreSharedBounds(
-                    sharedElementScope = sharedElementScope,
-                    key = StreamCoreSharedKey.artwork(content.id, content.row),
-                    clipShape = shape,
-                ),
+                .aspectRatio(aspectRatio),
         )
         Text(
             text = content.title,
             style = MaterialTheme.typography.titleSmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.streamCoreSharedBounds(
+            modifier = Modifier.streamCoreOverlayDuringSharedTransition(
                 sharedElementScope = sharedElementScope,
-                key = StreamCoreSharedKey.title(content.id, content.row),
-                clipShape = MaterialTheme.shapes.small,
-            ),
+                zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
+            ).clip(MaterialTheme.shapes.small),
         )
         Text(
             text = content.homeMetadataText(),
@@ -310,6 +306,13 @@ private fun TabletLibraryCard(
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+private fun ContentModel.tabletLibraryImageUrl(aspectRatio: Float): String? {
+    if (aspectRatio == StreamCoreDimens.Artwork.LandscapeAspectRatio) {
+        return backdrop ?: poster
+    }
+    return poster
 }
 
 @Composable

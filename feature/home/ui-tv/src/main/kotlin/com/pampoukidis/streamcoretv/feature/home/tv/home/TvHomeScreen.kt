@@ -35,7 +35,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +42,8 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.model.content.imageUrl
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
@@ -54,7 +54,6 @@ import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreOverlayDuringSharedTransition
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -246,7 +245,12 @@ private fun TvHomeBody(
                             selectedContentKey = selectedContentKey,
                             sharedElementScope = sharedElementScope,
                             onContentSelected = { selected ->
-                                onAction(HomeAction.ContentSelected(selected))
+                                onAction(
+                                    HomeAction.ContentSelected(
+                                        content = selected,
+                                        sourceArtworkUrl = selected.backdrop ?: selected.poster,
+                                    ),
+                                )
                             },
                         )
                     }
@@ -320,55 +324,42 @@ private fun TvHomeHero(
 ) {
     val heroShape = RectangleShape
     val elementScope = sharedElementScope.takeIf { useSharedTransition }
+    val scrimColor = MaterialTheme.colorScheme.scrim
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val artworkScrims = remember(scrimColor, backgroundColor) {
+        listOf(
+            Brush.horizontalGradient(
+                colors = listOf(
+                    scrimColor.copy(alpha = 0.94f),
+                    scrimColor.copy(alpha = 0.62f),
+                    scrimColor.copy(alpha = 0.12f),
+                ),
+            ),
+            Brush.verticalGradient(
+                0f to scrimColor.copy(alpha = 0f),
+                0.5f to scrimColor.copy(alpha = 0f),
+                1f to backgroundColor,
+            ),
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
-        StreamCoreContentImage(
+        StreamCoreSharedArtworkImage(
             imageUrl = content.backdrop ?: content.poster,
             contentDescription = content.title,
             fallbackText = content.fallbackText(),
-            contentScale = ContentScale.Crop,
+            sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+            clipShape = heroShape,
+            sharedElementScope = elementScope,
+            scrims = artworkScrims,
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             fallbackTextStyle = MaterialTheme.typography.displayLarge,
-            modifier = Modifier
-                .fillMaxSize()
-                .streamCoreSharedBounds(
-                    sharedElementScope = elementScope,
-                    key = StreamCoreSharedKey.artwork(
-                        contentId = content.id,
-                        row = content.row,
-                    ),
-                    clipShape = heroShape,
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .streamCoreOverlayDuringSharedTransition(
-                    sharedElementScope = elementScope,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Scrim,
-                    clipShape = heroShape,
-                )
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f),
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.62f),
-                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f),
-                        ),
-                    ),
-                )
-                .background(
-                    Brush.verticalGradient(
-                        0f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        0.5f to MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        1f to MaterialTheme.colorScheme.background,
-                    ),
-                ),
+            modifier = Modifier.fillMaxSize(),
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
@@ -398,15 +389,6 @@ private fun TvHomeHero(
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.streamCoreSharedBounds(
-                    sharedElementScope = elementScope,
-                    key = StreamCoreSharedKey.title(
-                        contentId = content.id,
-                        row = content.row,
-                    ),
-                    clipShape = RectangleShape,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
-                ),
             )
             Text(
                 text = content.heroMetadata(),
@@ -509,7 +491,14 @@ private fun TvContentRow(
                     content = item,
                     type = row.type,
                     rank = contentIndex + 1,
-                    onClick = { onAction(HomeAction.ContentSelected(item)) },
+                    onClick = {
+                        onAction(
+                            HomeAction.ContentSelected(
+                                content = item,
+                                sourceArtworkUrl = item.imageUrl(row.type),
+                            ),
+                        )
+                    },
                     focusRequester = if (contentIndex == focusContentIndex) {
                         focusRequester
                     } else {

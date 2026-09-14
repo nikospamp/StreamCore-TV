@@ -45,7 +45,7 @@ class HomeViewModel constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.Load -> load(action.profileId)
-            is HomeAction.ContentSelected -> selectContent(action.content)
+            is HomeAction.ContentSelected -> selectContent(action.content, action.sourceArtworkUrl)
             HomeAction.Refresh -> refresh()
         }
     }
@@ -100,9 +100,9 @@ class HomeViewModel constructor(
         load(profileId = profileId, force = true)
     }
 
-    private fun selectContent(content: ContentModel) {
+    private fun selectContent(content: ContentModel, sourceArtworkUrl: String?) {
         viewModelScope.launch {
-            effectsChannel.send(HomeEffect.ContentSelected(content))
+            effectsChannel.send(HomeEffect.ContentSelected(content, sourceArtworkUrl))
         }
     }
 

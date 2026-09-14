@@ -20,10 +20,12 @@ fun TvDetailsRoute(
     profileId: String,
     contentId: String,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
     initialContent: ContentModel? = null,
+    sourceArtworkUrl: String? = null,
     returnFocusKey: String? = null,
     onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
@@ -50,6 +52,7 @@ fun TvDetailsRoute(
     DetailsRouteEventEffect(
         viewModel = viewModel,
         onRecommendationSelected = onRecommendationSelected,
+        onRecommendationArtworkSelected = onRecommendationArtworkSelected,
         onPlaySelected = onPlaySelected,
         onBack = onBack,
         onError = onError,
@@ -57,6 +60,7 @@ fun TvDetailsRoute(
 
     TvDetailsScreen(
         state = displayState,
+        sourceArtworkUrl = sourceArtworkUrl,
         onAction = viewModel::onAction,
         returnFocusKey = returnFocusKey,
         onReturnFocusConsumed = onReturnFocusConsumed,

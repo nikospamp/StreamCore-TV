@@ -32,10 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
+import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
+import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreOverlayDuringSharedTransition
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTablet
@@ -129,18 +130,16 @@ private fun SearchResultCard(
             .clickable(onClick = onClick)
             .testTag(SearchTestTags.result(content.id)),
     ) {
-        StreamCoreContentImage(
+        StreamCoreSharedArtworkImage(
             imageUrl = content.poster,
             contentDescription = null,
             fallbackText = content.fallbackText(),
+            sharedKey = StreamCoreSharedKey.artwork(content.id, content.row),
+            clipShape = shape,
+            sharedElementScope = sharedElementScope,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio)
-                .streamCoreSharedBounds(
-                    sharedElementScope = sharedElementScope,
-                    key = StreamCoreSharedKey.artwork(content.id, content.row),
-                    clipShape = shape,
-                ),
+                .aspectRatio(StreamCoreDimens.Artwork.PosterAspectRatio),
         )
         Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
             Text(
@@ -148,11 +147,10 @@ private fun SearchResultCard(
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.streamCoreSharedBounds(
+                modifier = Modifier.streamCoreOverlayDuringSharedTransition(
                     sharedElementScope = sharedElementScope,
-                    key = StreamCoreSharedKey.title(content.id, content.row),
-                    clipShape = RoundedCornerShape(StreamCoreDimens.Spacing.Tiny),
-                ),
+                    zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
+                ).clip(RoundedCornerShape(StreamCoreDimens.Spacing.Tiny)),
             )
             Text(
                 text = content.homeMetadataText(),

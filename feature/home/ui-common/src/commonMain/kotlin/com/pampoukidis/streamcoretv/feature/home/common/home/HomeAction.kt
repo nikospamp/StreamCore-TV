@@ -4,6 +4,9 @@ import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 
 sealed interface HomeAction {
     data class Load(val profileId: String) : HomeAction
-    data class ContentSelected(val content: ContentModel) : HomeAction
+    data class ContentSelected(
+        val content: ContentModel,
+        val sourceArtworkUrl: String? = null,
+    ) : HomeAction
     data object Refresh : HomeAction
 }

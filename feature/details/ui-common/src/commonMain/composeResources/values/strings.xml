@@ -2,6 +2,10 @@
 <resources>
     <string name="details_overview">Overview</string>
     <string name="details_cast">Cast</string>
+    <string name="details_read_more">Read more</string>
+    <string name="details_show_less">Show less</string>
+    <string name="details_show_cast">Show cast</string>
+    <string name="details_hide_cast">Hide cast</string>
     <string name="details_action_like">Like</string>
     <string name="details_action_liked">Liked</string>
     <string name="details_action_my_list">My List</string>

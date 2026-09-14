@@ -112,7 +112,7 @@ fun TabletSearchScreen(
                     is SearchContentState.Results -> TabletSearchResultsGrid(
                         items = contentState.items,
                         onContentSelected = { content ->
-                            onAction(SearchAction.ResultSelected(content))
+                            onAction(SearchAction.ResultSelected(content, sourceArtworkUrl = content.poster))
                         },
                         state = gridState,
                         showOfflineNotice = state.showOfflineNotice,
@@ -190,7 +190,14 @@ private fun SearchDiscoveryContent(
             ) { content ->
                 TrendingContentRow(
                     content = content,
-                    onSelected = { onAction(SearchAction.TrendingSelected(content)) },
+                    onSelected = {
+                        onAction(
+                            SearchAction.TrendingSelected(
+                                content = content,
+                                sourceArtworkUrl = content.backdrop ?: content.poster,
+                            ),
+                        )
+                    },
                 )
             }
         }

@@ -20,6 +20,7 @@ fun MobileDetailsRoute(
     profileId: String,
     contentId: String,
     onRecommendationSelected: (ContentModel) -> Unit,
+    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
@@ -48,6 +49,7 @@ fun MobileDetailsRoute(
     DetailsRouteEventEffect(
         viewModel = viewModel,
         onRecommendationSelected = onRecommendationSelected,
+        onRecommendationArtworkSelected = onRecommendationArtworkSelected,
         onPlaySelected = onPlaySelected,
         onBack = onBack,
         onError = onError,

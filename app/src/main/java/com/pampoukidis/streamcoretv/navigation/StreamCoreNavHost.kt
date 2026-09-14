@@ -374,7 +374,7 @@ internal fun StreamCoreNavHost(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
                     ),
-                    onContentSelected = { content ->
+                    onContentSelected = rememberPreparedArtworkNavigation { content, sourceArtworkUrl ->
                         selectedContent = content
                         selectedContentKey = content.sharedContentKey()
                         navController.navigate(
@@ -382,6 +382,7 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
+                                sourceArtworkUrl = sourceArtworkUrl,
                                 returnFocusKey = content.sharedContentKey(),
                             ),
                         ) {
@@ -420,7 +421,7 @@ internal fun StreamCoreNavHost(
                         )
                     },
                     touchBottomContentPadding = touchBottomContentPadding,
-                    onContentSelected = { content ->
+                    onContentSelected = rememberPreparedArtworkNavigation { content, sourceArtworkUrl ->
                         selectedContent = content
                         selectedContentKey = content.sharedContentKey()
                         navController.navigate(
@@ -428,6 +429,7 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
+                                sourceArtworkUrl = sourceArtworkUrl,
                                 returnFocusKey = content.sharedContentKey(),
                             ),
                         ) {
@@ -464,7 +466,7 @@ internal fun StreamCoreNavHost(
                                 consumedKey = consumedKey,
                             )
                         },
-                        onContentSelected = { content ->
+                        onContentSelected = rememberPreparedArtworkNavigation { content, sourceArtworkUrl ->
                             selectedContent = content
                             selectedContentKey = content.sharedContentKey()
                             navController.navigate(
@@ -472,6 +474,7 @@ internal fun StreamCoreNavHost(
                                     profileId = route.profileId,
                                     contentId = content.id,
                                     sourceRow = content.row,
+                                    sourceArtworkUrl = sourceArtworkUrl,
                                     returnFocusKey = content.sharedContentKey(),
                                 ),
                             ) {
@@ -520,6 +523,7 @@ internal fun StreamCoreNavHost(
                     profileId = route.profileId,
                     contentId = route.contentId,
                     initialContent = initialContent,
+                    sourceArtworkUrl = route.sourceArtworkUrl,
                     returnFocusKey = pendingTvFocusKey,
                     onReturnFocusConsumed = { consumedKey ->
                         pendingTvFocusKey = consumeTvReturnFocusKey(
@@ -530,8 +534,9 @@ internal fun StreamCoreNavHost(
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
+                        preparedArtworkUrl = initialContent?.backdrop ?: initialContent?.poster,
                     ),
-                    onRecommendationSelected = { content ->
+                    onRecommendationSelected = rememberPreparedArtworkNavigation { content, sourceArtworkUrl ->
                         selectedContent = content
                         selectedContentKey = content.sharedContentKey()
                         navController.navigate(
@@ -539,6 +544,7 @@ internal fun StreamCoreNavHost(
                                 profileId = route.profileId,
                                 contentId = content.id,
                                 sourceRow = content.row,
+                                sourceArtworkUrl = sourceArtworkUrl,
                                 initialContent = content,
                                 returnFocusKey = content.sharedContentKey(),
                             ),
@@ -828,7 +834,7 @@ private fun HomeDestination(
     onReturnFocusConsumed: (String) -> Unit,
     touchBottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
 ) {
@@ -837,7 +843,8 @@ private fun HomeDestination(
             profileId = profileId,
             activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
             bottomContentPadding = touchBottomContentPadding,
@@ -848,7 +855,8 @@ private fun HomeDestination(
             profileId = profileId,
             activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
             bottomContentPadding = touchBottomContentPadding,
@@ -860,7 +868,8 @@ private fun HomeDestination(
             selectedContentKey = selectedContentKey,
             returnFocusKey = returnFocusKey,
             onReturnFocusConsumed = onReturnFocusConsumed,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )
@@ -875,7 +884,7 @@ private fun SearchDestination(
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
     touchBottomContentPadding: Dp,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
     onBack: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -885,7 +894,8 @@ private fun SearchDestination(
             selectedContentKey = selectedContentKey,
             returnFocusKey = returnFocusKey,
             onReturnFocusConsumed = onReturnFocusConsumed,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onBack = onBack,
             sharedElementScope = sharedElementScope,
         )
@@ -904,7 +914,8 @@ private fun SearchDestination(
                 TabletSearchRoute(
                     profileId = profileId,
                     selectedContentKey = selectedContentKey,
-                    onContentSelected = onContentSelected,
+                    onContentSelected = { content -> onContentSelected(content, null) },
+                    onContentArtworkSelected = onContentSelected,
                     onBack = onBack,
                     sharedElementScope = sharedElementScope,
                 )
@@ -914,7 +925,8 @@ private fun SearchDestination(
         Platform.Mobile -> MobileSearchRoute(
             profileId = profileId,
             selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onBack = onBack,
             bottomContentPadding = touchBottomContentPadding,
             sharedElementScope = sharedElementScope,
@@ -930,7 +942,7 @@ private fun LibraryDestination(
     selectedContentKey: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (ContentModel, String?) -> Unit,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -941,7 +953,8 @@ private fun LibraryDestination(
             selectedContentKey = selectedContentKey,
             returnFocusKey = returnFocusKey,
             onReturnFocusConsumed = onReturnFocusConsumed,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
         )
@@ -961,7 +974,8 @@ private fun LibraryDestination(
                     profileId = profileId,
                     activeProfile = activeProfile,
                     selectedContentKey = selectedContentKey,
-                    onContentSelected = onContentSelected,
+                    onContentSelected = { content -> onContentSelected(content, null) },
+                    onContentArtworkSelected = onContentSelected,
                     onProfileSelected = onProfileSelected,
                     onError = onError,
                     sharedElementScope = sharedElementScope,
@@ -973,7 +987,8 @@ private fun LibraryDestination(
             profileId = profileId,
             activeProfile = activeProfile,
             selectedContentKey = selectedContentKey,
-            onContentSelected = onContentSelected,
+            onContentSelected = { content -> onContentSelected(content, null) },
+            onContentArtworkSelected = onContentSelected,
             onProfileSelected = onProfileSelected,
             onError = onError,
             sharedElementScope = sharedElementScope,
@@ -986,10 +1001,11 @@ private fun DetailsDestination(
     profileId: String,
     contentId: String,
     initialContent: ContentModel?,
+    sourceArtworkUrl: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onRecommendationSelected: (ContentModel) -> Unit,
+    onRecommendationSelected: (ContentModel, String?) -> Unit,
     onPlaySelected: (PlaybackRequestModel) -> Unit,
     onBack: () -> Unit,
     onError: (AppError) -> Unit,
@@ -998,7 +1014,8 @@ private fun DetailsDestination(
         Platform.Mobile -> MobileDetailsRoute(
             profileId = profileId,
             contentId = contentId,
-            onRecommendationSelected = onRecommendationSelected,
+            onRecommendationSelected = { content -> onRecommendationSelected(content, null) },
+            onRecommendationArtworkSelected = onRecommendationSelected,
             onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
@@ -1009,22 +1026,26 @@ private fun DetailsDestination(
         Platform.Tablet -> TabletDetailsRoute(
             profileId = profileId,
             contentId = contentId,
-            onRecommendationSelected = onRecommendationSelected,
+            onRecommendationSelected = { content -> onRecommendationSelected(content, null) },
+            onRecommendationArtworkSelected = onRecommendationSelected,
             onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,
+            sourceArtworkUrl = sourceArtworkUrl,
             sharedElementScope = sharedElementScope,
         )
 
         Platform.Tv -> TvDetailsRoute(
             profileId = profileId,
             contentId = contentId,
-            onRecommendationSelected = onRecommendationSelected,
+            onRecommendationSelected = { content -> onRecommendationSelected(content, null) },
+            onRecommendationArtworkSelected = onRecommendationSelected,
             onPlaySelected = onPlaySelected,
             onBack = onBack,
             onError = onError,
             initialContent = initialContent,
+            sourceArtworkUrl = sourceArtworkUrl,
             returnFocusKey = returnFocusKey,
             onReturnFocusConsumed = onReturnFocusConsumed,
             sharedElementScope = sharedElementScope,

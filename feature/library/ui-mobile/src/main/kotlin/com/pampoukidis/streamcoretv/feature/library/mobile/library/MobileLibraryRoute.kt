@@ -18,6 +18,7 @@ fun MobileLibraryRoute(
     profileId: String,
     selectedContentKey: String?,
     onContentSelected: (ContentModel) -> Unit,
+    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
     onProfileSelected: () -> Unit,
     onError: (AppError) -> Unit,
     activeProfile: ProfileModel? = null,
@@ -33,6 +34,7 @@ fun MobileLibraryRoute(
     LibraryRouteEventEffect(
         viewModel = viewModel,
         onContentSelected = onContentSelected,
+        onContentArtworkSelected = onContentArtworkSelected,
         onError = onError,
     )
 

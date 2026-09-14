@@ -15,9 +15,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.withFrameNanos
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
@@ -55,8 +57,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -70,28 +70,27 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.fallbackText
-import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvTextButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
+import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
-import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
-import com.pampoukidis.streamcoretv.core.ui.motion.streamCoreSharedBounds
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsActionContent
-import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsOverview
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsPanoramaHero
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsSynopsis
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsCast
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRecommendationArtwork
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
@@ -108,6 +107,7 @@ fun TvDetailsScreen(
     returnFocusKey: String? = null,
     onReturnFocusConsumed: (String) -> Unit = {},
     sharedElementScope: StreamCoreSharedElementScope? = null,
+    sourceArtworkUrl: String? = null,
 ) {
     val (
         retryFocusRequester,
@@ -139,8 +139,7 @@ fun TvDetailsScreen(
         Column(
             verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = StreamCoreDimens.Spacing.ExtraLarge),
+                .fillMaxSize(),
         ) {
             // Avoid TV's default pivot on this screen; the body separately restores the
             // summary when returning from recommendations.
@@ -158,6 +157,7 @@ fun TvDetailsScreen(
                     returnFocusKey = returnFocusKey,
                     onReturnFocusConsumed = onReturnFocusConsumed,
                     sharedElementScope = sharedElementScope,
+                    sourceArtworkUrl = sourceArtworkUrl,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -171,22 +171,22 @@ private class DetailsVerticalBringIntoViewSpec(
     private val focusClearance: Float,
 ) : BringIntoViewSpec {
     var viewportCoordinates: LayoutCoordinates? = null
-    var summaryCoordinates: LayoutCoordinates? = null
+    var heroActionsCoordinates: LayoutCoordinates? = null
 
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
         val viewport = viewportCoordinates
-        val summary = summaryCoordinates
-        if (viewport?.isAttached == true && summary?.isAttached == true && size <= containerSize) {
-            val summaryBounds = viewport.localBoundingBoxOf(summary, clipBounds = false)
+        val heroActions = heroActionsCoordinates
+        if (viewport?.isAttached == true && heroActions?.isAttached == true && size <= containerSize) {
+            val heroActionsBounds = viewport.localBoundingBoxOf(heroActions, clipBounds = false)
             val trailingEdge = offset + size
-            if (offset >= summaryBounds.top && trailingEdge <= summaryBounds.bottom) {
-                // Restore the hero/title with focus in the summary. At large font scales,
+            if (offset >= heroActionsBounds.top && trailingEdge <= heroActionsBounds.bottom) {
+                // Restore the hero/title with focus in the action row. At large font scales,
                 // stop earlier when scrolling to zero would hide the requested control/text.
                 // Let Compose own the single relocation animation and system motion scale.
                 // TV buttons paint their border beyond the focus bounds. Reserve that
-                // painted extent both at scroll zero and when a tall summary cannot fit.
+                // painted extent both at scroll zero and when the hero and actions cannot fit.
                 val clearance = minOf(focusClearance, (containerSize - size) / 2f)
-                return maxOf(summaryBounds.top - focusClearance, trailingEdge + clearance - containerSize)
+                return maxOf(heroActionsBounds.top, trailingEdge + clearance - containerSize)
             }
         }
         return super.calculateScrollDistance(offset, size, containerSize)
@@ -209,6 +209,7 @@ private fun DetailsBody(
     onReturnFocusConsumed: (String) -> Unit,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope?,
+    sourceArtworkUrl: String?,
 ) {
     val content = state.content
     val scrollState = rememberScrollState()
@@ -249,8 +250,8 @@ private fun DetailsBody(
                 )
             }
 
-            // There are only two vertical sections. Keep both composed so a long summary
-            // cannot detach the recommendations' focus target. The horizontal row stays lazy.
+            // Keep vertical sections composed so expanded reading content cannot detach
+            // any D-pad target. The recommendation rail remains lazy.
             else -> {
                 CompositionLocalProvider(LocalBringIntoViewSpec provides verticalBringIntoViewSpec) {
                     Column(
@@ -260,9 +261,9 @@ private fun DetailsBody(
                             .testTag(DetailsTestTags.Content)
                             .verticalScroll(scrollState)
                             // Clearance scrolls with content; the viewport reaches the screen bottom.
-                            .padding(top = focusClearance, bottom = StreamCoreDimens.Spacing.Large),
+                            .padding(bottom = StreamCoreDimens.Spacing.Large),
                     ) {
-                        SummarySection(
+                        HeroActionsSection(
                             state = state,
                             onAction = onAction,
                             playFocusRequester = playFocusRequester,
@@ -270,14 +271,23 @@ private fun DetailsBody(
                             trailerFocusRequester = trailerFocusRequester,
                             likeFocusRequester = likeFocusRequester,
                             myListFocusRequester = myListFocusRequester,
-                            recommendationsFocusRequester = recommendationsFocusRequester,
                             sharedElementScope = sharedElementScope,
+                            sourceArtworkUrl = sourceArtworkUrl,
                             overviewFocusRequester = overviewFocusRequester,
+                            modifier = Modifier
+                                .onGloballyPositioned { verticalBringIntoViewSpec.heroActionsCoordinates = it },
+                        )
+                        DetailsInformationBand(
+                            content = content,
+                            overviewFocusRequester = overviewFocusRequester,
+                            playFocusRequester = playFocusRequester,
+                            downFocusRequester = if (state.recommendations.isNotEmpty()) {
+                                recommendationsFocusRequester
+                            } else {
+                                FocusRequester.Cancel
+                            },
                             scrollState = scrollState,
                             viewportCoordinates = { verticalBringIntoViewSpec.viewportCoordinates },
-                            modifier = Modifier
-                                .onGloballyPositioned { verticalBringIntoViewSpec.summaryCoordinates = it }
-                                .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
                         )
                         // Horizontal recommendation scrolling retains minimal-visibility behavior.
                         CompositionLocalProvider(LocalBringIntoViewSpec provides DetailsBringIntoViewSpec) {
@@ -300,7 +310,7 @@ private fun DetailsBody(
 }
 
 @Composable
-private fun SummarySection(
+private fun HeroActionsSection(
     state: DetailsUiState,
     onAction: (DetailsAction) -> Unit,
     playFocusRequester: FocusRequester,
@@ -308,270 +318,282 @@ private fun SummarySection(
     trailerFocusRequester: FocusRequester,
     likeFocusRequester: FocusRequester,
     myListFocusRequester: FocusRequester,
-    recommendationsFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,
+    sourceArtworkUrl: String?,
     overviewFocusRequester: FocusRequester,
-    scrollState: ScrollState,
-    viewportCoordinates: () -> LayoutCoordinates?,
-    modifier: Modifier = Modifier,
-) {
-    val content = requireNotNull(state.content)
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-            modifier = Modifier.weight(0.48f),
-        ) {
-            DetailsHero(
-                content = content,
-                sharedElementScope = sharedElementScope,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(StreamCoreDimens.Artwork.LandscapeAspectRatio),
-            )
-            Text(
-                text = content.title,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.streamCoreSharedBounds(
-                    sharedElementScope = sharedElementScope,
-                    key = StreamCoreSharedKey.title(contentId = content.id, row = content.row),
-                    clipShape = RectangleShape,
-                    zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
-                ),
-            )
-            Text(
-                text = content.heroMetadata(),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            StreamCoreTvButton(
-                text = stringResource(
-                    if (state.hasResumableProgress) R.string.details_action_resume else R.string.details_action_play,
-                ),
-                onClick = { onAction(DetailsAction.PlaySelected) },
-                enabled = true,
-                variant = StreamCoreTvButtonVariant.Primary,
-                leadingIcon = { StreamCorePlayIcon() },
-                shape = StreamCoreControlDefaults.style().buttonShape,
-                contentAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = StreamCoreDimens.Button.MinHeight)
-                    .focusRequester(playFocusRequester)
-                    .focusProperties {
-                        up = FocusRequester.Cancel
-                        left = FocusRequester.Cancel
-                        right = if (state.isLibraryAvailable || content.trailers.isNotEmpty()) {
-                            actionsFocusRequester
-                        } else {
-                            overviewFocusRequester
-                        }
-                        down = if (state.recommendations.isNotEmpty()) {
-                            recommendationsFocusRequester
-                        } else {
-                            overviewFocusRequester
-                        }
-                    }
-                    .testTag(DetailsTestTags.PlayButton),
-            )
-        }
-        DetailsInformation(
-            state = state,
-            onAction = onAction,
-            playFocusRequester = playFocusRequester,
-            actionsFocusRequester = actionsFocusRequester,
-            trailerFocusRequester = trailerFocusRequester,
-            likeFocusRequester = likeFocusRequester,
-            myListFocusRequester = myListFocusRequester,
-            recommendationsFocusRequester = recommendationsFocusRequester,
-            overviewFocusRequester = overviewFocusRequester,
-            scrollState = scrollState,
-            viewportCoordinates = viewportCoordinates,
-            modifier = Modifier.weight(0.52f),
-        )
-    }
-}
-
-@Composable
-private fun DetailsHero(
-    content: ContentModel,
-    sharedElementScope: StreamCoreSharedElementScope?,
-    modifier: Modifier = Modifier,
-) {
-    val heroShape = MaterialTheme.shapes.extraLarge
-
-    StreamCoreContentImage(
-        imageUrl = content.backdrop ?: content.poster,
-        contentDescription = content.title,
-        fallbackText = content.fallbackText(),
-        contentScale = ContentScale.Crop,
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        fallbackTextStyle = MaterialTheme.typography.displayLarge,
-        crossfade = true,
-        modifier = modifier
-            .testTag(DetailsTestTags.Hero)
-            .streamCoreSharedBounds(
-                sharedElementScope = sharedElementScope,
-                key = StreamCoreSharedKey.artwork(
-                    contentId = content.id,
-                    row = content.row,
-                ),
-                clipShape = heroShape,
-            ),
-    )
-}
-
-@Composable
-private fun DetailsInformation(
-    state: DetailsUiState,
-    onAction: (DetailsAction) -> Unit,
-    playFocusRequester: FocusRequester,
-    actionsFocusRequester: FocusRequester,
-    trailerFocusRequester: FocusRequester,
-    likeFocusRequester: FocusRequester,
-    myListFocusRequester: FocusRequester,
-    recommendationsFocusRequester: FocusRequester,
-    overviewFocusRequester: FocusRequester,
-    scrollState: ScrollState,
-    viewportCoordinates: () -> LayoutCoordinates?,
     modifier: Modifier = Modifier,
 ) {
     val content = requireNotNull(state.content)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
     ) {
-        DetailsActions(
-            hasTrailer = content.trailers.isNotEmpty(),
-            isLibraryAvailable = state.isLibraryAvailable,
-            isLiked = state.isLiked,
-            isInMyList = state.isInMyList,
-            isLikeMutationPending = state.isLikeMutationPending,
-            isMyListMutationPending = state.isMyListMutationPending,
-            playFocusRequester = playFocusRequester,
-            actionsFocusRequester = actionsFocusRequester,
-            trailerFocusRequester = trailerFocusRequester,
-            likeFocusRequester = likeFocusRequester,
-            myListFocusRequester = myListFocusRequester,
-            overviewFocusRequester = overviewFocusRequester,
-            onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
-            onLikeClick = { onAction(DetailsAction.LikeToggled) },
-            onMyListClick = { onAction(DetailsAction.MyListToggled) },
+        DetailsPanoramaHero(
+            content = content,
+            titleStyle = MaterialTheme.typography.headlineLarge,
+            metadataStyle = MaterialTheme.typography.labelLarge,
+            contentPadding = PaddingValues(
+                // Keep the Play button's outer focus ring inside the rounded hero clip.
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Spacing.ExtraLarge,
+            ),
+            bottomContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                ) {
+                    StreamCoreTvButton(
+                        text = stringResource(
+                            if (state.hasResumableProgress) R.string.details_action_resume else R.string.details_action_play,
+                        ),
+                        onClick = { onAction(DetailsAction.PlaySelected) },
+                        enabled = true,
+                        variant = StreamCoreTvButtonVariant.Primary,
+                        leadingIcon = { StreamCorePlayIcon() },
+                        shape = StreamCoreControlDefaults.style().buttonShape,
+                        contentAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(StreamCoreDimens.Tv.Details.PlayButtonWidth)
+                            .defaultMinSize(minHeight = StreamCoreDimens.Button.MinHeight)
+                            .focusRequester(playFocusRequester)
+                            .focusProperties {
+                                up = FocusRequester.Cancel
+                                left = FocusRequester.Cancel
+                                right = if (state.isLibraryAvailable || content.trailers.isNotEmpty()) {
+                                    actionsFocusRequester
+                                } else {
+                                    FocusRequester.Cancel
+                                }
+                                down = overviewFocusRequester
+                            }
+                            .testTag(DetailsTestTags.PlayButton),
+                    )
+                    DetailsActions(
+                        hasTrailer = content.trailers.isNotEmpty(),
+                        isLibraryAvailable = state.isLibraryAvailable,
+                        isLiked = state.isLiked,
+                        isInMyList = state.isInMyList,
+                        isLikeMutationPending = state.isLikeMutationPending,
+                        isMyListMutationPending = state.isMyListMutationPending,
+                        playFocusRequester = playFocusRequester,
+                        actionsFocusRequester = actionsFocusRequester,
+                        trailerFocusRequester = trailerFocusRequester,
+                        likeFocusRequester = likeFocusRequester,
+                        myListFocusRequester = myListFocusRequester,
+                        overviewFocusRequester = overviewFocusRequester,
+                        onTrailerClick = { onAction(DetailsAction.TrailerSelected) },
+                        onLikeClick = { onAction(DetailsAction.LikeToggled) },
+                        onMyListClick = { onAction(DetailsAction.MyListToggled) },
+                    )
+                }
+            },
+            sharedElementScope = sharedElementScope,
+            sourceArtworkUrl = sourceArtworkUrl,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = StreamCoreDimens.Tv.Details.HeroHeight),
         )
         if (state.isLoading) {
-            StreamCoreLoadingChip(text = "Updating")
+            StreamCoreLoadingChip(
+                text = stringResource(R.string.details_action_updating),
+                modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
+            )
         }
-        DetailsReadingOverview(
-            content = content,
-            scrollState = scrollState,
-            viewportCoordinates = viewportCoordinates,
-            overviewFocusRequester = overviewFocusRequester,
-            upFocusRequester = if (state.isLibraryAvailable || content.trailers.isNotEmpty()) {
-                actionsFocusRequester
-            } else {
-                playFocusRequester
-            },
-            playFocusRequester = playFocusRequester,
-            downFocusRequester = if (state.recommendations.isNotEmpty()) {
-                recommendationsFocusRequester
-            } else {
-                FocusRequester.Cancel
-            },
-        )
     }
 }
 
 @Composable
-private fun DetailsReadingOverview(
+private fun DetailsInformationBand(
     content: ContentModel,
-    scrollState: ScrollState,
-    viewportCoordinates: () -> LayoutCoordinates?,
     overviewFocusRequester: FocusRequester,
-    upFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     downFocusRequester: FocusRequester,
+    scrollState: ScrollState,
+    viewportCoordinates: () -> LayoutCoordinates?,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    var readingCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    val coroutineScope = rememberCoroutineScope()
+    val castFocusRequester = remember(content.id) { FocusRequester() }
+    val hasCast = content.cast.isNotEmpty()
 
-    DetailsOverview(
-        content = content,
-        headingStyle = MaterialTheme.typography.titleSmall,
-        genresStyle = MaterialTheme.typography.labelLarge,
-        descriptionStyle = MaterialTheme.typography.bodyMedium,
-        castHeadingStyle = MaterialTheme.typography.titleSmall,
-        castStyle = MaterialTheme.typography.bodySmall,
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = Modifier
-            .border(
-                width = StreamCoreDimens.Tv.Focus.BorderWidth,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.transparentContainer,
-                shape = MaterialTheme.shapes.medium,
+            .fillMaxWidth()
+            .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding)
+            .testTag(DetailsTestTags.Overview),
+    ) {
+        DetailsReadingSection(
+            contentId = content.id,
+            expandLabel = stringResource(R.string.details_read_full_overview),
+            entryFocusRequester = overviewFocusRequester,
+            upFocusRequester = playFocusRequester,
+            downFocusRequester = downFocusRequester,
+            leftFocusRequester = FocusRequester.Cancel,
+            rightFocusRequester = if (hasCast) castFocusRequester else FocusRequester.Cancel,
+            scrollState = scrollState,
+            viewportCoordinates = viewportCoordinates,
+            modifier = Modifier.weight(if (hasCast) 1.55f else 1f),
+        ) { maxLines, readingModifier ->
+            DetailsSynopsis(
+                content = content,
+                headingStyle = MaterialTheme.typography.titleMedium,
+                genresStyle = MaterialTheme.typography.titleSmall,
+                descriptionStyle = MaterialTheme.typography.bodyMedium,
+                maxLines = maxLines,
+                modifier = readingModifier,
             )
-            .padding(StreamCoreDimens.Spacing.Small)
-            .onGloballyPositioned { readingCoordinates = it }
-            .focusRequester(overviewFocusRequester)
-            .onFocusChanged { isFocused = it.isFocused }
-            .focusProperties {
-                up = upFocusRequester
-                down = downFocusRequester
-                left = playFocusRequester
-                right = FocusRequester.Cancel
+        }
+        if (hasCast) {
+            DetailsReadingSection(
+                contentId = content.id,
+                expandLabel = stringResource(R.string.details_show_full_cast),
+                entryFocusRequester = castFocusRequester,
+                upFocusRequester = playFocusRequester,
+                downFocusRequester = downFocusRequester,
+                leftFocusRequester = overviewFocusRequester,
+                rightFocusRequester = FocusRequester.Cancel,
+                scrollState = scrollState,
+                viewportCoordinates = viewportCoordinates,
+                modifier = Modifier.weight(1f),
+            ) { maxLines, readingModifier ->
+                DetailsCast(
+                    content = content,
+                    headingStyle = MaterialTheme.typography.titleMedium,
+                    castStyle = MaterialTheme.typography.bodyMedium,
+                    maxLines = maxLines,
+                    modifier = readingModifier,
+                )
             }
-            .onPreviewKeyEvent { event ->
-                if (event.key != Key.DirectionUp && event.key != Key.DirectionDown) {
-                    return@onPreviewKeyEvent false
+        }
+    }
+}
+
+@Composable
+private fun DetailsReadingSection(
+    contentId: String,
+    expandLabel: String,
+    entryFocusRequester: FocusRequester,
+    upFocusRequester: FocusRequester,
+    downFocusRequester: FocusRequester,
+    leftFocusRequester: FocusRequester,
+    rightFocusRequester: FocusRequester,
+    scrollState: ScrollState,
+    viewportCoordinates: () -> LayoutCoordinates?,
+    modifier: Modifier = Modifier,
+    content: @Composable (maxLines: Int, modifier: Modifier) -> Unit,
+) {
+    var expanded by rememberSaveable(contentId) { mutableStateOf(false) }
+    var isReadingFocused by remember { mutableStateOf(false) }
+    var readingCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val readingFocusRequester = remember { FocusRequester() }
+    val toggleFocusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val focusClearance = StreamCoreDimens.Tv.Focus.BorderPadding + StreamCoreDimens.Tv.Focus.BorderWidth
+    val focusClearancePx = with(LocalDensity.current) { focusClearance.toPx() }
+    val expandedDescription = stringResource(
+        if (expanded) R.string.details_text_expanded else R.string.details_text_collapsed,
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+        modifier = modifier
+            .focusRequester(entryFocusRequester)
+            .focusGroup(),
+    ) {
+        content(
+            if (expanded) Int.MAX_VALUE else CollapsedReadingLines,
+            Modifier
+                .fillMaxWidth()
+                .border(
+                    width = StreamCoreDimens.Tv.Focus.BorderWidth,
+                    color = if (isReadingFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.transparentContainer,
+                    shape = MaterialTheme.shapes.medium,
+                )
+                .padding(StreamCoreDimens.Spacing.Small)
+                .onGloballyPositioned { readingCoordinates = it }
+                .focusRequester(readingFocusRequester)
+                .onFocusChanged { isReadingFocused = it.isFocused }
+                .focusProperties {
+                    up = upFocusRequester
+                    down = toggleFocusRequester
+                    left = leftFocusRequester
+                    right = rightFocusRequester
                 }
-                if (event.type != KeyEventType.KeyDown) {
-                    return@onPreviewKeyEvent true
-                }
-                val viewport = viewportCoordinates()
-                val reading = readingCoordinates
-                if (viewport?.isAttached != true || reading?.isAttached != true) {
-                    return@onPreviewKeyEvent false
-                }
-                val bounds = viewport.localBoundingBoxOf(reading, clipBounds = false)
-                val viewportHeight = viewport.size.height.toFloat()
-                val readingStep = viewportHeight * ReadingScrollFraction
-                val distance = if (event.key == Key.DirectionDown) {
-                    minOf(readingStep, maxOf(0f, bounds.bottom - viewportHeight))
-                } else {
-                    -minOf(readingStep, maxOf(0f, -bounds.top))
-                }
-                val canScroll = if (distance > 1f) {
-                    scrollState.canScrollForward
-                } else if (distance < -1f) {
-                    scrollState.canScrollBackward
-                } else {
-                    false
-                }
-                if (canScroll) {
-                    // A user scroll cancels relocation before moving the same outer viewport.
-                    // The composition scope cancels pending work when this content leaves.
-                    coroutineScope.launch {
-                        scrollState.scroll(MutatePriority.UserInput) {
-                            scrollBy(distance)
+                .onPreviewKeyEvent { event ->
+                    if (!isReadingFocused || (event.key != Key.DirectionUp && event.key != Key.DirectionDown)) {
+                        return@onPreviewKeyEvent false
+                    }
+                    if (event.type != KeyEventType.KeyDown) {
+                        return@onPreviewKeyEvent true
+                    }
+                    val viewport = viewportCoordinates()
+                    val reading = readingCoordinates
+                    if (viewport?.isAttached != true || reading?.isAttached != true) {
+                        return@onPreviewKeyEvent false
+                    }
+                    val bounds = viewport.localBoundingBoxOf(reading, clipBounds = false)
+                    val viewportHeight = viewport.size.height.toFloat()
+                    val readingStep = viewportHeight * ReadingScrollFraction
+                    val distance = if (event.key == Key.DirectionDown) {
+                        minOf(readingStep, maxOf(0f, bounds.bottom + focusClearancePx - viewportHeight))
+                    } else {
+                        -minOf(readingStep, maxOf(0f, focusClearancePx - bounds.top))
+                    }
+                    val canScroll = when {
+                        distance > 1f -> scrollState.canScrollForward
+                        distance < -1f -> scrollState.canScrollBackward
+                        else -> false
+                    }
+                    if (canScroll) {
+                        coroutineScope.launch {
+                            scrollState.scroll(MutatePriority.UserInput) { scrollBy(distance) }
+                        }
+                    } else {
+                        val target = if (event.key == Key.DirectionDown) toggleFocusRequester else upFocusRequester
+                        if (target != FocusRequester.Cancel) {
+                            target.requestFocus()
                         }
                     }
-                } else {
-                    val target = if (event.key == Key.DirectionDown) downFocusRequester else upFocusRequester
-                    if (target != FocusRequester.Cancel) {
-                        target.requestFocus()
+                    true
+                }
+                .focusable(enabled = expanded),
+        )
+        StreamCoreTvTextButton(
+            text = if (expanded) stringResource(R.string.details_show_less) else expandLabel,
+            enabled = true,
+            onClick = {
+                expanded = !expanded
+                if (expanded) {
+                    coroutineScope.launch {
+                        // Measure full text before focusing it, then start reading at its top.
+                        withFrameNanos { }
+                        readingFocusRequester.requestFocusWhenReady()
+                        val viewport = viewportCoordinates()
+                        val reading = readingCoordinates
+                        if (viewport?.isAttached == true && reading?.isAttached == true) {
+                            val top = viewport.localBoundingBoxOf(reading, clipBounds = false).top
+                            scrollState.scroll(MutatePriority.UserInput) { scrollBy(top - focusClearancePx) }
+                        }
                     }
                 }
-                true
-            }
-            .focusable(),
-    )
+            },
+            modifier = Modifier
+                .focusRequester(toggleFocusRequester)
+                .focusProperties {
+                    up = if (expanded) readingFocusRequester else upFocusRequester
+                    down = downFocusRequester
+                    left = leftFocusRequester
+                    right = rightFocusRequester
+                }
+                .semantics { stateDescription = expandedDescription },
+        )
+    }
 }
 
 private const val ReadingScrollFraction = 0.6f
+private const val CollapsedReadingLines = 3
 
 @Composable
 private fun DetailsActions(
@@ -599,10 +621,9 @@ private fun DetailsActions(
     }
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .fillMaxWidth()
             .focusRequester(actionsFocusRequester)
             .focusRestorer(fallback = firstActionFocusRequester)
             .focusGroup(),
@@ -619,7 +640,7 @@ private fun DetailsActions(
             isLoading = isLikeMutationPending,
             onClick = onLikeClick,
             modifier = Modifier
-                .weight(1f)
+                .widthIn(min = StreamCoreDimens.Button.MinHeight + StreamCoreDimens.Spacing.Large)
                 .focusRequester(likeFocusRequester)
                 .focusProperties {
                     canFocus = isLibraryAvailable
@@ -642,7 +663,7 @@ private fun DetailsActions(
             isLoading = isMyListMutationPending,
             onClick = onMyListClick,
             modifier = Modifier
-                .weight(1f)
+                .widthIn(min = StreamCoreDimens.Button.MinHeight + StreamCoreDimens.Spacing.Large)
                 .focusRequester(myListFocusRequester)
                 .focusProperties {
                     canFocus = isLibraryAvailable
@@ -664,7 +685,7 @@ private fun DetailsActions(
                 isLoading = false,
                 onClick = onTrailerClick,
                 modifier = Modifier
-                    .weight(1f)
+                    .widthIn(min = StreamCoreDimens.Button.MinHeight + StreamCoreDimens.Spacing.Large)
                     .focusRequester(trailerFocusRequester)
                     .focusProperties {
                         up = FocusRequester.Cancel
@@ -699,9 +720,9 @@ private fun DetailsLabeledAction(
         else -> selectedStateDescription
     }
     val contentColor = when {
-        !isAvailable -> StreamCoreControlDefaults.style().disabledContent
+        !isAvailable -> MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.38f)
         selected == true -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onArtwork
     }
 
     Surface(
@@ -802,7 +823,7 @@ private fun RecommendationsRow(
     ) {
         Text(
             text = "More like this",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         )
@@ -824,7 +845,9 @@ private fun RecommendationsRow(
             ) { index, content ->
                 RecommendationCard(
                     content = content,
-                    onClick = { onAction(DetailsAction.RecommendationSelected(content)) },
+                    onClick = {
+                        onAction(DetailsAction.RecommendationSelected(content, sourceArtworkUrl = content.poster))
+                    },
                     modifier = Modifier
                         .then(
                             if (index == returnFocusIndex) {
@@ -874,7 +897,7 @@ private fun RecommendationCard(
     ) {
         DetailsRecommendationArtwork(
             content = content,
-            titleStyle = MaterialTheme.typography.labelLarge,
+            titleStyle = MaterialTheme.typography.labelMedium,
             ratingStyle = MaterialTheme.typography.labelMedium,
         )
     }

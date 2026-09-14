@@ -6,7 +6,10 @@ import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
 
 sealed interface DetailsEffect {
-    data class RecommendationSelected(val content: ContentModel) : DetailsEffect
+    data class RecommendationSelected(
+        val content: ContentModel,
+        val sourceArtworkUrl: String? = null,
+    ) : DetailsEffect
     data class PlaySelected(val request: PlaybackRequestModel) : DetailsEffect
     data class OpenTrailer(val trailer: TrailerModel) : DetailsEffect
     data object NavigateBack : DetailsEffect

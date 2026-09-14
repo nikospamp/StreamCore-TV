@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
+import com.pampoukidis.streamcoretv.core.model.content.imageUrl
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
@@ -154,7 +155,12 @@ fun TvLibraryScreen(
                             null
                         },
                         onSelected = { content ->
-                            onAction(LibraryAction.ContentSelected(content))
+                            onAction(
+                                LibraryAction.ContentSelected(
+                                    content = content,
+                                    sourceArtworkUrl = content.imageUrl(section.type),
+                                ),
+                            )
                         },
                         selectedContentKey = selectedContentKey,
                         returnFocusKey = returnFocusKey,

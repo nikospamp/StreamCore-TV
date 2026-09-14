@@ -152,7 +152,7 @@ fun TvSearchScreen(
                         items = contentState.items,
                         showOfflineNotice = state.showOfflineNotice,
                         onSelected = { content ->
-                            onAction(SearchAction.ResultSelected(content))
+                            onAction(SearchAction.ResultSelected(content, sourceArtworkUrl = content.poster))
                         },
                         selectedContentKey = selectedContentKey,
                         returnFocusKey = returnFocusKey,
@@ -358,7 +358,12 @@ private fun TvSearchDiscovery(
                                 content = content,
                                 type = RowType.Landscape,
                                 onClick = {
-                                    onAction(SearchAction.TrendingSelected(content))
+                                    onAction(
+                                        SearchAction.TrendingSelected(
+                                            content = content,
+                                            sourceArtworkUrl = content.backdrop ?: content.poster,
+                                        ),
+                                    )
                                 },
                                 selectedContentKey = selectedContentKey,
                                 sharedElementScope = sharedElementScope,
