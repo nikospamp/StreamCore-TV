@@ -29,7 +29,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -64,6 +63,15 @@ fun StreamCoreTvContentCard(
     val interactionSource = remember { MutableInteractionSource() }
     val spec = type.tvCardSpec()
     val imageShape = MaterialTheme.shapes.large
+    val imageUrl = content.imageUrl(type)
+    val scrimColor = MaterialTheme.colorScheme.scrim
+    val artworkScrims = remember(scrimColor) {
+        listOf(
+            Brush.verticalGradient(
+                colors = listOf(scrimColor.copy(alpha = 0f), scrimColor.copy(alpha = 0.82f)),
+            ),
+        )
+    }
     val contentKey = StreamCoreSharedKey.content(
         contentId = content.id,
         row = content.row,
@@ -106,26 +114,19 @@ fun StreamCoreTvContentCard(
                 .height(spec.height),
         ) {
             Box {
-                StreamCoreContentImage(
-                    imageUrl = content.imageUrl(type),
+                StreamCoreSharedArtworkImage(
+                    imageUrl = imageUrl,
                     contentDescription = content.title,
                     fallbackText = content.fallbackText(),
-                    contentScale = ContentScale.Crop,
+                    sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
+                    clipShape = imageShape,
+                    sharedElementScope = elementScope,
+                    scrims = artworkScrims,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     fallbackTextStyle = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .streamCoreSharedBounds(
-                            sharedElementScope = elementScope,
-                            key = StreamCoreSharedKey.artwork(
-                                contentId = content.id,
-                                row = content.row,
-                            ),
-                            clipShape = imageShape,
-                        ),
+                    modifier = Modifier.fillMaxSize(),
                 )
-                StreamCoreTvCardGradient()
                 if (type == RowType.TopTen && rank != null) {
                     Text(
                         text = rank.toString(),
@@ -183,22 +184,6 @@ fun StreamCoreTvContentCard(
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-@Composable
-private fun StreamCoreTvCardGradient() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0f),
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.82f),
-                    ),
-                ),
-            ),
-    )
 }
 
 @Composable

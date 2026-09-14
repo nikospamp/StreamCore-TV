@@ -204,6 +204,9 @@ object StreamCoreDimens {
         object Details {
             val RecommendationCardWidth = 190.dp
             val ActionsMaxWidth = 420.dp
+            val PanoramaHeroHeight = 420.dp
+            val PlayButtonWidth = 220.dp
+            val SynopsisMaxWidth = 640.dp
         }
 
         object Profiles {
@@ -308,6 +311,8 @@ object StreamCoreDimens {
 
         object Details {
             val RecommendationCardWidth = 160.dp
+            val HeroHeight = 368.dp
+            val PlayButtonWidth = 205.dp
         }
 
         object Player {
