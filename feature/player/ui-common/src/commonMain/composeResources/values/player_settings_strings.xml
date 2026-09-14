@@ -1,0 +1,14 @@
+<resources>
+    <string name="player_settings_settings_title">Settings</string>
+    <string name="player_settings_settings_supporting">Playback preferences</string>
+    <string name="player_settings_quality_title">Quality</string>
+    <string name="player_settings_quality_supporting">Video resolution and data usage</string>
+    <string name="player_settings_audio_title">Audio</string>
+    <string name="player_settings_audio_supporting">Spoken language</string>
+    <string name="player_settings_subtitles_title">Subtitles</string>
+    <string name="player_settings_subtitles_supporting">Captions and language</string>
+    <string name="player_settings_speed_title">Speed</string>
+    <string name="player_settings_speed_supporting">Playback rate</string>
+    <string name="player_settings_resize_mode_title">Resize mode</string>
+    <string name="player_settings_resize_mode_supporting">Picture fit</string>
+</resources>

@@ -146,3 +146,17 @@ insets and disabled Share/Trailer; compact/full Overview and Cast content; warm/
 URLs during a load; minimum-height hero growth, gradient contrast, and over-artwork focus states;
 TV action/recommendation traversal, long-text reading and its boundary navigation, summary scroll restoration and return focus, pending mutations,
 loading/error recovery, and long labels at larger font scales. No new flows are introduced; runtime performance has not been measured.
+
+## Android Player harmonization
+
+`PlayerControlIcon` and `PlayerTimelineTrack` share transport vectors and buffered/progress drawing. Settings share header, icon, navigation-row,
+and selection-row content plus speed/resize options. Mobile/tablet retain their touch wrappers, dimensions, and transitions; TV owns circular
+focusable artwork controls, remote seeking, focus restoration, and the right-side settings panel. Shared rendering remains backend-agnostic.
+
+TV controls use the same translucent artwork surfaces as mobile. Settings stays in the video composition with a dim scrim instead of an opaque
+dialog backdrop. Panel focus is contained, Back moves from a child page to the settings root and then restores the gear control, and transport
+focus survives buffering. Each TV control keeps its fill, indication, and border on one shape with room for the focus ring.
+
+Deferred regression coverage: mobile/tablet appearance parity; TV transport/seek, auto-hide, buffering focus, and playback errors; settings page
+navigation, selection, focus containment/restoration, long track labels, and larger text. This extraction adds no ViewModel scopes or flows;
+TV option lists are remembered by settings data rather than rebuilt on playback position ticks. Automated tests remain deferred for manual review.
