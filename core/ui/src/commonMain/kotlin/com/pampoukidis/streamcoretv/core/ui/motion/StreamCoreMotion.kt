@@ -36,6 +36,8 @@ import kotlin.time.Duration.Companion.milliseconds
 class StreamCoreSharedElementScope(
     internal val sharedTransitionScope: SharedTransitionScope,
     internal val animatedVisibilityScope: AnimatedVisibilityScope,
+    /** The destination image decoded before navigation; stable for this route's picture motion. */
+    val preparedArtworkUrl: String? = null,
 )
 
 /**
@@ -47,6 +49,9 @@ class StreamCoreSharedElementScope(
  *
  * Use a value from [StreamCoreSharedElementZIndex] for [zIndexInOverlay]. Elements that must appear
  * together during the transition should use the same semantic layer in both destinations.
+ *
+ * The final layout is scaled during the transition, preserving text and bespoke content layouts.
+ * Use [streamCoreSharedArtworkBounds] for pictures and their contrast treatments.
  */
 @Composable
 fun Modifier.streamCoreSharedBounds(
@@ -74,6 +79,52 @@ fun Modifier.streamCoreSharedBounds(
                     contentScale = ContentScale.Crop,
                 ),
                 zIndexInOverlay = zIndexInOverlay,
+                clipInOverlayDuringTransition = OverlayClip(clipShape),
+            )
+            .clip(clipShape)
+    }
+}
+
+/**
+ * Moves a drawing-only picture and its scrim with synchronized bounds and fade timing.
+ *
+ * Include contrast treatments inside this modifier and keep text/controls outside it. The key
+ * identifies the originating content/row throughout entry and Back, including poster-to-backdrop
+ * handoffs. [imageUrl] only determines whether artwork is available to share.
+ *
+ * Use this on a drawing leaf whose image request was sized outside the animated bounds. Only the
+ * leaf follows those bounds; painters crop uniformly and scrims cover the same drawing region.
+ */
+@Composable
+fun Modifier.streamCoreSharedArtworkBounds(
+    sharedElementScope: StreamCoreSharedElementScope?,
+    key: String,
+    imageUrl: String?,
+    clipShape: Shape,
+): Modifier {
+    if (sharedElementScope == null || imageUrl.isNullOrBlank()) {
+        return this.clip(clipShape)
+    }
+
+    return with(sharedElementScope.sharedTransitionScope) {
+        this@streamCoreSharedArtworkBounds
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(key = key),
+                animatedVisibilityScope = sharedElementScope.animatedVisibilityScope,
+                enter = fadeIn(
+                    animationSpec = tween(StreamCoreMotionDurations.ArtworkTransitionMillis),
+                ),
+                exit = fadeOut(
+                    animationSpec = tween(StreamCoreMotionDurations.ArtworkTransitionMillis),
+                ),
+                boundsTransform = { _, _ ->
+                    tween(
+                        durationMillis = StreamCoreMotionDurations.ArtworkTransitionMillis,
+                        easing = FastOutSlowInEasing,
+                    )
+                },
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                zIndexInOverlay = StreamCoreSharedElementZIndex.Artwork,
                 clipInOverlayDuringTransition = OverlayClip(clipShape),
             )
             .clip(clipShape)
@@ -268,6 +319,10 @@ object StreamCoreMotionDurations {
 
     /** Fade duration for content participating directly in shared bounds. */
     const val SharedElementFadeMillis = 90
+
+    /** Picture bounds and its image/scrim fade complete together with navigation. */
+    const val ArtworkTransitionMillis = NavigationSlideMillis
+
 }
 
 private const val EntranceTransformMillis = 220

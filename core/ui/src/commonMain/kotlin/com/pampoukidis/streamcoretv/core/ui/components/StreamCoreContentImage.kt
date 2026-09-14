@@ -34,6 +34,7 @@ fun StreamCoreContentImage(
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     fallbackTextStyle: TextStyle = MaterialTheme.typography.displayMedium,
     crossfade: Boolean = true,
+    alignment: Alignment = Alignment.Center,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val normalizedImageUrl = imageUrl?.takeIf { url -> url.isNotBlank() }
@@ -65,6 +66,7 @@ fun StreamCoreContentImage(
                 model = imageRequest,
                 contentDescription = contentDescription,
                 contentScale = contentScale,
+                alignment = alignment,
                 modifier = Modifier.fillMaxSize(),
             )
         }
