@@ -1,5 +1,8 @@
 # StreamCoreTV Web Orchestration Handoff
 
+> Historical WEB-01/02 checkpoint. For the current branch state, completed UI work, new-PC setup, and next actions, read
+> [the current handoff](../HANDOFF.md). The model selection, branch status, and pending-ticket instructions below describe that earlier phase.
+
 Use **GPT-5.6 Sol with Ultra reasoning**. Act as orchestration/integration owner, not primary feature implementer. The target architecture is backend-agnostic: core, domain, and feature UI never depend on provider DTOs, SDKs, responses, or models.
 
 ## Verified repository state
