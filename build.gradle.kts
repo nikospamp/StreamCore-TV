@@ -309,6 +309,7 @@ val designTokenSourceFiles = files(
     },
 )
 val allowedDesignTokenFiles = setOf(
+    "feature/details/ui-web/src/commonMain/kotlin/com/pampoukidis/streamcoretv/feature/details/web/details/Dimens.kt",
     "core/ui-web/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/web/Dimens.kt",
     "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/extensions/ColorSchemeExtensions.kt",
     "core/ui/src/commonMain/kotlin/com/pampoukidis/streamcoretv/core/ui/theme/Color.kt",

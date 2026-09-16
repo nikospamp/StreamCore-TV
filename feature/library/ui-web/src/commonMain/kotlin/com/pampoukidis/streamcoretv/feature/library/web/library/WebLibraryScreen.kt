@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,42 +19,37 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.fallbackText
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.error.AppError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
-import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
-import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebMediaCard
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.core.ui.web.webEscape
@@ -79,7 +73,6 @@ import streamcoretv.feature.library.ui_web.generated.resources.web_library_offli
 import streamcoretv.feature.library.ui_web.generated.resources.web_library_refresh
 import streamcoretv.feature.library.ui_web.generated.resources.web_library_refreshing
 import streamcoretv.feature.library.ui_web.generated.resources.web_library_retry
-import streamcoretv.feature.library.ui_web.generated.resources.web_library_subtitle
 import streamcoretv.feature.library.ui_web.generated.resources.web_library_title
 
 @Composable
@@ -115,12 +108,6 @@ fun WebLibraryScreen(
     var focusAssigned by remember { mutableStateOf(false) }
     val currentOnReturnFocusConsumed by rememberUpdatedState(onReturnFocusConsumed)
     val backgroundColor = MaterialTheme.colorScheme.background
-    val backgroundEndColor = MaterialTheme.colorScheme.surfaceContainerLowest
-    val backgroundBrush = remember(backgroundColor, backgroundEndColor) {
-        Brush.verticalGradient(
-            colors = listOf(backgroundColor, backgroundEndColor),
-        )
-    }
 
     LaunchedEffect(returnFocusKey) {
         if (returnFocusKey != null) {
@@ -167,7 +154,11 @@ fun WebLibraryScreen(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         modifier = modifier
             .fillMaxSize()
-            .background(backgroundBrush)
+            .background(backgroundColor)
+            .padding(
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
+            )
             .webEscape {
                 refreshFocusRequester.requestFocus()
             }
@@ -268,18 +259,11 @@ private fun WebLibraryHeader(
             .fillMaxWidth()
             .testTag(LibraryTestTags.Header),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
-            Text(
-                text = stringResource(Res.string.web_library_title),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(Res.string.web_library_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = stringResource(Res.string.web_library_title),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
         Spacer(modifier = Modifier.weight(1f))
         StreamCoreWebButton(
             text = stringResource(
@@ -311,9 +295,11 @@ private fun WebLibraryError(
     downFocusRequester: FocusRequester,
     onRetry: () -> Unit,
 ) {
-    StreamCoreWebPanel(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium)
+            .padding(StreamCoreDimens.Spacing.Large)
             .testTag(LibraryTestTags.Error),
     ) {
         Row(
@@ -339,7 +325,7 @@ private fun WebLibraryError(
                 Text(
                     text = stringResource(Res.string.web_library_error_message),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
             StreamCoreWebButton(
@@ -454,113 +440,26 @@ private fun WebLibraryContentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val imageUrl = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        content.backdrop ?: content.poster
-    } else {
-        content.poster
-    }
-    val cardWidth = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        StreamCoreDimens.Web.Library.LandscapeCardWidth
-    } else {
-        StreamCoreDimens.Web.Library.PosterCardWidth
-    }
-    val aspectRatio = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        LandscapeAspectRatio
-    } else {
-        PosterAspectRatio
-    }
-    val requestWidth = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        LandscapeRequestWidthPx
-    } else {
-        PosterRequestWidthPx
-    }
-    val requestHeight = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-        LandscapeRequestHeightPx
-    } else {
-        PosterRequestHeightPx
-    }
-    val scrimColor = MaterialTheme.colorScheme.scrim
-    val transparentContainer = MaterialTheme.colorScheme.transparentContainer
-    val artworkScrim = remember(scrimColor, transparentContainer) {
-        Brush.verticalGradient(
-            0.35f to transparentContainer,
-            1f to scrimColor.copy(alpha = 0.94f),
-        )
-    }
-
-    StreamCoreWebContentCard(
+    StreamCoreWebMediaCard(
+        content = content,
+        type = if (section.kind == WebLibrarySectionKind.ContinueWatching) {
+            RowType.ContinueWatching
+        } else {
+            RowType.Poster
+        },
         onClick = onClick,
         selected = selected,
-        aspectRatio = aspectRatio,
-        modifier = modifier.width(cardWidth),
-    ) {
-        StreamCoreWebArtwork(
-            imageUrl = imageUrl,
-            contentDescription = content.title,
-            fallbackText = content.fallbackText(),
-            requestWidthPx = requestWidth,
-            requestHeightPx = requestHeight,
-            modifier = Modifier.fillMaxSize(),
-            overlay = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(artworkScrim),
-                )
-                Text(
-                    text = content.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onArtwork,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(StreamCoreDimens.Spacing.Medium),
-                )
-                if (section.kind == WebLibrarySectionKind.ContinueWatching) {
-                    WebLibraryProgress(
-                        content = content,
-                        modifier = Modifier.align(Alignment.BottomStart),
-                    )
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun WebLibraryProgress(
-    content: ContentModel,
-    modifier: Modifier = Modifier,
-) {
-    val progress = content.playbackProgress
-    val fraction = if (progress == null || progress.durationMillis <= 0L) {
-        0f
-    } else {
-        (progress.positionMillis.toFloat() / progress.durationMillis.toFloat()).coerceIn(0f, 1f)
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(StreamCoreDimens.Web.Library.ProgressHeight)
-            .background(MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.28f)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.primary),
-        )
-    }
+        modifier = modifier,
+    )
 }
 
 @Composable
 private fun WebLibraryEmptySection(section: WebLibrarySection) {
-    StreamCoreWebPanel(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium)
+            .padding(StreamCoreDimens.Spacing.Large)
             .testTag(LibraryTestTags.EmptyPrefix + section.key),
     ) {
         Row(
@@ -569,7 +468,9 @@ private fun WebLibraryEmptySection(section: WebLibrarySection) {
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(StreamCoreDimens.Icon.TouchTarget),
+                modifier = Modifier
+                    .size(StreamCoreDimens.Icon.TouchTarget)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
             ) {
                 when (section.kind) {
                     WebLibrarySectionKind.ContinueWatching -> StreamCoreHistoryIcon()
@@ -599,8 +500,8 @@ private fun WebLibraryLoading(modifier: Modifier = Modifier) {
             Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium)) {
                 Box(
                     modifier = Modifier
-                        .width(StreamCoreDimens.Web.Library.LoadingTitleWidth)
-                        .height(StreamCoreDimens.Web.Library.LoadingTitleHeight)
+                        .width(StreamCoreDimens.Tv.Loading.TitleWidth)
+                        .height(StreamCoreDimens.Tv.Loading.TitleHeight)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             shape = MaterialTheme.shapes.small,
@@ -610,8 +511,8 @@ private fun WebLibraryLoading(modifier: Modifier = Modifier) {
                     repeat(LoadingCardCount) {
                         Box(
                             modifier = Modifier
-                                .width(StreamCoreDimens.Web.Library.LandscapeCardWidth)
-                                .height(StreamCoreDimens.Web.Library.LandscapeCardWidth / LandscapeAspectRatio)
+                                .width(StreamCoreDimens.Tv.Browse.LandscapeCardWidth)
+                                .height(StreamCoreDimens.Tv.Browse.LandscapeCardWidth / LandscapeAspectRatio)
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     shape = MaterialTheme.shapes.large,
@@ -716,15 +617,10 @@ private enum class WebLibrarySectionKind {
     MyList,
 }
 
-private const val LandscapeRequestWidthPx = 640
-private const val LandscapeRequestHeightPx = 360
-private const val PosterRequestWidthPx = 400
-private const val PosterRequestHeightPx = 600
 private const val LoadingSectionCount = 3
 private const val LoadingCardCount = 4
 private const val FocusRequestAttempts = 3
 private val LandscapeAspectRatio = 16f / 9f
-private val PosterAspectRatio = 2f / 3f
 
 @Preview(name = "Library · Loading", widthDp = 1280, heightDp = 720)
 @Composable
@@ -771,7 +667,6 @@ private fun WebLibraryPreview(scenario: WebBrowseFixtureScenario) {
             selectedContentKey = null,
             returnFocusKey = null,
             onReturnFocusConsumed = {},
-            modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
         )
     }
 }

@@ -3,17 +3,19 @@ package com.pampoukidis.streamcoretv.feature.profiles.web.profiles
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,24 +39,24 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreAddIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebActionSurface
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebProfileCard
 import com.pampoukidis.streamcoretv.core.ui.web.webEscape
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -70,6 +72,7 @@ fun WebProfilesScreen(
     onEditProfile: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onLogoutRequested: (() -> Unit)? = null,
 ) {
     val manageFocus = remember { FocusRequester() }
     val addFocus = remember { FocusRequester() }
@@ -109,46 +112,35 @@ fun WebProfilesScreen(
             }
             .testTag(ProfilesTestTags.Root),
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val wideLayout = maxWidth >= StreamCoreWebDimens.WideViewportThreshold
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-                modifier = Modifier
-                    .then(
-                        if (wideLayout) {
-                            Modifier
-                                .align(Alignment.TopCenter)
-                                .widthIn(max = StreamCoreWebDimens.ProfilesContentMaxWidth)
-                                .fillMaxWidth()
-                        } else {
-                            Modifier.fillMaxWidth()
-                        },
-                    )
-                    .padding(
-                        horizontal = StreamCoreWebDimens.ScreenHorizontal,
-                        vertical = StreamCoreWebDimens.ScreenVertical,
-                    ),
-            ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(StreamCoreDimens.Tv.Screen.HorizontalPadding),
+        ) {
             ProfilesHeader(
                 mode = state.mode,
-                hasProfiles = state.profiles.isNotEmpty(),
+                hasProfiles = !state.isLoading && state.loadError == null && state.profiles.isNotEmpty(),
+                enabled = !state.isSaving && state.pendingSelectionProfileId == null,
                 manageFocus = manageFocus,
                 firstFocus = firstFocus,
                 onAction = onAction,
+                onLogoutRequested = onLogoutRequested,
             )
-            when {
-                state.isLoading -> ProfilesLoading()
-                state.loadError != null -> ProfilesError(onRetry = { onAction(ProfilesAction.Refresh) })
-                else -> ProfilesContent(
-                    state = state,
-                    profileFocus = profileFocus,
-                    addFocus = addFocus,
-                    manageFocus = manageFocus,
-                    onAction = onAction,
-                    onCreateProfile = onCreateProfile,
-                    onEditProfile = onEditProfile,
-                )
-            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                when {
+                    state.isLoading -> ProfilesLoading()
+                    state.loadError != null -> ProfilesError(onRetry = { onAction(ProfilesAction.Refresh) })
+                    else -> ProfilesContent(
+                        state = state,
+                        profileFocus = profileFocus,
+                        addFocus = addFocus,
+                        manageFocus = manageFocus,
+                        onAction = onAction,
+                        onCreateProfile = onCreateProfile,
+                        onEditProfile = onEditProfile,
+                    )
+                }
             }
         }
     }
@@ -167,45 +159,43 @@ fun WebProfilesScreen(
 private fun ProfilesHeader(
     mode: ProfilesMode,
     hasProfiles: Boolean,
+    enabled: Boolean,
     manageFocus: FocusRequester,
     firstFocus: FocusRequester,
     onAction: (ProfilesAction) -> Unit,
+    onLogoutRequested: (() -> Unit)?,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxWidth().height(StreamCoreDimens.Tv.Profiles.HeaderHeight),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
-            Text(
-                text = if (mode == ProfilesMode.Selection) "Who's watching?" else "Manage profiles",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = if (mode == ProfilesMode.Selection) {
-                    "Choose a profile to continue."
-                } else {
-                    "Select a profile to edit, or remove an eligible profile."
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Text(
+            text = if (mode == ProfilesMode.Selection) "Who's watching?" else "Manage profiles",
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = StreamCoreDimens.Tv.Profiles.HeaderSideClearance),
+        )
+        if (mode == ProfilesMode.Selection && onLogoutRequested != null) {
+            StreamCoreWebButton(
+                text = "Sign out",
+                onClick = onLogoutRequested,
+                enabled = enabled,
+                variant = StreamCoreWebButtonVariant.Tertiary,
+                modifier = Modifier.align(Alignment.CenterStart).testTag(ProfilesTestTags.SignOutButton),
             )
         }
         if (hasProfiles) {
             StreamCoreWebButton(
-                text = if (mode == ProfilesMode.Selection) "Manage profiles" else "Done",
+                text = if (mode == ProfilesMode.Selection) "Manage" else "Done",
                 onClick = {
-                    onAction(
-                        if (mode == ProfilesMode.Selection) {
-                            ProfilesAction.ManageProfiles
-                        } else {
-                            ProfilesAction.DoneManaging
-                        },
-                    )
+                    onAction(if (mode == ProfilesMode.Selection) ProfilesAction.ManageProfiles else ProfilesAction.DoneManaging)
                 },
-                variant = StreamCoreWebButtonVariant.Secondary,
-                modifier = Modifier
+                enabled = enabled,
+                variant = StreamCoreWebButtonVariant.Tertiary,
+                modifier = Modifier.align(Alignment.CenterEnd)
                     .focusRequester(manageFocus)
                     .focusProperties { down = firstFocus }
                     .testTag(ProfilesTestTags.ManageProfilesButton),
@@ -248,8 +238,9 @@ private fun ProfilesContent(
 
     val profileIds = state.profiles.map(ProfileModel::id)
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-        verticalAlignment = Alignment.Top,
+        contentPadding = PaddingValues(StreamCoreDimens.Spacing.ExtraLarge),
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
         itemsIndexed(
@@ -272,7 +263,6 @@ private fun ProfilesContent(
                         onEditProfile(profile.id)
                     }
                 },
-                onDelete = { onAction(ProfilesAction.RequestDeleteProfile(profile.id)) },
                 modifier = Modifier
                     .focusRequester(requester)
                     .focusProperties {
@@ -303,6 +293,7 @@ private fun ProfilesContent(
         }
         item(key = "add-profile", contentType = "web-add-profile") {
             WebAddProfileTile(
+                enabled = !state.isSaving && state.pendingSelectionProfileId == null,
                 onClick = onCreateProfile,
                 modifier = Modifier
                     .focusRequester(addFocus)
@@ -323,60 +314,71 @@ private fun WebProfileTile(
     selecting: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.TileWidth, StreamCoreDimens.Tv.Profiles.TileHeight),
     ) {
-        StreamCoreWebProfileCard(
-            selected = selecting,
-            enabled = enabled,
-            onClick = onClick,
-            modifier = modifier.semantics {
-                role = Role.Button
-                contentDescription = if (mode == ProfilesMode.Selection) {
-                    "Select ${profile.displayName} profile"
-                } else {
-                    "Edit ${profile.displayName} profile"
-                }
-                if (!enabled) disabled()
-            },
-        ) {
-            Box {
-                StreamCoreProfileArtwork(
-                    avatar = profile.avatar,
-                    contentDescription = null,
-                    modifier = Modifier.size(StreamCoreWebDimens.ProfileArtworkSize),
-                )
-                if (selecting) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)),
-                    ) {
-                        CircularProgressIndicator()
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.FocusContainerSize)) {
+            StreamCoreWebActionSurface(
+                selected = selecting,
+                enabled = enabled,
+                onClick = onClick,
+                shape = CircleShape,
+                modifier = modifier.size(StreamCoreDimens.Tv.Profiles.AvatarSize).semantics {
+                    role = Role.Button
+                    contentDescription = if (mode == ProfilesMode.Selection) {
+                        "Select "+profile.displayName+" profile"
+                    } else {
+                        "Edit "+profile.displayName+" profile"
+                    }
+                },
+            ) {
+                Box {
+                    StreamCoreProfileArtwork(
+                        avatar = profile.avatar,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (selecting) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.matchParentSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.48f)),
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.SelectionProgressSize))
+                        }
                     }
                 }
-                if (profile.isKidsProfile) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(StreamCoreDimens.Spacing.Small)
-                            .testTag(ProfilesTestTags.KidsChipPrefix + profile.id),
-                    ) {
-                        Text(
-                            text = "Kids",
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(
-                                horizontal = StreamCoreDimens.Spacing.Medium,
-                                vertical = StreamCoreDimens.Spacing.Tiny,
-                            ),
-                        )
+            }
+            if (profile.isKidsProfile) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                        .offset(x = -StreamCoreDimens.Tv.Profiles.BadgeOffsetX, y = StreamCoreDimens.Tv.Profiles.BadgeOffsetY)
+                        .testTag(ProfilesTestTags.KidsChipPrefix + profile.id),
+                ) {
+                    Text(
+                        text = "Kids",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = StreamCoreDimens.Spacing.Medium, vertical = StreamCoreDimens.Spacing.Tiny),
+                    )
+                }
+            }
+            if (mode == ProfilesMode.Manage) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.align(Alignment.BottomEnd).size(StreamCoreDimens.Tv.Profiles.BadgeSize),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        StreamCoreEditIcon(modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.EditIconSize))
                     }
                 }
             }
@@ -384,56 +386,62 @@ private fun WebProfileTile(
         Text(
             text = profile.displayName,
             style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
-        if (mode == ProfilesMode.Manage && profile.canDelete) {
-            StreamCoreWebButton(
-                text = "Delete",
-                onClick = onDelete,
-                variant = StreamCoreWebButtonVariant.Destructive,
-                modifier = Modifier.testTag(ProfilesTestTags.DeleteProfileButtonPrefix + profile.id),
-            )
-        }
     }
 }
 
 @Composable
 private fun WebAddProfileTile(
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.TileWidth, StreamCoreDimens.Tv.Profiles.TileHeight),
     ) {
-        StreamCoreWebProfileCard(
-            selected = false,
-            enabled = true,
-            onClick = onClick,
-            modifier = modifier.semantics {
-                role = Role.Button
-                contentDescription = "Add profile"
-            },
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(StreamCoreWebDimens.ProfileArtworkSize)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.FocusContainerSize)) {
+            StreamCoreWebActionSurface(
+                enabled = enabled,
+                onClick = onClick,
+                shape = CircleShape,
+                modifier = modifier.size(StreamCoreDimens.Tv.Profiles.AvatarSize)
+                    .semantics { contentDescription = "Add profile" },
             ) {
-                Text("+", style = MaterialTheme.typography.displayLarge)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                ) {
+                    StreamCoreAddIcon(modifier = Modifier.size(StreamCoreDimens.Icon.Large))
+                }
             }
         }
-        Text("Add profile", style = MaterialTheme.typography.titleLarge)
+        Text("Add profile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 private fun ProfilesLoading() {
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-        CircularProgressIndicator()
+    Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge)) {
+        repeat(3) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+                modifier = Modifier.width(StreamCoreDimens.Tv.Profiles.TileWidth),
+            ) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                    Box(modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.AvatarSize))
+                }
+                Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                    Box(modifier = Modifier.size(StreamCoreDimens.Tv.Profiles.LoadingLabelWidth, StreamCoreDimens.Tv.Profiles.LoadingLabelHeight))
+                }
+            }
+        }
     }
 }
 
@@ -447,7 +455,7 @@ private fun ProfilesError(onRetry: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Text("Profiles are unavailable", style = MaterialTheme.typography.headlineMedium)
         Text("Check your connection and try again.", color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -1,14 +1,26 @@
 package com.pampoukidis.streamcoretv.feature.search.web.search
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
+import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
@@ -40,41 +52,64 @@ internal actual fun WebSearchTextField(
     modifier: Modifier,
 ) {
     val fieldHint = stringResource(Res.string.web_search_field_hint)
-    val controls = StreamCoreWebControlStyle(StreamCoreControlDefaults.style())
+    val controlStyle = StreamCoreControlDefaults.style()
+    val inputShape = remember(controlStyle.inputRadius) { RoundedCornerShape(controlStyle.inputRadius) }
+    val controls = StreamCoreWebControlStyle(controlStyle)
+    var focused by remember { mutableStateOf(false) }
     val currentCallbacks = rememberUpdatedState(
         WebSearchTextFieldCallbacks(
             enabled = enabled,
             onValueChange = onValueChange,
             onSubmitCommittedValue = onSubmitCommittedValue,
             onEscape = onEscape,
+            onFocusChanged = { focused = it },
         ),
     )
     val listeners = remember {
         WebSearchTextFieldListeners(callbacks = { currentCallbacks.value })
     }
     val colors = WebSearchTextFieldColors(
-        background = MaterialTheme.colorScheme.surfaceContainerHigh,
+        background = if (focused) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         foreground = MaterialTheme.colorScheme.onSurface,
         placeholder = MaterialTheme.colorScheme.onSurfaceVariant,
         outline = MaterialTheme.colorScheme.outline,
         focus = MaterialTheme.colorScheme.primary,
     )
 
-    HtmlElementView(
-        factory = { createSearchFieldContainer(listeners, fieldHint) },
-        update = { container ->
-            val input = container.searchInput()
-            listeners.updateValueFromState(input = input, value = value)
-            input.disabled = !enabled
-            input.style.cssText = fieldStyle(colors) + controls.input(enabled)
-            container.searchStyle().textContent = focusStyle(colors)
-            input.setAttribute("aria-label", fieldHint)
-            input.setAttribute("placeholder", fieldHint)
-            input.setAttribute("aria-disabled", (!enabled).toString())
-        },
-        onRelease = { container -> listeners.detach(container.searchInput()) },
-        modifier = modifier.height(StreamCoreWebDimens.ControlHeight),
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .height(StreamCoreWebDimens.ControlHeight)
+            .clip(inputShape)
+            .background(colors.background)
+            .border(
+                width = if (focused) StreamCoreDimens.Stroke.Default else StreamCoreDimens.Stroke.Thin,
+                color = if (focused) colors.focus else colors.outline,
+                shape = inputShape,
+            )
+            .padding(
+                horizontal = StreamCoreDimens.Spacing.Medium,
+                // Keep the HTML interop rectangle inside the Compose-painted focus border.
+                vertical = StreamCoreDimens.Stroke.Default,
+            ),
+    ) {
+        StreamCoreSearchIcon(color = colors.placeholder)
+        HtmlElementView(
+            factory = { createSearchFieldContainer(listeners, fieldHint) },
+            update = { container ->
+                val input = container.searchInput()
+                listeners.updateValueFromState(input = input, value = value)
+                input.disabled = !enabled
+                input.style.cssText = fieldStyle(colors) + controls.input(enabled)
+                container.searchStyle().textContent = focusStyle(colors)
+                input.setAttribute("aria-label", fieldHint)
+                input.setAttribute("placeholder", fieldHint)
+                input.setAttribute("aria-disabled", (!enabled).toString())
+            },
+            onRelease = { container -> listeners.detach(container.searchInput()) },
+            modifier = Modifier.weight(1f).height(StreamCoreWebDimens.ControlHeight),
+        )
+    }
 
     LaunchedEffect(requestFocus) {
         if (!requestFocus) {
@@ -99,6 +134,7 @@ private data class WebSearchTextFieldCallbacks(
     val onValueChange: (String) -> Unit,
     val onSubmitCommittedValue: (String) -> Unit,
     val onEscape: () -> Unit,
+    val onFocusChanged: (Boolean) -> Unit,
 )
 
 @OptIn(ExperimentalWasmJsInterop::class)
@@ -108,6 +144,9 @@ private class WebSearchTextFieldListeners(
     private var isComposing: Boolean = false
     private var lastCommittedValue: String? = null
     private var pendingPasteTimer: Int? = null
+
+    private val focusListener: (Event) -> Unit = { callbacks().onFocusChanged(true) }
+    private val blurListener: (Event) -> Unit = { callbacks().onFocusChanged(false) }
 
     private val inputListener: (Event) -> Unit = input@{ event ->
         val input = event.currentTarget as? HTMLInputElement ?: return@input
@@ -162,6 +201,8 @@ private class WebSearchTextFieldListeners(
     }
 
     fun attach(input: HTMLInputElement) {
+        input.addEventListener("focus", focusListener)
+        input.addEventListener("blur", blurListener)
         input.addEventListener("input", inputListener)
         input.addEventListener("change", changeListener)
         input.addEventListener("compositionstart", compositionStartListener)
@@ -171,6 +212,8 @@ private class WebSearchTextFieldListeners(
     }
 
     fun detach(input: HTMLInputElement) {
+        input.removeEventListener("focus", focusListener)
+        input.removeEventListener("blur", blurListener)
         input.removeEventListener("input", inputListener)
         input.removeEventListener("change", changeListener)
         input.removeEventListener("compositionstart", compositionStartListener)
@@ -243,12 +286,12 @@ private data class WebSearchTextFieldColors(
 )
 
 private fun fieldStyle(colors: WebSearchTextFieldColors): String {
-    return "box-sizing:border-box;width:100%;height:${StreamCoreWebDimens.ControlHeight.value}px;" +
+    return "box-sizing:border-box;width:100%;height:100%;" +
         "padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;" +
-        "border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${colors.outline.cssColor()};" +
-        "background:${colors.background.cssColor()};color:${colors.foreground.cssColor()};" +
+        "border:0;" +
+        "background:transparent;color:${colors.foreground.cssColor()};" +
         "caret-color:${colors.focus.cssColor()};" +
-        "outline:${StreamCoreWebDimens.FocusBorder.value}px solid transparent;outline-offset:2px;"
+        "outline:none;"
 }
 
 private fun focusStyle(colors: WebSearchTextFieldColors): String {
@@ -258,8 +301,7 @@ private fun focusStyle(colors: WebSearchTextFieldColors): String {
             opacity: 1;
         }
         [data-testid='${SearchTestTags.Field}']:focus-visible {
-            border-color: ${colors.focus.cssColor()} !important;
-            outline-color: ${colors.focus.cssColor()} !important;
+            outline: none;
         }
         [data-testid='${SearchTestTags.Field}']:disabled {
             cursor: default;

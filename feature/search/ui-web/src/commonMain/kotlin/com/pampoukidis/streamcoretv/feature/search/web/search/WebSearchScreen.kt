@@ -3,14 +3,15 @@ package com.pampoukidis.streamcoretv.feature.search.web.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,13 +26,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,17 +45,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.fallbackText
-import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
+import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseIcon
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebMediaCard
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
 import com.pampoukidis.streamcoretv.core.ui.web.webEscape
@@ -76,11 +76,9 @@ import streamcoretv.feature.search.ui_web.generated.resources.web_search_loading
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_offline_notice
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_open_details
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_recent_heading
-import streamcoretv.feature.search.ui_web.generated.resources.web_search_remove
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_remove_recent_description
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_results_heading
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_searching
-import streamcoretv.feature.search.ui_web.generated.resources.web_search_subtitle
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_title
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_trending_heading
 import streamcoretv.feature.search.ui_web.generated.resources.web_search_try_again
@@ -116,8 +114,11 @@ fun WebSearchScreen(
             .testTag(SearchTestTags.Screen),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+            modifier = Modifier.fillMaxSize().padding(
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
+            ),
         ) {
             SearchHeading()
             WebSearchFieldRow(
@@ -190,18 +191,11 @@ fun WebSearchScreen(
 
 @Composable
 private fun SearchHeading() {
-    Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
-        Text(
-            text = stringResource(Res.string.web_search_title),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = stringResource(Res.string.web_search_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    Text(
+        text = stringResource(Res.string.web_search_title),
+        style = MaterialTheme.typography.headlineLarge,
+        fontWeight = FontWeight.SemiBold,
+    )
 }
 
 @Composable
@@ -228,8 +222,9 @@ private fun WebSearchFieldRow(
             onEscape = onEscape,
             onFocusRequestConsumed = onFocusRequestConsumed,
             modifier = Modifier
-                .weight(1f)
-                .widthIn(max = StreamCoreDimens.Web.Search.FieldMaxWidth),
+                .weight(1f, fill = false)
+                .widthIn(max = StreamCoreDimens.Tv.Search.FieldMaxWidth)
+                .fillMaxWidth(),
         )
         if (state.query.isNotEmpty()) {
             StreamCoreWebButton(
@@ -330,23 +325,23 @@ private fun WebRecentSearches(
                     Res.string.web_search_remove_recent_description,
                     query,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     StreamCoreWebButton(
                         text = query,
                         onClick = { onAction(SearchAction.RecentSelected(query)) },
                         variant = StreamCoreWebButtonVariant.Secondary,
                         modifier = Modifier
-                            .widthIn(max = StreamCoreDimens.Web.Search.RecentQueryMaxWidth)
+                            .width(StreamCoreDimens.Tv.Search.RecentItemWidth)
                             .testTag(SearchTestTags.recent(query)),
                     )
-                    StreamCoreWebButton(
-                        text = stringResource(Res.string.web_search_remove),
+                    StreamCoreWebArtworkIconButton(
+                        contentDescription = removeDescription,
                         onClick = { onAction(SearchAction.RecentRemoved(query)) },
-                        variant = StreamCoreWebButtonVariant.Tertiary,
-                        modifier = Modifier
-                            .semantics { contentDescription = removeDescription }
-                            .testTag(SearchTestTags.removeRecent(query)),
-                    )
+                        modifier = Modifier.testTag(SearchTestTags.removeRecent(query)),
+                    ) { StreamCoreCloseIcon() }
                 }
             }
         }
@@ -403,13 +398,10 @@ private fun WebTrendingSearches(
                 val focusKey = content.webSearchFocusKey()
                 WebSearchContentTile(
                     content = content,
-                    imageUrl = content.backdrop ?: content.poster,
                     selected = content.matchesWebSearchFocusKey(selectedContentKey),
-                    aspectRatio = StreamCoreDimens.Artwork.LandscapeAspectRatio,
-                    requestWidthPx = TrendingRequestWidthPx,
-                    requestHeightPx = TrendingRequestHeightPx,
+                    type = RowType.Landscape,
                     onClick = { onAction(SearchAction.TrendingSelected(content)) },
-                    modifier = Modifier.width(StreamCoreDimens.Web.Search.TrendingCardWidth),
+                    modifier = Modifier.width(StreamCoreDimens.Tv.Browse.LandscapeCardWidth),
                     interactionModifier = Modifier
                         .focusRequester(requireNotNull(focusRequesters[focusKey]))
                         .webSearchFocusOrder(
@@ -438,31 +430,31 @@ private fun WebSearchResults(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = modifier.fillMaxWidth(),
     ) {
-        if (showOfflineNotice) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        ) {
             Text(
-                text = stringResource(Res.string.web_search_offline_notice),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = MaterialTheme.shapes.small,
-                    )
-                    .padding(StreamCoreDimens.Spacing.Medium)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag(OfflineNoticeTestTag),
+                text = stringResource(Res.string.web_search_results_heading),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
+            if (showOfflineNotice) {
+                Text(
+                    text = stringResource(Res.string.web_search_offline_notice),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .semantics { liveRegion = LiveRegionMode.Polite }
+                        .testTag(OfflineNoticeTestTag),
+                )
+            }
         }
-        Text(
-            text = stringResource(Res.string.web_search_results_heading),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val columnCount = remember(maxWidth) {
-                val cardSlotWidth = StreamCoreDimens.Web.Search.ResultCardMinWidth +
+                val cardSlotWidth = StreamCoreDimens.Tv.Browse.PosterCardWidth +
                     StreamCoreDimens.Spacing.Large
                 maxOf(1, (maxWidth / cardSlotWidth).toInt())
             }
@@ -506,11 +498,8 @@ private fun WebSearchResults(
                     val focusKey = content.webSearchFocusKey()
                     WebSearchContentTile(
                         content = content,
-                        imageUrl = content.poster,
                         selected = content.matchesWebSearchFocusKey(selectedContentKey),
-                        aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
-                        requestWidthPx = PosterRequestWidthPx,
-                        requestHeightPx = PosterRequestHeightPx,
+                        type = RowType.Poster,
                         onClick = { onAction(SearchAction.ResultSelected(content)) },
                         modifier = Modifier.fillMaxWidth(),
                         interactionModifier = Modifier
@@ -542,11 +531,8 @@ private fun WebSearchResults(
 @Composable
 private fun WebSearchContentTile(
     content: ContentModel,
-    imageUrl: String?,
     selected: Boolean,
-    aspectRatio: Float,
-    requestWidthPx: Int,
-    requestHeightPx: Int,
+    type: RowType,
     onClick: () -> Unit,
     modifier: Modifier,
     interactionModifier: Modifier,
@@ -555,43 +541,15 @@ private fun WebSearchContentTile(
         Res.string.web_search_open_details,
         content.title,
     )
-    Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-        modifier = modifier,
-    ) {
-        StreamCoreWebContentCard(
-            onClick = onClick,
-            selected = selected,
-            aspectRatio = aspectRatio,
-            modifier = interactionModifier
-                .fillMaxWidth()
-                .semantics(mergeDescendants = true) {
-                    contentDescription = openDetailsDescription
-                },
-        ) {
-            StreamCoreWebArtwork(
-                imageUrl = imageUrl,
-                contentDescription = null,
-                fallbackText = content.fallbackText(),
-                requestWidthPx = requestWidthPx,
-                requestHeightPx = requestHeightPx,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        Text(
-            text = content.title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = content.homeMetadataText(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    StreamCoreWebMediaCard(
+        content = content,
+        type = type,
+        onClick = onClick,
+        selected = selected,
+        modifier = modifier.then(interactionModifier).semantics(mergeDescendants = true) {
+            contentDescription = openDetailsDescription
+        },
+    )
 }
 
 @Composable
@@ -622,12 +580,12 @@ private fun WebSearchLoading(
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-                    modifier = Modifier.width(StreamCoreDimens.Web.Search.ResultCardMinWidth),
+                    modifier = Modifier.width(StreamCoreDimens.Tv.Browse.PosterCardWidth),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(StreamCoreDimens.Web.Search.LoadingPosterHeight)
+                            .height(StreamCoreDimens.Tv.Browse.PosterCardWidth / StreamCoreDimens.Artwork.PosterAspectRatio)
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 shape = MaterialTheme.shapes.medium,
@@ -710,10 +668,6 @@ private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
 private const val LoadingTitleFraction = 0.72f
 private const val LoadingItemCount = 6
 private const val FocusRequestAttempts = 4
-private const val TrendingRequestWidthPx = 600
-private const val TrendingRequestHeightPx = 338
-private const val PosterRequestWidthPx = 360
-private const val PosterRequestHeightPx = 540
 private const val RecentSectionKey = "search:recent-section"
 private const val TrendingSectionKey = "search:trending-section"
 private const val RecentSectionContentType = "search-recent-section"

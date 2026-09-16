@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,10 +29,9 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginAction
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackground
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginHeader
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.login.passwordText
 import com.pampoukidis.streamcoretv.feature.login.common.login.text
@@ -48,8 +48,6 @@ import streamcoretv.core.ui.generated.resources.login_identifier_label
 import streamcoretv.core.ui.generated.resources.login_password_hide
 import streamcoretv.core.ui.generated.resources.login_password_label
 import streamcoretv.core.ui.generated.resources.login_password_show
-import streamcoretv.core.ui.generated.resources.login_subtitle
-import streamcoretv.core.ui.generated.resources.login_title
 
 @Composable
 fun WebLoginScreen(
@@ -66,10 +64,6 @@ fun WebLoginScreen(
     val createFocus = remember { FocusRequester() }
     val helpFocus = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) {
-        identifierFocus.requestFocus()
-    }
-
     LoginBackground(
         variant = LoginBackgroundVariant.Landscape,
         modifier = modifier.testTag(LoginTestTags.Root),
@@ -79,30 +73,30 @@ fun WebLoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = StreamCoreWebDimens.ScreenHorizontal,
-                    vertical = StreamCoreWebDimens.ScreenVertical,
+                    horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                    vertical = StreamCoreDimens.Tv.Screen.VerticalPadding,
                 ),
         ) {
-            StreamCoreWebPanel(
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                tonalElevation = StreamCoreDimens.Elevation.Medium,
                 modifier = Modifier
-                    .width(StreamCoreWebDimens.PanelWidth)
+                    .widthIn(max = StreamCoreDimens.Tv.Panel.Width)
+                    .fillMaxWidth()
                     .fillMaxHeight(),
             ) {
                 Column(
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(StreamCoreDimens.Tv.Panel.Padding),
                 ) {
-                    Text(
-                        text = stringResource(Res.string.login_title),
-                        style = MaterialTheme.typography.headlineLarge,
-                    )
-                    Text(
-                        text = stringResource(Res.string.login_subtitle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(
+                    LoginHeader(
+                        titleModifier = Modifier.padding(top = StreamCoreDimens.Spacing.Small),
+                        subtitleModifier = Modifier.padding(
                             top = StreamCoreDimens.Spacing.Small,
-                            bottom = StreamCoreDimens.Spacing.ExtraLarge,
+                            bottom = StreamCoreDimens.Spacing.Small,
                         ),
                     )
                     WebLoginForm(
@@ -177,7 +171,6 @@ private fun WebLoginForm(
                 enabled = auxiliaryActionsEnabled && !state.isLoading,
                 variant = StreamCoreWebButtonVariant.Tertiary,
                 modifier = Modifier
-                    .weight(1f)
                     .focusRequester(forgotFocus)
                     .focusProperties {
                         up = submitFocus
@@ -192,7 +185,6 @@ private fun WebLoginForm(
                 enabled = auxiliaryActionsEnabled && !state.isLoading,
                 variant = StreamCoreWebButtonVariant.Tertiary,
                 modifier = Modifier
-                    .weight(1f)
                     .focusRequester(createFocus)
                     .focusProperties {
                         up = submitFocus
@@ -208,7 +200,6 @@ private fun WebLoginForm(
             enabled = auxiliaryActionsEnabled && !state.isLoading,
             variant = StreamCoreWebButtonVariant.Tertiary,
             modifier = Modifier
-                .fillMaxWidth()
                 .focusRequester(helpFocus)
                 .focusProperties { up = forgotFocus }
                 .testTag(LoginTestTags.HelpButton),

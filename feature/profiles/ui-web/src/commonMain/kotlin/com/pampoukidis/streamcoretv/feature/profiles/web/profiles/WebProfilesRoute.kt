@@ -6,8 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
 import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
+import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -21,6 +21,7 @@ fun WebProfilesRoute(
     onProfilesLoaded: (List<ProfileModel>) -> Unit = {},
     onError: (AppError) -> Unit,
     viewModel: ProfilesViewModel = koinViewModel(),
+    onLogoutRequested: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -48,5 +49,6 @@ fun WebProfilesRoute(
         onCreateProfile = onCreateProfile,
         onEditProfile = onEditProfile,
         onBack = onBack,
+        onLogoutRequested = onLogoutRequested,
     )
 }

@@ -1,19 +1,26 @@
 package com.pampoukidis.streamcoretv.feature.player.web.player
 
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,16 +42,22 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebActionSurface
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
-import com.pampoukidis.streamcoretv.core.ui.web.webEscape
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsHeaderContent
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsIconContainer
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsIconType
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsNavigationContent
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsSelectionContent
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsSpeedOptions
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.feature.player.common.testing.PlayerTestTags
 import com.pampoukidis.streamcoretv.feature.player.web.testing.WebPlayerFixtures
@@ -54,7 +67,6 @@ import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.feature.player.ui_web.generated.resources.Res
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_audio
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_audio_hint
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_auto
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_back
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_default
@@ -63,22 +75,15 @@ import streamcoretv.feature.player.ui_web.generated.resources.web_player_fill
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_fit
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_off
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_quality
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_quality_hint
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_resize
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_resize_hint
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_retry
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_selected_value
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_settings_back
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_settings_close
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_settings_hint
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_settings_title
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_speed
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_speed_hint
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_subtitles
-import streamcoretv.feature.player.ui_web.generated.resources.web_player_subtitles_hint
 
 @Composable
-internal fun WebPlayerSettingsDialog(
+internal fun WebPlayerSettingsOverlay(
     state: PlayerUiState,
     page: PlayerSettingsPage,
     onAction: (PlayerAction) -> Unit,
@@ -102,98 +107,92 @@ internal fun WebPlayerSettingsDialog(
         previousPage = page
     }
 
-    Dialog(
-        onDismissRequest = { onAction(PlayerAction.BackSelected) },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            contentAlignment = Alignment.CenterEnd,
-            modifier = Modifier
-                .fillMaxSize()
-                .webEscape { onAction(PlayerAction.BackSelected) }
-                .background(
-                    MaterialTheme.colorScheme.scrim.copy(
-                        alpha = WebPlayerTokens.SettingsScrimAlpha,
-                    ),
+    Box(
+        contentAlignment = Alignment.CenterEnd,
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(WebPlayerZOrder.Modal)
+            .focusProperties { onExit = { cancelFocusChange() } }
+            .focusGroup()
+            .pointerInput(Unit) { detectTapGestures { } }
+            .background(
+                MaterialTheme.colorScheme.scrim.copy(
+                    alpha = WebPlayerTokens.SettingsScrimAlpha,
                 ),
+            ),
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = WebPlayerTokens.SettingsPanelAlpha),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .width(StreamCoreDimens.Tv.Player.SettingsPanelWidth)
+                .fillMaxHeight()
+                .testTag(PlayerTestTags.Settings),
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                tonalElevation = StreamCoreDimens.Elevation.Medium,
-                modifier = Modifier
-                    .width(WebPlayerTokens.SettingsPanelWidth)
-                    .heightIn(max = WebPlayerTokens.SettingsPanelMaxHeight)
-                    .fillMaxHeight()
-                    .testTag(PlayerTestTags.Settings),
+            Column(
+                modifier = Modifier.fillMaxSize().padding(top = StreamCoreDimens.Tv.Player.SettingsSafeInset),
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-                    modifier = Modifier.padding(WebPlayerTokens.SettingsPanelPadding),
-                ) {
-                    StreamCoreWebButton(
-                        text = if (page == PlayerSettingsPage.Root) {
-                            stringResource(Res.string.web_player_settings_close)
-                        } else {
-                            stringResource(Res.string.web_player_settings_back)
-                        },
-                        onClick = { onAction(PlayerAction.BackSelected) },
-                        variant = StreamCoreWebButtonVariant.Tertiary,
-                        modifier = Modifier
-                            .focusRequester(backFocusRequester)
-                            .focusProperties {
-                                up = FocusRequester.Cancel
-                                left = FocusRequester.Cancel
-                                right = FocusRequester.Cancel
-                                down = rowFocusRequesters.firstOrNull() ?: FocusRequester.Cancel
-                            }
-                            .testTag(WebPlayerTestTags.SettingsBack),
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny)) {
-                        Text(
-                            text = settingsTitle(page),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = settingsHint(page),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    ) {
-                        itemsIndexed(
-                            items = rows,
-                            key = { _, row -> row.key },
-                            contentType = { _, row -> row.contentType },
-                        ) { index, row ->
-                            val label = if (row.value == null) {
-                                row.label
-                            } else {
-                                stringResource(
-                                    Res.string.web_player_selected_value,
-                                    row.label,
-                                    row.value,
+                PlayerSettingsHeaderContent(
+                    page = page,
+                    titleStyle = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.height(StreamCoreDimens.Tv.Player.SettingsHeaderHeight)
+                        .padding(horizontal = StreamCoreDimens.Tv.Player.SettingsHorizontalPadding),
+                    supportingStyle = MaterialTheme.typography.bodyMedium,
+                    leadingContent = {
+                        StreamCoreWebArtworkIconButton(
+                            contentDescription = stringResource(
+                                if (page == PlayerSettingsPage.Root) Res.string.web_player_settings_close else Res.string.web_player_settings_back,
+                            ),
+                            onClick = { onAction(PlayerAction.BackSelected) },
+                            modifier = Modifier
+                                .size(if (page == PlayerSettingsPage.Root) StreamCoreDimens.Tv.Player.SettingsIconContainerSize else StreamCoreDimens.Tv.Player.ControlSize)
+                                .focusRequester(backFocusRequester)
+                                .focusProperties {
+                                    up = FocusRequester.Cancel
+                                    left = FocusRequester.Cancel
+                                    right = FocusRequester.Cancel
+                                    down = rowFocusRequesters.firstOrNull() ?: FocusRequester.Cancel
+                                }
+                                .testTag(WebPlayerTestTags.SettingsBack),
+                        ) {
+                            if (page == PlayerSettingsPage.Root) {
+                                PlayerSettingsIconContainer(
+                                    icon = PlayerSettingsIconType.Settings,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    containerSize = StreamCoreDimens.Tv.Player.SettingsIconContainerSize,
+                                    iconSize = StreamCoreDimens.Tv.Player.SettingsIconSize,
                                 )
-                            }
-                            StreamCoreWebButton(
-                                text = label,
+                            } else StreamCoreBackIcon()
+                        }
+                    },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = WebPlayerTokens.SettingsDividerAlpha))
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = StreamCoreDimens.Tv.Player.SettingsHorizontalPadding,
+                        end = StreamCoreDimens.Tv.Player.SettingsHorizontalPadding,
+                        top = StreamCoreDimens.Spacing.Small,
+                        bottom = StreamCoreDimens.Tv.Player.SettingsSafeInset,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    itemsIndexed(
+                        items = rows,
+                        key = { _, row -> row.key },
+                        contentType = { _, row -> row.contentType },
+                    ) { index, row ->
+                        Column {
+                            StreamCoreWebActionSurface(
                                 onClick = { onAction(row.action) },
                                 enabled = row.enabled,
-                                variant = if (row.selected) {
-                                    StreamCoreWebButtonVariant.Primary
-                                } else {
-                                    StreamCoreWebButtonVariant.Secondary
-                                },
+                                role = if (row.page == null) Role.RadioButton else Role.Button,
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = WebPlayerTokens.SettingsItemMinHeight)
+                                    .height(if (row.page == null) StreamCoreDimens.Tv.Player.SettingsSelectionRowHeight else StreamCoreDimens.Tv.Player.SettingsRowHeight)
                                     .focusRequester(rowFocusRequesters[index])
                                     .focusProperties {
                                         up = rowFocusRequesters.getOrNull(index - 1)
@@ -210,17 +209,52 @@ internal fun WebPlayerSettingsDialog(
                                         }
                                     }
                                     .testTag(PlayerTestTags.SettingsOptionPrefix + row.key),
-                            )
+                            ) {
+                                if (row.page != null) {
+                                    PlayerSettingsNavigationContent(
+                                        title = row.label,
+                                        value = row.value,
+                                        icon = row.page.settingsIcon(),
+                                        iconContainerSize = StreamCoreDimens.Tv.Player.SettingsIconContainerSize,
+                                        iconSize = StreamCoreDimens.Tv.Player.SettingsIconSize,
+                                        valueModifier = Modifier.widthIn(max = StreamCoreDimens.Tv.Player.SettingsValueMaxWidth),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = StreamCoreDimens.Spacing.Small),
+                                    )
+                                } else {
+                                    Surface(
+                                        color = if (row.selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = WebPlayerTokens.SettingsSelectedRowAlpha)
+                                            else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                                        contentColor = if (row.selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                        shape = MaterialTheme.shapes.medium,
+                                        modifier = Modifier.fillMaxSize().padding(StreamCoreDimens.Tv.Focus.BorderWidth),
+                                    ) {
+                                        PlayerSettingsSelectionContent(
+                                            label = row.label,
+                                            selected = row.selected,
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = StreamCoreDimens.Spacing.Large),
+                                        )
+                                    }
+                                }
+                            }
+                            if (row.page != null) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = WebPlayerTokens.SettingsDividerAlpha),
+                                    modifier = Modifier.padding(start = StreamCoreDimens.Spacing.Small + StreamCoreDimens.Tv.Player.SettingsIconContainerSize + StreamCoreDimens.Spacing.Large),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+
 }
 
 @Composable
-internal fun WebPlayerErrorDialog(
+internal fun WebPlayerErrorOverlay(
     message: String,
     recoverable: Boolean,
     onAction: (PlayerAction) -> Unit,
@@ -236,78 +270,77 @@ internal fun WebPlayerErrorDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = { onAction(PlayerAction.BackSelected) },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .webEscape { onAction(PlayerAction.BackSelected) }
-                .background(
-                    MaterialTheme.colorScheme.scrim.copy(
-                        alpha = WebPlayerTokens.SettingsScrimAlpha,
-                    ),
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(WebPlayerZOrder.Modal)
+            .focusProperties { onExit = { cancelFocusChange() } }
+            .focusGroup()
+            .pointerInput(Unit) { detectTapGestures { } }
+            .background(
+                MaterialTheme.colorScheme.scrim.copy(
+                    alpha = WebPlayerTokens.SettingsScrimAlpha,
                 ),
+            ),
+    ) {
+        StreamCoreWebPanel(
+            modifier = Modifier
+                .widthIn(max = WebPlayerTokens.ErrorPanelMaxWidth)
+                .testTag(PlayerTestTags.Error),
         ) {
-            StreamCoreWebPanel(
-                modifier = Modifier
-                    .widthIn(max = WebPlayerTokens.ErrorPanelMaxWidth)
-                    .testTag(PlayerTestTags.Error),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+                Text(
+                    text = stringResource(Res.string.web_player_error_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = stringResource(Res.string.web_player_error_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = message,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        StreamCoreWebButton(
-                            text = stringResource(Res.string.web_player_back),
-                            onClick = { onAction(PlayerAction.BackSelected) },
-                            variant = StreamCoreWebButtonVariant.Tertiary,
-                            modifier = Modifier
-                                .focusRequester(backFocusRequester)
-                                .focusProperties {
-                                    left = FocusRequester.Cancel
-                                    right = if (recoverable) {
-                                        retryFocusRequester
-                                    } else {
-                                        FocusRequester.Cancel
-                                    }
+                    StreamCoreWebButton(
+                        text = stringResource(Res.string.web_player_back),
+                        onClick = { onAction(PlayerAction.BackSelected) },
+                        variant = StreamCoreWebButtonVariant.Tertiary,
+                        modifier = Modifier
+                            .focusRequester(backFocusRequester)
+                            .focusProperties {
+                                left = FocusRequester.Cancel
+                                right = if (recoverable) {
+                                    retryFocusRequester
+                                } else {
+                                    FocusRequester.Cancel
                                 }
-                                .testTag(WebPlayerTestTags.ErrorBack),
+                            }
+                            .testTag(WebPlayerTestTags.ErrorBack),
+                    )
+                    if (recoverable) {
+                        StreamCoreWebButton(
+                            text = stringResource(Res.string.web_player_retry),
+                            onClick = { onAction(PlayerAction.Retry) },
+                            modifier = Modifier
+                                .focusRequester(retryFocusRequester)
+                                .focusProperties {
+                                    left = backFocusRequester
+                                    right = FocusRequester.Cancel
+                                }
+                                .testTag(WebPlayerTestTags.ErrorRetry),
                         )
-                        if (recoverable) {
-                            StreamCoreWebButton(
-                                text = stringResource(Res.string.web_player_retry),
-                                onClick = { onAction(PlayerAction.Retry) },
-                                modifier = Modifier
-                                    .focusRequester(retryFocusRequester)
-                                    .focusProperties {
-                                        left = backFocusRequester
-                                        right = FocusRequester.Cancel
-                                    }
-                                    .testTag(WebPlayerTestTags.ErrorRetry),
-                            )
-                        }
                     }
                 }
             }
         }
     }
+
 }
 
 private data class WebPlayerSettingsRow(
@@ -384,10 +417,10 @@ private fun webPlayerSettingsRows(
             action = { id -> PlayerAction.SelectTextTrack(id) },
         )
 
-        PlayerSettingsPage.Speed -> WebPlayerSpeedOptions.map { speed ->
+        PlayerSettingsPage.Speed -> PlayerSettingsSpeedOptions.map { (label, speed) ->
             WebPlayerSettingsRow(
                 key = "speed:$speed",
-                label = formatSpeed(speed),
+                label = label,
                 selected = state.speed == speed,
                 action = PlayerAction.SelectSpeed(speed),
                 contentType = SettingsSelectionContentType,
@@ -453,27 +486,14 @@ private fun trackRows(
     }
 }
 
-@Composable
-private fun settingsTitle(page: PlayerSettingsPage): String {
-    return when (page) {
-        PlayerSettingsPage.Root -> stringResource(Res.string.web_player_settings_title)
-        PlayerSettingsPage.Quality -> stringResource(Res.string.web_player_quality)
-        PlayerSettingsPage.Audio -> stringResource(Res.string.web_player_audio)
-        PlayerSettingsPage.Subtitles -> stringResource(Res.string.web_player_subtitles)
-        PlayerSettingsPage.Speed -> stringResource(Res.string.web_player_speed)
-        PlayerSettingsPage.ResizeMode -> stringResource(Res.string.web_player_resize)
-    }
-}
-
-@Composable
-private fun settingsHint(page: PlayerSettingsPage): String {
-    return when (page) {
-        PlayerSettingsPage.Root -> stringResource(Res.string.web_player_settings_hint)
-        PlayerSettingsPage.Quality -> stringResource(Res.string.web_player_quality_hint)
-        PlayerSettingsPage.Audio -> stringResource(Res.string.web_player_audio_hint)
-        PlayerSettingsPage.Subtitles -> stringResource(Res.string.web_player_subtitles_hint)
-        PlayerSettingsPage.Speed -> stringResource(Res.string.web_player_speed_hint)
-        PlayerSettingsPage.ResizeMode -> stringResource(Res.string.web_player_resize_hint)
+private fun PlayerSettingsPage.settingsIcon(): PlayerSettingsIconType {
+    return when (this) {
+        PlayerSettingsPage.Root -> PlayerSettingsIconType.Settings
+        PlayerSettingsPage.Quality -> PlayerSettingsIconType.Quality
+        PlayerSettingsPage.Audio -> PlayerSettingsIconType.Audio
+        PlayerSettingsPage.Subtitles -> PlayerSettingsIconType.Subtitles
+        PlayerSettingsPage.Speed -> PlayerSettingsIconType.Speed
+        PlayerSettingsPage.ResizeMode -> PlayerSettingsIconType.ResizeMode
     }
 }
 
@@ -503,9 +523,9 @@ private const val SettingsSelectionContentType = "settings-selection"
 
 @Preview(widthDp = 1280, heightDp = 720)
 @Composable
-private fun WebPlayerSettingsDialogPreview() {
+private fun WebPlayerSettingsOverlayPreview() {
     StreamCoreTheme(darkTheme = true) {
-        WebPlayerSettingsDialog(
+        WebPlayerSettingsOverlay(
             state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Settings),
             page = PlayerSettingsPage.Root,
             onAction = {},
@@ -515,10 +535,10 @@ private fun WebPlayerSettingsDialogPreview() {
 
 @Preview(widthDp = 1280, heightDp = 720)
 @Composable
-private fun WebPlayerErrorDialogPreview() {
+private fun WebPlayerErrorOverlayPreview() {
     val state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.RecoverableError)
     StreamCoreTheme(darkTheme = true) {
-        WebPlayerErrorDialog(
+        WebPlayerErrorOverlay(
             message = state.error?.message.orEmpty(),
             recoverable = true,
             onAction = {},

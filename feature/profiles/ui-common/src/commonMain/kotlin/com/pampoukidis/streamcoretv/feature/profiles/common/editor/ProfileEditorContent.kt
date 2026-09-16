@@ -30,6 +30,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -60,6 +62,14 @@ fun ProfileEditorContent(
     layout: ProfileEditorLayout = ProfileEditorLayout(),
     modifiers: ProfileEditorModifiers = ProfileEditorModifiers(),
     onDisplayNameDone: (() -> Unit)? = null,
+    errorMessage: String? = null,
+    displayNameControl: (@Composable (
+        value: String,
+        onValueChange: (String) -> Unit,
+        enabled: Boolean,
+        errorMessage: String?,
+        modifier: Modifier,
+    ) -> Unit)? = null,
     closeControl: @Composable (onClick: () -> Unit, enabled: Boolean, modifier: Modifier) -> Unit =
         { onClick, enabled, controlModifier ->
             StreamCoreCloseButton(onClick = onClick, enabled = enabled, modifier = controlModifier)
@@ -195,27 +205,46 @@ fun ProfileEditorContent(
                                 ProfileEditorAvatarArtwork(avatar = selectedAvatar, layout = layout)
                             }
                         }
-                        OutlinedTextField(
-                            value = editor.draft.displayName,
-                            onValueChange = { onAction(ProfileEditorAction.DisplayNameChanged(it)) },
-                            label = { Text(text = "Username") },
-                            singleLine = true,
-                            enabled = !state.isSaving,
-                            isError = editor.validation.displayNameError != null,
-                            supportingText = editor.validation.displayNameError?.let { error ->
-                                { Text(text = error.message()) }
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.Words,
-                                imeAction = ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { onDisplayNameDone?.invoke() ?: focusManager.clearFocus() },
-                            ),
-                            modifier = modifiers.displayName
-                                .fillMaxWidth()
-                                .testTag(ProfilesTestTags.EditorDisplayNameField),
-                        )
+                        errorMessage?.let { message ->
+                            Text(
+                                text = message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.fillMaxWidth().semantics { error(message) },
+                            )
+                        }
+                        if (displayNameControl != null) {
+                            displayNameControl(
+                                editor.draft.displayName,
+                                { onAction(ProfileEditorAction.DisplayNameChanged(it)) },
+                                !state.isSaving,
+                                editor.validation.displayNameError?.message(),
+                                modifiers.displayName.fillMaxWidth()
+                                    .testTag(ProfilesTestTags.EditorDisplayNameField),
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = editor.draft.displayName,
+                                onValueChange = { onAction(ProfileEditorAction.DisplayNameChanged(it)) },
+                                label = { Text(text = "Username") },
+                                singleLine = true,
+                                enabled = !state.isSaving,
+                                isError = editor.validation.displayNameError != null,
+                                supportingText = editor.validation.displayNameError?.let { error ->
+                                    { Text(text = error.message()) }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Words,
+                                    imeAction = ImeAction.Done,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = { onDisplayNameDone?.invoke() ?: focusManager.clearFocus() },
+                                ),
+                                modifier = modifiers.displayName
+                                    .fillMaxWidth()
+                                    .testTag(ProfilesTestTags.EditorDisplayNameField),
+                            )
+                        }
                         kidsControl(
                             "Kids profile",
                             "Only age-appropriate content",

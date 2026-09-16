@@ -3,16 +3,19 @@ package com.pampoukidis.streamcoretv.feature.details.web.details
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -25,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -41,25 +45,34 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.fallbackText
-import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTrailerIcon
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtwork
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebActionSurface
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
-import com.pampoukidis.streamcoretv.core.ui.web.webEscape
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
+import com.pampoukidis.streamcoretv.core.ui.web.webEscape
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsActionContent
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsCast
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsPanoramaHero
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRecommendationArtwork
+import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsSynopsis
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTags
 import com.pampoukidis.streamcoretv.feature.details.web.testing.WebDetailsFixtures
@@ -67,21 +80,22 @@ import org.jetbrains.compose.resources.stringResource
 import streamcoretv.feature.details.ui_web.generated.resources.Res
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_action_unavailable
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_action_updating
+import streamcoretv.feature.details.ui_web.generated.resources.web_details_read_full_overview
+import streamcoretv.feature.details.ui_web.generated.resources.web_details_show_full_cast
+import streamcoretv.feature.details.ui_web.generated.resources.web_details_show_less
+import streamcoretv.feature.details.ui_web.generated.resources.web_details_text_expanded
+import streamcoretv.feature.details.ui_web.generated.resources.web_details_text_collapsed
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_back
-import streamcoretv.feature.details.ui_web.generated.resources.web_details_cast
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_error_message
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_error_title
-import streamcoretv.feature.details.ui_web.generated.resources.web_details_genres
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_in_my_list
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_like
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_liked
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_loading
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_my_list
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_no_recommendations
-import streamcoretv.feature.details.ui_web.generated.resources.web_details_overview
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_play
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_recommendations
-import streamcoretv.feature.details.ui_web.generated.resources.web_details_refresh
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_resume
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_retry
 import streamcoretv.feature.details.ui_web.generated.resources.web_details_trailer
@@ -96,7 +110,6 @@ fun WebDetailsScreen(
     modifier: Modifier = Modifier,
 ) {
     val backFocusRequester = remember { FocusRequester() }
-    val refreshFocusRequester = remember { FocusRequester() }
     val retryFocusRequester = remember { FocusRequester() }
     val playFocusRequester = remember { FocusRequester() }
     val trailerFocusRequester = remember { FocusRequester() }
@@ -147,7 +160,7 @@ fun WebDetailsScreen(
 
             WebDetailsActionsSection -> when (target.itemKey) {
                 WebDetailsBackItem -> backFocusRequester
-                WebDetailsRefreshItem -> refreshFocusRequester
+                WebDetailsRefreshItem -> backFocusRequester
                 WebDetailsPlayItem -> playFocusRequester
                 WebDetailsTrailerItem -> trailerFocusRequester
                 WebDetailsLikeItem -> likeFocusRequester
@@ -184,14 +197,15 @@ fun WebDetailsScreen(
             .webEscape { onAction(DetailsAction.BackSelected) }
             .testTag(DetailsTestTags.Root),
     ) {
-        WebDetailsHeader(
-            state = state,
-            backFocusRequester = backFocusRequester,
-            refreshFocusRequester = refreshFocusRequester,
-            retryFocusRequester = retryFocusRequester,
-            playFocusRequester = playFocusRequester,
-            onAction = onAction,
-        )
+        if (state.content == null) {
+            WebDetailsHeader(
+                state = state,
+                backFocusRequester = backFocusRequester,
+                retryFocusRequester = retryFocusRequester,
+                playFocusRequester = playFocusRequester,
+                onAction = onAction,
+            )
+        }
 
         when {
             state.isLoading && state.content == null -> WebDetailsLoading()
@@ -211,6 +225,15 @@ fun WebDetailsScreen(
                 recommendationsState = recommendationsState,
                 backFocusRequester = backFocusRequester,
                 onAction = onAction,
+                topControls = {
+                    WebDetailsHeader(
+                        state = state,
+                        backFocusRequester = backFocusRequester,
+                        retryFocusRequester = retryFocusRequester,
+                        playFocusRequester = playFocusRequester,
+                        onAction = onAction,
+                    )
+                },
             )
         }
     }
@@ -220,7 +243,6 @@ fun WebDetailsScreen(
 private fun WebDetailsHeader(
     state: DetailsUiState,
     backFocusRequester: FocusRequester,
-    refreshFocusRequester: FocusRequester,
     retryFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     onAction: (DetailsAction) -> Unit,
@@ -233,44 +255,26 @@ private fun WebDetailsHeader(
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding, vertical = StreamCoreDimens.Spacing.Medium),
     ) {
-        StreamCoreWebButton(
-            text = stringResource(Res.string.web_details_back),
+        StreamCoreWebArtworkIconButton(
+            contentDescription = stringResource(Res.string.web_details_back),
             onClick = { onAction(DetailsAction.BackSelected) },
-            variant = StreamCoreWebButtonVariant.Tertiary,
             modifier = Modifier
                 .focusRequester(backFocusRequester)
                 .focusProperties {
-                    right = if (state.isLoading) FocusRequester.Cancel else refreshFocusRequester
+                    right = FocusRequester.Cancel
                     down = downRequester
                 }
                 .testTag(DetailsTestTags.BackButton),
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (state.isLoading && state.content != null) {
-                Text(
-                    text = stringResource(Res.string.web_details_updating),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            StreamCoreWebButton(
-                text = stringResource(Res.string.web_details_refresh),
-                onClick = { onAction(DetailsAction.Refresh) },
-                enabled = !state.isLoading,
-                loading = state.isLoading,
-                variant = StreamCoreWebButtonVariant.Tertiary,
-                modifier = Modifier
-                    .focusRequester(refreshFocusRequester)
-                    .focusProperties {
-                        left = backFocusRequester
-                        down = downRequester
-                    }
-                    .testTag(DetailsTestTags.RefreshButton),
+        ) { StreamCoreBackIcon() }
+        if (state.isLoading && state.content != null) {
+            Text(
+                text = stringResource(Res.string.web_details_updating),
+                color = MaterialTheme.colorScheme.onArtwork,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
@@ -288,37 +292,25 @@ private fun WebDetailsLoading() {
             text = stringResource(Res.string.web_details_loading),
             style = MaterialTheme.typography.headlineMedium,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge)) {
-            Box(
-                modifier = Modifier
-                    .weight(0.52f)
-                    .aspectRatio(HeroAspectRatio)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = MaterialTheme.shapes.extraLarge,
-                    ),
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-                modifier = Modifier.weight(0.48f),
-            ) {
-                repeat(LoadingLineCount) { index ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(if (index == 0) 0.78f else 1f)
-                            .height(
-                                if (index == 0) {
-                                    StreamCoreDimens.Web.Details.LoadingTitleHeight
-                                } else {
-                                    StreamCoreDimens.Web.Details.LoadingLineHeight
-                                },
-                            )
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = MaterialTheme.shapes.small,
-                            ),
-                    )
-                }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(StreamCoreDimens.Tv.Details.HeroHeight)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.medium),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
+        ) {
+            repeat(LoadingLineCount) { index ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (index == 0) 0.5f else 0.72f)
+                        .height(if (index == 0) StreamCoreDimens.Web.Details.LoadingTitleHeight else StreamCoreDimens.Web.Details.LoadingLineHeight)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small),
+                )
             }
         }
     }
@@ -331,7 +323,8 @@ private fun WebDetailsError(
     onAction: (DetailsAction) -> Unit,
 ) {
     StreamCoreWebPanel(
-        modifier = Modifier.testTag(DetailsTestTags.Error),
+        modifier = Modifier
+            .testTag(DetailsTestTags.Error),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large)) {
             Text(
@@ -350,7 +343,9 @@ private fun WebDetailsError(
                 variant = StreamCoreWebButtonVariant.Secondary,
                 modifier = Modifier
                     .focusRequester(retryFocusRequester)
-                    .focusProperties { up = backFocusRequester }
+                    .focusProperties {
+                        up = backFocusRequester
+                    }
                     .testTag(DetailsTestTags.RetryButton),
             )
         }
@@ -368,51 +363,29 @@ private fun WebDetailsContent(
     recommendationsState: androidx.compose.foundation.lazy.LazyListState,
     backFocusRequester: FocusRequester,
     onAction: (DetailsAction) -> Unit,
+    topControls: @Composable () -> Unit,
 ) {
     val content = requireNotNull(state.content)
     val recommendationRequester = recommendationFocusRequesters.firstOrNull()
         ?: FocusRequester.Cancel
-    val metadata = remember(content) { content.heroMetadata() }
-
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(DetailsTestTags.Content),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            StreamCoreWebArtwork(
-                imageUrl = content.backdrop ?: content.poster,
-                contentDescription = content.title,
-                fallbackText = content.fallbackText(),
-                requestWidthPx = HeroRequestWidthPx,
-                requestHeightPx = HeroRequestHeightPx,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier
-                    .weight(0.52f)
-                    .aspectRatio(HeroAspectRatio)
-                    .testTag(DetailsTestTags.Hero),
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-                modifier = Modifier.weight(0.48f),
-            ) {
-                Text(
-                    text = content.title,
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = metadata,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        DetailsPanoramaHero(
+            content = content,
+            titleStyle = MaterialTheme.typography.headlineLarge,
+            metadataStyle = MaterialTheme.typography.labelLarge,
+            contentPadding = PaddingValues(
+                horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding,
+                vertical = StreamCoreDimens.Spacing.ExtraLarge,
+            ),
+            modifier = Modifier
+                .heightIn(min = StreamCoreDimens.Tv.Details.HeroHeight),
+            overlay = { topControls() },
+            bottomContent = {
                 WebDetailsActions(
                     state = state,
                     playFocusRequester = playFocusRequester,
@@ -427,10 +400,29 @@ private fun WebDetailsContent(
                     Text(
                         text = stringResource(Res.string.web_details_action_unavailable),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onArtwork,
                     )
                 }
-                WebDetailsMetadata(content)
+            },
+        )
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding)) {
+            if (maxWidth < WebDetailsDimens.InformationBreakpoint) {
+                Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large)) {
+                    WebDetailsSynopsis(content, modifier = Modifier.testTag(DetailsTestTags.Overview))
+                    WebDetailsCast(content)
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge)) {
+                    WebDetailsSynopsis(
+                        content = content,
+                        modifier = Modifier
+                            .weight(1.55f)
+                            .testTag(DetailsTestTags.Overview),
+                    )
+                    if (content.cast.isNotEmpty()) {
+                        WebDetailsCast(content, modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
 
@@ -443,6 +435,76 @@ private fun WebDetailsContent(
                 onAction(DetailsAction.RecommendationSelected(recommendation))
             },
         )
+    }
+}
+
+@Composable
+private fun WebDetailsSynopsis(content: ContentModel, modifier: Modifier = Modifier) {
+    WebDetailsReadingSection(
+        contentId = content.id,
+        expandLabel = stringResource(Res.string.web_details_read_full_overview),
+        textKey = content.description,
+        modifier = modifier,
+    ) { maxLines, onTextLayout ->
+        DetailsSynopsis(
+            content = content,
+            headingStyle = MaterialTheme.typography.titleMedium,
+            genresStyle = MaterialTheme.typography.titleSmall,
+            descriptionStyle = MaterialTheme.typography.bodyMedium,
+            maxLines = maxLines,
+            onTextLayout = onTextLayout,
+            modifier = Modifier.fillMaxWidth().padding(StreamCoreDimens.Spacing.Small),
+        )
+    }
+}
+
+@Composable
+private fun WebDetailsCast(content: ContentModel, modifier: Modifier = Modifier) {
+    if (content.cast.isEmpty()) return
+    WebDetailsReadingSection(
+        contentId = content.id,
+        expandLabel = stringResource(Res.string.web_details_show_full_cast),
+        textKey = content.cast,
+        modifier = modifier,
+    ) { maxLines, onTextLayout ->
+        DetailsCast(
+            content = content,
+            headingStyle = MaterialTheme.typography.titleMedium,
+            castStyle = MaterialTheme.typography.bodyMedium,
+            maxLines = maxLines,
+            onTextLayout = onTextLayout,
+            modifier = Modifier.fillMaxWidth().padding(StreamCoreDimens.Spacing.Small),
+        )
+    }
+}
+
+@Composable
+private fun WebDetailsReadingSection(
+    contentId: String,
+    expandLabel: String,
+    textKey: Any,
+    modifier: Modifier = Modifier,
+    content: @Composable (maxLines: Int, onTextLayout: (TextLayoutResult) -> Unit) -> Unit,
+) {
+    var expanded by rememberSaveable(contentId, textKey) { mutableStateOf(false) }
+    var hasCollapsedOverflow by remember(contentId, textKey) { mutableStateOf(false) }
+    val expansionState = stringResource(if (expanded) Res.string.web_details_text_expanded else Res.string.web_details_text_collapsed)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Tiny),
+        modifier = modifier,
+    ) {
+        content(if (expanded) Int.MAX_VALUE else CollapsedReadingLines) { result ->
+            // Expanded measurements must not discard the collapsed overflow result.
+            if (!expanded) hasCollapsedOverflow = result.hasVisualOverflow
+        }
+        if (expanded || hasCollapsedOverflow) {
+            StreamCoreWebButton(
+                text = if (expanded) stringResource(Res.string.web_details_show_less) else expandLabel,
+                onClick = { expanded = !expanded },
+                variant = StreamCoreWebButtonVariant.Tertiary,
+                modifier = Modifier.semantics { stateDescription = expansionState },
+            )
+        }
     }
 }
 
@@ -460,106 +522,85 @@ private fun WebDetailsActions(
     val hasTrailer = state.content?.trailers?.isNotEmpty() == true
     val likeEnabled = state.isLibraryAvailable && !state.isLikeMutationPending
     val myListEnabled = state.isLibraryAvailable && !state.isMyListMutationPending
-    val firstLibraryRequester = when {
+    val firstAction = when {
         likeEnabled -> likeFocusRequester
         myListEnabled -> myListFocusRequester
+        hasTrailer -> trailerFocusRequester
         else -> FocusRequester.Cancel
     }
-    val playRightRequester = when {
-        hasTrailer -> trailerFocusRequester
-        else -> firstLibraryRequester
-    }
-    val myListLeftRequester = when {
-        likeEnabled -> likeFocusRequester
-        hasTrailer -> trailerFocusRequester
-        else -> playFocusRequester
-    }
-    val likeRightRequester = when {
-        myListEnabled -> myListFocusRequester
-        else -> FocusRequester.Cancel
-    }
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        modifier = Modifier
+            .fillMaxWidth(),
     ) {
         StreamCoreWebButton(
-            text = stringResource(
-                if (state.hasResumableProgress) {
-                    Res.string.web_details_resume
-                } else {
-                    Res.string.web_details_play
-                },
-            ),
+            text = stringResource(if (state.hasResumableProgress) Res.string.web_details_resume else Res.string.web_details_play),
             onClick = { onAction(DetailsAction.PlaySelected) },
+            leadingIcon = { StreamCorePlayIcon() },
             modifier = Modifier
-                .weight(1f)
+                .padding(end = StreamCoreDimens.Spacing.Small)
+                .width(StreamCoreDimens.Tv.Details.PlayButtonWidth)
+                .align(Alignment.CenterVertically)
                 .focusRequester(playFocusRequester)
                 .focusProperties {
                     left = FocusRequester.Cancel
-                    right = playRightRequester
+                    right = firstAction
                     up = backFocusRequester
                     down = recommendationsFocusRequester
                 }
                 .testTag(DetailsTestTags.PlayButton),
         )
-        if (hasTrailer) {
-            StreamCoreWebButton(
-                text = stringResource(Res.string.web_details_trailer),
-                onClick = { onAction(DetailsAction.TrailerSelected) },
-                variant = StreamCoreWebButtonVariant.Secondary,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(trailerFocusRequester)
-                    .focusProperties {
-                        left = playFocusRequester
-                        right = firstLibraryRequester
-                        up = backFocusRequester
-                        down = recommendationsFocusRequester
-                    }
-                    .testTag(DetailsTestTags.TrailerAction),
-            )
-        }
-        WebDetailsLibraryAction(
-            text = stringResource(
-                if (state.isLiked) Res.string.web_details_liked else Res.string.web_details_like,
-            ),
+        WebDetailsIconAction(
+            text = stringResource(if (state.isLiked) Res.string.web_details_liked else Res.string.web_details_like),
             selected = state.isLiked,
             available = state.isLibraryAvailable,
             loading = state.isLikeMutationPending,
             focusRequester = likeFocusRequester,
-            leftFocusRequester = if (hasTrailer) trailerFocusRequester else playFocusRequester,
-            rightFocusRequester = likeRightRequester,
+            leftFocusRequester = playFocusRequester,
+            rightFocusRequester = if (myListEnabled) myListFocusRequester else if (hasTrailer) trailerFocusRequester else FocusRequester.Cancel,
             upFocusRequester = backFocusRequester,
             downFocusRequester = recommendationsFocusRequester,
             testTag = DetailsTestTags.LikeAction,
             onClick = { onAction(DetailsAction.LikeToggled) },
+            icon = { StreamCoreHeartIcon(filled = state.isLiked) },
         )
-        WebDetailsLibraryAction(
-            text = stringResource(
-                if (state.isInMyList) {
-                    Res.string.web_details_in_my_list
-                } else {
-                    Res.string.web_details_my_list
-                },
-            ),
+        WebDetailsIconAction(
+            text = stringResource(if (state.isInMyList) Res.string.web_details_in_my_list else Res.string.web_details_my_list),
             selected = state.isInMyList,
             available = state.isLibraryAvailable,
             loading = state.isMyListMutationPending,
             focusRequester = myListFocusRequester,
-            leftFocusRequester = myListLeftRequester,
-            rightFocusRequester = FocusRequester.Cancel,
+            leftFocusRequester = if (likeEnabled) likeFocusRequester else playFocusRequester,
+            rightFocusRequester = if (hasTrailer) trailerFocusRequester else FocusRequester.Cancel,
             upFocusRequester = backFocusRequester,
             downFocusRequester = recommendationsFocusRequester,
             testTag = DetailsTestTags.MyListAction,
             onClick = { onAction(DetailsAction.MyListToggled) },
+            icon = { StreamCoreBookmarkIcon(filled = state.isInMyList) },
         )
+        if (hasTrailer) {
+            WebDetailsIconAction(
+                text = stringResource(Res.string.web_details_trailer),
+                selected = false,
+                available = true,
+                loading = false,
+                focusRequester = trailerFocusRequester,
+                leftFocusRequester = if (myListEnabled) myListFocusRequester else if (likeEnabled) likeFocusRequester else playFocusRequester,
+                rightFocusRequester = FocusRequester.Cancel,
+                upFocusRequester = backFocusRequester,
+                downFocusRequester = recommendationsFocusRequester,
+                testTag = DetailsTestTags.TrailerAction,
+                onClick = { onAction(DetailsAction.TrailerSelected) },
+                toggle = false,
+                icon = { StreamCoreTrailerIcon() },
+            )
+        }
     }
 }
 
 @Composable
-private fun RowScope.WebDetailsLibraryAction(
+private fun WebDetailsIconAction(
     text: String,
     selected: Boolean,
     available: Boolean,
@@ -571,20 +612,28 @@ private fun RowScope.WebDetailsLibraryAction(
     downFocusRequester: FocusRequester,
     testTag: String,
     onClick: () -> Unit,
+    toggle: Boolean = true,
+    icon: @Composable () -> Unit,
 ) {
     val stateText = when {
         !available -> stringResource(Res.string.web_details_action_unavailable)
         loading -> stringResource(Res.string.web_details_action_updating)
         else -> text
     }
-    StreamCoreWebButton(
-        text = text,
+    val contentColor = when {
+        !available -> MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.55f)
+        selected -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onArtwork
+    }
+    StreamCoreWebActionSurface(
         onClick = onClick,
-        enabled = available,
-        loading = loading,
-        variant = StreamCoreWebButtonVariant.Secondary,
+        enabled = available && !loading,
+        shape = MaterialTheme.shapes.small,
+        role = if (toggle) Role.Checkbox else Role.Button,
+        containerColor = MaterialTheme.colorScheme.transparentContainer,
+        contentColor = contentColor,
         modifier = Modifier
-            .weight(1f)
+            .widthIn(min = StreamCoreDimens.Button.MinHeight + StreamCoreDimens.Spacing.Large)
             .focusRequester(focusRequester)
             .focusProperties {
                 canFocus = available && !loading
@@ -594,55 +643,22 @@ private fun RowScope.WebDetailsLibraryAction(
                 down = downFocusRequester
             }
             .semantics(mergeDescendants = true) {
-                role = Role.Checkbox
-                this.selected = selected
+                role = if (toggle) Role.Checkbox else Role.Button
+                if (toggle) this.selected = selected
                 stateDescription = stateText
-                if (!available || loading) {
-                    disabled()
-                }
+                if (!available || loading) disabled()
             }
             .testTag(testTag),
-    )
-}
-
-@Composable
-private fun WebDetailsMetadata(content: ContentModel) {
-    val genresLabel = stringResource(Res.string.web_details_genres)
-    val castLabel = stringResource(Res.string.web_details_cast)
-    val genresText = remember(genresLabel, content.genres) {
-        genresLabel + ": " + content.genres.joinToString { genre -> genre.name }
-    }
-    val castText = remember(castLabel, content.cast) {
-        castLabel + ": " + content.cast.joinToString { castMember -> castMember.name }
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small)) {
-        Text(
-            text = stringResource(Res.string.web_details_overview),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+    ) {
+        DetailsActionContent(
+            label = text,
+            contentColor = contentColor,
+            isLoading = loading,
+            labelStyle = MaterialTheme.typography.labelMedium,
+            modifier = Modifier
+                .padding(vertical = StreamCoreDimens.Spacing.Small),
+            icon = icon,
         )
-        Text(
-            text = content.description,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag(DetailsTestTags.Overview),
-        )
-        if (content.genres.isNotEmpty()) {
-            Text(
-                text = genresText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (content.cast.isNotEmpty()) {
-            Text(
-                text = castText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -655,15 +671,17 @@ private fun WebDetailsRecommendations(
     onSelected: (ContentModel) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(DetailsTestTags.Recommendations),
     ) {
         Text(
             text = stringResource(Res.string.web_details_recommendations),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .padding(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding),
         )
         if (recommendations.isEmpty()) {
             Text(
@@ -674,9 +692,10 @@ private fun WebDetailsRecommendations(
         } else {
             LazyRow(
                 state = listState,
-                contentPadding = PaddingValues(StreamCoreDimens.Spacing.Small),
+                contentPadding = PaddingValues(horizontal = StreamCoreDimens.Tv.Screen.HorizontalPadding, vertical = StreamCoreDimens.Tv.Focus.BorderPadding),
                 horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth(),
             ) {
                 itemsIndexed(
                     items = recommendations,
@@ -715,44 +734,18 @@ private fun WebDetailsRecommendationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scrimColor = MaterialTheme.colorScheme.scrim
-    val transparentContainer = MaterialTheme.colorScheme.transparentContainer
-    val scrim = remember(scrimColor, transparentContainer) {
-        Brush.verticalGradient(
-            0.45f to transparentContainer,
-            1f to scrimColor.copy(alpha = 0.92f),
-        )
-    }
     StreamCoreWebContentCard(
         onClick = onClick,
-        aspectRatio = RecommendationAspectRatio,
-        modifier = modifier.width(StreamCoreDimens.Web.Details.RecommendationCardWidth),
+        aspectRatio = StreamCoreDimens.Artwork.PosterAspectRatio,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.width(StreamCoreDimens.Tv.Details.RecommendationCardWidth),
     ) {
-        StreamCoreWebArtwork(
-            imageUrl = content.backdrop ?: content.poster,
-            contentDescription = content.title,
-            fallbackText = content.fallbackText(),
-            requestWidthPx = RecommendationRequestWidthPx,
-            requestHeightPx = RecommendationRequestHeightPx,
-            modifier = Modifier.fillMaxSize(),
-            overlay = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(scrim),
-                )
-                Text(
-                    text = content.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onArtwork,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(StreamCoreDimens.Spacing.Medium),
-                )
-            },
+        DetailsRecommendationArtwork(
+            content = content,
+            titleStyle = MaterialTheme.typography.labelMedium,
+            ratingStyle = MaterialTheme.typography.labelMedium,
+            modifier = Modifier
+                .fillMaxSize(),
         )
     }
 }
@@ -767,15 +760,10 @@ private suspend fun FocusRequester.requestFocusWhenReady(): Boolean {
     return false
 }
 
-private const val HeroRequestWidthPx = 1280
-private const val HeroRequestHeightPx = 720
-private const val RecommendationRequestWidthPx = 480
-private const val RecommendationRequestHeightPx = 270
+private const val CollapsedReadingLines = 3
 private const val LoadingLineCount = 5
 private const val FocusRequestAttempts = 3
 private const val RecommendationContentType = "details-recommendation"
-private val HeroAspectRatio = 16f / 9f
-private val RecommendationAspectRatio = 16f / 9f
 
 @Preview(name = "Details · Loading", widthDp = 1280, heightDp = 720)
 @Composable
@@ -821,7 +809,6 @@ private fun WebDetailsPreview(scenario: WebBrowseFixtureScenario) {
             onAction = {},
             returnFocusKey = null,
             onReturnFocusConsumed = {},
-            modifier = Modifier.padding(StreamCoreDimens.Spacing.ExtraLarge),
         )
     }
 }

@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.player.web.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -12,16 +13,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +49,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -54,19 +57,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.zIndex
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
-import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
+import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebArtworkIconButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebPanel
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIcon
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerControlIconType
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
+import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerTimelineTrack
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.feature.player.common.testing.PlayerTestTags
 import com.pampoukidis.streamcoretv.feature.player.web.testing.WebPlayerFixtures
 import com.pampoukidis.streamcoretv.feature.player.web.testing.WebPlayerShowcaseScenario
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
+import kotlin.math.absoluteValue
+import kotlin.math.roundToLong
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.feature.player.ui_web.generated.resources.Res
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_activation_message
@@ -89,8 +98,6 @@ import streamcoretv.feature.player.ui_web.generated.resources.web_player_seek_fe
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_settings
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_timeline
 import streamcoretv.feature.player.ui_web.generated.resources.web_player_title_fallback
-import kotlin.math.absoluteValue
-import kotlin.math.roundToLong
 
 @Composable
 fun WebPlayerScreen(
@@ -100,6 +107,7 @@ fun WebPlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val currentOnAction by rememberUpdatedState(onAction)
+    val overlayVisible = state.settingsPage != null || state.error != null
     val fullscreenController = LocalWebPlayerFullscreenController.current
     val isFullscreen by fullscreenController.isFullscreen
     val rootFocusRequester = remember { FocusRequester() }
@@ -114,9 +122,12 @@ fun WebPlayerScreen(
     var previousSettingsPage by remember { mutableStateOf<PlayerSettingsPage?>(state.settingsPage) }
     var previousFullscreen by remember { mutableStateOf(isFullscreen) }
     var initialFocusAssigned by remember { mutableStateOf(false) }
+    var previousErrorVisible by remember { mutableStateOf(state.error != null) }
 
     WebPlayerDocumentEscapeEffect {
-        if (isFullscreen) {
+        if (overlayVisible) {
+            currentOnAction(PlayerAction.BackSelected)
+        } else if (isFullscreen) {
             fullscreenController.exit()
         } else {
             currentOnAction(PlayerAction.BackSelected)
@@ -157,6 +168,18 @@ fun WebPlayerScreen(
         previousSettingsPage = state.settingsPage
     }
 
+    LaunchedEffect(state.error) {
+        if (previousErrorVisible && state.error == null) {
+            val target = when {
+                !state.controlsVisible -> rootFocusRequester
+                state.phase == PlaybackPhase.Preparing -> backFocusRequester
+                else -> playFocusRequester
+            }
+            target.requestFocusWhenReady()
+        }
+        previousErrorVisible = state.error != null
+    }
+
     LaunchedEffect(isFullscreen) {
         if (previousFullscreen && !isFullscreen && state.settingsPage == null && state.error == null) {
             fullscreenFocusRequester.requestFocusWhenReady()
@@ -173,70 +196,78 @@ fun WebPlayerScreen(
             .onPreviewKeyEvent { event ->
                 handleRootKeyEvent(
                     event = event,
-                    controlsVisible = state.controlsVisible,
-                    isFullscreen = isFullscreen,
+                    controlsVisible = state.controlsVisible || overlayVisible,
+                    isFullscreen = isFullscreen && !overlayVisible,
                     onExitFullscreen = fullscreenController::exit,
                     onAction = currentOnAction,
                 )
             }
-            .focusable(),
+            .focusable(enabled = !overlayVisible),
     ) {
         WebPlayerVideoSurface(
             state = state,
             videoSurface = videoSurface,
         )
 
-        WebPlayerInteractionOverlay(
-            controlsVisible = state.controlsVisible,
-            onAction = currentOnAction,
-        )
-
-        if (state.controlsVisible) {
-            WebPlayerControls(
-                state = state,
-                isFullscreen = isFullscreen,
-                backFocusRequester = backFocusRequester,
-                rewindFocusRequester = rewindFocusRequester,
-                playFocusRequester = playFocusRequester,
-                forwardFocusRequester = forwardFocusRequester,
-                timelineFocusRequester = timelineFocusRequester,
-                fullscreenFocusRequester = fullscreenFocusRequester,
-                settingsFocusRequester = settingsFocusRequester,
-                onBack = {
-                    if (isFullscreen) {
-                        fullscreenController.exit()
-                    } else {
-                        currentOnAction(PlayerAction.BackSelected)
-                    }
-                },
-                onFullscreen = fullscreenController::toggle,
+        val underlyingControlsModifier = if (overlayVisible) {
+            Modifier.clearAndSetSemantics { }
+                .focusProperties { onEnter = { cancelFocusChange() } }
+                .focusGroup()
+        } else {
+            Modifier
+        }
+        Box(modifier = Modifier.fillMaxSize().then(underlyingControlsModifier)) {
+            WebPlayerInteractionOverlay(
+                controlsVisible = state.controlsVisible,
                 onAction = currentOnAction,
             )
-        }
 
-        if (state.error == null) {
-            WebPlayerStatus(state = state)
-        }
+            if (state.controlsVisible) {
+                WebPlayerControls(
+                    state = state,
+                    isFullscreen = isFullscreen,
+                    backFocusRequester = backFocusRequester,
+                    rewindFocusRequester = rewindFocusRequester,
+                    playFocusRequester = playFocusRequester,
+                    forwardFocusRequester = forwardFocusRequester,
+                    timelineFocusRequester = timelineFocusRequester,
+                    fullscreenFocusRequester = fullscreenFocusRequester,
+                    settingsFocusRequester = settingsFocusRequester,
+                    onBack = {
+                        if (isFullscreen) {
+                            fullscreenController.exit()
+                        } else {
+                            currentOnAction(PlayerAction.BackSelected)
+                        }
+                    },
+                    onFullscreen = fullscreenController::toggle,
+                    onAction = currentOnAction,
+                )
+            }
 
-        state.seekFeedbackSeconds?.let { seconds ->
-            WebPlayerSeekFeedback(seconds = seconds)
-        }
-    }
+            if (state.error == null) {
+                WebPlayerStatus(state = state)
+            }
 
-    val error = state.error
-    if (error != null) {
-        WebPlayerErrorDialog(
-            message = error.message,
-            recoverable = error.isRecoverable,
-            onAction = currentOnAction,
-        )
-    } else {
-        state.settingsPage?.let { page ->
-            WebPlayerSettingsDialog(
-                state = state,
-                page = page,
+            state.seekFeedbackSeconds?.let { seconds ->
+                WebPlayerSeekFeedback(seconds = seconds)
+            }
+        }
+        val error = state.error
+        if (error != null) {
+            WebPlayerErrorOverlay(
+                message = error.message,
+                recoverable = error.isRecoverable,
                 onAction = currentOnAction,
             )
+        } else {
+            state.settingsPage?.let { page ->
+                WebPlayerSettingsOverlay(
+                    state = state,
+                    page = page,
+                    onAction = currentOnAction,
+                )
+            }
         }
     }
 }
@@ -312,176 +343,84 @@ private fun BoxScope.WebPlayerControls(
     onFullscreen: () -> Unit,
     onAction: (PlayerAction) -> Unit,
 ) {
+    val centerFocusRequester = remember { FocusRequester() }
     val scrimColor = MaterialTheme.colorScheme.scrim
-    val transparentScrim = scrimColor.copy(alpha = WebPlayerTokens.SurfaceScrimTransparentAlpha)
-    val opaqueScrim = scrimColor.copy(alpha = WebPlayerTokens.SurfaceScrimAlpha)
     val topBrush = remember(scrimColor) {
-        Brush.verticalGradient(colors = listOf(opaqueScrim, transparentScrim))
+        Brush.verticalGradient(listOf(scrimColor.copy(alpha = WebPlayerTokens.SurfaceScrimAlpha), scrimColor.copy(alpha = 0f)))
     }
     val bottomBrush = remember(scrimColor) {
-        Brush.verticalGradient(colors = listOf(transparentScrim, opaqueScrim))
+        Brush.verticalGradient(listOf(scrimColor.copy(alpha = 0f), scrimColor.copy(alpha = WebPlayerTokens.SurfaceScrimAlpha)))
     }
-
+    val playPauseLabel = when {
+        state.isEnded -> stringResource(Res.string.web_player_replay)
+        state.isPlaying -> stringResource(Res.string.web_player_pause)
+        else -> stringResource(Res.string.web_player_play)
+    }
+    val playPauseIcon = when {
+        state.isEnded -> PlayerControlIconType.Replay
+        state.isPlaying -> PlayerControlIconType.Pause
+        else -> PlayerControlIconType.Play
+    }
     Row(
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Large),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .align(Alignment.TopCenter)
             .zIndex(WebPlayerZOrder.Controls)
-            .fillMaxWidth()
-            .heightIn(min = WebPlayerTokens.TopBarMinHeight)
-            .background(topBrush)
-            .padding(
-                horizontal = WebPlayerTokens.ScreenHorizontalPadding,
-                vertical = WebPlayerTokens.ScreenVerticalPadding,
-            )
+            .fillMaxWidth().background(topBrush)
+            .padding(horizontal = WebPlayerTokens.ScreenHorizontalPadding, vertical = WebPlayerTokens.ScreenVerticalPadding)
             .testTag(WebPlayerTestTags.Controls),
     ) {
-        WebPlayerControlButton(
-            text = stringResource(Res.string.web_player_back),
+        StreamCoreWebArtworkIconButton(
+            contentDescription = stringResource(Res.string.web_player_back),
             onClick = onBack,
-            variant = StreamCoreWebButtonVariant.Tertiary,
-            focusRequester = backFocusRequester,
             modifier = Modifier
+                .focusRequester(backFocusRequester)
                 .webPlayerDirectionalFocus(down = playFocusRequester)
                 .focusProperties {
                     right = FocusRequester.Cancel
                     down = playFocusRequester
                 }
                 .testTag(PlayerTestTags.Back),
-        )
+        ) {
+            StreamCoreBackIcon(modifier = Modifier.size(WebPlayerTokens.ControlIconSize))
+        }
         Text(
-            text = state.title.ifBlank {
-                stringResource(Res.string.web_player_title_fallback)
-            },
+            text = state.title.ifBlank { stringResource(Res.string.web_player_title_fallback) },
             color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f),
         )
     }
-
+    StreamCoreWebArtworkIconButton(
+        contentDescription = playPauseLabel,
+        onClick = { onAction(PlayerAction.TogglePlayPause) },
+        enabled = state.phase != PlaybackPhase.Preparing,
+        isLoading = state.phase == PlaybackPhase.Preparing || state.isBuffering,
+        modifier = Modifier
+            .align(Alignment.Center)
+            .zIndex(WebPlayerZOrder.Controls)
+            .size(WebPlayerTokens.LargeControlSize).focusRequester(centerFocusRequester)
+            .webPlayerDirectionalFocus(up = backFocusRequester, down = timelineFocusRequester)
+            .focusProperties {
+                up = backFocusRequester
+                down = timelineFocusRequester
+            },
+    ) {
+        PlayerControlIcon(playPauseIcon, Modifier.size(WebPlayerTokens.LargeControlIconSize))
+    }
     Column(
-        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .zIndex(WebPlayerZOrder.Controls)
-            .fillMaxWidth()
-            .background(bottomBrush)
-            .padding(
-                start = WebPlayerTokens.ScreenHorizontalPadding,
-                end = WebPlayerTokens.ScreenHorizontalPadding,
-                top = WebPlayerTokens.ControlStripPadding,
-                bottom = WebPlayerTokens.ScreenVerticalPadding,
-            ),
+            .fillMaxWidth().background(bottomBrush)
+            .padding(horizontal = WebPlayerTokens.ScreenHorizontalPadding, vertical = WebPlayerTokens.ScreenVerticalPadding),
     ) {
-        if (state.isScrubbing) {
-            WebPlayerFilmstrip(state = state)
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            WebPlayerControlButton(
-                text = stringResource(Res.string.web_player_rewind),
-                onClick = {
-                    onAction(
-                        PlayerAction.SeekBy(
-                            deltaMillis = -WebPlayerTokens.SeekIntervalMillis,
-                            showFeedback = true,
-                        ),
-                    )
-                },
-                enabled = state.canSeek,
-                variant = StreamCoreWebButtonVariant.Secondary,
-                focusRequester = rewindFocusRequester,
-                modifier = Modifier
-                    .webPlayerDirectionalFocus(
-                        up = backFocusRequester,
-                        right = playFocusRequester,
-                        down = timelineFocusRequester,
-                    )
-                    .focusProperties {
-                        up = backFocusRequester
-                        left = FocusRequester.Cancel
-                        right = playFocusRequester
-                        down = timelineFocusRequester
-                    }
-                    .testTag(PlayerTestTags.Rewind),
-            )
-            val playPauseLabel = when {
-                state.isEnded -> stringResource(Res.string.web_player_replay)
-                state.isPlaying -> stringResource(Res.string.web_player_pause)
-                else -> stringResource(Res.string.web_player_play)
-            }
-            WebPlayerControlButton(
-                text = playPauseLabel,
-                onClick = { onAction(PlayerAction.TogglePlayPause) },
-                enabled = state.phase != PlaybackPhase.Preparing,
-                loading = state.phase == PlaybackPhase.Preparing || state.isBuffering,
-                variant = StreamCoreWebButtonVariant.Primary,
-                focusRequester = playFocusRequester,
-                modifier = Modifier
-                    .sizeIn(minWidth = WebPlayerTokens.PrimaryControlMinWidth)
-                    .webPlayerDirectionalFocus(
-                        up = backFocusRequester,
-                        left = rewindFocusRequester,
-                        right = forwardFocusRequester,
-                        down = timelineFocusRequester,
-                    )
-                    .focusProperties {
-                        up = backFocusRequester
-                        left = rewindFocusRequester
-                        right = forwardFocusRequester
-                        down = timelineFocusRequester
-                    }
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = playPauseLabel
-                        stateDescription = state.phase.name
-                    }
-                    .testTag(PlayerTestTags.PlayPause),
-            )
-            WebPlayerControlButton(
-                text = stringResource(Res.string.web_player_forward),
-                onClick = {
-                    onAction(
-                        PlayerAction.SeekBy(
-                            deltaMillis = WebPlayerTokens.SeekIntervalMillis,
-                            showFeedback = true,
-                        ),
-                    )
-                },
-                enabled = state.canSeek,
-                variant = StreamCoreWebButtonVariant.Secondary,
-                focusRequester = forwardFocusRequester,
-                modifier = Modifier
-                    .webPlayerDirectionalFocus(
-                        up = backFocusRequester,
-                        left = playFocusRequester,
-                        right = fullscreenFocusRequester,
-                        down = timelineFocusRequester,
-                    )
-                    .focusProperties {
-                        up = backFocusRequester
-                        left = playFocusRequester
-                        right = fullscreenFocusRequester
-                        down = timelineFocusRequester
-                    }
-                    .testTag(PlayerTestTags.Forward),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "${formatPlaybackTime(state.displayPositionMillis())} / " +
-                    formatPlaybackTime(state.durationMillis),
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
+        if (state.isScrubbing) WebPlayerFilmstrip(state)
         WebPlayerTimeline(
             state = state,
             focusRequester = timelineFocusRequester,
@@ -489,51 +428,94 @@ private fun BoxScope.WebPlayerControls(
             settingsFocusRequester = settingsFocusRequester,
             onAction = onAction,
         )
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-            val fullscreenLabel = if (isFullscreen) {
-                stringResource(Res.string.web_player_fullscreen_exit)
-            } else {
-                stringResource(Res.string.web_player_fullscreen_enter)
-            }
-            WebPlayerControlButton(
-                text = fullscreenLabel,
-                onClick = onFullscreen,
-                variant = StreamCoreWebButtonVariant.Tertiary,
-                focusRequester = fullscreenFocusRequester,
+            StreamCoreWebArtworkIconButton(
+                contentDescription = stringResource(Res.string.web_player_rewind),
+                onClick = { onAction(PlayerAction.SeekBy(-WebPlayerTokens.SeekIntervalMillis, showFeedback = true)) },
+                enabled = state.canSeek,
                 modifier = Modifier
-                    .webPlayerDirectionalFocus(
-                        up = timelineFocusRequester,
-                        left = forwardFocusRequester,
-                        right = settingsFocusRequester,
-                    )
+                    .focusRequester(rewindFocusRequester)
+                    .webPlayerDirectionalFocus(up = timelineFocusRequester, right = playFocusRequester, down = timelineFocusRequester)
+                    .focusProperties {
+                        up = timelineFocusRequester
+                        left = FocusRequester.Cancel
+                        right = playFocusRequester
+                        down = timelineFocusRequester
+                    }
+                    .testTag(PlayerTestTags.Rewind),
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Rewind, Modifier.size(WebPlayerTokens.ControlIconSize))
+            }
+            StreamCoreWebArtworkIconButton(
+                contentDescription = playPauseLabel,
+                onClick = { onAction(PlayerAction.TogglePlayPause) },
+                enabled = state.phase != PlaybackPhase.Preparing,
+                isLoading = state.phase == PlaybackPhase.Preparing || state.isBuffering,
+                modifier = Modifier
+                    .focusRequester(playFocusRequester)
+                    .webPlayerDirectionalFocus(up = backFocusRequester, left = rewindFocusRequester, right = forwardFocusRequester, down = timelineFocusRequester)
+                    .focusProperties {
+                        up = backFocusRequester
+                        left = rewindFocusRequester
+                        right = forwardFocusRequester
+                        down = timelineFocusRequester
+                    }
+                    .semantics { stateDescription = state.phase.name }
+                    .testTag(PlayerTestTags.PlayPause),
+            ) {
+                PlayerControlIcon(playPauseIcon, Modifier.size(WebPlayerTokens.ControlIconSize))
+            }
+            StreamCoreWebArtworkIconButton(
+                contentDescription = stringResource(Res.string.web_player_forward),
+                onClick = { onAction(PlayerAction.SeekBy(WebPlayerTokens.SeekIntervalMillis, showFeedback = true)) },
+                enabled = state.canSeek,
+                modifier = Modifier
+                    .focusRequester(forwardFocusRequester)
+                    .webPlayerDirectionalFocus(up = timelineFocusRequester, left = playFocusRequester, right = fullscreenFocusRequester, down = timelineFocusRequester)
+                    .focusProperties {
+                        up = timelineFocusRequester
+                        left = playFocusRequester
+                        right = fullscreenFocusRequester
+                        down = timelineFocusRequester
+                    }
+                    .testTag(PlayerTestTags.Forward),
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Forward, Modifier.size(WebPlayerTokens.ControlIconSize))
+            }
+            Text(
+                text = "${formatPlaybackTime(state.displayPositionMillis())} / " + formatPlaybackTime(state.durationMillis),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(Modifier.weight(1f))
+            StreamCoreWebArtworkIconButton(
+                contentDescription = stringResource(if (isFullscreen) Res.string.web_player_fullscreen_exit else Res.string.web_player_fullscreen_enter),
+                onClick = onFullscreen,
+                modifier = Modifier
+                    .focusRequester(fullscreenFocusRequester)
+                    .webPlayerDirectionalFocus(up = timelineFocusRequester, left = forwardFocusRequester, right = settingsFocusRequester)
                     .focusProperties {
                         up = timelineFocusRequester
                         left = forwardFocusRequester
                         right = settingsFocusRequester
                         down = FocusRequester.Cancel
                     }
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = fullscreenLabel
-                    }
                     .testTag(WebPlayerTestTags.Fullscreen),
-            )
-            WebPlayerControlButton(
-                text = stringResource(Res.string.web_player_settings),
+            ) {
+                PlayerControlIcon(if (isFullscreen) PlayerControlIconType.FullscreenExit else PlayerControlIconType.Fullscreen, Modifier.size(WebPlayerTokens.ControlIconSize))
+            }
+            StreamCoreWebArtworkIconButton(
+                contentDescription = stringResource(Res.string.web_player_settings),
                 onClick = { onAction(PlayerAction.OpenSettings()) },
                 enabled = state.phase != PlaybackPhase.Preparing,
-                variant = StreamCoreWebButtonVariant.Tertiary,
-                focusRequester = settingsFocusRequester,
                 modifier = Modifier
-                    .webPlayerDirectionalFocus(
-                        up = timelineFocusRequester,
-                        left = fullscreenFocusRequester,
-                    )
+                    .focusRequester(settingsFocusRequester)
+                    .webPlayerDirectionalFocus(up = timelineFocusRequester, left = fullscreenFocusRequester)
                     .focusProperties {
                         up = timelineFocusRequester
                         left = fullscreenFocusRequester
@@ -541,34 +523,15 @@ private fun BoxScope.WebPlayerControls(
                         down = FocusRequester.Cancel
                     }
                     .testTag(PlayerTestTags.SettingsButton),
-            )
+            ) {
+                PlayerControlIcon(PlayerControlIconType.Settings, Modifier.size(WebPlayerTokens.ControlIconSize))
+            }
         }
     }
 }
 
 @Composable
-private fun WebPlayerControlButton(
-    text: String,
-    onClick: () -> Unit,
-    focusRequester: FocusRequester,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-    variant: StreamCoreWebButtonVariant,
-) {
-    StreamCoreWebButton(
-        text = text,
-        onClick = onClick,
-        enabled = enabled,
-        loading = loading,
-        variant = variant,
-        modifier = modifier
-            .sizeIn(minWidth = WebPlayerTokens.SecondaryControlMinWidth)
-            .focusRequester(focusRequester),
-    )
-}
-
-@Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun WebPlayerTimeline(
     state: PlayerUiState,
     focusRequester: FocusRequester,
@@ -600,19 +563,6 @@ private fun WebPlayerTimeline(
                 )
             },
     ) {
-        LinearProgressIndicator(
-            progress = {
-                if (state.durationMillis > 0L) {
-                    (state.bufferedPositionMillis.toFloat() / state.durationMillis.toFloat())
-                        .coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-            },
-            color = MaterialTheme.colorScheme.outline,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            modifier = Modifier.fillMaxWidth(),
-        )
         Slider(
             value = position.toFloat(),
             onValueChange = { value ->
@@ -624,6 +574,21 @@ private fun WebPlayerTimeline(
             onValueChangeFinished = { onAction(PlayerAction.ScrubFinished) },
             enabled = state.canSeek,
             valueRange = 0f..duration.toFloat(),
+            colors = SliderDefaults.colors(
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.transparentContainer,
+                thumbColor = MaterialTheme.colorScheme.primary,
+            ),
+            track = { sliderState ->
+                PlayerTimelineTrack(
+                    sliderState = sliderState,
+                    durationMillis = duration,
+                    bufferedPositionMillis = state.bufferedPositionMillis,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    bufferedTrackHeight = StreamCoreDimens.Spacing.Tiny,
+                    activeTrackHeight = StreamCoreDimens.Spacing.Large,
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
@@ -667,7 +632,8 @@ private fun WebPlayerFilmstrip(state: PlayerUiState) {
                 text = stringResource(Res.string.web_player_preview_unavailable),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.testTag(WebPlayerTestTags.NoFilmstrip),
+                modifier = Modifier
+                    .testTag(WebPlayerTestTags.NoFilmstrip),
             )
         } else {
             LazyRow(
@@ -708,7 +674,8 @@ private fun WebPlayerFilmstrip(state: PlayerUiState) {
                                 bitmap = image,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize(),
                             )
                         }
                     }
@@ -721,14 +688,14 @@ private fun WebPlayerFilmstrip(state: PlayerUiState) {
 @Composable
 private fun BoxScope.WebPlayerStatus(state: PlayerUiState) {
     when {
-        state.phase == PlaybackPhase.Idle || state.phase == PlaybackPhase.Preparing -> {
+        (state.phase == PlaybackPhase.Idle || state.phase == PlaybackPhase.Preparing) && !state.controlsVisible -> {
             WebPlayerProgressStatus(
                 text = stringResource(Res.string.web_player_preparing),
                 testTag = WebPlayerTestTags.Preparing,
             )
         }
 
-        state.isBuffering -> {
+        state.isBuffering && !state.controlsVisible -> {
             WebPlayerProgressStatus(
                 text = stringResource(Res.string.web_player_buffering),
                 testTag = PlayerTestTags.Buffering,
@@ -739,6 +706,7 @@ private fun BoxScope.WebPlayerStatus(state: PlayerUiState) {
             StreamCoreWebPanel(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .offset(y = WebPlayerTokens.StatusVerticalOffset)
                     .zIndex(WebPlayerZOrder.Status)
                     .widthIn(max = WebPlayerTokens.StatusPanelMaxWidth)
                     .testTag(WebPlayerTestTags.Ended),
@@ -755,6 +723,7 @@ private fun BoxScope.WebPlayerStatus(state: PlayerUiState) {
             StreamCoreWebPanel(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .offset(y = WebPlayerTokens.StatusVerticalOffset)
                     .zIndex(WebPlayerZOrder.Status)
                     .widthIn(max = WebPlayerTokens.StatusPanelMaxWidth)
                     .testTag(WebPlayerTestTags.Activation),
@@ -790,7 +759,8 @@ private fun BoxScope.WebPlayerProgressStatus(
             .testTag(testTag),
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(WebPlayerTokens.StatusProgressSize),
+            modifier = Modifier
+                .size(WebPlayerTokens.StatusProgressSize),
         )
         Text(
             text = text,

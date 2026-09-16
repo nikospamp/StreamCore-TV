@@ -11,6 +11,7 @@ object StreamCoreWebDimens {
     val PanelWidth = 440.dp
     val WidePanelWidth = 880.dp
     val WideViewportThreshold = 1600.dp
+    val NavigationExpansionMinWidth = 720.dp
     val ProfilesContentMaxWidth = 1280.dp
     val PanelPadding = 40.dp
     val ControlHeight = 56.dp
@@ -23,7 +24,8 @@ object StreamCoreWebDimens {
     val HtmlInputPadding = 16.dp
     val HtmlInputFontSize = 18.dp
     val HtmlInputErrorHeight = 32.dp
-    val CredentialFormHeight = 292.dp
+    val CredentialFormHeight = 216.dp
+    val CredentialErrorHeight = 26.dp
     val ActionGap = 12.dp
     val ActionPadding = 18.dp
     val FocusBorder = 3.dp

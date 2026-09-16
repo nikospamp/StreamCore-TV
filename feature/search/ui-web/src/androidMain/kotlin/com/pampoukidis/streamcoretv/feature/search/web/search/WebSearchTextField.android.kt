@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
 import com.pampoukidis.streamcoretv.feature.search.common.testing.SearchTestTags
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.feature.search.ui_web.generated.resources.Res
@@ -57,6 +58,7 @@ internal actual fun WebSearchTextField(
         enabled = enabled,
         singleLine = true,
         placeholder = { Text(stringResource(Res.string.web_search_field_hint)) },
+        leadingIcon = { StreamCoreSearchIcon() },
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.None,
             autoCorrectEnabled = false,

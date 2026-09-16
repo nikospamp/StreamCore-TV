@@ -1,7 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.profiles.web.editor
 
-import androidx.compose.runtime.Composable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -13,8 +13,8 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
 import kotlinx.browser.document
-import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 
@@ -40,7 +40,7 @@ internal actual fun WebProfileNameField(
         WebProfileNameFieldListeners(callbacks = { currentCallbacks.value })
     }
     val inputStyle = webInputStyle(
-        background = MaterialTheme.colorScheme.surface,
+        background = MaterialTheme.colorScheme.background,
         foreground = MaterialTheme.colorScheme.onSurface,
         border = if (errorMessage == null) {
             MaterialTheme.colorScheme.outline
@@ -49,15 +49,22 @@ internal actual fun WebProfileNameField(
         },
     )
     val errorStyle = webInputErrorStyle(MaterialTheme.colorScheme.error)
+    val nameBackground = MaterialTheme.colorScheme.background.cssColor()
+    val nameForeground = MaterialTheme.colorScheme.onSurfaceVariant.cssColor()
+    val nameFocus = if (errorMessage == null) {
+        MaterialTheme.colorScheme.primary.cssColor()
+    } else {
+        MaterialTheme.colorScheme.error.cssColor()
+    }
     HtmlElementView(
         factory = {
             val input = (document.createElement("input") as HTMLInputElement).apply {
                 type = "text"
-                setAttribute("aria-label", "Display name")
+                id = "streamcore-profile-name"
+                setAttribute("aria-label", "Username")
                 setAttribute("autocomplete", "nickname")
                 setAttribute("data-testid", "profile-display-name")
                 setAttribute("maxlength", "32")
-                setAttribute("form", PROFILE_EDITOR_FORM_ID)
                 listeners.attach(this)
             }
             val error = (document.createElement("div") as HTMLElement).apply {
@@ -69,7 +76,12 @@ internal actual fun WebProfileNameField(
             }
             (document.createElement("div") as HTMLElement).apply {
                 setAttribute("data-testid", "profile-display-name-form")
-                style.cssText = "width:100%;height:100%;margin:0;display:flex;flex-direction:column;gap:6px;"
+                style.cssText = "position:relative;box-sizing:border-box;width:100%;height:100%;padding-top:12px;margin:0;display:flex;flex-direction:column;gap:6px;"
+                appendChild((document.createElement("label") as HTMLElement).apply {
+                    textContent = "Username"
+                    setAttribute("for", "streamcore-profile-name")
+                })
+                appendChild(document.createElement("style"))
                 appendChild(input)
                 appendChild(error)
             }
@@ -78,6 +90,11 @@ internal actual fun WebProfileNameField(
             val input = container.querySelector("[data-testid='profile-display-name']") as HTMLInputElement
             val error = container.querySelector("#$PROFILE_DISPLAY_NAME_ERROR_ID") as HTMLElement
             input.style.cssText = inputStyle + controls.input(enabled)
+            (container.querySelector("label") as HTMLElement).style.cssText =
+                "position:absolute;top:4px;left:12px;padding:0 4px;font:400 12px/16px system-ui,Segoe UI,Arial,sans-serif;" +
+                    "background:" + nameBackground + ";color:" + nameForeground + ";"
+            container.querySelector("style")?.textContent =
+                "#streamcore-profile-name:focus{outline:none;border-color:" + nameFocus + "!important;box-shadow:inset 0 0 0 1px " + nameFocus + "}"
             if (input.value != value) input.value = value
             input.disabled = !enabled
             if (errorMessage == null) {
@@ -149,7 +166,7 @@ private fun webInputStyle(
     return "box-sizing:border-box;width:100%;" +
         "height:${StreamCoreWebDimens.ControlHeight.value}px;" +
         "padding:0 ${StreamCoreWebDimens.HtmlInputPadding.value}px;" +
-        "border:${StreamCoreWebDimens.FocusOuterBorder.value}px solid ${border.cssColor()};" +
+        "border:1px solid ${border.cssColor()};" +
         "background:${background.cssColor()};color:${foreground.cssColor()};"
 }
 

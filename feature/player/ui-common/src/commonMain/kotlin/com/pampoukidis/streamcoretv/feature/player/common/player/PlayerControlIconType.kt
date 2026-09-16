@@ -8,4 +8,6 @@ enum class PlayerControlIconType {
     Forward,
     Settings,
     PictureInPicture,
+    Fullscreen,
+    FullscreenExit,
 }

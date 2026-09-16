@@ -20,4 +20,9 @@
     <string name="web_details_genres">Genres</string>
     <string name="web_details_recommendations">More like this</string>
     <string name="web_details_no_recommendations">No recommendations are available yet.</string>
+    <string name="web_details_read_full_overview">Read full overview</string>
+    <string name="web_details_show_full_cast">Show full cast</string>
+    <string name="web_details_show_less">Show less</string>
+    <string name="web_details_text_expanded">Expanded</string>
+    <string name="web_details_text_collapsed">Collapsed</string>
 </resources>

@@ -18,6 +18,8 @@ import streamcoretv.feature.player.ui_common.generated.resources.ic_player_repla
 import streamcoretv.feature.player.ui_common.generated.resources.ic_replay_10_24dp
 import streamcoretv.feature.player.ui_common.generated.resources.ic_forward_10_24dp
 import streamcoretv.feature.player.ui_common.generated.resources.ic_player_settings_24
+import streamcoretv.feature.player.ui_common.generated.resources.ic_player_fullscreen_24
+import streamcoretv.feature.player.ui_common.generated.resources.ic_player_fullscreen_exit_24
 import streamcoretv.feature.player.ui_common.generated.resources.ic_player_pip_24
 
 /** Portable artwork glyphs; platforms own focus, gestures, sizing, and action semantics. */
@@ -37,6 +39,8 @@ fun PlayerControlIcon(
         PlayerControlIconType.Forward -> Res.drawable.ic_forward_10_24dp
         PlayerControlIconType.Settings -> Res.drawable.ic_player_settings_24
         PlayerControlIconType.PictureInPicture -> Res.drawable.ic_player_pip_24
+        PlayerControlIconType.Fullscreen -> Res.drawable.ic_player_fullscreen_24
+        PlayerControlIconType.FullscreenExit -> Res.drawable.ic_player_fullscreen_exit_24
         PlayerControlIconType.Play -> error("Play is rendered by the shared core icon")
     }
     Image(
