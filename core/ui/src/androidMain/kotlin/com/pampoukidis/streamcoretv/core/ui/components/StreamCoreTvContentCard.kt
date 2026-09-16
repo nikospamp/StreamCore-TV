@@ -4,42 +4,34 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
-import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
@@ -113,7 +105,18 @@ fun StreamCoreTvContentCard(
                 .fillMaxWidth()
                 .height(spec.height),
         ) {
-            Box {
+            StreamCoreContentCardArtwork(
+                title = content.title,
+                showProgress = type == RowType.ContinueWatching,
+                rank = rank.takeIf { type == RowType.TopTen },
+                progress = content.playbackProgress,
+                titleModifier = Modifier.streamCoreSharedBounds(
+                    sharedElementScope = elementScope,
+                    key = StreamCoreSharedKey.title(contentId = content.id, row = content.row),
+                    clipShape = RectangleShape,
+                    zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
+                ),
+            ) {
                 StreamCoreSharedArtworkImage(
                     imageUrl = imageUrl,
                     contentDescription = content.title,
@@ -127,49 +130,6 @@ fun StreamCoreTvContentCard(
                     fallbackTextStyle = MaterialTheme.typography.displayMedium,
                     modifier = Modifier.fillMaxSize(),
                 )
-                if (type == RowType.TopTen && rank != null) {
-                    Text(
-                        text = rank.toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.92f),
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(StreamCoreDimens.Spacing.Medium),
-                    )
-                }
-                Text(
-                    text = content.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onArtwork,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .padding(
-                            start = StreamCoreDimens.Spacing.Medium,
-                            end = StreamCoreDimens.Spacing.Medium,
-                            bottom = if (type == RowType.ContinueWatching) {
-                                StreamCoreDimens.Spacing.ExtraLarge
-                            } else {
-                                StreamCoreDimens.Spacing.Medium
-                            },
-                        )
-                        .streamCoreSharedBounds(
-                            sharedElementScope = elementScope,
-                            key = StreamCoreSharedKey.title(
-                                contentId = content.id,
-                                row = content.row,
-                            ),
-                            clipShape = RectangleShape,
-                            zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
-                        ),
-                )
-                if (type == RowType.ContinueWatching) {
-                    StreamCoreTvPlaybackProgress(progress = content.playbackProgress)
-                }
             }
         }
         Text(
@@ -182,26 +142,6 @@ fun StreamCoreTvContentCard(
             },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun BoxScope.StreamCoreTvPlaybackProgress(progress: PlaybackProgressModel?) {
-    Box(
-        modifier = Modifier
-            .align(Alignment.BottomStart)
-            .fillMaxWidth()
-            .height(StreamCoreDimens.Artwork.ProgressHeight)
-            .padding(horizontal = StreamCoreDimens.Artwork.ProgressInset)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.28f)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(progress?.fraction?.coerceIn(0f, 1f) ?: 0f)
-                .height(StreamCoreDimens.Artwork.ProgressHeight)
-                .background(MaterialTheme.colorScheme.primary),
         )
     }
 }

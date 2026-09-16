@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,6 +49,7 @@ internal actual fun WebLoginCredentialForm(
     modifier: Modifier,
 ) {
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { identifierFocus.requestFocus() }
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
         modifier = modifier,

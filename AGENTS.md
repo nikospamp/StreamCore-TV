@@ -9,6 +9,7 @@ The codebase supports:
 - Android Mobile
 - Android Tablet
 - Android TV
+- Browser (Compose Multiplatform / Wasm)
 
 Mobile/tablet use Jetpack Compose with Material 3 and adaptive layouts.
 
@@ -237,6 +238,11 @@ Use SVG assets for icons by default. On Android, import SVGs as `VectorDrawable`
 Create common UI components when they improve consistency, reuse, or centralize styling/behavior.
 
 Share UI components between mobile/tablet/TV only when the abstraction stays clean. Do not force a single component across input models when platform behavior differs, such as touch vs D-pad focus.
+
+Web follows the approved TV visual language. Reuse portable artwork, text, icons, forms, and settings content from `ui-common`; keep browser DOM
+interop, pointer/keyboard handling, focus, fullscreen, and responsive placement in `ui-web`. Preserve Android rendering defaults when extracting
+shared leaves. Browser overlays must restore both focus and the accessibility tree when dismissed; prefer the existing single-viewport overlay
+pattern for avatar/player panels over creating another Compose dialog viewport.
 
 Feature UI should compose standardized components from `:common` / design-system modules where practical, so visual changes are made centrally instead of hunting raw component usages across the codebase.
 

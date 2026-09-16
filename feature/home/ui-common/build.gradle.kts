@@ -10,6 +10,9 @@ streamCoreKmp {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            implementation(projects.core.ui)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui.tooling.preview)
             implementation(projects.core.domain)
             implementation(projects.core.data)
             implementation(projects.core.tracingApi)

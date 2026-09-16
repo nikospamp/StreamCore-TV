@@ -10,6 +10,9 @@ const distributionVariant = process.env.STREAMCORE_WEB_DISTRIBUTION === "develop
 const distributionDirectory = normalize(
   join(e2eDirectory, "..", "build", "dist", "wasmJs", distributionVariant),
 );
+// Optional local preview configuration stays outside the deployable distribution.
+const runtimeConfigPath = process.env.STREAMCORE_WEB_RUNTIME_CONFIG;
+const port = Number(process.env.STREAMCORE_WEB_PORT ?? 4173);
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
@@ -62,6 +65,15 @@ createServer((request, response) => {
     return;
   }
   const relativePath = requestPath === "/" ? "index.html" : requestPath.slice(1);
+  if (requestPath === "/config.json" && runtimeConfigPath && existsSync(runtimeConfigPath)) {
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    createReadStream(runtimeConfigPath).pipe(response);
+    return;
+  }
   let candidate = normalize(join(distributionDirectory, relativePath));
   const candidateFromRoot = relative(distributionDirectory, candidate);
   if (
@@ -86,4 +98,4 @@ createServer((request, response) => {
     "Cache-Control": "no-store",
   });
   createReadStream(candidate).pipe(response);
-}).listen(4173, "127.0.0.1");
+}).listen(port, "127.0.0.1");

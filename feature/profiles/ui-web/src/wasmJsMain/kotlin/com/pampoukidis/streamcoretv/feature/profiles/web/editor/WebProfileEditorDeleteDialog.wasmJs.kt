@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
 import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebDimens
@@ -39,12 +40,12 @@ internal actual fun WebProfileEditorDeleteDialog(
     val listeners = remember {
         WebDeleteDialogListeners(callbacks = { currentCallbacks.value })
     }
-    val surface = MaterialTheme.colorScheme.surface
+    val surface = MaterialTheme.colorScheme.surfaceContainerHigh
     val onSurface = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val neutral = MaterialTheme.colorScheme.surfaceContainerHighest
-    val error = MaterialTheme.colorScheme.errorContainer
-    val onError = MaterialTheme.colorScheme.onErrorContainer
+    val neutral = MaterialTheme.colorScheme.transparentContainer
+    val error = MaterialTheme.colorScheme.surfaceVariant
+    val onError = MaterialTheme.colorScheme.onSurfaceVariant
 
     HtmlElementView(
         factory = {
@@ -80,11 +81,12 @@ internal actual fun WebProfileEditorDeleteDialog(
             dialog.style.cssText = dialogStyle(surface, onSurface)
             dialog.setAttribute("aria-busy", isSaving.toString())
             dialog.titleElement().apply {
-                textContent = "Delete ${profile.displayName}?"
-                style.cssText = "margin:0;font:600 28px system-ui,Segoe UI,Arial,sans-serif;"
+                textContent = "Delete profile?"
+                style.cssText = "margin:0;font:400 24px/32px system-ui,Segoe UI,Arial,sans-serif;"
             }
+            dialog.descriptionElement().textContent = "Delete ${profile.displayName}? This cannot be undone."
             dialog.descriptionElement().style.cssText =
-                "margin:0;color:${muted.cssColor()};font:400 18px system-ui,Segoe UI,Arial,sans-serif;"
+                "margin:0;color:${muted.cssColor()};font:400 14px/20px system-ui,Segoe UI,Arial,sans-serif;"
             dialog.querySelector("style")?.textContent = "#$PROFILE_EDITOR_DELETE_DIALOG_ID::backdrop{background:rgba(0,0,0,.72)}" +
                 controls.buttonStates("#$PROFILE_EDITOR_DELETE_DIALOG_ID button")
             val actions = dialog.querySelector("[data-dialog-actions='true']") as HTMLElement
@@ -224,11 +226,11 @@ private fun HTMLDialogElement.descriptionElement(): HTMLElement {
 }
 
 private fun dialogStyle(background: Color, foreground: Color): String {
-    return "box-sizing:border-box;position:fixed;inset:0;width:min(560px,calc(100vw - 64px));" +
+    return "box-sizing:border-box;position:fixed;inset:0;width:min(420px,calc(100vw - 64px));" +
         "height:fit-content;margin:auto;" +
-        "padding:${StreamCoreWebDimens.PanelPadding.value}px;border:1px solid rgba(255,255,255,.14);" +
-        "border-radius:20px;background:${background.cssColor()};color:${foreground.cssColor()};" +
-        "display:flex;flex-direction:column;gap:24px;box-shadow:0 24px 80px rgba(0,0,0,.55);"
+        "padding:24px;border:0;" +
+        "border-radius:16px;background:${background.cssColor()};color:${foreground.cssColor()};" +
+        "display:flex;flex-direction:column;gap:24px;"
 }
 
 private fun dialogButtonStyle(

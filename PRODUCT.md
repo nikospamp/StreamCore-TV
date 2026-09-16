@@ -10,6 +10,9 @@ StreamCoreTV is for subscribers using Android mobile, tablet, and TV surfaces to
 saved content, discover recommendations, and open content details. Usage spans handheld touch interaction and 10-foot TV viewing with D-pad
 navigation.
 
+The browser client uses Compose Multiplatform/Wasm and follows the approved TV visual language, adapted for pointer/keyboard input and resizable
+windows. Portable rendering is shared across clients; native browser inputs, fullscreen, history, and playback remain browser-owned.
+
 ## Product Purpose
 
 StreamCoreTV is a Compose-first, backend-agnostic Android streaming app family. It provides a reusable client-specific VOD foundation where core,

@@ -18,6 +18,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -73,6 +78,10 @@ fun StreamCoreWebButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     variant: StreamCoreWebButtonVariant = StreamCoreWebButtonVariant.Primary,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    minHeight: Dp = StreamCoreWebDimens.ControlHeight,
+    shape: Shape = StreamCoreControlDefaults.style().buttonShape,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
@@ -80,10 +89,10 @@ fun StreamCoreWebButton(
     val focused by interactionSource.collectIsFocusedAsState()
     val hovered by interactionSource.collectIsHoveredAsState()
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.035f else if (hovered) 1.015f else 1f,
+        targetValue = 1f,
     )
     val elevation by animateDpAsState(
-        targetValue = if (focused || hovered) StreamCoreDimens.Elevation.Medium else 0.dp,
+        targetValue = 0.dp,
     )
     val style = StreamCoreControlDefaults.style()
     val colors = when (variant) {
@@ -97,7 +106,7 @@ fun StreamCoreWebButton(
         )
         StreamCoreWebButtonVariant.Tertiary -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = style.primary,
         )
         StreamCoreWebButtonVariant.Destructive -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -105,7 +114,7 @@ fun StreamCoreWebButton(
         )
     }
     val focusColor = if (focused) {
-        MaterialTheme.colorScheme.onBackground
+        MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.surface.copy(alpha = 0f)
     }
@@ -114,10 +123,13 @@ fun StreamCoreWebButton(
         enabled = enabled && !loading,
         interactionSource = interactionSource,
         colors = colors.copy(
-            disabledContainerColor = style.disabledContainer,
+            disabledContainerColor = if (variant == StreamCoreWebButtonVariant.Tertiary) {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+            } else style.disabledContainer,
             disabledContentColor = style.disabledContent,
         ),
-        shape = style.buttonShape,
+        shape = shape,
+        contentPadding = contentPadding,
         border = BorderStroke(
             width = if (focused) StreamCoreWebDimens.FocusBorder else StreamCoreWebDimens.FocusOuterBorder,
             color = if (focused) focusColor else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
@@ -128,7 +140,7 @@ fun StreamCoreWebButton(
             hoveredElevation = elevation,
         ),
         modifier = modifier
-            .defaultMinSize(minHeight = StreamCoreWebDimens.ControlHeight)
+            .defaultMinSize(minHeight = minHeight)
             .scale(scale)
             .hoverable(interactionSource, enabled = enabled && !loading)
             .bringIntoViewRequester(bringIntoViewRequester)
@@ -150,6 +162,10 @@ fun StreamCoreWebButton(
                 modifier = Modifier.size(StreamCoreWebDimens.ButtonProgressSize),
             )
         } else {
+            leadingIcon?.let { icon ->
+                icon()
+                Spacer(Modifier.width(StreamCoreDimens.Spacing.Small))
+            }
             Text(
                 text = text,
                 style = style.buttonLabel,
@@ -233,6 +249,7 @@ fun StreamCoreWebContentCard(
     enabled: Boolean = true,
     selected: Boolean = false,
     aspectRatio: Float = 16f / 9f,
+    shape: Shape = MaterialTheme.shapes.medium,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -241,10 +258,10 @@ fun StreamCoreWebContentCard(
     val focused by interactionSource.collectIsFocusedAsState()
     val hovered by interactionSource.collectIsHoveredAsState()
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.045f else if (hovered) 1.02f else 1f,
+        targetValue = 1f,
     )
     val borderColor = when {
-        focused -> MaterialTheme.colorScheme.onBackground
+        focused -> MaterialTheme.colorScheme.primary
         selected -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
     }
@@ -252,7 +269,7 @@ fun StreamCoreWebContentCard(
         onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
-        shape = MaterialTheme.shapes.large,
+        shape = shape,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             width = if (focused) StreamCoreWebDimens.FocusBorder else StreamCoreWebDimens.FocusOuterBorder,

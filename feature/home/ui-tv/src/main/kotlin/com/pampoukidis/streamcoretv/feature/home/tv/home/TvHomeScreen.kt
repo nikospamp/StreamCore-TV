@@ -33,23 +33,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import com.pampoukidis.streamcoretv.core.model.content.ContentModel
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
-import com.pampoukidis.streamcoretv.core.model.content.fallbackText
-import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
-import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvCarousel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvContentCard
-import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementZIndex
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
@@ -59,6 +52,8 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
+import com.pampoukidis.streamcoretv.feature.home.common.home.HomeHeroArtwork
+import com.pampoukidis.streamcoretv.feature.home.common.home.HomeHeroContent
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeContentModel
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeUiState
 import com.pampoukidis.streamcoretv.feature.home.common.home.toHomeContentModel
@@ -322,88 +317,35 @@ private fun TvHomeHero(
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
 ) {
-    val heroShape = RectangleShape
     val elementScope = sharedElementScope.takeIf { useSharedTransition }
-    val scrimColor = MaterialTheme.colorScheme.scrim
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val artworkScrims = remember(scrimColor, backgroundColor) {
-        listOf(
-            Brush.horizontalGradient(
-                colors = listOf(
-                    scrimColor.copy(alpha = 0.94f),
-                    scrimColor.copy(alpha = 0.62f),
-                    scrimColor.copy(alpha = 0.12f),
-                ),
-            ),
-            Brush.verticalGradient(
-                0f to scrimColor.copy(alpha = 0f),
-                0.5f to scrimColor.copy(alpha = 0f),
-                1f to backgroundColor,
-            ),
-        )
-    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
-        StreamCoreSharedArtworkImage(
-            imageUrl = content.backdrop ?: content.poster,
-            contentDescription = content.title,
-            fallbackText = content.fallbackText(),
-            sharedKey = StreamCoreSharedKey.artwork(contentId = content.id, row = content.row),
-            clipShape = heroShape,
+        HomeHeroArtwork(
+            content = content,
             sharedElementScope = elementScope,
-            scrims = artworkScrims,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            fallbackTextStyle = MaterialTheme.typography.displayLarge,
             modifier = Modifier.fillMaxSize(),
         )
-        Column(
-            verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
+        HomeHeroContent(
+            content = content,
+            featuredLabel = "Featured movie",
+            contentPadding = PaddingValues(
+                start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
+                end = StreamCoreDimens.Spacing.ExtraLarge,
+                top = StreamCoreDimens.Tv.Screen.VerticalPadding,
+                bottom = StreamCoreDimens.Tv.Screen.VerticalPadding,
+            ),
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxWidth(0.62f)
                 .streamCoreOverlayDuringSharedTransition(
                     sharedElementScope = elementScope,
                     zIndexInOverlay = StreamCoreSharedElementZIndex.Content,
-                )
-                .padding(
-                    start = StreamCoreDimens.Tv.Navigation.ContentStartPadding,
-                    end = StreamCoreDimens.Spacing.ExtraLarge,
-                    top = StreamCoreDimens.Tv.Screen.VerticalPadding,
-                    bottom = StreamCoreDimens.Tv.Screen.VerticalPadding,
                 ),
         ) {
-            Text(
-                text = "Featured movie",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = content.title,
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onArtwork,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = content.heroMetadata(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.82f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = content.description,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onArtwork.copy(alpha = 0.82f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
             StreamCoreTvButton(
                 text = "Details",
                 onClick = onClick,
