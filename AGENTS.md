@@ -17,6 +17,18 @@ TV uses Compose for TV / `androidx.tv.material3` where TV-specific UI is require
 
 The project is backend-agnostic. Core, domain, and UI modules must not depend on provider SDKs, DTOs, API responses, or client-specific models.
 
+## Agent workflow
+
+- For environment setup, multi-client launch/capture, or review boards, read `docs/agent-workflow.md` and use the applicable shared helpers.
+  The certified build/capture path supports TMDB acceptance reviews; keep Android Studio, development web, other flavors, and benchmark workflows available.
+  Run only checks needed by the current task; do not bootstrap devices for source-only changes or require a production build for ordinary iteration.
+- Keep one shared setup/build/server owner. Delegate ready, independent surfaces with explicit inputs, acceptance checks, and stop conditions.
+  Workers report blockers, dependency changes, and completion; do not repeatedly request unchanged status or restart workers awaiting permission.
+- Use bounded process waits and compact results. Narrow truncated searches and read changed sections instead of reloading unchanged guidance.
+- Keep required checks and final visual inspection. Test deferrals apply only to their explicitly stated task scope.
+  Run cheap gates before integration and conclude at accepted task boundaries with a concise handoff.
+- Use deterministic composition of original screenshots for review boards. Keep machine state, credentials, browser profiles, and evidence local.
+
 ## Architecture
 
 Default to:
