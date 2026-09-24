@@ -195,9 +195,11 @@ Remove-Item Env:STREAMCORE_REVIEW_BROWSER_TEST
 ```
 
 These are tooling checks, separate from deferred application regression suites. On each PC, also run preflight
-from another working directory using an absolute script path, one real Android capture, and one real web capture.
-Inspect both originals and the resulting board. Record the checkout, tool versions, pass/fail, and blockers without
-secrets. PC 1 success alone does not establish PC 2 runtime compatibility.
+from another working directory using an absolute script path, then capture Phone, Tablet, Android TV, and Web.
+Inspect all four originals and the resulting comparison board. Report an unavailable client as a blocker and
+label any partial board as incomplete. Record the checkout, tool versions, selected devices/browser, pass/fail,
+original capture paths, board location, and blockers without secrets. PC 1 success alone does not establish PC 2
+runtime compatibility.
 
 Measure model responses, unchanged polls, setup failures, elapsed time and corrective iterations per comparable
 accepted deliverable. Keep root, worker, and any nested CLI usage separate. No model/reasoning/compaction defaults
