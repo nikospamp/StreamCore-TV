@@ -3,13 +3,23 @@
 ## Start here
 
 Continue on branch `codex/kmp-migration` in `https://github.com/nikospamp/StreamCore-TV.git`.
-Read the repository `AGENTS.md`, this file, [shared control styling](shared-control-styling.md), and the
-[web/TV audit](web-tv-ui-harmonization.md). This is the current handoff; `kmp/ORCHESTRATION-HANDOFF.md` records an older
+Read the repository `AGENTS.md` and this file. For launch/capture work, use the [agent workflow](agent-workflow.md).
+Load [shared control styling](shared-control-styling.md) when changing shared controls and the
+[web/TV audit](web-tv-ui-harmonization.md) when working on that UI. This is the current handoff; `kmp/ORCHESTRATION-HANDOFF.md` records an older
 WEB-01/02 checkpoint and its branch/status/next-step instructions are historical.
 
 The target architecture is backend-agnostic. Shared/core/feature contracts consume app models, never provider DTOs or SDKs.
 
 ## Current work
+
+Portable review tooling is documented in [agent workflow](agent-workflow.md). Use its scoped preflight before
+client launch/capture, one shared build/server owner, and deterministic composition of original screenshots.
+PC 1 verification on 2026-09-24 passed 30 Node tests (including real Chrome fixtures), 78 PowerShell assertions,
+`clientB`/TMDB benchmark compilation, development-web webpack, the authenticated Android assembly, and the
+production web build/release validator. Authenticated Profiles captures passed on the connected OnePlus AC2003
+and Chrome; both originals and the deterministic board were visually inspected. Local evidence and provenance
+are under ignored `build/review/pc1-final` and `build/review/provenance`. PC 2 runtime verification remains pending;
+follow [the PC 2 verification checklist](verify-review-tooling-pc2.md) after pulling the tooling commit.
 
 - `361dd90`: reviewed TV player harmonization and shared controls/settings.
 - `1bbb81d`: ignore local marketing/presentation folders.
@@ -41,7 +51,8 @@ Important implementation locations:
 
 - Coordinate parallel agents on disjoint implementation/review scopes; keep one integration/build owner. The user prefers Astra agents
   with reasoning suited to task complexity, fast iteration, concise updates, and minimal repeated checks.
-- Automated regression tests and broad suites remain deferred until UI review is finalized. Run targeted compilation and required gates.
+- The earlier UI-harmonization task deferred its new regression suite until that UI review is finalized. That task-specific
+  deferral does not apply to tooling fixes or unrelated development; run tests appropriate to the current change and required gates.
 - Preserve the established brand; use impeccable for UI work. Share portable rendering, while platform modules own layout and input.
 - Keep container/background/content clip/indication/border shapes aligned. Reserve TV focus-ring clearance at scroll edges.
 - A separate Compose browser dialog viewport stranded accessibility nodes after dismissal. Avatar/player overlays now stay in the

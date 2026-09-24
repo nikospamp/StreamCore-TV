@@ -172,6 +172,7 @@ Compose instrumentation tests require a connected emulator or device and can be 
 
 ## Documentation
 
+- [Portable agent setup and multi-client review workflow](docs/agent-workflow.md)
 - [Product direction](PRODUCT.md)
 - [Design system](DESIGN.md)
 - [Feature module template](docs/guidelines/feature-template.md)

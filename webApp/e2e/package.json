@@ -6,7 +6,11 @@
     "test": "playwright test",
     "test:live-auth": "playwright test --config playwright.live.config.ts",
     "test:player": "playwright test tests/player.spec.ts",
-    "validate:release": "node validate-release-artifact.mjs"
+    "validate:release": "node validate-release-artifact.mjs",
+    "review:build": "node review-build.mjs",
+    "review:web": "node review-web.mjs",
+    "review:board": "node review-board.mjs",
+    "test:review-tools": "node --test review-provenance.test.mjs review-common.test.mjs review-web.test.mjs review-board.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1"
