@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-09-24",
+  "sourceCommit": "8478e2c1dc8050b8d43f97dc62470ef8b4febfb4",
+  "pathBase": "Paths are relative to this JSON file.",
+  "profile": "Nikos",
+  "searchQuery": "Dune",
+  "detailsTitle": "Dune: Part Two (2024)",
+  "originals": [
+    {
+      "screen": "profiles",
+      "client": "phone",
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "screenshots/phone/profiles.png",
+      "sha256": "01322d74724ba19945d7b693d633f59fa379aa4368edddc3bbd352f9cdcff396",
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "screen": "profiles",
+      "client": "tablet",
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "screenshots/tablet/profiles.png",
+      "sha256": "f9d3261bd7434ee4ae303febf0bd58488f3e7a9c6961ba63ba53cfdada4d1ee1",
+      "width": 2560,
+      "height": 1600
+    },
+    {
+      "screen": "profiles",
+      "client": "tv",
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "screenshots/tv/profiles.png",
+      "sha256": "e3b5675e242f114c4a075982cec4784bd3a680cb14f15e30b5e938daa99e37c7",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "profiles",
+      "client": "web",
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "screenshots/web/profiles.png",
+      "sha256": "552782be641e7818f571a40b644c4338942d8cf82270270a449c0b58de2ceab9",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "home",
+      "client": "phone",
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "screenshots/phone/home.png",
+      "sha256": "57a0040ab7032fa7338f6849bcbbb7bcbe156c0ea4310d8ce3ff1d41c0b6f65d",
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "screen": "home",
+      "client": "tablet",
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "screenshots/tablet/home.png",
+      "sha256": "86f17c3dafd433b077c867c526760fe20a7690fdd92da451ec87f46de971a443",
+      "width": 2560,
+      "height": 1600
+    },
+    {
+      "screen": "home",
+      "client": "tv",
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "screenshots/tv/home.png",
+      "sha256": "bcabd723be85863652bb2e540e1bb74261f115a07ad011feb2c9796ade581d88",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "home",
+      "client": "web",
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "screenshots/web/home.png",
+      "sha256": "9a7ed677ac5261548a6afac2875e3c5d5b88e8810c581852dd90917df7857230",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "search",
+      "client": "phone",
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "screenshots/phone/search.png",
+      "sha256": "9de66d8806770bf56bcb15c0a4d7bc4f58397ee48bec0caab9643207f6c83f71",
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "screen": "search",
+      "client": "tablet",
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "screenshots/tablet/search.png",
+      "sha256": "d45d90de5813a3b18db3614592711efab329e15aa361c6e7c2b89e7ec282404c",
+      "width": 2560,
+      "height": 1600
+    },
+    {
+      "screen": "search",
+      "client": "tv",
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "screenshots/tv/search.png",
+      "sha256": "6d0ba82d072953c7e90b0141a2b883726b50d2e9860806838f7ae1160f309011",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "search",
+      "client": "web",
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "screenshots/web/search.png",
+      "sha256": "98de3a952e9275f1dbb58e106ed7c28da3e5d8ea142e81743a186b32641ea1bc",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "details",
+      "client": "phone",
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "screenshots/phone/details.png",
+      "sha256": "571d47964281fba6e75dbda2489a9af20aa8b6e0a93942ff8b545aa1ca061527",
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "screen": "details",
+      "client": "tablet",
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "screenshots/tablet/details.png",
+      "sha256": "ce8eb94b838fc87d2173248e78da3fdd414001f073b6b3bee28ce0436a6f73fe",
+      "width": 2560,
+      "height": 1600
+    },
+    {
+      "screen": "details",
+      "client": "tv",
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "screenshots/tv/details.png",
+      "sha256": "86494c6c9abe7aee09c0c068d77abe618426de7f4c2da4bd2bd3ba5d48924363",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "details",
+      "client": "web",
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "screenshots/web/details.png",
+      "sha256": "61f07a6215d4daf0d6ca7228f2349b12c10667156e40a26ec9f90f7b87eee47e",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "library",
+      "client": "phone",
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "screenshots/phone/library.png",
+      "sha256": "8e20bacd007066da3b032cd269d5eea3b5dda760d2bc1e9a639c9f3193caf56b",
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "screen": "library",
+      "client": "tablet",
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "screenshots/tablet/library.png",
+      "sha256": "1897a957cc5829f452c14dc76e3145f68e71c1af607b20bb3cbe0afe53d4663c",
+      "width": 2560,
+      "height": 1600
+    },
+    {
+      "screen": "library",
+      "client": "tv",
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "screenshots/tv/library.png",
+      "sha256": "e6e44dc732300e63695201c19367aa549a947a7d25713a365308157370f332d4",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "screen": "library",
+      "client": "web",
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "screenshots/web/library.png",
+      "sha256": "79a5a14033f1e9a0f6b4a2907251555c692295b94acdbccab10d4857d3ee263c",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "boards": [
+    {
+      "screen": "profiles",
+      "path": "boards/profiles-board.png",
+      "metadata": "boards/profiles-board.json",
+      "sha256": "ddc2c6ba796b65d7e8fc15f8b184677d9b0c4cdd78d50651ba626ed38f9e7e6d",
+      "width": 1992,
+      "height": 2748
+    },
+    {
+      "screen": "home",
+      "path": "boards/home-board.png",
+      "metadata": "boards/home-board.json",
+      "sha256": "0b2203a47a6a08f269e0aa0bf1a1438cf1a99f155769f54e12b5faaaaa2dd51d",
+      "width": 1992,
+      "height": 2748
+    },
+    {
+      "screen": "search",
+      "path": "boards/search-board.png",
+      "metadata": "boards/search-board.json",
+      "sha256": "3882283d6d3ea699b09f44a7e2f3508f008f2bfa33591d8baa08ddd4b57885b8",
+      "width": 1992,
+      "height": 2748
+    },
+    {
+      "screen": "details",
+      "path": "boards/details-board.png",
+      "metadata": "boards/details-board.json",
+      "sha256": "2d6080734739f3474ededb3fc7d6b3db1943b9e4b92cf9713e402b4ae687e543",
+      "width": 1992,
+      "height": 2748
+    },
+    {
+      "screen": "library",
+      "path": "boards/library-board.png",
+      "metadata": "boards/library-board.json",
+      "sha256": "f0bf9edcdb6ce1372180658b0f48a350e0a51d5e397b712608620fe2667ce4e1",
+      "width": 1992,
+      "height": 2748
+    }
+  ]
+}
