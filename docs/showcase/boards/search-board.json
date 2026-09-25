@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "pathBase": "Paths are relative to this JSON file.",
+  "heading": "StreamCore - search - Phone / Tablet / Android TV / Web",
+  "output": "./search-board.png",
+  "composition": "Original PNG captures, contained without cropping; display scaling only. Inputs remain unchanged.",
+  "layout": {
+    "width": 1992,
+    "height": 2748,
+    "columns": 2,
+    "cellWidth": 960,
+    "deviceScaleFactor": 1
+  },
+  "entries": [
+    {
+      "label": "Phone | API 36 | 1080 x 2400",
+      "path": "../screenshots/phone/search.png",
+      "sha256": "9de66d8806770bf56bcb15c0a4d7bc4f58397ee48bec0caab9643207f6c83f71",
+      "width": 1080,
+      "height": 2400,
+      "displayWidth": 864,
+      "displayHeight": 1920,
+      "scaleX": 0.8,
+      "scaleY": 0.8
+    },
+    {
+      "label": "Tablet | API 36 | 2560 x 1600",
+      "path": "../screenshots/tablet/search.png",
+      "sha256": "d45d90de5813a3b18db3614592711efab329e15aa361c6e7c2b89e7ec282404c",
+      "width": 2560,
+      "height": 1600,
+      "displayWidth": 960,
+      "displayHeight": 600,
+      "scaleX": 0.375,
+      "scaleY": 0.375
+    },
+    {
+      "label": "Android TV | API 36 | 1920 x 1080",
+      "path": "../screenshots/tv/search.png",
+      "sha256": "6d0ba82d072953c7e90b0141a2b883726b50d2e9860806838f7ae1160f309011",
+      "width": 1920,
+      "height": 1080,
+      "displayWidth": 960,
+      "displayHeight": 540,
+      "scaleX": 0.5,
+      "scaleY": 0.5
+    },
+    {
+      "label": "Web | Chrome 153 | 1920 x 1080",
+      "path": "../screenshots/web/search.png",
+      "sha256": "98de3a952e9275f1dbb58e106ed7c28da3e5d8ea142e81743a186b32641ea1bc",
+      "width": 1920,
+      "height": 1080,
+      "displayWidth": 960,
+      "displayHeight": 540,
+      "scaleX": 0.5,
+      "scaleY": 0.5
+    }
+  ]
+}
