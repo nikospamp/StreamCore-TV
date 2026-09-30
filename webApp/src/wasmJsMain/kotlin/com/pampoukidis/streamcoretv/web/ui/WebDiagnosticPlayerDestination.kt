@@ -12,7 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebBlockingSurface
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
@@ -20,14 +20,17 @@ import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
 import com.pampoukidis.streamcoretv.feature.player.common.player.playerUiModule
 import com.pampoukidis.streamcoretv.feature.player.web.player.WebPlayerRoute
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
-import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
+import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryReady
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryPinRequired
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
 import com.pampoukidis.streamcoretv.web.navigation.isBrowserSafeId
 import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlaybackSessionFactory
-import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlaybackSourceRepository
+import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlaybackService
 import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlayerRegistry
 import com.pampoukidis.streamcoretv.web.playback.DiagnosticPlayerScenario
 import com.pampoukidis.streamcoretv.web.startup.WebStartupState
@@ -62,19 +65,44 @@ internal fun WebDiagnosticPlayerDestination(
         return
     }
 
+    // An explicit diagnostic profile query is a public SDK selection request, never an authorization bypass.
+    // Rendering-only fixtures without that query continue to work without an authenticated backend.
+    val client = remember(state.graph) { state.graph.application.koin.get<StreamCoreClient>() }
+    var profileReady by remember(client, profileId) { mutableStateOf(query.profileId == null) }
+    var profileFailed by remember(client, profileId) { mutableStateOf(false) }
+    LaunchedEffect(client, profileId) {
+        if (query.profileId != null) {
+            when (val result = client.profiles.selectProfile(profileId)) {
+                is StreamCoreResult.Success -> {
+                    val selection = result.value
+                    if (selection is StreamCoreProfileEntryPinRequired) client.profiles.cancelPin(selection.challenge.challengeId)
+                    profileReady = selection is StreamCoreProfileEntryReady
+                    profileFailed = !profileReady
+                }
+                is StreamCoreResult.Failure -> profileFailed = true
+            }
+        }
+    }
+    if (!profileReady) {
+        StreamCoreWebBlockingSurface(
+            title = if (profileFailed) "Profile access required" else "Opening profile",
+            message = if (profileFailed) "Select and unlock this profile in the application before using playback diagnostics." else "Validating the requested profile…",
+        )
+        return
+    }
+
     val fixtureFactory = remember(destination.contentId, requestedId, scenario, profileId) {
         DiagnosticPlayerRegistry.beginFixture(scenario, profileId)
         DiagnosticPlaybackSessionFactory(scenario)
     }
-    val progressRepository = remember(state.graph) {
-        state.graph.application.koin.get<PlaybackProgressRepository>()
+    val playbackService = remember(state.graph) {
+        state.graph.application.koin.get<PlaybackService>()
     }
-    val diagnosticApplication = remember(fixtureFactory, progressRepository) {
+    val diagnosticApplication = remember(fixtureFactory, playbackService) {
         koinApplication {
             modules(
                 module {
-                    single<PlaybackSourceRepository> { DiagnosticPlaybackSourceRepository }
-                    single<PlaybackProgressRepository> { progressRepository }
+                    single<PlaybackService> { DiagnosticPlaybackService(playbackService) }
                     single<PlaybackSessionFactory> { fixtureFactory }
                 },
                 playerUiModule,
@@ -281,11 +309,11 @@ private fun PlayerUiState.diagnosticLayer(): String {
 private fun diagnosticPlaybackRequest(
     profileId: String,
     contentId: String,
-): PlaybackRequestModel {
-    return PlaybackRequestModel(
+): StreamCorePlaybackRequest {
+    return StreamCorePlaybackRequest(
         profileId = profileId,
         contentId = contentId,
-        contentSnapshot = ContentModel(
+        contentSnapshot = StreamCoreContent(
             id = contentId,
             title = "Diagnostic feature film",
             description = "Synthetic backend-free playback fixture.",

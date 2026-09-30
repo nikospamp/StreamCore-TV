@@ -2,17 +2,17 @@ package com.pampoukidis.streamcoretv.feature.player.common.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.feature.player.domain.PlaybackProgressPolicy
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.PlaybackProgressRecorder
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEvent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
-import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -30,10 +30,8 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.coroutineContext
 
 class PlayerViewModel constructor(
-    private val sourceRepository: PlaybackSourceRepository,
-    private val progressRepository: PlaybackProgressRepository,
+    private val playback: PlaybackService,
     private val sessionFactory: PlaybackSessionFactory,
-    private val clock: PlayerClock = SystemPlayerClock,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -45,7 +43,7 @@ class PlayerViewModel constructor(
     private val effectsChannel = Channel<PlayerEffect>(Channel.BUFFERED)
     val effects: Flow<PlayerEffect> = effectsChannel.receiveAsFlow()
 
-    private var request: PlaybackRequestModel? = null
+    private var request: StreamCorePlaybackRequest? = null
     private val session: PlaybackSession = sessionFactory.create()
     private val sessionStateJob: Job
     private var preparationJob: Job? = null
@@ -63,7 +61,7 @@ class PlayerViewModel constructor(
     private var feedbackJob: Job? = null
     private var resumeAfterScrub = false
     private var lastValidPositionMillis = 0L
-    private var lastSavedProgressBucket = 0L
+    private var progressRecorder: PlaybackProgressRecorder? = null
     private var isBackNavigationPending = false
 
     init {
@@ -108,7 +106,7 @@ class PlayerViewModel constructor(
         super.onCleared()
     }
 
-    private fun load(newRequest: PlaybackRequestModel, isPipSupported: Boolean) {
+    private fun load(newRequest: StreamCorePlaybackRequest, isPipSupported: Boolean) {
         if (isBackNavigationPending ||
             (request == newRequest && (hasPreparedSession || preparationJob?.isActive == true))
         ) {
@@ -121,6 +119,7 @@ class PlayerViewModel constructor(
             playWhenPrepared = isForeground || _uiState.value.isInPip
         }
         request = newRequest
+        progressRecorder = null
         _uiState.value = PlayerUiState(
             title = newRequest.contentSnapshot.title,
             phase = PlaybackPhase.Preparing,
@@ -129,7 +128,7 @@ class PlayerViewModel constructor(
         startPreparation(newRequest)
     }
 
-    private fun startPreparation(activeRequest: PlaybackRequestModel) {
+    private fun startPreparation(activeRequest: StreamCorePlaybackRequest) {
         preparationJob?.cancel()
         val previousSession = preparedSession
         hasPreparedSession = false
@@ -138,14 +137,21 @@ class PlayerViewModel constructor(
         preparationJob = viewModelScope.launch { prepareSession(activeRequest) }
     }
 
-    private suspend fun prepareSession(activeRequest: PlaybackRequestModel) {
+    private suspend fun prepareSession(activeRequest: StreamCorePlaybackRequest) {
         try {
-            val progress = progressRepository.get(activeRequest.profileId, activeRequest.contentId)
+            val progress = when (val result = playback.getProgress(activeRequest.profileId, activeRequest.contentId)) {
+                is StreamCoreResult.Success -> result.value
+                is StreamCoreResult.Failure -> null
+            }
             coroutineContext.ensureActive()
-            val media = sourceRepository.resolve(activeRequest)
+            val media = when (val result = playback.resolveSource(activeRequest)) {
+                is StreamCoreResult.Success -> result.value
+                is StreamCoreResult.Failure -> error("Playback source resolution failed")
+            }
             coroutineContext.ensureActive()
+            _uiState.update { state -> state.copy(title = media.title) }
             lastValidPositionMillis = progress?.positionMillis ?: 0L
-            lastSavedProgressBucket = lastValidPositionMillis / ProgressSaveIntervalMillis
+            progressRecorder = playback.createProgressRecorder(activeRequest, lastValidPositionMillis)
             hasPreparedSession = true
             _videoSurface.value = session.videoSurface
             session.prepare(media, lastValidPositionMillis)
@@ -207,10 +213,15 @@ class PlayerViewModel constructor(
         if (normalizedEngine.phase == PlaybackPhase.Ended) {
             viewModelScope.launch { removeProgress() }
         }
-        val progressBucket = normalizedEngine.positionMillis / ProgressSaveIntervalMillis
-        if (normalizedEngine.isPlaying && progressBucket > lastSavedProgressBucket) {
-            lastSavedProgressBucket = progressBucket
-            viewModelScope.launch { saveProgress(positionOverride = normalizedEngine.positionMillis) }
+        if (normalizedEngine.isPlaying) {
+            val recorder = progressRecorder
+            viewModelScope.launch {
+                recorder?.reportEvent(
+                    StreamCorePlaybackProgressEvent.Periodic,
+                    normalizedEngine.positionMillis,
+                    normalizedEngine.durationMillis,
+                )
+            }
         }
         scheduleControlsHideIfEligible()
     }
@@ -494,52 +505,21 @@ class PlayerViewModel constructor(
     }
 
     private suspend fun saveProgress(positionOverride: Long? = null) {
-        persistProgressBestEffort { writeProgress(positionOverride) }
-    }
-
-    private suspend fun writeProgress(positionOverride: Long?) {
-        val activeRequest = request ?: return
         val state = _uiState.value
-        if (state.durationMillis <= 0L) {
-            return
-        }
-        val position = positionOverride ?: state.positionMillis
-        if (!PlaybackProgressPolicy.isResumable(position, state.durationMillis)) {
-            progressRepository.remove(activeRequest.profileId, activeRequest.contentId)
-            return
-        }
-        progressRepository.upsert(
-            PlaybackProgressEntryModel(
-                profileId = activeRequest.profileId,
-                contentId = activeRequest.contentId,
-                contentSnapshot = activeRequest.contentSnapshot,
-                positionMillis = position,
-                durationMillis = state.durationMillis,
-                updatedAtMillis = clock.nowEpochMillis(),
-            ),
+        progressRecorder?.reportEvent(
+            StreamCorePlaybackProgressEvent.Checkpoint,
+            positionOverride ?: state.positionMillis,
+            state.durationMillis,
         )
     }
 
-    private inline fun persistProgressBestEffort(block: () -> Unit) {
-        try {
-            block()
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (_: Exception) {
-            // Resume storage is optional; a failed write must not interrupt playback or navigation.
-        }
-    }
-
     private suspend fun removeProgress() {
-        val activeRequest = request ?: return
-        persistProgressBestEffort {
-            progressRepository.remove(activeRequest.profileId, activeRequest.contentId)
-        }
+        val state = _uiState.value
+        progressRecorder?.reportEvent(StreamCorePlaybackProgressEvent.Completed, state.positionMillis, state.durationMillis)
     }
 
     private companion object {
         const val ControlsAutoHideMillis = 10_000L
-        const val ProgressSaveIntervalMillis = 10_000L
         const val FilmstripSpacingMillis = 5_000L
         const val SeekFeedbackMillis = 800L
         const val SourceResolutionErrorMessage = "Unable to load this video."

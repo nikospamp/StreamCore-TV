@@ -1,20 +1,20 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 
-import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
-import com.pampoukidis.streamcoretv.core.model.auth.CreateProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcore.sdk.api.ProfileService
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileSelectionResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreUpdateProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationField
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationIssue
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationReason
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.domain.CreateProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.DeleteProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOptionsUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.UpdateProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.ValidateProfileDraftUseCase
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -67,10 +67,10 @@ class ProfileEditorViewModelDeleteTest {
     @Test
     fun `failed deletion preserves editor closes confirmation and emits error`() {
         val profile = ProfilesPreviewData.profiles.first { it.canDelete }
-        val error = AppError.Network()
+        val error = StreamCoreError.Network()
         val repository = FakeProfileRepository(
             profiles = listOf(profile),
-            deleteResult = AppResult.Failure(error),
+            deleteResult = StreamCoreResult.Failure(error),
         )
         val subject = subject(repository)
         load(subject = subject, profileId = profile.id)
@@ -99,6 +99,29 @@ class ProfileEditorViewModelDeleteTest {
         assertEquals(emptyList<String>(), repository.deletedProfileIds)
     }
 
+    @Test
+    fun operationValidationMapsToExistingProfileFields() {
+        val profile = ProfilesPreviewData.profiles.first()
+        val repository = FakeProfileRepository(
+            profiles = listOf(profile),
+            updateResult = StreamCoreResult.Failure(StreamCoreError.Validation(listOf(
+                StreamCoreValidationIssue(StreamCoreValidationField.ProfileName, StreamCoreValidationReason.TooLong),
+                StreamCoreValidationIssue(StreamCoreValidationField.AvatarId, StreamCoreValidationReason.UnknownSelection),
+                StreamCoreValidationIssue(StreamCoreValidationField.ParentalLevelId, StreamCoreValidationReason.Required),
+            ))),
+        )
+        val subject = subject(repository)
+        load(subject, profile.id)
+        subject.onAction(ProfileEditorAction.DisplayNameChanged("Valid edited name"))
+        subject.onAction(ProfileEditorAction.Submit)
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        val validation = subject.uiState.value.editor!!.validation
+        assertEquals(StreamCoreProfileFieldError.TooLong, validation.displayNameError)
+        assertEquals(StreamCoreProfileFieldError.UnknownSelection, validation.avatarError)
+        assertEquals(StreamCoreProfileFieldError.MissingSelection, validation.parentalLevelError)
+        assertFalse(subject.uiState.value.isSaving)
+    }
+
     private fun load(subject: ProfileEditorViewModel, profileId: String) {
         subject.onAction(
             ProfileEditorAction.Load(
@@ -109,47 +132,48 @@ class ProfileEditorViewModelDeleteTest {
         mainDispatcherRule.scheduler.advanceUntilIdle()
     }
 
-    private fun subject(repository: ProfileRepository): ProfileEditorViewModel {
+    private fun subject(repository: ProfileService): ProfileEditorViewModel {
         return ProfileEditorViewModel(
-            loadProfiles = LoadProfilesUseCase(repository),
-            loadProfileEditorOptions = LoadProfileEditorOptionsUseCase(repository),
-            validateProfileDraft = ValidateProfileDraftUseCase(),
-            createProfile = CreateProfileUseCase(repository),
-            updateProfile = UpdateProfileUseCase(repository),
-            deleteProfile = DeleteProfileUseCase(repository),
+            profileRepository = repository,
         )
     }
 
     private class FakeProfileRepository(
-        private val profiles: List<ProfileModel>,
-        private val deleteResult: AppResult<Unit> = AppResult.Success(Unit),
-    ) : ProfileRepository {
+        private val profiles: List<StreamCoreProfile>,
+        private val deleteResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit),
+        private val updateResult: StreamCoreResult<StreamCoreProfile> = StreamCoreResult.Failure(StreamCoreError.Unknown()),
+    ) : ProfileService {
         val deletedProfileIds = mutableListOf<String>()
 
-        override suspend fun getProfiles(): AppResult<List<ProfileModel>> {
-            return AppResult.Success(profiles)
+        override suspend fun getProfiles(): StreamCoreResult<List<StreamCoreProfile>> {
+            return StreamCoreResult.Success(profiles)
         }
 
-        override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> {
-            return AppResult.Success(ProfilesPreviewData.editorOptions)
+        override suspend fun getProfileEditorOptions(): StreamCoreResult<StreamCoreProfileEditorOptions> {
+            return StreamCoreResult.Success(ProfilesPreviewData.editorOptions)
         }
 
-        override suspend fun createProfile(profile: CreateProfileModel): AppResult<ProfileModel> {
-            return AppResult.Failure(AppError.Unknown())
+        override suspend fun createProfile(profile: StreamCoreCreateProfile): StreamCoreResult<StreamCoreProfile> {
+            return StreamCoreResult.Failure(StreamCoreError.Unknown())
         }
 
-        override suspend fun updateProfile(profile: UpdateProfileModel): AppResult<ProfileModel> {
-            return AppResult.Failure(AppError.Unknown())
+        override suspend fun updateProfile(profile: StreamCoreUpdateProfile): StreamCoreResult<StreamCoreProfile> {
+            return updateResult
         }
 
-        override suspend fun deleteProfile(profileId: String): AppResult<Unit> {
+        override suspend fun deleteProfile(profileId: String): StreamCoreResult<Unit> {
             deletedProfileIds += profileId
             return deleteResult
         }
 
-        override suspend fun selectProfile(profileId: String): AppResult<ProfileModel> {
-            return AppResult.Failure(AppError.Unknown())
+        override suspend fun selectProfile(profileId: String): StreamCoreResult<StreamCoreProfileSelectionResult> {
+            return StreamCoreResult.Failure(StreamCoreError.Unknown())
         }
+
+        override suspend fun beginEntry(): StreamCoreResult<StreamCoreProfileEntryResult> { return StreamCoreResult.Failure(StreamCoreError.Unknown()) }
+        override suspend fun confirmPin(challengeId: String, pin: String): StreamCoreResult<StreamCoreProfile> { return StreamCoreResult.Failure(StreamCoreError.Unknown()) }
+        override fun cancelPin(challengeId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun clearSelection(): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
     }
 
     class MainDispatcherRule(

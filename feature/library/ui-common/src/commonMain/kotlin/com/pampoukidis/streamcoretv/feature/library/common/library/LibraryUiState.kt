@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.library.common.library
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 data class LibraryUiState(
     val isLoading: Boolean = true,
-    val continueWatching: List<ContentModel> = emptyList(),
-    val likedContent: List<ContentModel> = emptyList(),
-    val myListContent: List<ContentModel> = emptyList(),
-    val error: AppError? = null,
+    val continueWatching: List<StreamCoreContent> = emptyList(),
+    val likedContent: List<StreamCoreContent> = emptyList(),
+    val myListContent: List<StreamCoreContent> = emptyList(),
+    val error: StreamCoreError? = null,
 )

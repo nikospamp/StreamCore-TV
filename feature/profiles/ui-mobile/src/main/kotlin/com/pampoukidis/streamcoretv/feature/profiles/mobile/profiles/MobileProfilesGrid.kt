@@ -8,17 +8,22 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 
 @Composable
 internal fun MobileProfilesGrid(
-    profiles: List<ProfileModel>,
+    profiles: List<StreamCoreProfile>,
     mode: ProfilesMode,
     pendingSelectionProfileId: String?,
     interactionsEnabled: Boolean,
@@ -27,8 +32,10 @@ internal fun MobileProfilesGrid(
     onEditProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
+    restoreFocusProfileId: String? = null,
 ) {
     LazyVerticalGrid(
+        state = rememberLazyGridState(initialFirstVisibleItemIndex = profiles.indexOfFirst { it.id == restoreFocusProfileId }.coerceAtLeast(0)),
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(
             top = StreamCoreDimens.Spacing.Small,
@@ -43,12 +50,17 @@ internal fun MobileProfilesGrid(
             key = { profile -> profile.id },
             contentType = { "profile" },
         ) { profile ->
+            val restoreFocus = remember { FocusRequester() }
+            LaunchedEffect(restoreFocusProfileId, interactionsEnabled) {
+                if (interactionsEnabled && profile.id == restoreFocusProfileId) restoreFocus.requestFocus()
+            }
             MobileProfileTile(
                 profile = profile,
                 mode = mode,
                 isSelecting = pendingSelectionProfileId == profile.id,
                 enabled = interactionsEnabled,
                 sharedElementScope = sharedElementScope,
+                modifier = Modifier.focusRequester(restoreFocus),
                 onClick = {
                     if (mode == ProfilesMode.Selection) {
                         onSelectProfile(profile.id)

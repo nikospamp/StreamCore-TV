@@ -2,11 +2,15 @@ package com.pampoukidis.streamcoretv.feature.login.common.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.login.data.LoginCredentials
-import com.pampoukidis.streamcoretv.feature.login.data.LoginValidationResult
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
-import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationField
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationReason
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginCredentials
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginValidationResult
+import com.pampoukidis.streamcore.sdk.api.AuthService
+import com.pampoukidis.streamcore.sdk.api.validation.LoginValidator
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,8 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel constructor(
-    private val validateCredentials: ValidateLoginCredentialsUseCase,
-    private val loginWithCredentials: LoginWithCredentialsUseCase,
+    private val authenticateRepository: AuthService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -44,7 +47,7 @@ class LoginViewModel constructor(
         identifier: String = _uiState.value.identifier,
         password: String = _uiState.value.password,
     ) {
-        val validation = validateCredentials(identifier = identifier, password = password)
+        val validation = LoginValidator.validate(identifier = identifier, password = password)
         _uiState.update {
             it.copy(
                 identifier = identifier,
@@ -64,7 +67,7 @@ class LoginViewModel constructor(
         hasRequestedValidation = true
 
         val currentState = _uiState.value
-        val validation = validateCredentials(
+        val validation = LoginValidator.validate(
             identifier = currentState.identifier,
             password = currentState.password,
         )
@@ -74,7 +77,7 @@ class LoginViewModel constructor(
             return
         }
 
-        val credentials = LoginCredentials(
+        val credentials = StreamCoreLoginCredentials(
             identifier = currentState.identifier.trim(),
             password = currentState.password,
         )
@@ -89,8 +92,8 @@ class LoginViewModel constructor(
         }
 
         viewModelScope.launch {
-            when (val result = loginWithCredentials(credentials)) {
-                is AppResult.Success -> {
+            when (val result = authenticateRepository.login(credentials.identifier, credentials.password)) {
+                is StreamCoreResult.Success -> {
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
@@ -100,20 +103,37 @@ class LoginViewModel constructor(
                     effectsChannel.send(LoginEffect.LoginSucceeded)
                 }
 
-                is AppResult.Failure -> {
+                is StreamCoreResult.Failure -> {
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
                             isSubmitEnabled = true,
                         )
                     }
-                    effectsChannel.send(LoginEffect.ShowError(result.error))
+                    if (!showSdkValidation(result.error)) {
+                        effectsChannel.send(LoginEffect.ShowError(result.error))
+                    }
                 }
             }
         }
     }
 
-    private fun showValidationErrors(validation: LoginValidationResult) {
+    private fun showSdkValidation(error: StreamCoreError): Boolean {
+        val issues = (error as? StreamCoreError.Validation)?.issues ?: return false
+        val validation = StreamCoreLoginValidationResult(
+            identifierError = StreamCoreLoginFieldError.Required.takeIf {
+                issues.any { it.field == StreamCoreValidationField.Identifier && it.reason == StreamCoreValidationReason.Required }
+            },
+            passwordError = StreamCoreLoginFieldError.Required.takeIf {
+                issues.any { it.field == StreamCoreValidationField.Password && it.reason == StreamCoreValidationReason.Required }
+            },
+        )
+        if (validation.isValid) return false
+        showValidationErrors(validation)
+        return true
+    }
+
+    private fun showValidationErrors(validation: StreamCoreLoginValidationResult) {
         _uiState.update {
             it.copy(
                 identifierError = validation.identifierError,

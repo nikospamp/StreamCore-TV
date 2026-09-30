@@ -36,8 +36,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCorePlayIcon
@@ -277,7 +277,7 @@ private fun DetailsActions(
 
 @Composable
 private fun DetailsReadingBand(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -299,7 +299,7 @@ private fun DetailsReadingBand(
 
 @Composable
 private fun ExpandableSynopsis(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
 ) {
     var expanded by rememberSaveable(content.id, content.description) { mutableStateOf(false) }
@@ -333,7 +333,7 @@ private fun ExpandableSynopsis(
 
 @Composable
 private fun DetailsExpandableCast(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
 ) {
     var expanded by rememberSaveable(content.id, content.cast) { mutableStateOf(false) }
@@ -366,7 +366,7 @@ private fun DetailsExpandableCast(
 
 @Composable
 private fun RecommendationsRow(
-    recommendations: List<ContentModel>,
+    recommendations: List<StreamCoreContent>,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -410,7 +410,7 @@ private fun RecommendationsRow(
 
 @Composable
 private fun RecommendationCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -430,7 +430,7 @@ private const val RecommendationsEntranceDelayMillis = 150
 private const val CollapsedReadingLines = 3
 private val DetailsActionsMaxWidth = StreamCoreDimens.Tablet.Details.ActionsMaxWidth
 
-private fun tabletDetailsPreviewContent(): ContentModel {
+private fun tabletDetailsPreviewContent(): StreamCoreContent {
     return DetailsPreviewData.content.copy(backdrop = null, poster = "")
 }
 
@@ -511,7 +511,7 @@ private fun TabletDetailsScreenTrailerPreview() {
                 isLoading = false,
                 content = tabletDetailsPreviewContent().copy(
                     trailers = listOf(
-                        TrailerModel(
+                        StreamCoreTrailer(
                             id = "official-trailer",
                             title = "Official trailer",
                             url = "https://example.test/trailer",

@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.home.web.home
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeContentModel
 
-internal fun ContentModel.toWebHomeFocusKey(): WebBrowseFocusKey {
+internal fun StreamCoreContent.toWebHomeFocusKey(): WebBrowseFocusKey {
     return WebBrowseFocusKey(
         destination = WebBrowseDestination.Home,
         sectionKey = row?.takeIf(String::isNotBlank) ?: UnsectionedHomeSectionKey,
@@ -56,7 +56,7 @@ internal fun WebBrowseFocusKey.matchesHomeContent(
         this.itemKey == itemKey
 }
 
-private fun ContentModel.matches(key: WebBrowseFocusKey): Boolean {
+private fun StreamCoreContent.matches(key: WebBrowseFocusKey): Boolean {
     return toWebHomeFocusKey() == key
 }
 

@@ -18,7 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -30,7 +30,7 @@ fun StreamCoreContentCardArtwork(
     showProgress: Boolean,
     modifier: Modifier = Modifier,
     rank: Int? = null,
-    progress: PlaybackProgressModel? = null,
+    progress: StreamCorePlaybackProgress? = null,
     titleModifier: Modifier = Modifier,
     artwork: @Composable BoxScope.() -> Unit,
 ) {

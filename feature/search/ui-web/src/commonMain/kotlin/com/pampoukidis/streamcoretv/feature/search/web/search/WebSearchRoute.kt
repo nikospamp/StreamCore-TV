@@ -5,7 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchAction
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchRouteEventEffect
@@ -16,7 +16,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WebSearchRoute(
     profileId: String,
     selectedContentKey: WebBrowseFocusKey?,
-    onContentSelected: (ContentModel, WebBrowseFocusKey) -> Unit,
+    onContentSelected: (StreamCoreContent, WebBrowseFocusKey) -> Unit,
     onBack: () -> Unit,
     returnFocusKey: WebBrowseFocusKey?,
     onReturnFocusConsumed: (WebBrowseFocusKey) -> Unit,

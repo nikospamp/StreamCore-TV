@@ -55,7 +55,7 @@ class TvLibraryScreenTest {
         setScreen(
             state = LibraryUiState(
                 isLoading = false,
-                error = com.pampoukidis.streamcoretv.core.model.error.AppError.Network(),
+                error = com.pampoukidis.streamcore.sdk.model.error.StreamCoreError.Network(),
             ),
             onAction = actions::add,
         )

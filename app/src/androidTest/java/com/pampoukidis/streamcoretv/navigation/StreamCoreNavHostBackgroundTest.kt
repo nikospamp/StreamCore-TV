@@ -20,7 +20,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.pampoukidis.streamcoretv.MainActivity
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthAccount
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -45,7 +46,7 @@ class StreamCoreNavHostBackgroundTest {
     @Test
     fun loggedOutAuthStateResetsBackStackToLogin() {
         lateinit var navController: NavHostController
-        var authState by mutableStateOf<AuthStateModel>(AuthStateModel.LoggedIn(account = null))
+        var authState by mutableStateOf<StreamCoreAuthState>(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount("fixture", "fixture", null)))
 
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
@@ -56,7 +57,7 @@ class StreamCoreNavHostBackgroundTest {
                         authState = authState,
                         isLogoutConfirmationVisible = false,
                         isLogoutInProgress = false,
-                        onActiveProfileChanged = {},
+                        activeProfileId = null, clearProfileSelection = { com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult.Success(Unit) },
                         onLogoutRequested = {},
                         onError = {},
                         navController = navController,
@@ -67,7 +68,7 @@ class StreamCoreNavHostBackgroundTest {
         composeRule.waitForIdle()
         composeRule.runOnIdle {
             navController.navigate(AppRoute.CreateProfile(fromLogin = false))
-            authState = AuthStateModel.LoggedOut
+            authState = StreamCoreAuthState.LoggedOut
         }
 
         composeRule.waitUntil {
@@ -90,10 +91,10 @@ class StreamCoreNavHostBackgroundTest {
                     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
                         StreamCoreNavHost(
                             startDestination = AppRoute.Profiles,
-                            authState = AuthStateModel.LoggedIn(account = null),
+                            authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount("fixture", "fixture", null)),
                             isLogoutConfirmationVisible = false,
                             isLogoutInProgress = false,
-                            onActiveProfileChanged = {},
+                            activeProfileId = null, clearProfileSelection = { com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult.Success(Unit) },
                             onLogoutRequested = {},
                             onError = {},
                             navController = navController,

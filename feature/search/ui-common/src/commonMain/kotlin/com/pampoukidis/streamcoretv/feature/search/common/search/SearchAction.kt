@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.search.common.search
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 
 sealed interface SearchAction {
     data class Load(val profileId: String) : SearchAction
@@ -11,11 +11,11 @@ sealed interface SearchAction {
     data class RecentRemoved(val query: String) : SearchAction
     data object ClearRecent : SearchAction
     data class TrendingSelected(
-        val content: ContentModel,
+        val content: StreamCoreContent,
         val sourceArtworkUrl: String? = null,
     ) : SearchAction
     data class ResultSelected(
-        val content: ContentModel,
+        val content: StreamCoreContent,
         val sourceArtworkUrl: String? = null,
     ) : SearchAction
     data object Retry : SearchAction

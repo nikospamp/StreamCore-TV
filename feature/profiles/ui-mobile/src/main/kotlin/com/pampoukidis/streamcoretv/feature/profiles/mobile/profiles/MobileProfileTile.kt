@@ -4,7 +4,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -13,7 +13,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPrev
 
 @Composable
 internal fun MobileProfileTile(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     mode: ProfilesMode,
     isSelecting: Boolean,
     enabled: Boolean,

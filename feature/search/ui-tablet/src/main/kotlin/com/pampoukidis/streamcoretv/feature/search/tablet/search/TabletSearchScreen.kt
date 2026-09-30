@@ -35,10 +35,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -142,7 +142,7 @@ fun TabletSearchScreen(
 @Composable
 private fun SearchDiscoveryContent(
     recentQueries: List<String>,
-    trending: List<ContentModel>,
+    trending: List<StreamCoreContent>,
     onAction: (SearchAction) -> Unit,
 ) {
     LazyColumn(
@@ -272,7 +272,7 @@ private fun RecentQueryRow(
 
 @Composable
 private fun TrendingContentRow(
-    content: ContentModel,
+    content: StreamCoreContent,
     onSelected: () -> Unit,
 ) {
     val openDetailsDescription = stringResource(
@@ -320,10 +320,10 @@ private fun TrendingContentRow(
 
 @Composable
 private fun SearchFailureState(
-    error: AppError,
+    error: StreamCoreError,
     onRetry: () -> Unit,
 ) {
-    val isOffline = error is AppError.Network || error is AppError.Timeout
+    val isOffline = error is StreamCoreError.Network || error is StreamCoreError.Timeout
     SearchMessageState(
         title = stringResource(
             if (isOffline) {

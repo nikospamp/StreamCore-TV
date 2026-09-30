@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.details.web.details
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
-import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetailsRequest
 
 internal const val WebDetailsActionsSection = "details:actions"
 internal const val WebDetailsRecommendationsSection = "details:recommendations"
@@ -20,10 +20,10 @@ internal const val WebDetailsMyListItem = "my-list"
 internal fun webDetailsLoadAction(
     profileId: String,
     contentId: String,
-    initialContent: ContentModel?,
+    initialContent: StreamCoreContent?,
 ): DetailsAction.Load {
     return DetailsAction.Load(
-        request = DetailsRequest(
+        request = StreamCoreDetailsRequest(
             profileId = profileId,
             contentId = contentId,
         ),
@@ -33,7 +33,7 @@ internal fun webDetailsLoadAction(
 
 internal fun DetailsUiState.webDetailsDisplayState(
     contentId: String,
-    initialContent: ContentModel?,
+    initialContent: StreamCoreContent?,
 ): DetailsUiState {
     val currentContent = content
     val routeState = if (currentContent == null || currentContent.id == contentId) {
@@ -56,7 +56,7 @@ internal fun webDetailsActionFocusKey(itemKey: String): WebBrowseFocusKey {
     )
 }
 
-internal fun ContentModel.webDetailsRecommendationFocusKey(): WebBrowseFocusKey? {
+internal fun StreamCoreContent.webDetailsRecommendationFocusKey(): WebBrowseFocusKey? {
     if (id.isBlank()) {
         return null
     }

@@ -1,51 +1,42 @@
 package com.pampoukidis.streamcoretv.web.network
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
-import com.pampoukidis.streamcoretv.client.tmdb.data.config.TmdbRuntimeConfig
-import com.pampoukidis.streamcoretv.client.tmdb.data.di.TMDB_AUTH_STORE_QUALIFIER
-import com.pampoukidis.streamcoretv.client.tmdb.data.di.tmdbDataModule
-import com.pampoukidis.streamcoretv.client.tmdb.data.profile.TmdbProfileRepository
-import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.web.graph.WebGraphHandle
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.header
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
+import com.pampoukidis.streamcore.sdk.api.ProfileService
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileParentalLevel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreUpdateProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryReady
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryPinRequired
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileSelectionResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfilePinChallenge
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfilePinPolicy
+import com.pampoukidis.streamcore.sdk.model.search.StreamCoreSearchInteraction
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.api.SearchService
+import com.pampoukidis.streamcoretv.web.graph.WebGraphHandle
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
-import org.koin.core.qualifier.named
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 
 class WebTmdbFetchProbeTest {
     @Test
-    fun persistedProfileLetsProbeReachSearchWithItsQueryAndHeader(): TestResult {
+    fun validatedProfileLetsProbeReachPublicSearchWithItsQuery(): TestResult {
         return runTest {
             val fixture = Fixture()
             try {
                 assertEquals(WebTmdbFetchProbeResult.Success, WebTmdbFetchProbe().run(fixture.graph))
-                val request = fixture.engine.requestHistory.single { it.url.encodedPath == "/3/search/movie" }
-                assertEquals("web-fetch-probe", request.url.parameters["query"])
-                assertEquals("true", request.url.parameters["include_adult"])
-                assertEquals("Bearer fixture-token", request.headers[HttpHeaders.Authorization])
+                assertEquals(listOf("reference-profile" to "web-fetch-probe"), fixture.searchRequests)
+                assertEquals(listOf("reference-profile"), fixture.selectionRequests)
+                assertEquals(1, fixture.clearCalls)
             } finally {
                 fixture.close()
             }
@@ -53,19 +44,12 @@ class WebTmdbFetchProbeTest {
     }
 
     @Test
-    fun probeUsesThePersistedKidsSettingOfItsResolvedProfile(): TestResult {
+    fun probeUsesTheProfileReturnedByTheSdkWithoutInventingOne(): TestResult {
         return runTest {
-            val fixture = Fixture()
+            val fixture = Fixture(profilesResult = StreamCoreResult.Success(listOf(profile("persisted-child", isKids = true))))
             try {
-                val profiles = fixture.graph.application.koin.get<ProfileRepository>()
-                val profile = assertIs<AppResult.Success<List<ProfileModel>>>(profiles.getProfiles()).value.first()
-                assertIs<AppResult.Success<*>>(
-                    profiles.updateProfile(UpdateProfileModel(profile.id, "Child", profile.avatar.id, "kids")),
-                )
-
                 assertEquals(WebTmdbFetchProbeResult.Success, WebTmdbFetchProbe().run(fixture.graph))
-                val request = fixture.engine.requestHistory.single { it.url.encodedPath == "/3/search/movie" }
-                assertEquals("false", request.url.parameters["include_adult"])
+                assertEquals(listOf("persisted-child" to "web-fetch-probe"), fixture.searchRequests)
             } finally {
                 fixture.close()
             }
@@ -73,15 +57,12 @@ class WebTmdbFetchProbeTest {
     }
 
     @Test
-    fun profileLookupFailurePropagatesWithoutMakingRequests(): TestResult {
+    fun profileLookupFailurePropagatesWithoutSearching(): TestResult {
         return runTest {
-            val fixture = Fixture(profilesResult = AppResult.Failure(AppError.Parsing()))
+            val fixture = Fixture(profilesResult = StreamCoreResult.Failure(StreamCoreError.Parsing()))
             try {
-                assertEquals(
-                    WebTmdbFetchProbeResult.Failure("parsing-error"),
-                    WebTmdbFetchProbe().run(fixture.graph),
-                )
-                assertEquals(0, fixture.engine.requestHistory.size)
+                assertEquals(WebTmdbFetchProbeResult.Failure("parsing-error"), WebTmdbFetchProbe().run(fixture.graph))
+                assertEquals(emptyList(), fixture.searchRequests)
             } finally {
                 fixture.close()
             }
@@ -89,15 +70,12 @@ class WebTmdbFetchProbeTest {
     }
 
     @Test
-    fun emptyProfilesReturnAnExplicitFailureWithoutMakingRequests(): TestResult {
+    fun emptyProfilesReturnAnExplicitFailureWithoutSearching(): TestResult {
         return runTest {
-            val fixture = Fixture(profilesResult = AppResult.Success(emptyList()))
+            val fixture = Fixture(profilesResult = StreamCoreResult.Success(emptyList()))
             try {
-                assertEquals(
-                    WebTmdbFetchProbeResult.Failure("profile-not-found"),
-                    WebTmdbFetchProbe().run(fixture.graph),
-                )
-                assertEquals(0, fixture.engine.requestHistory.size)
+                assertEquals(WebTmdbFetchProbeResult.Failure("profile-not-found"), WebTmdbFetchProbe().run(fixture.graph))
+                assertEquals(emptyList(), fixture.searchRequests)
             } finally {
                 fixture.close()
             }
@@ -107,13 +85,44 @@ class WebTmdbFetchProbeTest {
     @Test
     fun searchFailureRetainsTheExistingProbeErrorMapping(): TestResult {
         return runTest {
-            val fixture = Fixture(searchStatus = HttpStatusCode.ServiceUnavailable)
+            val fixture = Fixture(searchResult = StreamCoreResult.Failure(StreamCoreError.Server()))
             try {
-                assertEquals(
-                    WebTmdbFetchProbeResult.Failure("server-error"),
-                    WebTmdbFetchProbe().run(fixture.graph),
-                )
-                assertEquals(1, fixture.engine.requestHistory.count { it.url.encodedPath == "/3/search/movie" })
+                assertEquals(WebTmdbFetchProbeResult.Failure("server-error"), WebTmdbFetchProbe().run(fixture.graph))
+                assertEquals(1, fixture.searchRequests.size)
+            } finally {
+                fixture.close()
+            }
+        }
+    }
+
+    @Test
+    fun unauthenticatedSdkContextCannotBeBypassedByTheDiagnosticProbe(): TestResult {
+        return runTest {
+            val fixture = Fixture(profilesResult = StreamCoreResult.Failure(StreamCoreError.InvalidContext()))
+            try {
+                assertEquals(WebTmdbFetchProbeResult.Failure("invalid-context"), WebTmdbFetchProbe().run(fixture.graph))
+                assertEquals(emptyList(), fixture.searchRequests)
+            } finally {
+                fixture.close()
+            }
+        }
+    }
+
+    @Test
+    fun pinProtectedProfileStopsProbeWithoutSubmittingACredential(): TestResult {
+        return runTest {
+            val protected = profile("protected").copy(pinPolicy = StreamCoreProfilePinPolicy(digitCount = 4))
+            val fixture = Fixture(
+                profilesResult = StreamCoreResult.Success(listOf(protected)),
+                selectionResult = StreamCoreResult.Success(
+                    StreamCoreProfileEntryPinRequired(StreamCoreProfilePinChallenge("probe-challenge", protected, 4)),
+                ),
+            )
+            try {
+                assertEquals(WebTmdbFetchProbeResult.Failure("profile-pin-required"), WebTmdbFetchProbe().run(fixture.graph))
+                assertEquals(emptyList(), fixture.searchRequests)
+                assertEquals(listOf("probe-challenge"), fixture.cancelledChallengeIds)
+                assertEquals(0, fixture.clearCalls)
             } finally {
                 fixture.close()
             }
@@ -121,50 +130,62 @@ class WebTmdbFetchProbeTest {
     }
 
     private class Fixture(
-        profilesResult: AppResult<List<ProfileModel>>? = null,
-        searchStatus: HttpStatusCode = HttpStatusCode.OK,
+        profilesResult: StreamCoreResult<List<StreamCoreProfile>> = StreamCoreResult.Success(listOf(profile("reference-profile"))),
+        searchResult: StreamCoreResult<List<StreamCoreContent>> = StreamCoreResult.Success(emptyList()),
+        selectionResult: StreamCoreResult<StreamCoreProfileSelectionResult>? = null,
     ) : AutoCloseable {
-        val engine = MockEngine { request ->
-            val body = when (request.url.encodedPath) {
-                "/3/configuration" -> """{"images":{"secure_base_url":"https://images.test/","poster_sizes":["w500"],"backdrop_sizes":["w780"],"profile_sizes":["w185"]}}"""
-                "/3/genre/movie/list" -> """{"genres":[]}"""
-                "/3/search/movie" -> """{"page":1,"results":[],"total_pages":1,"total_results":0}"""
-                else -> error("Unexpected endpoint: ${request.url.encodedPath}")
-            }
-            respond(
-                content = body,
-                status = if (request.url.encodedPath == "/3/search/movie") searchStatus else HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-            )
-        }
-        private val client = HttpClient(engine) {
-            expectSuccess = true
-            install(ContentNegotiation) { json() }
-            defaultRequest {
-                // KtorTmdbApi supplies the /3 path segment itself.
-                url("https://tmdb.test/")
-                header(HttpHeaders.Authorization, "Bearer fixture-token")
-            }
-        }
+        val searchRequests = mutableListOf<Pair<String, String>>()
+        val selectionRequests = mutableListOf<String>()
+        val cancelledChallengeIds = mutableListOf<String>()
+        var clearCalls = 0
+            private set
+        private var selectedProfileId: String? = null
         val graph = WebGraphHandle(
             application = koinApplication {
-                modules(
-                    tmdbDataModule,
-                    module {
-                        single<HttpClient> { client }
-                        single<DataStore<Preferences>>(named(TMDB_AUTH_STORE_QUALIFIER)) { TestStore() }
-                        single { TmdbRuntimeConfig("https://tmdb.test/", "fixture-token", "probe-test") }
-                        if (profilesResult != null) {
-                            single<ProfileRepository> {
-                                object : ProfileRepository by get<TmdbProfileRepository>() {
-                                    override suspend fun getProfiles(): AppResult<List<ProfileModel>> {
-                                        return profilesResult
-                                    }
-                                }
+                modules(module {
+                    single<ProfileService> {
+                        object : ProfileService {
+                            override suspend fun beginEntry(): StreamCoreResult<StreamCoreProfileEntryResult> { error("Unused") }
+                            override suspend fun getProfiles(): StreamCoreResult<List<StreamCoreProfile>> { return profilesResult }
+                            override suspend fun getProfileEditorOptions(): StreamCoreResult<StreamCoreProfileEditorOptions> { error("Unused") }
+                            override suspend fun createProfile(profile: StreamCoreCreateProfile): StreamCoreResult<StreamCoreProfile> { error("Unused") }
+                            override suspend fun updateProfile(profile: StreamCoreUpdateProfile): StreamCoreResult<StreamCoreProfile> { error("Unused") }
+                            override suspend fun deleteProfile(profileId: String): StreamCoreResult<Unit> { error("Unused") }
+                            override suspend fun selectProfile(profileId: String): StreamCoreResult<StreamCoreProfileSelectionResult> {
+                                selectionRequests += profileId
+                                val result = selectionResult ?: StreamCoreResult.Success(StreamCoreProfileEntryReady(profile(profileId)))
+                                if (result is StreamCoreResult.Success && result.value is StreamCoreProfileEntryReady) selectedProfileId = profileId
+                                return result
+                            }
+                            override suspend fun confirmPin(challengeId: String, pin: String): StreamCoreResult<StreamCoreProfile> { error("Probe must never submit a PIN") }
+                            override fun cancelPin(challengeId: String): StreamCoreResult<Unit> {
+                                cancelledChallengeIds += challengeId
+                                return StreamCoreResult.Success(Unit)
+                            }
+                            override suspend fun clearSelection(): StreamCoreResult<Unit> {
+                                selectedProfileId = null
+                                clearCalls += 1
+                                return StreamCoreResult.Success(Unit)
                             }
                         }
-                    },
-                )
+                    }
+                    single<SearchService> {
+                        object : SearchService {
+                            override suspend fun search(profileId: String, query: String, interaction: StreamCoreSearchInteraction): StreamCoreResult<List<StreamCoreContent>> {
+                                if (selectedProfileId != profileId) return StreamCoreResult.Failure(StreamCoreError.InvalidContext())
+                                searchRequests += profileId to query
+                                return searchResult
+                            }
+                            override suspend fun loadTrending(profileId: String): StreamCoreResult<List<StreamCoreContent>> { error("Unused") }
+                            override suspend fun displayedResults(profileId: String, query: String, results: List<StreamCoreContent>, interaction: StreamCoreSearchInteraction): StreamCoreResult<Unit> { error("Unused") }
+                            override suspend fun resultSelected(profileId: String, query: String): StreamCoreResult<Unit> { error("Unused") }
+                            override fun observeHistory(profileId: String): Flow<StreamCoreResult<List<String>>> { error("Unused") }
+                            override suspend fun recordHistory(profileId: String, query: String): StreamCoreResult<Unit> { error("Unused") }
+                            override suspend fun removeHistoryQuery(profileId: String, query: String): StreamCoreResult<Unit> { error("Unused") }
+                            override suspend fun clearHistory(profileId: String): StreamCoreResult<Unit> { error("Unused") }
+                        }
+                    }
+                })
             },
             resolvedDefinitions = emptyList(),
             storageNames = emptyList(),
@@ -172,16 +193,17 @@ class WebTmdbFetchProbeTest {
 
         override fun close() {
             graph.close()
-            client.close()
         }
     }
+}
 
-    private class TestStore : DataStore<Preferences> {
-        private val state = MutableStateFlow(emptyPreferences())
-        override val data: Flow<Preferences> = state
-
-        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
-            return transform(state.value).also { state.value = it }
-        }
-    }
+private fun profile(id: String, isKids: Boolean = false): StreamCoreProfile {
+    return StreamCoreProfile(
+        id = id,
+        displayName = id,
+        avatar = StreamCoreProfileAvatar("avatar", null),
+        parentalLevel = StreamCoreProfileParentalLevel(if (isKids) "kids" else "all", "Reference", 0),
+        canDelete = true,
+        isKidsProfile = isKids,
+    )
 }

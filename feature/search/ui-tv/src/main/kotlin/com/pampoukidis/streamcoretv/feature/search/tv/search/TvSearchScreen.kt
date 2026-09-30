@@ -56,7 +56,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSearchIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
@@ -244,7 +244,7 @@ private fun TvSearchField(
 @Composable
 private fun TvSearchDiscovery(
     recentQueries: List<String>,
-    trending: List<ContentModel>,
+    trending: List<StreamCoreContent>,
     onAction: (SearchAction) -> Unit,
     selectedContentKey: String?,
     returnFocusKey: String?,
@@ -383,9 +383,9 @@ private fun TvSearchDiscovery(
 
 @Composable
 private fun TvSearchResults(
-    items: List<ContentModel>,
+    items: List<StreamCoreContent>,
     showOfflineNotice: Boolean,
-    onSelected: (ContentModel) -> Unit,
+    onSelected: (StreamCoreContent) -> Unit,
     selectedContentKey: String?,
     returnFocusKey: String?,
     fallbackFocusRequester: FocusRequester,
@@ -554,14 +554,14 @@ private fun TvSearchMessage(
     }
 }
 
-private fun List<ContentModel>.indexOfContentKey(selectedContentKey: String?): Int {
+private fun List<StreamCoreContent>.indexOfContentKey(selectedContentKey: String?): Int {
     if (selectedContentKey == null) {
         return -1
     }
     return indexOfFirst { content -> content.matchesContentKey(selectedContentKey) }
 }
 
-private fun ContentModel.matchesContentKey(selectedContentKey: String?): Boolean {
+private fun StreamCoreContent.matchesContentKey(selectedContentKey: String?): Boolean {
     return selectedContentKey != null && StreamCoreSharedKey.content(
         contentId = id,
         row = row,

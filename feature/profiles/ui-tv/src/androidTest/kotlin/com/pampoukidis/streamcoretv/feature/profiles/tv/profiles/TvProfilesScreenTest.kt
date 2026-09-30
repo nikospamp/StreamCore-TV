@@ -11,7 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
@@ -112,7 +112,7 @@ class TvProfilesScreenTest {
 
     @Test
     fun profileLoadErrorKeepsSignOutAvailable() {
-        setScreen(state = contentState.copy(loadError = AppError.Network()))
+        setScreen(state = contentState.copy(loadError = StreamCoreError.Network()))
 
         composeRule
             .onNodeWithTag(ProfilesTestTags.SignOutButton)

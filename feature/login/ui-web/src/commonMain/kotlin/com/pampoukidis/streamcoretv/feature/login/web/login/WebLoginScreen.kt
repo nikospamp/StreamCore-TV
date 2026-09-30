@@ -36,8 +36,8 @@ import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.login.passwordText
 import com.pampoukidis.streamcoretv.feature.login.common.login.text
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
-import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
-import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackgroundVariant
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.core.ui.generated.resources.Res
 import streamcoretv.core.ui.generated.resources.login_continue
@@ -235,8 +235,8 @@ private fun WebLoginValidationErrorPreview() {
     StreamCoreTheme(darkTheme = true) {
         WebLoginScreen(
             state = LoginUiState(
-                identifierError = LoginFieldError.Required,
-                passwordError = LoginFieldError.Required,
+                identifierError = StreamCoreLoginFieldError.Required,
+                passwordError = StreamCoreLoginFieldError.Required,
             ),
             onAction = {},
         )

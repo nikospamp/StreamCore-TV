@@ -1,7 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.home.common.home
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import kotlin.test.assertEquals
@@ -46,7 +46,7 @@ class HomeRowsMapperTest {
             content = listOf(
                 content(
                     id = "with-progress",
-                    progress = PlaybackProgressModel(
+                    progress = StreamCorePlaybackProgress(
                         positionMillis = 25L,
                         durationMillis = 100L,
                     ),
@@ -80,21 +80,21 @@ class HomeRowsMapperTest {
     fun `playback fraction clamps invalid positions`() {
         assertEquals(
             0f,
-            PlaybackProgressModel(
+            StreamCorePlaybackProgress(
                 positionMillis = -10L,
                 durationMillis = 100L,
             ).fraction,
         )
         assertEquals(
             1f,
-            PlaybackProgressModel(
+            StreamCorePlaybackProgress(
                 positionMillis = 120L,
                 durationMillis = 100L,
             ).fraction,
         )
         assertEquals(
             0f,
-            PlaybackProgressModel(
+            StreamCorePlaybackProgress(
                 positionMillis = 10L,
                 durationMillis = 0L,
             ).fraction,
@@ -116,9 +116,9 @@ class HomeRowsMapperTest {
 
     private fun content(
         id: String,
-        progress: PlaybackProgressModel? = null,
-    ): ContentModel {
-        return ContentModel(
+        progress: StreamCorePlaybackProgress? = null,
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = id,
             description = "",

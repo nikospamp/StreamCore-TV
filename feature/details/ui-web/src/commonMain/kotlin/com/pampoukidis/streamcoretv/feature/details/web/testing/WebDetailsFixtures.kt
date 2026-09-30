@@ -1,22 +1,22 @@
 package com.pampoukidis.streamcoretv.feature.details.web.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
-import com.pampoukidis.streamcoretv.core.model.general.Cast
-import com.pampoukidis.streamcoretv.core.model.general.Genre
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCastMember
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureIds
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 
 internal object WebDetailsFixtures {
     private val cast = listOf(
-        Cast(
+        StreamCoreCastMember(
             id = "cast-alex",
             name = "Alex Morgan",
             characterName = "Commander Vale",
             image = null,
         ),
-        Cast(
+        StreamCoreCastMember(
             id = "cast-jordan",
             name = "Jordan Lee",
             characterName = "Dr. Ilya Chen",
@@ -25,11 +25,11 @@ internal object WebDetailsFixtures {
     )
 
     private val genres = listOf(
-        Genre(id = "science-fiction", name = "Science Fiction"),
-        Genre(id = "thriller", name = "Thriller"),
+        StreamCoreGenre(id = "science-fiction", name = "Science Fiction"),
+        StreamCoreGenre(id = "thriller", name = "Thriller"),
     )
 
-    val content = ContentModel(
+    val content = StreamCoreContent(
         id = WebBrowseFixtureIds.ContentId,
         title = "Orbit Fall",
         description = "A rescue crew races to stabilize a failing orbital station while a hidden signal pulls them deeper into the debris field.",
@@ -42,7 +42,7 @@ internal object WebDetailsFixtures {
         releaseDate = 1_711_929_600_000L,
         genres = genres,
         trailers = listOf(
-            TrailerModel(
+            StreamCoreTrailer(
                 id = "official-trailer",
                 title = "Official Trailer",
                 url = "https://example.invalid/orbit-fall/trailer",
@@ -72,7 +72,7 @@ internal object WebDetailsFixtures {
             title = "Orbit Fall: A Chronicle of the Final Rescue Beyond the Last Known Horizon",
             description = LongDescription,
             cast = cast + List(5) { index ->
-                Cast(
+                StreamCoreCastMember(
                     id = "additional-cast-$index",
                     name = "Additional Cast Member ${index + 1}",
                     characterName = "Mission Specialist ${index + 1}",
@@ -99,7 +99,7 @@ internal object WebDetailsFixtures {
     private fun recommendation(
         id: String,
         title: String,
-    ): ContentModel {
+    ): StreamCoreContent {
         return content.copy(
             id = id,
             title = title,

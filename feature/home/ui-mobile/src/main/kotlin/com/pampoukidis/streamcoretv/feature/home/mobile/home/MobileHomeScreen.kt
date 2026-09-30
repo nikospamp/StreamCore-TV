@@ -4,7 +4,6 @@ import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkCounter
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkLayoutTrace
 import com.pampoukidis.streamcoretv.core.tracing.BenchmarkTracingEnabled
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,8 +49,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
@@ -87,7 +86,7 @@ fun MobileHomeScreen(
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = StreamCoreDimens.Spacing.ExtraLarge,
-    activeProfile: ProfileModel? = null,
+    activeProfile: StreamCoreProfile? = null,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
@@ -160,7 +159,7 @@ fun MobileHomeScreen(
 private fun MobileHomeContent(
     state: HomeUiState,
     content: HomeContentModel,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     bottomContentPadding: Dp,
@@ -225,10 +224,10 @@ private fun MobileHomeContent(
 
 @Composable
 private fun MobileHeroPager(
-    content: List<ContentModel>,
+    content: List<StreamCoreContent>,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The pager count updates before BoxWithConstraints subcomposes. Retained key/content
@@ -281,7 +280,7 @@ private fun MobileHeroPager(
 
 @Composable
 private fun HomeHeroCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -403,7 +402,7 @@ private fun MobileContinueWatchingRow(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
@@ -448,7 +447,7 @@ private fun MobileShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
@@ -533,7 +532,7 @@ private fun HomeShelfHeader(
 @Composable
 private fun ContinueWatchingCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -630,7 +629,7 @@ private fun ContinueWatchingCard(
 @Composable
 private fun PosterCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -650,7 +649,7 @@ private fun PosterCard(
 @Composable
 private fun LandscapeCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -670,7 +669,7 @@ private fun LandscapeCard(
 @Composable
 private fun FlatArtworkCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     width: androidx.compose.ui.unit.Dp,
     aspectRatio: Float,
     imageUrl: String?,
@@ -751,7 +750,7 @@ private fun FlatArtworkCard(
 @Composable
 private fun TopTenCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     rank: Int,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -871,7 +870,7 @@ private const val TopTenRankContentAlpha = 0.76f
 private const val TopTenRankHaloAlpha = 0.94f
 private const val TopTenRankHaloStrokeWidth = 4.8f
 
-private fun ContentModel.sharedIdentity(): String {
+private fun StreamCoreContent.sharedIdentity(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,

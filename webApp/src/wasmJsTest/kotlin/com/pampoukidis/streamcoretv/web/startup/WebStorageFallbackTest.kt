@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.web.startup
 
 import com.pampoukidis.streamcoretv.web.storage.WebStorageSelection
+import com.pampoukidis.streamcoretv.web.storage.WebSdkStorageException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
@@ -11,6 +12,23 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WebStorageFallbackTest {
+    @Test
+    fun sdkStorageFailureRetriesOfficialSessionStorage(): TestResult {
+        return runTest {
+            val attempts = mutableListOf<Boolean>()
+            val outcome = startWithStorageFallback(WebStorageSelection.Persistent) { useSession ->
+                attempts += useSession
+                if (!useSession) throw WebSdkStorageException()
+                "session-sdk"
+            }
+            val started = assertIs<WebStorageStartupOutcome.Started<String>>(outcome)
+            assertEquals(listOf(false, true), attempts)
+            assertEquals("session-sdk", started.value)
+            assertTrue(started.useSessionStorage)
+            assertTrue(started.warning.orEmpty().contains("I/O"))
+        }
+    }
+
     @Test
     fun persistentGraphStartsWithoutSessionRetry(): TestResult {
         return runTest {

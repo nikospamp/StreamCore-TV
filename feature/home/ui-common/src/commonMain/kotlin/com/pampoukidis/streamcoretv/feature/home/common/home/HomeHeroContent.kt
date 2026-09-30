@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -25,7 +25,7 @@ import com.pampoukidis.streamcoretv.feature.home.common.testing.HomePreviewData
 /** Portable hero copy; platform wrappers provide localized labels, insets, and their action controls. */
 @Composable
 fun HomeHeroContent(
-    content: ContentModel,
+    content: StreamCoreContent,
     featuredLabel: String,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),

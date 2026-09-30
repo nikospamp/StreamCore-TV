@@ -36,7 +36,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
@@ -256,7 +256,7 @@ private fun TvLibraryError(
 private fun TvLibrarySection(
     section: TvLibrarySectionModel,
     focusContentIndex: Int?,
-    onSelected: (ContentModel) -> Unit,
+    onSelected: (StreamCoreContent) -> Unit,
     selectedContentKey: String?,
     returnFocusKey: String?,
     focusRequestEnabled: Boolean,
@@ -490,7 +490,7 @@ private data class TvLibrarySectionModel(
     val titleRes: Int,
     val emptyMessageRes: Int,
     val testTag: String,
-    val items: List<ContentModel>,
+    val items: List<StreamCoreContent>,
     val type: RowType,
     val icon: @Composable () -> Unit,
 )

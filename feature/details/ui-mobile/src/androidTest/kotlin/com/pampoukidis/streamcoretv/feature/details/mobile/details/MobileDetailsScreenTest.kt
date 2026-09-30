@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasTestTag
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
@@ -40,7 +40,7 @@ class MobileDetailsScreenTest {
         composeRule.runOnIdle {
             state = state.copy(
                 content = requireNotNull(state.content).copy(
-                    trailers = listOf(TrailerModel("trailer", "Trailer", "https://www.youtube.com/watch?v=abcdefghijk")),
+                    trailers = listOf(StreamCoreTrailer("trailer", "Trailer", "https://www.youtube.com/watch?v=abcdefghijk")),
                 ),
             )
         }

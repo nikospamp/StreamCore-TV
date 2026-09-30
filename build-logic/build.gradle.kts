@@ -25,5 +25,13 @@ gradlePlugin {
             id = "streamcore.kmp.compose.library"
             implementationClass = "StreamCoreComposeKmpLibraryPlugin"
         }
+        register("streamCoreResourcesKmpLibrary") {
+            id = "streamcore.kmp.resources.library"
+            implementationClass = "StreamCoreResourcesKmpLibraryPlugin"
+        }
+        register("streamCoreSdkPublishing") {
+            id = "streamcore.sdk.publishing"
+            implementationClass = "StreamCoreSdkPublishingPlugin"
+        }
     }
 }

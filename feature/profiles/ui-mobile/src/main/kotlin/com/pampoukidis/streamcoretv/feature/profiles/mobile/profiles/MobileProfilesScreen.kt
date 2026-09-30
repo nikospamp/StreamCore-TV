@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.pampoukidis.streamcoretv.feature.profiles.mobile.pin.MobileProfilePinScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
@@ -53,6 +54,16 @@ fun MobileProfilesScreen(
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
+    state.pin?.let { pin ->
+        MobileProfilePinScreen(
+            state = pin,
+            onDraftChanged = { onAction(ProfilesAction.PinDraftChanged(it)) },
+            onCancel = { onAction(ProfilesAction.CancelPin) },
+            onRetry = { onAction(ProfilesAction.RetryPin) },
+            modifier = modifier,
+        )
+        return
+    }
     ReportDrawnWhen { !state.isLoading }
 
     val profileInteractionsEnabled = !state.isLoading &&
@@ -99,6 +110,7 @@ fun MobileProfilesScreen(
 
                     else -> MobileProfilesGrid(
                         profiles = state.profiles,
+                        restoreFocusProfileId = state.restoreFocusProfileId,
                         mode = state.mode,
                         pendingSelectionProfileId = state.pendingSelectionProfileId,
                         interactionsEnabled = profileInteractionsEnabled,
@@ -191,7 +203,7 @@ private fun ProfilesLoadError(
     }
 }
 
-private fun previewProfiles(count: Int): List<ProfileModel> {
+private fun previewProfiles(count: Int): List<StreamCoreProfile> {
     return List(count) { index ->
         val source = ProfilesPreviewData.profiles[index % ProfilesPreviewData.profiles.size]
         source.copy(

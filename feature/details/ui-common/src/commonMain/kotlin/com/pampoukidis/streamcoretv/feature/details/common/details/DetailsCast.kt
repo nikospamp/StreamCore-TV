@@ -11,7 +11,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.resources.Res
@@ -22,7 +22,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Shared cast formatting; the platform owns expansion controls and reading interaction. */
 @Composable
 fun DetailsCast(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
     headingStyle: TextStyle = MaterialTheme.typography.titleSmall,
     castStyle: TextStyle = MaterialTheme.typography.bodyMedium,

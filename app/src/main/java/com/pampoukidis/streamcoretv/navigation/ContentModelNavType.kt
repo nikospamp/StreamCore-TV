@@ -3,10 +3,10 @@ package com.pampoukidis.streamcoretv.navigation
 import android.net.Uri
 import android.os.Bundle
 import androidx.navigation.NavType
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import kotlinx.serialization.json.Json
 
-object ContentModelNavType : NavType<ContentModel?>(
+object ContentModelNavType : NavType<StreamCoreContent?>(
     isNullableAllowed = true,
 ) {
     private val json = Json {
@@ -14,21 +14,21 @@ object ContentModelNavType : NavType<ContentModel?>(
         encodeDefaults = true
     }
 
-    override fun put(bundle: Bundle, key: String, value: ContentModel?) {
+    override fun put(bundle: Bundle, key: String, value: StreamCoreContent?) {
         bundle.putString(key, value?.let { content -> json.encodeToString(content) })
     }
 
-    override fun get(bundle: Bundle, key: String): ContentModel? {
+    override fun get(bundle: Bundle, key: String): StreamCoreContent? {
         return bundle.getString(key)?.let { value ->
-            json.decodeFromString<ContentModel>(value)
+            json.decodeFromString<StreamCoreContent>(value)
         }
     }
 
-    override fun parseValue(value: String): ContentModel {
-        return json.decodeFromString<ContentModel>(Uri.decode(value))
+    override fun parseValue(value: String): StreamCoreContent {
+        return json.decodeFromString<StreamCoreContent>(Uri.decode(value))
     }
 
-    override fun serializeAsValue(value: ContentModel?): String {
+    override fun serializeAsValue(value: StreamCoreContent?): String {
         return value?.let { content ->
             Uri.encode(json.encodeToString(content))
         } ?: "null"

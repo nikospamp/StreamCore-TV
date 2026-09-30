@@ -1,8 +1,8 @@
 package com.pampoukidis.streamcoretv.feature.library.web.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureIds
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryUiState
@@ -16,7 +16,7 @@ internal object WebLibraryFixtures {
         title = "Northern Signal",
         row = WebLibraryContinueWatchingSection,
     ).copy(
-        playbackProgress = PlaybackProgressModel(
+        playbackProgress = StreamCorePlaybackProgress(
             positionMillis = 42_000L,
             durationMillis = 100_000L,
         ),
@@ -78,10 +78,10 @@ internal object WebLibraryFixtures {
             WebBrowseFixtureScenario.Loading -> LibraryUiState(isLoading = true)
             WebBrowseFixtureScenario.Content -> contentState
             WebBrowseFixtureScenario.Empty -> LibraryUiState(isLoading = false)
-            WebBrowseFixtureScenario.Offline -> contentState.copy(error = AppError.Network())
+            WebBrowseFixtureScenario.Offline -> contentState.copy(error = StreamCoreError.Network())
             WebBrowseFixtureScenario.Error -> LibraryUiState(
                 isLoading = false,
-                error = AppError.Unknown(),
+                error = StreamCoreError.Unknown(),
             )
 
             WebBrowseFixtureScenario.LongText -> longTextState
@@ -92,8 +92,8 @@ internal object WebLibraryFixtures {
         id: String,
         title: String,
         row: String,
-    ): ContentModel {
-        return ContentModel(
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = title,
             description = "A deterministic browser-only fixture with no provider or network dependency.",

@@ -10,12 +10,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcore.sdk.api.DetailsService
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebBlockingSurface
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
 import com.pampoukidis.streamcoretv.feature.player.web.player.WebPlayerRoute
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.CancellationException
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -23,8 +23,8 @@ import org.koin.compose.viewmodel.koinViewModel
 internal fun WebPlayerDestination(
     profileId: String,
     contentId: String,
-    transientRequest: PlaybackRequestModel?,
-    detailsRepository: DetailsRepository,
+    transientRequest: StreamCorePlaybackRequest?,
+    detailsRepository: DetailsService,
     onBack: () -> Unit,
     onUnavailable: () -> Unit,
 ) {
@@ -74,7 +74,7 @@ internal fun WebPlayerDestination(
 
 @Composable
 private fun ResolvedWebPlayer(
-    request: PlaybackRequestModel,
+    request: StreamCorePlaybackRequest,
     onBack: () -> Unit,
 ) {
     val storeOwner = remember(request.profileId, request.contentId) {
@@ -99,19 +99,19 @@ private fun ResolvedWebPlayer(
 internal suspend fun resolveWebPlaybackRequest(
     profileId: String,
     contentId: String,
-    detailsRepository: DetailsRepository,
+    detailsRepository: DetailsService,
 ): WebPlayerResolution {
     return try {
         when (val result = detailsRepository.getDetails(profileId, contentId)) {
-            is AppResult.Success -> WebPlayerResolution.Ready(
-                PlaybackRequestModel(
+            is StreamCoreResult.Success -> WebPlayerResolution.Ready(
+                StreamCorePlaybackRequest(
                     profileId = profileId,
                     contentId = contentId,
                     contentSnapshot = result.value,
                 ),
             )
 
-            is AppResult.Failure -> WebPlayerResolution.Unavailable
+            is StreamCoreResult.Failure -> WebPlayerResolution.Unavailable
         }
     } catch (cancellation: CancellationException) {
         throw cancellation
@@ -123,7 +123,7 @@ internal suspend fun resolveWebPlaybackRequest(
 internal sealed interface WebPlayerResolution {
     data object Loading : WebPlayerResolution
     data object Unavailable : WebPlayerResolution
-    data class Ready(val request: PlaybackRequestModel) : WebPlayerResolution
+    data class Ready(val request: StreamCorePlaybackRequest) : WebPlayerResolution
 }
 
 private class WebPlayerViewModelStoreOwner : ViewModelStoreOwner {

@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
@@ -42,7 +42,7 @@ import com.pampoukidis.streamcoretv.core.ui.utils.PreviewTV
 
 @Composable
 fun StreamCoreTvContentCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     type: RowType,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -186,7 +186,7 @@ private fun StreamCoreTvContentCardPreview() {
     StreamCoreTheme(darkTheme = true) {
         Surface(color = MaterialTheme.colorScheme.background) {
             StreamCoreTvContentCard(
-                content = ContentModel(
+                content = StreamCoreContent(
                     id = "preview",
                     title = "The Last Horizon",
                     description = "",

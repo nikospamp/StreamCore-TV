@@ -6,7 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
@@ -47,7 +47,7 @@ class TabletProfilesScreenTest {
         setScreen(
             state = ProfilesUiState(
                 isLoading = false,
-                loadError = AppError.Network(),
+                loadError = StreamCoreError.Network(),
             ),
         )
 

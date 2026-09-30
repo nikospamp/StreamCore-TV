@@ -1,5 +1,9 @@
 # KMP-00B — Complete Android Authentication and Session Lifecycle
 
+> Historical migration ticket: its Gradle paths and commands describe the original Android authentication work. Current provider modules are
+> `:sdk:providers:tmdb` and `:sdk:providers:clientB`; shared session coordination now belongs to the SDK runtime. Use
+> [current SDK guidance](../../sdk/integration.md#repository-structure) for new work; do not reinterpret this ticket's old test commands as current checks.
+
 ## Goal
 
 Add a production logout path on mobile, tablet, and TV so KMP-00 can verify login, logout, and restored-session behavior for both providers.

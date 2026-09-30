@@ -15,12 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.pampoukidis.streamcoretv.feature.profiles.web.pin.WebProfilePinScreen
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,8 +48,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreAddIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
@@ -74,12 +76,23 @@ fun WebProfilesScreen(
     modifier: Modifier = Modifier,
     onLogoutRequested: (() -> Unit)? = null,
 ) {
+    state.pin?.let { pin ->
+        WebProfilePinScreen(
+            state = pin,
+            onDraftChanged = { onAction(ProfilesAction.PinDraftChanged(it)) },
+            onCancel = { onAction(ProfilesAction.CancelPin) },
+            onRetry = { onAction(ProfilesAction.RetryPin) },
+            modifier = modifier,
+        )
+        return
+    }
     val manageFocus = remember { FocusRequester() }
     val addFocus = remember { FocusRequester() }
-    val profileFocus = remember(state.profiles.map(ProfileModel::id)) {
+    val profileFocus = remember(state.profiles.map(StreamCoreProfile::id)) {
         state.profiles.associate { it.id to FocusRequester() }
     }
-    val firstFocus = state.profiles.firstOrNull()?.let { profileFocus[it.id] } ?: addFocus
+    val firstFocus = state.restoreFocusProfileId?.let { profileFocus[it] }
+        ?: state.profiles.firstOrNull()?.let { profileFocus[it.id] } ?: addFocus
     var deleteRestoreProfileId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(state.isLoading, state.loadError, state.profiles.size) {
@@ -236,8 +249,9 @@ private fun ProfilesContent(
         return
     }
 
-    val profileIds = state.profiles.map(ProfileModel::id)
+    val profileIds = state.profiles.map(StreamCoreProfile::id)
     LazyRow(
+        state = rememberLazyListState(initialFirstVisibleItemIndex = profileIds.indexOf(state.restoreFocusProfileId).coerceAtLeast(0)),
         contentPadding = PaddingValues(StreamCoreDimens.Spacing.ExtraLarge),
         horizontalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.ExtraLarge, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -309,7 +323,7 @@ private fun ProfilesContent(
 
 @Composable
 private fun WebProfileTile(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     mode: ProfilesMode,
     selecting: Boolean,
     enabled: Boolean,
@@ -469,7 +483,7 @@ private fun ProfilesError(onRetry: () -> Unit) {
 
 @Composable
 private fun WebDeleteProfileDialog(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     isSaving: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -602,7 +616,7 @@ private fun WebProfilesEmptyPreview() {
 private fun WebProfilesBackendErrorPreview() {
     StreamCoreTheme(darkTheme = true) {
         WebProfilesScreen(
-            state = ProfilesUiState(isLoading = false, loadError = AppError.Network()),
+            state = ProfilesUiState(isLoading = false, loadError = StreamCoreError.Network()),
             onAction = {},
             onCreateProfile = {},
             onEditProfile = {},

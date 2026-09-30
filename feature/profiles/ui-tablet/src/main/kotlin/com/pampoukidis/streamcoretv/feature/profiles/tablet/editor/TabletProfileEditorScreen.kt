@@ -33,8 +33,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.AndroidProf
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesDeleteConfirmationDialog
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 
 @Composable
 fun TabletProfileEditorScreen(

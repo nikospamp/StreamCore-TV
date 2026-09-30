@@ -14,7 +14,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.core.data)
+            implementation(projects.sdk.model)
             implementation(projects.core.ui)
             implementation(projects.core.uiWeb)
             api(projects.feature.library.uiCommon)

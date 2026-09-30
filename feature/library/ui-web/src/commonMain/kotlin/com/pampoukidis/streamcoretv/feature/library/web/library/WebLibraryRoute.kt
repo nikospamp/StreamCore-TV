@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryAction
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryRouteEventEffect
@@ -17,8 +17,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WebLibraryRoute(
     profileId: String,
     selectedContentKey: WebBrowseFocusKey?,
-    onContentSelected: (ContentModel, WebBrowseFocusKey) -> Unit,
-    onError: (AppError) -> Unit,
+    onContentSelected: (StreamCoreContent, WebBrowseFocusKey) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     returnFocusKey: WebBrowseFocusKey?,
     onReturnFocusConsumed: (WebBrowseFocusKey) -> Unit,
     viewModel: LibraryViewModel = koinViewModel(key = libraryViewModelKey(profileId)),
@@ -51,9 +51,9 @@ fun WebLibraryRoute(
     )
 }
 
-private fun libraryFocusContractError(): AppError {
-    return AppError.Unknown(
-        source = ErrorSource(
+private fun libraryFocusContractError(): StreamCoreError {
+    return StreamCoreError.Unknown(
+        source = StreamCoreErrorSource(
             operation = "library.selectContent",
             backendCode = "LIBRARY_SECTION_KEY_MISSING",
         ),

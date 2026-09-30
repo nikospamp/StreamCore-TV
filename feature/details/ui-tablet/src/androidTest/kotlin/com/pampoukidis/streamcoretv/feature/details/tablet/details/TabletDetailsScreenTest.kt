@@ -16,7 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -62,7 +62,7 @@ class TabletDetailsScreenTest {
         state = state.copy(
             content = state.content?.copy(
                 trailers = listOf(
-                    TrailerModel(
+                    StreamCoreTrailer(
                         id = "official-trailer",
                         title = "Official trailer",
                         url = "https://example.test/trailer",

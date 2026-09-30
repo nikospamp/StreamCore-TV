@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.login.common.login
 
-import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
 
 data class LoginUiState(
     val identifier: String = "",
     val password: String = "",
-    val identifierError: LoginFieldError? = null,
-    val passwordError: LoginFieldError? = null,
+    val identifierError: StreamCoreLoginFieldError? = null,
+    val passwordError: StreamCoreLoginFieldError? = null,
     val isSubmitEnabled: Boolean = false,
     val isLoading: Boolean = false,
 )

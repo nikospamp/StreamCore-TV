@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.library.web.library
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryUiState
@@ -110,8 +110,8 @@ class WebLibraryFocusTest {
     private fun content(
         id: String,
         row: String,
-    ): ContentModel {
-        return ContentModel(
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = id,
             description = "",

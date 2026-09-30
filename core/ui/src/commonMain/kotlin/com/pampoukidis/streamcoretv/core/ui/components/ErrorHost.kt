@@ -3,11 +3,11 @@ package com.pampoukidis.streamcoretv.core.ui.components
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.pampoukidis.streamcoretv.core.ui.error.ErrorUiModel
-import streamcoretv.core.ui.generated.resources.Res
-import streamcoretv.core.ui.generated.resources.error_action_ok
-import streamcoretv.core.ui.generated.resources.error_generic_message
-import streamcoretv.core.ui.generated.resources.error_generic_title
+import com.pampoukidis.streamcore.sdk.ui.error.ErrorUiModel
+import com.pampoukidis.streamcore.sdk.ui.generated.resources.Res
+import com.pampoukidis.streamcore.sdk.ui.generated.resources.error_action_ok
+import com.pampoukidis.streamcore.sdk.ui.generated.resources.error_generic_message
+import com.pampoukidis.streamcore.sdk.ui.generated.resources.error_generic_title
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.tooling.preview.Preview

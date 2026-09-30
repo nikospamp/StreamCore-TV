@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.search.web.search
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchContentState
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchUiState
 
-internal fun ContentModel.webSearchFocusKey(): WebBrowseFocusKey {
+internal fun StreamCoreContent.webSearchFocusKey(): WebBrowseFocusKey {
     return WebBrowseFocusKey(
         destination = WebBrowseDestination.Search,
         sectionKey = row?.takeIf(String::isNotBlank) ?: SearchFallbackSectionKey,
@@ -14,7 +14,7 @@ internal fun ContentModel.webSearchFocusKey(): WebBrowseFocusKey {
     )
 }
 
-internal fun ContentModel.matchesWebSearchFocusKey(key: WebBrowseFocusKey?): Boolean {
+internal fun StreamCoreContent.matchesWebSearchFocusKey(key: WebBrowseFocusKey?): Boolean {
     return key != null && webSearchFocusKey() == key
 }
 

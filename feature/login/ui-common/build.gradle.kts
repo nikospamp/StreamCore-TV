@@ -10,11 +10,9 @@ streamCoreKmp {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.core.domain)
-            implementation(projects.core.data)
+            api(projects.sdk.api)
+            api(projects.sdk.model)
             implementation(projects.core.ui)
-            api(projects.feature.login.data)
-            api(projects.feature.login.domain)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)

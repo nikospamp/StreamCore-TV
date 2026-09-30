@@ -14,14 +14,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.core.domain)
-            implementation(projects.core.data)
+            api(projects.sdk.api)
+            api(projects.sdk.model)
             implementation(projects.core.ui)
-            api(projects.feature.details.data)
-            api(projects.feature.details.domain)
-            implementation(projects.feature.library.domain)
             api(projects.playback.api)
-            implementation(projects.feature.player.domain)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)

@@ -1,10 +1,10 @@
 package com.pampoukidis.streamcoretv.feature.player.common.player
 
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 
 sealed interface PlayerAction {
-    data class Load(val request: PlaybackRequestModel, val isPipSupported: Boolean) : PlayerAction
+    data class Load(val request: StreamCorePlaybackRequest, val isPipSupported: Boolean) : PlayerAction
     data object BackSelected : PlayerAction
     data object ToggleControls : PlayerAction
     data object UserInteraction : PlayerAction

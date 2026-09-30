@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvActionSurface
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvIconButton
@@ -52,8 +52,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditor
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.AndroidProfilesBackdrop
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -269,7 +269,7 @@ fun TvProfileEditorScreen(
 }
 
 private fun previewState(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     isSaving: Boolean = false,
     showDeleteConfirmation: Boolean = false,
 ): ProfileEditorScreenUiState {

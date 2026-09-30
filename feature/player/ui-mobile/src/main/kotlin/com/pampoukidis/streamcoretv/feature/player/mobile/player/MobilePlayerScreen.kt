@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.player.mobile.player
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
-
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween

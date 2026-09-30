@@ -24,7 +24,7 @@ android {
 
 dependencies {
     // Core
-    implementation(projects.core.data)
+    implementation(projects.sdk.model)
     implementation(projects.core.ui)
 
     // Features

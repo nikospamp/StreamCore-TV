@@ -139,6 +139,11 @@ android {
         }
         create("clientB") {
             dimension = "client"
+            val referenceScenario = providers.gradleProperty("streamcoreClientBProfileScenario").getOrElse("Standard")
+            require(referenceScenario in setOf("Standard", "Single", "SingleProtected", "HouseholdProtected")) {
+                "Unknown ClientB reference profile scenario"
+            }
+            buildConfigField("String", "CLIENTB_REFERENCE_PROFILE_SCENARIO", referenceScenario.asBuildConfigString())
         }
     }
 
@@ -174,16 +179,14 @@ dependencies {
         add(configuration, libs.androidx.compose.runtime.tracing)
     }
     // Clients
-    tmdbImplementation(projects.client.tmdb.data)
-    tmdbImplementation(projects.client.tmdb.ui)
-    tmdbImplementation(projects.client.tmdb.player)
-    clientBImplementation(projects.client.clientB.data)
-    clientBImplementation(projects.client.clientB.ui)
-    clientBImplementation(projects.client.clientB.player)
+    tmdbImplementation(projects.sdk.providers.tmdb)
+    tmdbImplementation(projects.sdk.providers.tmdb.ui)
+    clientBImplementation(projects.sdk.providers.clientB)
+    clientBImplementation(projects.sdk.providers.clientB.ui)
 
     // Core
-    implementation(projects.core.data)
-    implementation(projects.core.domain)
+    implementation(projects.sdk.model)
+    implementation(projects.sdk.api)
     implementation(projects.core.ui)
 
     // Features
@@ -196,18 +199,15 @@ dependencies {
     implementation(projects.feature.home.uiMobile)
     implementation(projects.feature.home.uiTablet)
     implementation(projects.feature.home.uiTv)
-    implementation(projects.feature.search.data)
     implementation(projects.feature.search.uiMobile)
     implementation(projects.feature.search.uiTablet)
     implementation(projects.feature.search.uiTv)
     implementation(projects.feature.details.uiMobile)
     implementation(projects.feature.details.uiTablet)
     implementation(projects.feature.details.uiTv)
-    implementation(projects.feature.library.data)
     implementation(projects.feature.library.uiMobile)
     implementation(projects.feature.library.uiTablet)
     implementation(projects.feature.library.uiTv)
-    implementation(projects.feature.player.data)
     implementation(projects.feature.player.uiMobile)
     implementation(projects.feature.player.uiTv)
     implementation(projects.playback.api)

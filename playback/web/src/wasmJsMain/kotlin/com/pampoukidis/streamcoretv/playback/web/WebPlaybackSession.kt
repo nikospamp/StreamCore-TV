@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.decodeToImageBitmap
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
@@ -36,14 +36,14 @@ internal class WebPlaybackSession(
         private set
     private var generation: Int = 0
     private var acceptsBridgeSnapshots: Boolean = true
-    private var currentMedia: PlaybackMediaModel? = null
+    private var currentMedia: StreamCorePlaybackMedia? = null
     private var requestedStartPositionMillis: Long = 0L
 
     init {
         bridge.setListener(this)
     }
 
-    override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
+    override fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long) {
         if (isClosed) {
             return
         }

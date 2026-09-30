@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebContentCard
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebLargeScreenBackground
@@ -22,7 +22,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesAct
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
 import com.pampoukidis.streamcoretv.feature.profiles.web.profiles.WebProfilesScreen
@@ -32,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class WebFeatureScreensTest {
+
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun profileArrowTraversalAndSelectionAreDeterministic(): TestResult {
@@ -125,7 +126,7 @@ class WebFeatureScreensTest {
     @Test
     fun unknownAvatarUsesFallbackWithoutLosingProfileSemantics(): TestResult {
         val profile = ProfilesPreviewData.profiles.first().copy(
-            avatar = ProfileAvatarModel(id = "unknown-avatar", imageUrl = null),
+            avatar = StreamCoreProfileAvatar(id = "unknown-avatar", imageUrl = null),
         )
         return runComposeUiTest {
             setContent {

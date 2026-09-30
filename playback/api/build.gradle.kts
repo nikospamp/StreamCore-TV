@@ -1,6 +1,5 @@
 plugins {
     id("streamcore.kmp.compose.library")
-    alias(libs.plugins.kotlin.serialization)
 }
 
 streamCoreKmp {
@@ -12,10 +11,9 @@ kotlin {
         remove(getByName("commonTest"))
 
         commonMain.dependencies {
-            api(projects.core.data)
+            api(projects.sdk.api)
             api(libs.kotlinx.coroutines.core)
             api(libs.compose.ui)
-            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

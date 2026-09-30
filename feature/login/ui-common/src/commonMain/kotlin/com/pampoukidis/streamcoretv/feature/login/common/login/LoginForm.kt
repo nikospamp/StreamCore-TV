@@ -163,7 +163,7 @@ fun LoginForm(
                 stringResource(Res.string.login_forgot_password),
                 { onAction(LoginAction.ForgotPassword) },
                 !state.isLoading,
-                modifiers.forgotPassword.testTag(LoginTestTags.ForgotPasswordButton),
+                modifiers.recoverPassword.testTag(LoginTestTags.ForgotPasswordButton),
             )
             secondaryButton(
                 stringResource(Res.string.login_create_account),

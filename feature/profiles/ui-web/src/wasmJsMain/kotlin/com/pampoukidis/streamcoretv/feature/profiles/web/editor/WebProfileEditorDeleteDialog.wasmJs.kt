@@ -9,7 +9,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.HtmlElementView
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.extensions.transparentContainer
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreControlDefaults
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebControlStyle
@@ -24,7 +24,7 @@ import org.w3c.dom.events.KeyboardEvent
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal actual fun WebProfileEditorDeleteDialog(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     isSaving: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,

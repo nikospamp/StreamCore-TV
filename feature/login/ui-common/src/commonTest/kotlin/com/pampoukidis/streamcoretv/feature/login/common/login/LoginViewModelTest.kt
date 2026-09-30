@@ -1,12 +1,14 @@
 package com.pampoukidis.streamcoretv.feature.login.common.login
 
-import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
-import com.pampoukidis.streamcoretv.feature.login.domain.LoginWithCredentialsUseCase
-import com.pampoukidis.streamcoretv.feature.login.domain.ValidateLoginCredentialsUseCase
+import com.pampoukidis.streamcore.sdk.api.AuthService
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthAccount
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationIssue
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationField
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationReason
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,8 +58,8 @@ class LoginViewModelTest {
         subject.onAction(LoginAction.Submit)
 
         val state = subject.uiState.value
-        assertEquals(LoginFieldError.Required, state.identifierError)
-        assertEquals(LoginFieldError.Required, state.passwordError)
+        assertEquals(StreamCoreLoginFieldError.Required, state.identifierError)
+        assertEquals(StreamCoreLoginFieldError.Required, state.passwordError)
         assertFalse(state.isSubmitEnabled)
         assertFalse(state.isLoading)
     }
@@ -83,10 +85,10 @@ class LoginViewModelTest {
 
     @Test
     fun `submit failure emits error effect and re-enables submit`() = runTest {
-        val error = AppError.Authentication()
+        val error = StreamCoreError.Authentication()
         val subject = loginViewModel(
             authenticateRepository = FakeAuthenticateRepository(
-                loginResult = AppResult.Failure(error),
+                loginResult = StreamCoreResult.Failure(error),
             ),
         )
         val effect = async { subject.effects.first() }
@@ -103,6 +105,21 @@ class LoginViewModelTest {
     }
 
     @Test
+    fun `SDK validation presents actionable field feedback`() = runTest {
+        val subject = loginViewModel(FakeAuthenticateRepository(StreamCoreResult.Failure(
+            StreamCoreError.Validation(listOf(StreamCoreValidationIssue(StreamCoreValidationField.Password, StreamCoreValidationReason.Required))),
+        )))
+        subject.onAction(LoginAction.IdentifierChanged("viewer"))
+        subject.onAction(LoginAction.PasswordChanged("password"))
+        subject.onAction(LoginAction.Submit)
+        runCurrent()
+
+        assertEquals(StreamCoreLoginFieldError.Required, subject.uiState.value.passwordError)
+        assertFalse(subject.uiState.value.isLoading)
+        assertFalse(subject.uiState.value.isSubmitEnabled)
+    }
+
+    @Test
     fun `effect emitted before collection is delivered to next collector`() = runTest {
         val subject = loginViewModel()
 
@@ -113,18 +130,14 @@ class LoginViewModelTest {
     }
 
     private fun loginViewModel(
-        authenticateRepository: AuthenticateRepository = FakeAuthenticateRepository(),
+        authenticateRepository: AuthService = FakeAuthenticateRepository(),
     ) = LoginViewModel(
-        validateCredentials = ValidateLoginCredentialsUseCase(),
-        loginWithCredentials = LoginWithCredentialsUseCase(authenticateRepository),
+        authenticateRepository = authenticateRepository,
     )
 
     private class FakeAuthenticateRepository(
-        private val loginResult: AppResult<Unit> = AppResult.Success(Unit),
-    ) : AuthenticateRepository {
-
-        private val _authState = MutableStateFlow<AuthStateModel>(AuthStateModel.LoggedOut)
-        override val authState: StateFlow<AuthStateModel> = _authState
+        private val loginResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit),
+    ) : AuthService {
 
         var loginIdentifier: String? = null
             private set
@@ -132,36 +145,26 @@ class LoginViewModelTest {
         var loginPassword: String? = null
             private set
 
-        override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
-            _authState.value = AuthStateModel.LoggedOut
-            return AppResult.Success(AuthStateModel.LoggedOut)
-        }
-
-        override suspend fun loginUser(
+        override suspend fun login(
             identifier: String,
             password: String,
-        ): AppResult<Unit> {
+        ): StreamCoreResult<Unit> {
             loginIdentifier = identifier
             loginPassword = password
-            if (loginResult is AppResult.Success) {
-                _authState.value = AuthStateModel.LoggedIn(account = null)
-            }
             return loginResult
         }
 
-        override suspend fun loginUserWithQR(qrCode: String): AppResult<Unit> {
-            _authState.value = AuthStateModel.LoggedIn(account = null)
-            return AppResult.Success(Unit)
+        override suspend fun loginWithQr(qrCode: String): StreamCoreResult<Unit> {
+            return StreamCoreResult.Success(Unit)
         }
 
-        override suspend fun logoutUser(): AppResult<Unit> {
-            _authState.value = AuthStateModel.LoggedOut
-            return AppResult.Success(Unit)
+        override suspend fun logout(): StreamCoreResult<Unit> {
+            return StreamCoreResult.Success(Unit)
         }
 
-        override suspend fun forgotPassword(
+        override suspend fun recoverPassword(
             email: String,
             otp: String?,
-        ): AppResult<Unit> = AppResult.Success(Unit)
+        ): StreamCoreResult<Unit> = StreamCoreResult.Success(Unit)
     }
 }

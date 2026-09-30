@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -22,7 +22,7 @@ import com.pampoukidis.streamcoretv.feature.home.common.testing.HomePreviewData
 /** Artwork and its protective scrims travel together; platforms own bounds and interactions. */
 @Composable
 fun HomeHeroArtwork(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     shape: Shape = RectangleShape,

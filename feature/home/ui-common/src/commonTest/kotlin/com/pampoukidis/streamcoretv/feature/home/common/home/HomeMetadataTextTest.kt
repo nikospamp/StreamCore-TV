@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.home.common.home
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import kotlin.test.assertEquals
 import kotlin.test.Test
@@ -35,8 +35,8 @@ class HomeMetadataTextTest {
         assertEquals("8/10 · All", subject)
     }
 
-    private fun contentModel(pgRatingName: String): ContentModel {
-        return ContentModel(
+    private fun contentModel(pgRatingName: String): StreamCoreContent {
+        return StreamCoreContent(
             id = "content-1",
             title = "Content",
             description = "Description",

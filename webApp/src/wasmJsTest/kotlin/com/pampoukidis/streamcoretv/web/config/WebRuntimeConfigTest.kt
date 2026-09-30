@@ -6,16 +6,25 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class WebRuntimeConfigTest {
     @Test
-    fun validConfigMapsToTmdbRuntimeConfig() {
+    fun applicationAndValidatedConfigurationRedactTokens() {
+        val token = "synthetic-web-token-that-must-not-be-logged"
+        val config = validConfig().copy(tmdbReadAccessToken = token)
+        assertFalse(config.toString().contains(token))
+        assertFalse(config.validate().toString().contains(token))
+    }
+
+    @Test
+    fun validConfigMapsToConnectionSettingsWithoutAccountIdentity() {
         val config = validConfig()
 
         assertIs<WebRuntimeConfigValidationResult.Valid>(config.validate())
         assertEquals(config.tmdbBaseUrl, config.toTmdbRuntimeConfig().baseUrl)
         assertEquals(config.tmdbReadAccessToken, config.toTmdbRuntimeConfig().readAccessToken)
-        assertEquals(config.tmdbAccountId, config.toTmdbRuntimeConfig().accountId)
+        assertTrue(config.toTmdbRuntimeConfig().toString().contains("[REDACTED]"))
     }
 
     @Test

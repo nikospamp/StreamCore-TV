@@ -1,17 +1,32 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
+
 plugins {
     id("streamcore.kmp.compose.library")
 }
 
-streamCoreKmp {
-    withWasmJs()
-}
+val profileUiBrowserResources = layout.buildDirectory.dir("processedResources/wasmJs/main/composeResources")
 
+@OptIn(ExperimentalWasmDsl::class)
 kotlin {
-    sourceSets {
-        remove(getByName("commonTest"))
+    wasmJs {
+        browser {
+            testTask {
+                dependsOn("wasmJsProcessResources")
+                inputs.dir(profileUiBrowserResources)
+                environment("STREAMCORE_PROFILE_UI_RESOURCES", profileUiBrowserResources.get().asFile.absolutePath)
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
+        // Match the player UI's executable Skiko test bundle (CMP-4906).
+        binaries.executable()
+    }
 
+    sourceSets {
         commonMain.dependencies {
-            implementation(projects.core.data)
+            implementation(projects.sdk.model)
             implementation(projects.core.ui)
             implementation(projects.core.uiWeb)
             api(projects.feature.profiles.uiCommon)
@@ -24,7 +39,17 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.koin.compose.viewmodel)
         }
+        wasmJsTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.compose.ui.test)
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
+}
+
+extensions.getByType<WasmNodeJsEnvSpec>().apply {
+    download.set(false)
+    command.set(providers.gradleProperty("streamcoreNodeExecutable").orElse("node"))
 }
 
 dependencies {

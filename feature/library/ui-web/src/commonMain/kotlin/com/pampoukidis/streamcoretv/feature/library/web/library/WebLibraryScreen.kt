@@ -39,9 +39,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
@@ -289,7 +289,7 @@ private fun WebLibraryHeader(
 
 @Composable
 private fun WebLibraryError(
-    error: AppError,
+    error: StreamCoreError,
     retryFocusRequester: FocusRequester,
     upFocusRequester: FocusRequester,
     downFocusRequester: FocusRequester,
@@ -313,7 +313,7 @@ private fun WebLibraryError(
             ) {
                 Text(
                     text = stringResource(
-                        if (error is AppError.Network) {
+                        if (error is StreamCoreError.Network) {
                             Res.string.web_library_offline_title
                         } else {
                             Res.string.web_library_error_title
@@ -355,7 +355,7 @@ private fun WebLibrarySectionRow(
     focusRequestEnabled: Boolean,
     focusKeyToConsume: WebBrowseFocusKey?,
     onFocusAssigned: (WebBrowseFocusKey?) -> Unit,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
 ) {
     val rowState = rememberLazyListState()
     val currentOnFocusAssigned by rememberUpdatedState(onFocusAssigned)
@@ -434,7 +434,7 @@ private fun WebLibrarySectionRow(
 
 @Composable
 private fun WebLibraryContentCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     section: WebLibrarySection,
     selected: Boolean,
     onClick: () -> Unit,
@@ -607,7 +607,7 @@ private data class WebLibrarySection(
     val key: String,
     val title: StringResource,
     val emptyMessage: StringResource,
-    val content: List<ContentModel>,
+    val content: List<StreamCoreContent>,
     val kind: WebLibrarySectionKind,
 )
 

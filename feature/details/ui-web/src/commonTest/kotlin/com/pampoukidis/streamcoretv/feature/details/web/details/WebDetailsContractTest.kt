@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.details.web.details
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -117,7 +117,7 @@ class WebDetailsContractTest {
         assertNull(contentWithId("").webDetailsRecommendationFocusKey())
     }
 
-    private fun contentWithId(id: String): ContentModel {
+    private fun contentWithId(id: String): StreamCoreContent {
         return WebDetailsFixtures.content.copy(id = id)
     }
 }

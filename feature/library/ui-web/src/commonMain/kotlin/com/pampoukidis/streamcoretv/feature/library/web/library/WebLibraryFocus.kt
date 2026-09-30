@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.library.web.library
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseDestination
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryUiState
@@ -15,7 +15,7 @@ internal fun libraryViewModelKey(profileId: String): String {
     return WebLibraryViewModelKeyPrefix + profileId
 }
 
-internal fun ContentModel.webLibraryFocusKey(): WebBrowseFocusKey? {
+internal fun StreamCoreContent.webLibraryFocusKey(): WebBrowseFocusKey? {
     val sectionKey = when (row) {
         WebLibraryContinueWatchingSection -> WebLibraryContinueWatchingSection
         WebLibraryLikedSection -> WebLibraryLikedSection
@@ -76,7 +76,7 @@ internal fun LibraryUiState.firstWebLibraryFocusTarget(): WebLibraryFocusTarget?
 
 private fun LibraryUiState.contentForWebLibrarySection(
     sectionKey: String,
-): List<ContentModel>? {
+): List<StreamCoreContent>? {
     return when (sectionKey) {
         WebLibraryContinueWatchingSection -> continueWatching
         WebLibraryLikedSection -> likedContent

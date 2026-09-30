@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginViewModel
 
@@ -14,7 +14,7 @@ fun TvLoginRoute(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

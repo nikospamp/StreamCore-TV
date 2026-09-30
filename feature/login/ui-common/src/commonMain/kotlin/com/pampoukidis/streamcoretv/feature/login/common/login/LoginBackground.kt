@@ -10,7 +10,7 @@ import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 import streamcoretv.core.ui.generated.resources.Res
 import streamcoretv.core.ui.generated.resources.*
-import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackgroundVariant
 
 @Composable
 fun LoginBackground(

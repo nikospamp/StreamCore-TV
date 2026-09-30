@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.search.web.search
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureIds
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchContentState
@@ -26,7 +26,7 @@ internal object WebSearchPreviewFixtures {
 
 private fun SearchUiState.withBackendFreeArtwork(): SearchUiState {
     return copy(
-        trending = trending.map(ContentModel::withoutRemoteArtwork),
+        trending = trending.map(StreamCoreContent::withoutRemoteArtwork),
         content = when (val current = content) {
             is SearchContentState.Results -> current.copy(
                 items = current.items.map { content ->
@@ -40,7 +40,7 @@ private fun SearchUiState.withBackendFreeArtwork(): SearchUiState {
     )
 }
 
-private fun ContentModel.withoutRemoteArtwork(): ContentModel {
+private fun StreamCoreContent.withoutRemoteArtwork(): StreamCoreContent {
     return copy(
         poster = "",
         backdrop = null,

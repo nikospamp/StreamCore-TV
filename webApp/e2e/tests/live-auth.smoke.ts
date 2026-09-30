@@ -277,7 +277,7 @@ function identifyLiveEndpoint(
     ["request-token", new URL("authentication/token/new", apiBaseUrl).pathname],
     ["validate-login", new URL("authentication/token/validate_with_login", apiBaseUrl).pathname],
     ["create-session", new URL("authentication/session/new", apiBaseUrl).pathname],
-    ["account-details", new URL(`account/${config.accountId}`, apiBaseUrl).pathname],
+    ["account-details", new URL("account", apiBaseUrl).pathname],
     ["configuration", new URL("configuration", apiBaseUrl).pathname],
     ["genres", new URL("genre/movie/list", apiBaseUrl).pathname],
     ["trending-week", new URL("trending/movie/week", apiBaseUrl).pathname],
@@ -290,6 +290,7 @@ function identifyLiveEndpoint(
   for (const [endpoint, pathname] of expectedPaths) {
     if (
       actualUrl.pathname === pathname &&
+      (endpoint !== "account-details" || (method === "GET" && actualUrl.searchParams.has("session_id"))) &&
       (endpoint !== "delete-session" || method === "DELETE")
     ) {
       return endpoint;

@@ -16,8 +16,16 @@ class WebNavigationController : AutoCloseable {
 
     private val _route = MutableStateFlow(_entry.value.route)
     val route: StateFlow<WebRoute> = _route.asStateFlow()
+    private var pinBackHandler: (() -> Unit)? = null
+    private var ownsPinEntry = false
 
     private val popStateListener: (Event) -> Unit = { _: Event ->
+        if (ownsPinEntry) {
+            ownsPinEntry = false
+            val cancel = pinBackHandler
+            pinBackHandler = null
+            cancel?.invoke()
+        }
         updateEntry(readBrowserEntry())
     }
 
@@ -29,12 +37,33 @@ class WebNavigationController : AutoCloseable {
         if (route == _route.value) {
             return
         }
+        if (ownsPinEntry) {
+            ownsPinEntry = false
+            pinBackHandler = null
+            writeReplacement(WebNavigationEntry(route = route))
+            return
+        }
         window.history.pushState(null, "", route.path)
         updateEntry(WebNavigationEntry(route = route))
     }
 
     fun replace(route: WebRoute) {
+        ownsPinEntry = false
+        pinBackHandler = null
         writeReplacement(WebNavigationEntry(route = route))
+    }
+
+    /** A transient same-URL entry lets browser Back cancel PIN entry without storing the PIN. */
+    fun setProfilePinBackHandler(handler: (() -> Unit)?, activated: Boolean = false) {
+        pinBackHandler = handler
+        if (handler != null && !ownsPinEntry) {
+            check(_route.value is WebRoute.Profiles)
+            window.history.pushState("streamcore-profile-pin".toJsString(), "", WebRoute.Profiles.path)
+            ownsPinEntry = true
+        } else if (handler == null && ownsPinEntry && !activated) {
+            ownsPinEntry = false
+            window.history.back()
+        }
     }
 
     fun captureReturnFocus(key: WebBrowseFocusKey): Boolean {
@@ -56,6 +85,8 @@ class WebNavigationController : AutoCloseable {
     }
 
     override fun close() {
+        pinBackHandler = null
+        ownsPinEntry = false
         window.removeEventListener("popstate", popStateListener)
     }
 

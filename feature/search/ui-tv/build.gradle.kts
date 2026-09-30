@@ -23,7 +23,7 @@ android {
 }
 
 dependencies {
-    implementation(projects.core.data)
+    implementation(projects.sdk.model)
     implementation(projects.core.ui)
     api(projects.feature.search.uiCommon)
 

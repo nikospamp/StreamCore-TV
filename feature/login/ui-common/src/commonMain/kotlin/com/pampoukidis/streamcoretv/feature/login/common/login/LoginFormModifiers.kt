@@ -16,7 +16,7 @@ data class LoginFormModifiers(
     val password: Modifier = Modifier,
     val passwordVisibility: Modifier = Modifier,
     val submit: Modifier = Modifier,
-    val forgotPassword: Modifier = Modifier,
+    val recoverPassword: Modifier = Modifier,
     val createAccount: Modifier = Modifier,
     val help: Modifier = Modifier,
 )

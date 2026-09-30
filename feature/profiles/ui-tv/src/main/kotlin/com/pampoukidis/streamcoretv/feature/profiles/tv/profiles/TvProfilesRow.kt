@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -11,14 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesMode
 
 @Composable
 internal fun TvProfilesRow(
-    profiles: List<ProfileModel>,
+    profiles: List<StreamCoreProfile>,
     mode: ProfilesMode,
     pendingSelectionProfileId: String?,
     interactionsEnabled: Boolean,
@@ -47,6 +48,7 @@ internal fun TvProfilesRow(
     }
 
     LazyRow(
+        state = rememberLazyListState(initialFirstVisibleItemIndex = initialProfileIndex),
         contentPadding = PaddingValues(horizontal = StreamCoreDimens.Spacing.ExtraLarge),
         horizontalArrangement = Arrangement.spacedBy(
             space = StreamCoreDimens.Spacing.ExtraLarge,

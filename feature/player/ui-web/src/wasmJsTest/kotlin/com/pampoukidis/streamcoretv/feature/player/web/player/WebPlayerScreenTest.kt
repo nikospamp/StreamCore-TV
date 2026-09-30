@@ -6,13 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -32,14 +36,16 @@ import com.pampoukidis.streamcoretv.feature.player.web.testing.FakeWebPlaybackSe
 import com.pampoukidis.streamcoretv.feature.player.web.testing.WebPlayerFixtures
 import com.pampoukidis.streamcoretv.feature.player.web.testing.WebPlayerShowcaseScenario
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.PlaybackProgressRecorder
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEvent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
-import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestResult
@@ -55,8 +61,7 @@ class WebPlayerScreenTest {
     fun routeLoadsRequestThroughFakeSessionAndForwardsBackEffect(): TestResult {
         val session = FakeWebPlaybackSession()
         val viewModel = PlayerViewModel(
-            sourceRepository = FakeSourceRepository,
-            progressRepository = FakeProgressRepository,
+            playback = FakePlaybackService,
             sessionFactory = FixedSessionFactory(session),
         )
         var backCalls = 0
@@ -241,11 +246,27 @@ class WebPlayerScreenTest {
                 }
             }
 
+            // Visible controls carry their own loading indicators; the standalone status
+            // panel is reserved for hidden controls.
+            onNodeWithTag(PlayerTestTags.PlayPause).assertIsDisplayed().assertIsNotEnabled()
+            onAllNodes(
+                hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate),
+                useUnmergedTree = true,
+            ).assertCountEquals(2)
+            state = state.copy(controlsVisible = false)
+            waitForIdle()
             onNodeWithTag(
                 testTag = WebPlayerTestTags.Preparing,
                 useUnmergedTree = true,
             ).assertIsDisplayed()
             state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Buffering)
+            waitForIdle()
+            onNodeWithTag(PlayerTestTags.PlayPause).assertIsDisplayed()
+            onAllNodes(
+                hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate),
+                useUnmergedTree = true,
+            ).assertCountEquals(2)
+            state = state.copy(controlsVisible = false)
             waitForIdle()
             onNodeWithTag(
                 testTag = PlayerTestTags.Buffering,
@@ -296,7 +317,7 @@ class WebPlayerScreenTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun surfaceCenterClickDispatchesSingleToggleAction(): TestResult {
+    fun centerPlayControlDispatchesSinglePlaybackToggle(): TestResult {
         val actions = mutableListOf<PlayerAction>()
         return runPlayerUiTest(
             state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Playing),
@@ -308,6 +329,27 @@ class WebPlayerScreenTest {
             actions.clear()
 
             surface.performMouseInput { click(center) }
+            waitForIdle()
+
+            assertEquals(listOf<PlayerAction>(PlayerAction.TogglePlayPause), actions)
+            assertFalse(actions.contains(PlayerAction.ToggleControls))
+        }
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun unobstructedSurfaceClickDispatchesSingleControlsToggle(): TestResult {
+        val actions = mutableListOf<PlayerAction>()
+        return runPlayerUiTest(
+            state = WebPlayerFixtures.state(WebPlayerShowcaseScenario.Playing),
+            onAction = actions::add,
+        ) {
+            val surface = onNodeWithTag(WebPlayerTestTags.VideoSurface)
+            surface.performMouseInput { moveTo(Offset(center.x / 2f, center.y)) }
+            waitForIdle()
+            actions.clear()
+
+            surface.performMouseInput { click(Offset(center.x / 2f, center.y)) }
             waitForIdle()
 
             assertEquals(listOf<PlayerAction>(PlayerAction.ToggleControls), actions)
@@ -597,33 +639,39 @@ class WebPlayerScreenTest {
         }
     }
 
-    private object FakeSourceRepository : PlaybackSourceRepository {
-        override suspend fun resolve(request: PlaybackRequestModel): PlaybackMediaModel {
-            return PlaybackMediaModel(
+    private object FakePlaybackService : PlaybackService {
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> {
+            return StreamCoreResult.Success(StreamCorePlaybackMedia(
                 assetId = request.contentId,
                 title = request.contentSnapshot.title,
-            )
-        }
-    }
-
-    private object FakeProgressRepository : PlaybackProgressRepository {
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return flowOf(emptyList())
+            ))
         }
 
-        override suspend fun get(
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return flowOf(StreamCoreResult.Success(emptyList()))
+        }
+
+        override suspend fun getProgress(
             profileId: String,
             contentId: String,
-        ): PlaybackProgressEntryModel? {
-            return null
+        ): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(null)
         }
 
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) {
-            return
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> {
+            return StreamCoreResult.Success(Unit)
         }
 
-        override suspend fun remove(profileId: String, contentId: String) {
-            return
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> {
+            return StreamCoreResult.Success(Unit)
+        }
+
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder {
+            return object : PlaybackProgressRecorder {
+                override suspend fun reportEvent(event: StreamCorePlaybackProgressEvent, positionMillis: Long, durationMillis: Long): StreamCoreResult<Unit> {
+                    return StreamCoreResult.Success(Unit)
+                }
+            }
         }
     }
 

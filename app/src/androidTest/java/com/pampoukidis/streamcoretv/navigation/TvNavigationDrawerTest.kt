@@ -35,7 +35,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.test.espresso.Espresso.pressBack
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -482,7 +482,7 @@ class TvNavigationDrawerTest {
     private fun setDrawer(
         onDestinationSelected: (TopLevelDestination) -> Unit = {},
         onProfileSelected: () -> Unit = {},
-        activeProfile: ProfileModel? = null,
+        activeProfile: StreamCoreProfile? = null,
         selectedDestination: TopLevelDestination = TopLevelDestination.Home,
         onFocusManagerAvailable: (FocusManager) -> Unit = {},
     ) {

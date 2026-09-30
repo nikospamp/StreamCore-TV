@@ -5,7 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsUiState
@@ -30,7 +30,7 @@ class WebBrowseFeatureScreensTest {
     @Test
     fun homeContentCardDispatchesTypedSelection(): TestResult {
         val row = HomePreviewData.rows.first().copy(
-            content = HomePreviewData.rows.first().content.map(ContentModel::withoutArtwork),
+            content = HomePreviewData.rows.first().content.map(StreamCoreContent::withoutArtwork),
         )
         val actions = mutableListOf<HomeAction>()
         return runComposeUiTest {
@@ -116,7 +116,7 @@ class WebBrowseFeatureScreensTest {
 
 private const val LibraryContinueWatchingSection = "library:continue-watching"
 
-private fun ContentModel.withoutArtwork(): ContentModel {
+private fun StreamCoreContent.withoutArtwork(): StreamCoreContent {
     return copy(
         poster = "",
         backdrop = null,

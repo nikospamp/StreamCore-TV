@@ -1,13 +1,11 @@
 package com.pampoukidis.streamcoretv.feature.library.common.library
 
-import com.pampoukidis.streamcoretv.core.domain.LibraryRepository
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.core.model.library.LibraryEntryModel
-import com.pampoukidis.streamcoretv.feature.library.domain.ObserveLibraryUseCase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import com.pampoukidis.streamcore.sdk.api.LibraryService
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibrary
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreContentLibraryState
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,29 +40,14 @@ class LibraryViewModelTest {
             val liked = content("liked")
             val listed = content("listed")
             val watching = content("watching")
-            val repository = FakeLibraryRepository(
-                AppResult.Success(
-                    listOf(
-                        LibraryEntryModel(content = liked, likedAtMillis = 2L),
-                        LibraryEntryModel(content = listed, addedToMyListAtMillis = 3L),
-                    ),
-                ),
+            val repository = FakeLibraryService(
+                StreamCoreResult.Success(StreamCoreLibrary(
+                    continueWatching = listOf(watching),
+                    likedContent = listOf(liked),
+                    myListContent = listOf(listed),
+                )),
             )
-            val progressRepository = FakeProgressRepository(
-                listOf(
-                    PlaybackProgressEntryModel(
-                        profileId = "profile-1",
-                        contentId = watching.id,
-                        contentSnapshot = watching,
-                        positionMillis = 40_000L,
-                        durationMillis = 100_000L,
-                        updatedAtMillis = 4L,
-                    ),
-                ),
-            )
-            val subject = LibraryViewModel(
-                ObserveLibraryUseCase(repository, progressRepository),
-            )
+            val subject = LibraryViewModel(repository)
 
             subject.onAction(LibraryAction.Load("profile-1"))
             runCurrent()
@@ -79,18 +62,14 @@ class LibraryViewModelTest {
     @Test
     fun `failure retains last content and exposes retry state`() {
         runTest {
-            val repository = FakeLibraryRepository(
-                AppResult.Success(
-                    listOf(LibraryEntryModel(content = content("liked"), likedAtMillis = 1L)),
-                ),
+            val repository = FakeLibraryService(
+                StreamCoreResult.Success(StreamCoreLibrary(likedContent = listOf(content("liked")))),
             )
-            val subject = LibraryViewModel(
-                ObserveLibraryUseCase(repository, FakeProgressRepository(emptyList())),
-            )
+            val subject = LibraryViewModel(repository)
             subject.onAction(LibraryAction.Load("profile-1"))
             runCurrent()
 
-            repository.result.value = AppResult.Failure(AppError.Unknown())
+            repository.result.value = StreamCoreResult.Failure(StreamCoreError.Unknown())
             runCurrent()
 
             assertEquals(listOf("liked"), subject.uiState.value.likedContent.map { it.id })
@@ -102,12 +81,7 @@ class LibraryViewModelTest {
     fun `content selection emits one navigation effect`() {
         runTest {
             val selected = content("selected")
-            val subject = LibraryViewModel(
-                ObserveLibraryUseCase(
-                    FakeLibraryRepository(AppResult.Success(emptyList())),
-                    FakeProgressRepository(emptyList()),
-                ),
-            )
+            val subject = LibraryViewModel(FakeLibraryService(StreamCoreResult.Success(StreamCoreLibrary())))
 
             subject.onAction(LibraryAction.ContentSelected(selected))
 
@@ -115,8 +89,8 @@ class LibraryViewModelTest {
         }
     }
 
-    private fun content(id: String): ContentModel {
-        return ContentModel(
+    private fun content(id: String): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = id,
             description = "",
@@ -131,52 +105,23 @@ class LibraryViewModelTest {
         )
     }
 
-    private class FakeLibraryRepository(
-        initialResult: AppResult<List<LibraryEntryModel>>,
-    ) : LibraryRepository {
+    private class FakeLibraryService(initialResult: StreamCoreResult<StreamCoreLibrary>) : LibraryService {
         val result = MutableStateFlow(initialResult)
 
-        override fun observe(profileId: String): Flow<AppResult<List<LibraryEntryModel>>> {
+        override fun observe(profileId: String): Flow<StreamCoreResult<StreamCoreLibrary>> {
             return result
         }
 
-        override suspend fun setLiked(
-            profileId: String,
-            content: ContentModel,
-            isLiked: Boolean,
-            changedAtMillis: Long,
-        ): AppResult<Unit> {
-            return AppResult.Success(Unit)
+        override fun observeContentState(profileId: String, contentId: String): Flow<StreamCoreResult<StreamCoreContentLibraryState>> {
+            error("Not used by library screen")
         }
 
-        override suspend fun setInMyList(
-            profileId: String,
-            content: ContentModel,
-            isInMyList: Boolean,
-            changedAtMillis: Long,
-        ): AppResult<Unit> {
-            return AppResult.Success(Unit)
-        }
-    }
-
-    private class FakeProgressRepository(
-        entries: List<PlaybackProgressEntryModel>,
-    ) : PlaybackProgressRepository {
-        private val values = MutableStateFlow(entries)
-
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return values
+        override suspend fun setLiked(profileId: String, content: StreamCoreContent, isLiked: Boolean): StreamCoreResult<Unit> {
+            error("Not used by library screen")
         }
 
-        override suspend fun get(
-            profileId: String,
-            contentId: String,
-        ): PlaybackProgressEntryModel? {
-            return values.value.firstOrNull { entry -> entry.contentId == contentId }
+        override suspend fun setInMyList(profileId: String, content: StreamCoreContent, isInMyList: Boolean): StreamCoreResult<Unit> {
+            error("Not used by library screen")
         }
-
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
-
-        override suspend fun remove(profileId: String, contentId: String) = Unit
     }
 }

@@ -19,7 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -31,7 +31,7 @@ import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPrevie
 /** Portrait rendering only; platform callers own sizing, activation, and focus. */
 @Composable
 fun DetailsRecommendationArtwork(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
     titleStyle: TextStyle = MaterialTheme.typography.labelSmall,
     ratingStyle: TextStyle = MaterialTheme.typography.labelSmall,

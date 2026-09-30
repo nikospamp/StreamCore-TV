@@ -1,9 +1,9 @@
 package com.pampoukidis.streamcoretv.auth
 
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 sealed interface AppAuthEffect {
     data class ShowError(
-        val error: AppError,
+        val error: StreamCoreError,
     ) : AppAuthEffect
 }

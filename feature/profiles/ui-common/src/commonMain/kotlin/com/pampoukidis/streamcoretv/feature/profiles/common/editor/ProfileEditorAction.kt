@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 
 sealed interface ProfileEditorAction {
     data class Load(val mode: ProfileEditorMode, val profileId: String?) : ProfileEditorAction

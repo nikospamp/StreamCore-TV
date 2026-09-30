@@ -8,18 +8,18 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 
 @Composable
 fun DetailsRouteEventEffect(
     viewModel: DetailsViewModel,
-    onRecommendationSelected: (ContentModel) -> Unit,
-    onPlaySelected: (PlaybackRequestModel) -> Unit,
+    onRecommendationSelected: (StreamCoreContent) -> Unit,
+    onPlaySelected: (StreamCorePlaybackRequest) -> Unit,
     onBack: () -> Unit,
-    onError: (AppError) -> Unit,
-    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
+    onError: (StreamCoreError) -> Unit,
+    onRecommendationArtworkSelected: ((StreamCoreContent, String?) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentRecommendationSelected by rememberUpdatedState(onRecommendationSelected)

@@ -1,17 +1,13 @@
 package com.pampoukidis.streamcoretv.feature.search.common.search
 
+import com.pampoukidis.streamcore.sdk.api.SearchService
+import com.pampoukidis.streamcore.sdk.model.search.StreamCoreSearchInteraction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.search.domain.AddRecentSearchUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.ClearRecentSearchesUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.LoadSearchDiscoveryUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.ObserveRecentSearchesUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.RemoveRecentSearchUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.SearchContentUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.SearchQueryNormalizer
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.api.validation.SearchQueryNormalizer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -31,12 +27,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModel constructor(
-    private val searchContent: SearchContentUseCase,
-    private val loadSearchDiscovery: LoadSearchDiscoveryUseCase,
-    private val observeRecentSearches: ObserveRecentSearchesUseCase,
-    private val addRecentSearch: AddRecentSearchUseCase,
-    private val removeRecentSearch: RemoveRecentSearchUseCase,
-    private val clearRecentSearches: ClearRecentSearchesUseCase,
+    private val search: SearchService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -97,9 +88,9 @@ class SearchViewModel constructor(
     private fun observeRecents(profileId: String) {
         recentSearchesJob?.cancel()
         recentSearchesJob = viewModelScope.launch {
-            observeRecentSearches(profileId).collect { queries ->
-                if (activeProfileId == profileId) {
-                    _uiState.update { state -> state.copy(recentQueries = queries) }
+            search.observeHistory(profileId).collect { result ->
+                if (activeProfileId == profileId && result is StreamCoreResult.Success) {
+                    _uiState.update { state -> state.copy(recentQueries = result.value) }
                 }
             }
         }
@@ -108,8 +99,8 @@ class SearchViewModel constructor(
     private fun loadDiscovery(profileId: String) {
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch {
-            when (val result = loadSearchDiscovery(profileId)) {
-                is AppResult.Success -> {
+            when (val result = search.loadTrending(profileId)) {
+                is StreamCoreResult.Success -> {
                     if (activeProfileId == profileId) {
                         _uiState.update { state ->
                             state.copy(
@@ -121,7 +112,7 @@ class SearchViewModel constructor(
                     }
                 }
 
-                is AppResult.Failure -> Unit
+                is StreamCoreResult.Failure -> Unit
             }
         }
     }
@@ -247,7 +238,9 @@ class SearchViewModel constructor(
         }
 
         viewModelScope.launch {
-            addRecentSearch(profileId, query)
+            search.displayedResults(
+                profileId, query, (state.content as SearchContentState.Results).items, StreamCoreSearchInteraction.Submitted,
+            )
         }
     }
 
@@ -290,19 +283,19 @@ class SearchViewModel constructor(
     private fun removeRecent(query: String) {
         val profileId = activeProfileId ?: return
         viewModelScope.launch {
-            removeRecentSearch(profileId, query)
+            search.removeHistoryQuery(profileId, query)
         }
     }
 
     private fun clearRecent() {
         val profileId = activeProfileId ?: return
         viewModelScope.launch {
-            clearRecentSearches(profileId)
+            search.clearHistory(profileId)
         }
     }
 
     private fun selectContent(
-        content: ContentModel,
+        content: StreamCoreContent,
         recordQuery: Boolean,
         sourceArtworkUrl: String?,
     ) {
@@ -310,7 +303,7 @@ class SearchViewModel constructor(
             val profileId = activeProfileId
             val resultQuery = _uiState.value.resultQuery
             if (recordQuery && profileId != null && resultQuery != null) {
-                addRecentSearch(profileId, resultQuery)
+                search.resultSelected(profileId, resultQuery)
             }
             effectsChannel.send(SearchEffect.ContentSelected(content, sourceArtworkUrl))
         }
@@ -338,9 +331,10 @@ class SearchViewModel constructor(
             startedQueryKey = queryKey(request.query)
             coroutineScope {
                 val resultDeferred = async {
-                    searchContent(
+                    search.search(
                         profileId = profileId,
                         query = request.query,
+                        interaction = if (request.recordOnSuccess) StreamCoreSearchInteraction.Submitted else StreamCoreSearchInteraction.Typing,
                     )
                 }
                 val immediateResult = withTimeoutOrNull(SkeletonDelayMillis) {
@@ -380,24 +374,19 @@ class SearchViewModel constructor(
 
     private suspend fun applyResult(
         request: SearchRequest.Execute,
-        result: AppResult<List<ContentModel>>,
+        result: StreamCoreResult<List<StreamCoreContent>>,
     ) {
         if (currentNormalizedQuery() != request.query) {
             return
         }
 
         when (result) {
-            is AppResult.Success -> {
+            is StreamCoreResult.Success -> {
                 val items = result.value.map { content ->
                     content.copy(row = searchRow(request.query))
                 }
                 if (items.isNotEmpty()) {
                     resultCache[request.query] = items
-                    if (request.recordOnSuccess) {
-                        activeProfileId?.let { profileId ->
-                            addRecentSearch(profileId, request.query)
-                        }
-                    }
                 }
                 _uiState.update { state ->
                     state.copy(
@@ -412,16 +401,16 @@ class SearchViewModel constructor(
                 }
             }
 
-            is AppResult.Failure -> applyFailure(request.query, result.error)
+            is StreamCoreResult.Failure -> applyFailure(request.query, result.error)
         }
     }
 
     private fun applyFailure(
         query: String,
-        error: AppError,
+        error: StreamCoreError,
     ) {
         val cachedItems = resultCache[query]
-        val canUseCache = cachedItems != null && (error is AppError.Network || error is AppError.Timeout)
+        val canUseCache = cachedItems != null && (error is StreamCoreError.Network || error is StreamCoreError.Timeout)
         _uiState.update { state ->
             state.copy(
                 resultQuery = query,
@@ -461,7 +450,7 @@ class SearchViewModel constructor(
         data class Loading(val query: String) : SearchExecution
         data class Completed(
             val request: SearchRequest.Execute,
-            val result: AppResult<List<ContentModel>>,
+            val result: StreamCoreResult<List<StreamCoreContent>>,
         ) : SearchExecution
     }
 
@@ -477,15 +466,15 @@ class SearchViewModel constructor(
 private class SearchResultCache(
     private val maximumSize: Int,
 ) {
-    private val entries = linkedMapOf<String, List<ContentModel>>()
+    private val entries = linkedMapOf<String, List<StreamCoreContent>>()
 
-    operator fun get(key: String): List<ContentModel>? {
+    operator fun get(key: String): List<StreamCoreContent>? {
         val value = entries.remove(key) ?: return null
         entries[key] = value
         return value
     }
 
-    operator fun set(key: String, value: List<ContentModel>) {
+    operator fun set(key: String, value: List<StreamCoreContent>) {
         entries.remove(key)
         entries[key] = value
         if (entries.size > maximumSize) {

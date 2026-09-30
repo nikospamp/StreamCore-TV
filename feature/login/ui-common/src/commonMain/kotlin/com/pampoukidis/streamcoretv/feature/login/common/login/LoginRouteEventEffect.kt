@@ -8,7 +8,7 @@ import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 @Composable
 fun LoginRouteEventEffect(
@@ -17,7 +17,7 @@ fun LoginRouteEventEffect(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val autofillManager = LocalAutofillManager.current

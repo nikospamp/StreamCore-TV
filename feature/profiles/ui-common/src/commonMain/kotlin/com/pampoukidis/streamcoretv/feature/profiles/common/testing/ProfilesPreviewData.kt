@@ -1,26 +1,26 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileParentalLevelModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileParentalLevel
 
 object ProfilesPreviewData {
     val avatars = (1..20).map { index ->
-        ProfileAvatarModel(
+        StreamCoreProfileAvatar(
             id = "preview-avatar-${index.toString().padStart(2, '0')}",
             imageUrl = null,
         )
     }
 
     val parentalLevels = listOf(
-        ProfileParentalLevelModel(id = "all", label = "All maturity", rank = 100, isKids = false),
-        ProfileParentalLevelModel(id = "teen", label = "Teen", rank = 60, isKids = false),
-        ProfileParentalLevelModel(id = "kids", label = "Kids", rank = 20, isKids = true),
+        StreamCoreProfileParentalLevel(id = "all", label = "All maturity", rank = 100, isKids = false),
+        StreamCoreProfileParentalLevel(id = "teen", label = "Teen", rank = 60, isKids = false),
+        StreamCoreProfileParentalLevel(id = "kids", label = "Kids", rank = 20, isKids = true),
     )
 
     val profiles = listOf(
-        ProfileModel(
+        StreamCoreProfile(
             id = "profile-1",
             displayName = "Nikos",
             avatar = avatars[0],
@@ -28,7 +28,7 @@ object ProfilesPreviewData {
             canDelete = false,
             isKidsProfile = false,
         ),
-        ProfileModel(
+        StreamCoreProfile(
             id = "profile-2",
             displayName = "Maria",
             avatar = avatars[5],
@@ -36,7 +36,7 @@ object ProfilesPreviewData {
             canDelete = true,
             isKidsProfile = false,
         ),
-        ProfileModel(
+        StreamCoreProfile(
             id = "profile-3",
             displayName = "Kids",
             avatar = avatars[12],
@@ -46,7 +46,7 @@ object ProfilesPreviewData {
         ),
     )
 
-    val editorOptions = ProfileEditorOptionsModel(
+    val editorOptions = StreamCoreProfileEditorOptions(
         avatars = avatars,
         parentalLevels = parentalLevels,
     )

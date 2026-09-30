@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
@@ -50,7 +50,7 @@ private class DiagnosticPlaybackSession(
     private val activityListener: (Event) -> Unit = { }
     private var timerId: Int? = null
     private var closed: Boolean = false
-    private var media: PlaybackMediaModel? = null
+    private var media: StreamCorePlaybackMedia? = null
     private var startPositionMillis: Long = 0L
 
     override val state = mutableState
@@ -66,7 +66,7 @@ private class DiagnosticPlaybackSession(
         registry.sessionOpened()
     }
 
-    override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
+    override fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long) {
         if (closed) {
             return
         }

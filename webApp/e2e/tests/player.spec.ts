@@ -13,11 +13,12 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await expectVideoPointerPassthrough(video);
     await expectPlayerState(page, "ready");
     await expectPlayerVideoComposition(page, video, testInfo);
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toHaveCount(2);
     await activateProjectedButton(page, "Play");
     await expect(page.locator("body")).toHaveAttribute("data-player-playing", "true");
     await activateProjectedButton(page, "Pause");
     await expect(page.locator("body")).toHaveAttribute("data-player-playing", "false");
-    await expect(page.getByRole("button", { name: "Play", exact: true })).toHaveCount(1);
+    await expect(playerTransportButton(page, "Play")).toHaveCount(1);
     await diagnostics.assertClean();
   });
 
@@ -44,7 +45,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await page.mouse.move(videoBounds.x + videoBounds.width * 0.75, pointerY);
     await waitForAnimationFrames(page, 2);
     await expect(body).toHaveAttribute("data-player-controls-visible", "true");
-    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(playerTransportButton(page, "Pause")).toBeVisible();
     await expect(body).toHaveAttribute("data-player-playing", "true");
     await expect(body).toHaveAttribute("data-player-active-timers", "1");
 
@@ -55,7 +56,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     });
     await clickPlayerSurfaceCenter(page);
     await expect(body).toHaveAttribute("data-player-controls-visible", "true");
-    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(playerTransportButton(page, "Pause")).toBeVisible();
     await expect(body).toHaveAttribute("data-player-playing", "true");
     await expect(body).toHaveAttribute("data-player-active-timers", "1");
 
@@ -77,7 +78,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
 
     await page.keyboard.press("ArrowUp");
     await expect(body).toHaveAttribute("data-player-controls-visible", "true");
-    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(playerTransportButton(page, "Pause")).toBeVisible();
     await expect(body).toHaveAttribute("data-player-playing", "true");
     await expect(body).toHaveAttribute("data-player-active-timers", "1");
 
@@ -86,7 +87,7 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     });
     await page.keyboard.down(" ");
     await expect(body).toHaveAttribute("data-player-controls-visible", "true");
-    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect(playerTransportButton(page, "Pause")).toBeVisible();
     await expect(body).toHaveAttribute("data-player-playing", "true");
     await page.keyboard.up(" ");
     await expect(body).toHaveAttribute("data-player-playing", "true");
@@ -133,34 +134,36 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await expectNumericBodyAttribute(page, "data-player-position-ms", 59_000, 61_000);
 
     await activateProjectedButton(page, "Playback settings");
-    await activateProjectedButton(page, "Speed · 1×");
+    await activateProjectedButton(page, "Speed 1×");
     await activateProjectedButton(page, "1.5×");
     await expect(page.locator("body")).toHaveAttribute("data-player-speed", "1.5");
     await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Quality · 1080p · 5.8 Mbps");
+    await activateProjectedButton(page, "Quality 1080p · 5.8 Mbps");
     await activateProjectedButton(page, "1080p · 5.8 Mbps");
     await expect(page.locator("body")).toHaveAttribute("data-player-video-track", "video-1080");
     await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Audio · English · Original 5.1");
+    await activateProjectedButton(page, "Audio English · Original 5.1");
     await activateProjectedButton(page, "Ελληνικά · Stereo");
     await expect(page.locator("body")).toHaveAttribute("data-player-audio-track", "audio-el");
     await activateProjectedButton(page, "Back to playback settings");
 
-    await activateProjectedButton(page, "Subtitles · Off");
+    await activateProjectedButton(page, "Subtitles Off");
     await activateProjectedButton(page, "English (CC)");
     await expect(page.locator("body")).toHaveAttribute("data-player-text-track", "text-en");
     await diagnostics.assertClean();
   });
 
   test("profile-scoped resume survives close and hard reload", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
     const diagnostics = installSanitizedDiagnostics(page, testInfo, {
       allowWebKitHardReloadCoroutinePair: true,
     });
-    await openPlayerFixture(page, "resume", { profile: "profile-a" });
+    await authenticatePlayerFixture(page);
+    await openPlayerFixture(page, "resume", { profile: "tmdb-profile-owner" });
 
-    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "profile-a");
+    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "tmdb-profile-owner");
     await expectNumericBodyAttribute(page, "data-player-position-ms", 0, 1_000);
     await scrubTimeline(page, 0.375);
     await expectNumericBodyAttribute(page, "data-player-position-ms", 44_000, 46_000);
@@ -169,22 +172,22 @@ test.describe("WEB-04 deterministic player acceptance", () => {
     await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
     await settleNavigationDiagnostics(page, diagnostics);
 
-    await openPlayerFixture(page, "resume", { profile: "profile-a" });
-    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "profile-a");
+    await openPlayerFixture(page, "resume", { profile: "tmdb-profile-owner" });
+    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "tmdb-profile-owner");
     await expectNumericBodyAttribute(page, "data-player-position-ms", 44_000, 46_000);
     diagnostics.setPhase("hard-reload");
     await page.reload();
     await waitForFixtureReadiness(page, "resume");
     await settleNavigationDiagnostics(page, diagnostics, fixtureRoute);
-    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "profile-a");
+    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "tmdb-profile-owner");
     await expectNumericBodyAttribute(page, "data-player-position-ms", 44_000, 46_000);
 
     diagnostics.setPhase("player-exit");
     await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/\/diagnostic\/details\/603$/);
     await settleNavigationDiagnostics(page, diagnostics);
-    await openPlayerFixture(page, "resume", { profile: "profile-b" });
-    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "profile-b");
+    await openPlayerFixture(page, "resume", { profile: "tmdb-profile-kids" });
+    await expect(page.locator("body")).toHaveAttribute("data-player-profile-id", "tmdb-profile-kids");
     await expectNumericBodyAttribute(page, "data-player-position-ms", 0, 1_000);
     await diagnostics.assertClean();
   });
@@ -331,6 +334,20 @@ async function openSuccessfulPlayerFixtureFromDetails(page: Page): Promise<void>
   await waitForFixtureReadiness(page, "success");
 }
 
+async function authenticatePlayerFixture(page: Page): Promise<void> {
+  await installRuntimeConfig(page);
+  await page.goto("/login");
+  const identifier = page.getByTestId("login:identifier");
+  const password = page.getByTestId("login:password");
+  await expect(identifier).toBeVisible({ timeout: 30_000 });
+  await identifier.fill("fixture-player-user");
+  await password.fill("fixture-player-password");
+  await password.press("Enter");
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Select Nikos profile", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select Kids profile", exact: true })).toBeVisible();
+}
+
 async function installRuntimeConfig(page: Page): Promise<void> {
   await page.route("**/config.json", async (route) => {
     await route.fulfill({
@@ -356,6 +373,48 @@ async function installRuntimeConfig(page: Page): Promise<void> {
       "access-control-allow-origin": "*",
       "content-type": "application/json",
     };
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: {
+        ...headers,
+        "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+        "access-control-allow-headers": "authorization, content-type",
+      } });
+      return;
+    }
+    if (pathname.endsWith("/authentication/token/new")) {
+      await route.fulfill({ headers, json: { success: true, request_token: "fixture-player-request" } });
+      return;
+    }
+    if (pathname.endsWith("/authentication/token/validate_with_login")) {
+      await route.fulfill({ headers, json: { success: true, request_token: "fixture-player-validated" } });
+      return;
+    }
+    if (pathname.endsWith("/authentication/session/new")) {
+      await route.fulfill({ headers, json: { success: true, session_id: "fixture-player-session" } });
+      return;
+    }
+    if (pathname === "/3/account") {
+      expect(new URL(route.request().url()).searchParams.get("session_id")).toBe("fixture-player-session");
+      await route.fulfill({ headers, json: { id: 42, username: "fixture-player-user", name: "Fixture player" } });
+      return;
+    }
+    const accountStates = pathname.match(/\/movie\/(\d+)\/account_states$/);
+    if (accountStates !== null) {
+      expect(new URL(route.request().url()).searchParams.get("session_id")).toBe("fixture-player-session");
+      await route.fulfill({ headers, json: { id: Number(accountStates[1]), favorite: false, rated: false, watchlist: false } });
+      return;
+    }
+    if (route.request().method() === "DELETE" && pathname.endsWith("/authentication/session")) {
+      await route.fulfill({ headers, json: { success: true } });
+      return;
+    }
+    if (pathname.endsWith("/movie/603")) {
+      await route.fulfill({ headers, json: {
+        id: 603, title: "Diagnostic feature film", overview: "Synthetic authenticated playback fixture.",
+        adult: false, poster_path: null, backdrop_path: null, genres: [], release_date: "2024-04-01", vote_average: 8,
+      } });
+      return;
+    }
     if (pathname.endsWith("/configuration")) {
       await route.fulfill({
         headers,
@@ -528,13 +587,23 @@ async function expectPlayerState(page: Page, state: string): Promise<void> {
 }
 
 async function activateProjectedButton(page: Page, name: string): Promise<void> {
-  const action = page.getByRole("button", { name, exact: true });
+  const action = ["Play", "Pause", "Replay"].includes(name)
+    ? playerTransportButton(page, name)
+    : page.getByRole("button", { name, exact: true });
   await expect(action).toHaveCount(1);
   const bounds = await stableSemanticBounds(action);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 2);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 2);
+}
+
+function playerTransportButton(page: Page, name: string): Locator {
+  // The center overlay and footer intentionally expose the same accessible action.
+  // Rewind identifies the transport row without relying on the buttons' DOM order.
+  return page.getByRole("button", { name: "Back 10 seconds", exact: true })
+    .locator("..")
+    .getByRole("button", { name, exact: true });
 }
 
 function playerTimeline(page: Page): Locator {

@@ -19,10 +19,10 @@ import com.pampoukidis.streamcoretv.auth.AppAuthUiState
 import com.pampoukidis.streamcoretv.auth.AppAuthViewModel
 import com.pampoukidis.streamcoretv.auth.AppLogoutConfirmationDialog
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
-import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
+import com.pampoukidis.streamcore.sdk.ui.avatar.ProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.components.ErrorHost
-import com.pampoukidis.streamcoretv.core.ui.error.ErrorPresentationMapper
-import com.pampoukidis.streamcoretv.core.ui.error.ErrorUiModel
+import com.pampoukidis.streamcore.sdk.ui.error.ErrorPresentationMapper
+import com.pampoukidis.streamcore.sdk.ui.error.ErrorUiModel
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.navigation.StreamCoreNavHost
 import com.pampoukidis.streamcoretv.navigation.startDestinationForAuthState
@@ -73,7 +73,8 @@ class MainActivity : ComponentActivity() {
                                 authState = state.authState,
                                 isLogoutConfirmationVisible = state.isLogoutConfirmationVisible,
                                 isLogoutInProgress = state.isLogoutInProgress,
-                                onActiveProfileChanged = appAuthViewModel::onActiveProfileChanged,
+                                activeProfileId = state.activeProfileId,
+                                clearProfileSelection = appAuthViewModel::clearProfileSelection,
                                 onLogoutRequested = {
                                     appAuthViewModel.onAction(AppAuthAction.RequestLogout)
                                 },

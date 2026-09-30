@@ -81,15 +81,14 @@ class WebGraphTest {
 
         assertEquals(
             listOf(
-                "AuthenticateRepository",
-                "ProfileRepository",
-                "HomeRepository",
-                "SearchRepository",
-                "RecentSearchRepository",
-                "DetailsRepository",
-                "LibraryRepository",
-                "PlaybackProgressRepository",
-                "PlaybackSourceRepository",
+                "StreamCoreClient",
+                "AuthService",
+                "ProfileService",
+                "HomeService",
+                "SearchService",
+                "DetailsService",
+                "LibraryService",
+                "PlaybackService",
                 "PlaybackSessionFactory",
             ),
             resolved,

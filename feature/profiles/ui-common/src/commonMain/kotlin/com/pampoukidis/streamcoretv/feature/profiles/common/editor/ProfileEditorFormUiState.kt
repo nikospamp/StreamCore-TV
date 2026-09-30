@@ -1,14 +1,14 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileValidationResult
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileValidationResult
 
 data class ProfileEditorFormUiState(
     val mode: ProfileEditorMode,
     val draft: ProfileDraftModel,
     val initialDraft: ProfileDraftModel = draft,
-    val validation: ProfileValidationResult = ProfileValidationResult(),
+    val validation: StreamCoreProfileValidationResult = StreamCoreProfileValidationResult(),
 ) {
     val hasChanges: Boolean
         get() = draft != initialDraft

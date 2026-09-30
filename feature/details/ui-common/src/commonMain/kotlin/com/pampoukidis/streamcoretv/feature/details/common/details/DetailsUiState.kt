@@ -1,11 +1,11 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 
 data class DetailsUiState(
     val isLoading: Boolean = true,
-    val content: ContentModel? = null,
-    val recommendations: List<ContentModel> = emptyList(),
+    val content: StreamCoreContent? = null,
+    val recommendations: List<StreamCoreContent> = emptyList(),
     val hasResumableProgress: Boolean = false,
     val isLibraryAvailable: Boolean = false,
     val isLiked: Boolean = false,
@@ -25,7 +25,7 @@ data class DetailsUiState(
  */
 fun DetailsUiState.withInitialContent(
     contentId: String,
-    initialContent: ContentModel?,
+    initialContent: StreamCoreContent?,
 ): DetailsUiState {
     if (initialContent?.id != contentId) {
         return this

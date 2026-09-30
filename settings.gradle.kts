@@ -51,21 +51,22 @@ include(":core:tracing-api")
 include(":kmp-convention-fixtures:plain")
 include(":kmp-convention-fixtures:compose")
 
-// Core
-include(":core:data")
-include(":core:domain")
+// SDK
+include(":sdk:model")
+include(":sdk:api")
+include(":sdk:runtime")
+include(":sdk:testing")
+include(":sdk:ui")
+include(":sdk:providers:tmdb")
+include(":sdk:providers:clientB")
+include(":sdk:providers:tmdb:ui")
+include(":sdk:providers:clientB:ui")
+
+// Shared application UI
 include(":core:ui")
 include(":core:ui-web")
 
-// Clients
-include(":client:tmdb:data")
-include(":client:tmdb:ui")
-include(":client:clientB:data")
-include(":client:clientB:ui")
-
 // Login
-include(":feature:login:data")
-include(":feature:login:domain")
 include(":feature:login:ui-common")
 include(":feature:login:ui-mobile")
 include(":feature:login:ui-tablet")
@@ -73,8 +74,6 @@ include(":feature:login:ui-tv")
 include(":feature:login:ui-web")
 
 // Profiles
-include(":feature:profiles:data")
-include(":feature:profiles:domain")
 include(":feature:profiles:ui-common")
 include(":feature:profiles:ui-mobile")
 include(":feature:profiles:ui-tablet")
@@ -82,7 +81,6 @@ include(":feature:profiles:ui-tv")
 include(":feature:profiles:ui-web")
 
 // Home
-include(":feature:home:domain")
 include(":feature:home:ui-common")
 include(":feature:home:ui-mobile")
 include(":feature:home:ui-tablet")
@@ -90,8 +88,6 @@ include(":feature:home:ui-tv")
 include(":feature:home:ui-web")
 
 // Search
-include(":feature:search:data")
-include(":feature:search:domain")
 include(":feature:search:ui-common")
 include(":feature:search:ui-mobile")
 include(":feature:search:ui-tablet")
@@ -99,8 +95,6 @@ include(":feature:search:ui-tv")
 include(":feature:search:ui-web")
 
 // Details
-include(":feature:details:data")
-include(":feature:details:domain")
 include(":feature:details:ui-common")
 include(":feature:details:ui-mobile")
 include(":feature:details:ui-tablet")
@@ -108,8 +102,6 @@ include(":feature:details:ui-tv")
 include(":feature:details:ui-web")
 
 // Library
-include(":feature:library:data")
-include(":feature:library:domain")
 include(":feature:library:ui-common")
 include(":feature:library:ui-mobile")
 include(":feature:library:ui-tablet")
@@ -120,11 +112,7 @@ include(":feature:library:ui-web")
 include(":playback:api")
 include(":playback:media3")
 include(":playback:web")
-include(":feature:player:data")
-include(":feature:player:domain")
 include(":feature:player:ui-common")
 include(":feature:player:ui-mobile")
 include(":feature:player:ui-tv")
 include(":feature:player:ui-web")
-include(":client:tmdb:player")
-include(":client:clientB:player")

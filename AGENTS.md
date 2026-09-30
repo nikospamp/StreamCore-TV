@@ -31,6 +31,8 @@ The project is backend-agnostic. Core, domain, and UI modules must not depend on
 
 ## Architecture
 
+Prefer the simplest design that meets current requirements. Add layers, abstractions or modules only when they provide a concrete benefit.
+
 Default to:
 
 - Kotlin only
@@ -54,9 +56,9 @@ Use `collectAsStateWithLifecycle()` for StateFlow collection in Compose.
 ## Dependency Injection
 
 - Use Koin 4.2.2 with the classic constructor DSL only. Do not add Koin annotations, compiler plugins, or annotation processing.
-- Keep Koin modules at their owning application, feature, core, provider, or playback boundary. The application composition root combines common Android modules with exactly one flavor-specific provider module list.
+- Keep Koin in application/UI/playback composition boundaries, outside published SDK artifacts, including optional SDK UI artifacts. The application root creates exactly one flavor-specific SDK client and registers its public services and presentation implementations.
 - Prefer constructor injection. Koin lookups are restricted to application and route composition boundaries; repositories, use cases, ViewModels, and stateless composables must not use Koin as a service locator.
-- Register repository implementations and other process-scoped state holders as `single`, stateless use cases as `factory`, and ViewModels with `viewModelOf` or `viewModel { ... }`.
+- Register the SDK client and its public services as `single`, closing the owned client on container shutdown. Do not register raw provider adapters or SDK storage. Register ViewModels with `viewModelOf` or `viewModel { ... }`.
 - Register playback session factories, never playback sessions. Each owning ViewModel creates and closes its own session.
 - Define shared qualifier constants beside the module exposing the qualified contract. Do not duplicate qualifier strings across modules.
 
@@ -66,37 +68,64 @@ Recommended module groups:
 
 - `:app:mobile`
 - `:app:tv`
-- `:core:domain`
-- `:core:data-api`
+- `:sdk:model`
+- `:sdk:api`
+- `:sdk:runtime`
+- `:sdk:testing` (test dependencies only)
+- `:sdk:ui` (optional shared presentation resources/contracts)
 - `:core:ui`
 - `:core:designsystem`
 - `:core:testing`
-- `:feature:*:domain`
+- `:feature:*:ui-common`
 - `:feature:*:ui-mobile`
 - `:feature:*:ui-tv`
-- `:data:<client>`
+- `:sdk:providers:<provider>`
+- `:sdk:providers:<provider>:ui` (optional provider presentation)
 
-Client/provider modules own:
+The SDK dependency direction is `:sdk:providers:<provider>` → `:sdk:runtime` → `:sdk:api` → `:sdk:model`. Features consume
+the public SDK API; only provider factories depend on runtime integration ports. Shared validation,
+account/profile context, saved-state policies, search interactions and playback progress belong behind
+SDK operations. Do not reintroduce forwarding feature-domain modules or provider-specific models in shared contracts.
+Keep collection layout, editor drafts, navigation and player rendering in application UI/playback modules.
+
+Group runtime code by responsibility. Keep provider contracts in `runtime.integration.provider` and persistence in `runtime.storage`, with small store contracts beside their implementations in the `library`, `search`, and `playback` packages. Share legacy migration logic in `runtime.storage.migration`. Colocate related contracts and implementations when that keeps navigation simple; do not add layers or abstractions without a concrete benefit. Application and feature code must use `sdk-api`, not runtime provider or storage contracts.
+
+Align domain names across consumer `<Domain>Service`, backend `<Domain>Provider` and SDK-local `<Domain>Store` contracts where each responsibility exists, and align method names for equivalent operations. Do not create a provider or store just to complete that sequence: library/history/progress are SDK-local, authentication persistence is provider-owned, and `ContentPolicyProvider` is a shared backend policy without a consumer service. Provider repositories implement the narrow ports directly; avoid forwarding wrappers that add no behavior. Runtime retains authorization, validation and policy enforcement.
+
+Provider implementations live in `sdk/providers/<provider>` (`:sdk:providers:tmdb` and `:sdk:providers:clientB`).
+Reusable avatar artwork, avatar-ID mappings and provider error wording live in optional `:sdk:providers:<provider>:ui`
+modules. Shared presentation contracts, default error mapping and common error strings live in `:sdk:ui`.
+Presentation modules depend on SDK models and Compose resources; they must not depend on application `core:ui`, features,
+Koin or playback engines. The headless SDK modules must never depend on optional presentation modules.
+Screens, rendering, navigation, interaction state, and DI registration remain application-owned. Public Kotlin package
+names and Maven coordinates are deliberate compatibility surfaces; do not infer them from Gradle paths.
+
+SDK provider modules own:
 
 - DTOs
 - SDK integrations
 - Network clients
-- Auth/session logic
+- Backend authentication protocols and credential adapters
 - Mappers
-- Repository implementations
+- Internal provider adapters and public SDK factories
 - Provider-specific capability handling
 
 Client-specific models must never be imported by core, domain, or feature UI modules.
 
+Every future feature must define shared models/operations, SDK-enforced rules, provider responsibilities and
+unsupported behavior, account/profile/persistence ownership, and direct SDK contract tests plus application effects.
+Use `docs/sdk/integration.md` and `docs/sdk/provider-template.md` for integration, public contract review and verification requirements.
+
 ## Model Rules
 
-Use suffixes by representation:
+Use names by ownership and representation:
 
 - `Dto` = backend/API input or output models.
 - `Db` = Room/database entities.
-- `Model` = common app data models used by domain, ViewModels, and UI.
+- `StreamCore` prefix, without a trailing `Model` suffix = every top-level type in `:sdk:model`, including values, inputs, results, errors, enums and sealed types. Examples: `StreamCoreContent`, `StreamCoreProfile`, `StreamCoreLoginCredentials` and `StreamCorePlaybackProgressEvent`.
+- `Model` = application-owned data models outside `:sdk:model`.
 - `UiState`, `Action`, and `Effect` = presentation contracts.
-- `AppResult`, `AppError`, and `ErrorSource` = app infrastructure contracts.
+- `StreamCoreResult`, `StreamCoreError`, and `StreamCoreErrorSource` = shared SDK result/error contracts. Nested members retain their names, such as `StreamCoreResult.Success` and `StreamCoreError.Validation`.
 - `Preferences` = DataStore/preferences models.
 - `Repository` / `RepositoryImpl` = data access contracts and implementations.
 - `UseCase` = domain operations.
@@ -113,7 +142,7 @@ data class ProfileDb()
 ```
 
 ```kotlin
-data class ProfileModel()
+data class StreamCoreProfile()
 ```
 
 ```kotlin
@@ -125,18 +154,18 @@ sealed interface ProfileEffect
 Allowed conversion flow:
 
 ```text
-Dto -> Model -> Db
-Db -> Model
-Model -> Dto
+Dto -> StreamCore type -> Db
+Db -> StreamCore type
+StreamCore type -> Dto
 ```
 
 Client/provider DTOs must remain inside their client module and should generally be `internal`.
 
 Avoid nested classes and multi-model files. Define each DTO, Db entity, domain model, UI contract, enum, and sealed type in its own file unless a type is private implementation detail scoped to one file.
 
-Do not use a `UI` suffix for common app models. Use `Model` for the object that crosses from data/domain into ViewModels and composables.
+Do not use a `UI` suffix for common data models. SDK types that cross into ViewModels and composables retain their `StreamCore` names; application-owned data models may use `Model`. Keep provider DTOs named with the `Dto` suffix, and do not apply the SDK model prefix to API services, provider factories, or application UI contracts merely because they use SDK types.
 
-Client-specific DTOs, Room entities, and preferences models must not be imported by feature UI. ViewModels and composables consume `Model`, `UiState`, `Action`, and `Effect` types.
+Client-specific DTOs, Room entities, and preferences models must not be imported by feature UI. ViewModels and composables consume SDK `StreamCore` types, application-owned `Model` types, and `UiState`, `Action`, and `Effect` contracts.
 
 ## Compose Rules
 
@@ -351,6 +380,8 @@ Prefer:
 - Use `streamcore.kmp.library` for plain shared libraries and `streamcore.kmp.compose.library` for shared Compose libraries. Both conventions use
   `org.jetbrains.kotlin.multiplatform` with the official `com.android.kotlin.multiplatform.library` plugin and register the `android` target. Do not
   recreate the Android target in module build scripts.
+- Resource-only SDK presentation libraries contain no composables or previews. Use `streamcore.kmp.resources.library`, which shares the Compose/Android
+  compiler setup without the UI convention's preview-tooling dependency. Enable Android resource processing and export resource types used by public APIs.
 - Android-KMP libraries are single-variant. Do not add Android build types or product flavors to them; Android application build types consume the
   same Android-KMP variant.
 - Put portable production code in `src/commonMain/kotlin`, Android implementations in `src/androidMain/kotlin`, and browser implementations in
@@ -362,8 +393,8 @@ Prefer:
 - Android host and device tests use `androidHostTest` and `androidDeviceTest`. A module with Kotlin files in `commonTest` must explicitly call
   `streamCoreKmp { withHostTest() }`; `testAndroidHostTest` is its Phase 1 executable test task.
 - Do not enable host/device test compilations in a convention plugin. Compile-only modules must not add `commonTest` sources or filler tests;
-  `:core:domain` is the current explicit compile-only exemption.
-- Compose KMP Android compilations receive `-Xlambdas=class` from the Compose KMP convention only. Never apply that JVM-only flag to common metadata
+  every module that adds common tests must explicitly enable an executable host-test target.
+- Compose KMP Android compilations receive `-Xlambdas=class` from the shared Compose KMP conventions (UI or resource-only). Never apply that JVM-only flag to common metadata
   or Wasm compilations.
 - KMP membership does not imply browser support. A module is web-ready only after WEB-01 or a later web ticket adds `wasmJs`, resolves its shared
   dependencies, compiles the target, and verifies browser-specific implementations.

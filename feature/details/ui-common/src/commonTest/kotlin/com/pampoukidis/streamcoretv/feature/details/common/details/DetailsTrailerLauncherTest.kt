@@ -1,14 +1,14 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
 import androidx.compose.ui.platform.UriHandler
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.Test
 
 class DetailsTrailerLauncherTest {
-    private val trailer = TrailerModel("trailer", "Trailer", "https://www.youtube.com/watch?v=abcdefghijk")
+    private val trailer = StreamCoreTrailer("trailer", "Trailer", "https://www.youtube.com/watch?v=abcdefghijk")
 
     @Test
     fun `opens trailer HTTPS link using the platform URI handler`() {
@@ -33,7 +33,7 @@ class DetailsTrailerLauncherTest {
     @Test
     fun `unavailable or blocked handlers report an error instead of crashing`() {
         listOf(IllegalArgumentException("No handler"), SecurityException("Blocked")).forEach { failure ->
-            val errors = mutableListOf<AppError>()
+            val errors = mutableListOf<StreamCoreError>()
             val handler = object : UriHandler {
                 override fun openUri(uri: String) {
                     throw failure
@@ -46,7 +46,7 @@ class DetailsTrailerLauncherTest {
 
     @Test
     fun `rejects malformed and non HTTPS links before invoking the handler`() {
-        val errors = mutableListOf<AppError>()
+        val errors = mutableListOf<StreamCoreError>()
         val handler = object : UriHandler {
             override fun openUri(uri: String) {
                 error("Must not open $uri")
@@ -77,6 +77,6 @@ class DetailsTrailerLauncherTest {
             openDetailsTrailer(trailer.copy(url = url), handler, errors::add)
         }
         assertEquals(invalidUrls.size, errors.size)
-        assertTrue(errors.all { it is AppError.Unknown })
+        assertTrue(errors.all { it is StreamCoreError.Unknown })
     }
 }

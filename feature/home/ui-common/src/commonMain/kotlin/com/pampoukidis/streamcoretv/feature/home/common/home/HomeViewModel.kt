@@ -2,17 +2,18 @@ package com.pampoukidis.streamcoretv.feature.home.common.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcoretv.core.model.content.toRowModel
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcoretv.core.tracing.PerformanceTracer
 import com.pampoukidis.streamcoretv.core.tracing.traceIfEnabled
-import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import com.pampoukidis.streamcore.sdk.api.HomeService
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -24,8 +25,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HomeViewModel constructor(
-    private val loadHomeRows: LoadHomeRowsUseCase,
-    private val progressRepository: PlaybackProgressRepository,
+    private val homeRepository: HomeService,
+    private val playback: PlaybackService,
     private val performanceTracer: PerformanceTracer,
 ) : ViewModel() {
 
@@ -39,7 +40,7 @@ class HomeViewModel constructor(
     private var loadJob: Job? = null
     private var progressJob: Job? = null
     private var backendRows: List<RowModel> = emptyList()
-    private var progressEntries: List<PlaybackProgressEntryModel> = emptyList()
+    private var progressEntries: List<StreamCorePlaybackProgressEntry> = emptyList()
     private var publicationGeneration = 0
 
     fun onAction(action: HomeAction) {
@@ -68,13 +69,13 @@ class HomeViewModel constructor(
         loadJob = viewModelScope.launch {
             publish("loading") { state -> state.copy(isLoading = true) }
 
-            when (val result = loadHomeRows(profileId)) {
-                is AppResult.Success -> {
+            when (val result = homeRepository.getCollections(profileId)) {
+                is StreamCoreResult.Success -> {
                     if (activeProfileId != profileId) {
                         return@launch
                     }
 
-                    backendRows = result.value
+                    backendRows = result.value.map { collection -> collection.toRowModel() }
                     publish("backend") { state ->
                         state.copy(
                             isLoading = false,
@@ -83,7 +84,7 @@ class HomeViewModel constructor(
                     }
                 }
 
-                is AppResult.Failure -> {
+                is StreamCoreResult.Failure -> {
                     if (activeProfileId != profileId) {
                         return@launch
                     }
@@ -100,7 +101,7 @@ class HomeViewModel constructor(
         load(profileId = profileId, force = true)
     }
 
-    private fun selectContent(content: ContentModel, sourceArtworkUrl: String?) {
+    private fun selectContent(content: StreamCoreContent, sourceArtworkUrl: String?) {
         viewModelScope.launch {
             effectsChannel.send(HomeEffect.ContentSelected(content, sourceArtworkUrl))
         }
@@ -109,11 +110,14 @@ class HomeViewModel constructor(
     private fun observeProgress(profileId: String) {
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
-            progressRepository.observe(profileId).collect { entries ->
+            playback.observeProgress(profileId).collect { result ->
                 if (activeProfileId != profileId) {
                     return@collect
                 }
-                progressEntries = entries
+                progressEntries = when (result) {
+                    is StreamCoreResult.Success -> result.value
+                    is StreamCoreResult.Failure -> emptyList()
+                }
                 publish("progress") { state -> state.copy(rows = mergedRows()) }
             }
         }
@@ -132,7 +136,7 @@ class HomeViewModel constructor(
             content = progressEntries.map { entry ->
                 entry.contentSnapshot.copy(
                     row = ContinueWatchingRowId,
-                    playbackProgress = PlaybackProgressModel(
+                    playbackProgress = StreamCorePlaybackProgress(
                         positionMillis = entry.positionMillis,
                         durationMillis = entry.durationMillis,
                     ),
@@ -142,7 +146,7 @@ class HomeViewModel constructor(
         return listOf(continueWatching) + providerRows
     }
 
-    private suspend fun emitError(error: AppError) {
+    private suspend fun emitError(error: StreamCoreError) {
         effectsChannel.send(HomeEffect.ShowError(error))
     }
 

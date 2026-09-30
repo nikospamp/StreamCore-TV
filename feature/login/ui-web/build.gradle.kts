@@ -11,7 +11,7 @@ kotlin {
         remove(getByName("commonTest"))
 
         commonMain.dependencies {
-            implementation(projects.core.data)
+            implementation(projects.sdk.model)
             implementation(projects.core.ui)
             implementation(projects.core.uiWeb)
             api(projects.feature.login.uiCommon)

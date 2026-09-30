@@ -54,7 +54,7 @@ import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.rememberDrawerState
 import com.pampoukidis.streamcoretv.R
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBrandMark
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHomeIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLibraryIcon
@@ -76,7 +76,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPrev
 internal fun TvNavigationDrawer(
     enabled: Boolean,
     selectedDestination: TopLevelDestination,
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     onDestinationSelected: (TopLevelDestination) -> Unit,
     onProfileSelected: () -> Unit,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -156,7 +156,7 @@ internal fun TvNavigationDrawer(
 private fun TvDrawerContent(
     drawerValue: DrawerValue,
     selectedDestination: TopLevelDestination,
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     enabled: Boolean,
     contentFocusRequester: FocusRequester,
     sharedElementScope: StreamCoreSharedElementScope?,

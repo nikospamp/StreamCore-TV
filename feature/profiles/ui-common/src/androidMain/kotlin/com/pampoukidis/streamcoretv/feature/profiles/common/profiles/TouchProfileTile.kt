@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -55,7 +55,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 
 @Composable
 fun TouchProfileTile(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     mode: ProfilesMode,
     isSelecting: Boolean,
     enabled: Boolean,

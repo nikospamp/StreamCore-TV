@@ -1,352 +1,163 @@
 package com.pampoukidis.streamcoretv.web.product
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.pampoukidis.streamcoretv.client.tmdb.data.auth.clearTmdbAuthSessionPreferences
-import com.pampoukidis.streamcoretv.client.tmdb.data.config.TmdbRuntimeConfig
-import com.pampoukidis.streamcoretv.client.tmdb.data.di.TMDB_AUTH_STORE_QUALIFIER
-import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
-import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreContextFailureReason
+import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
+import com.pampoukidis.streamcore.sdk.model.StreamCoreContext
 import com.pampoukidis.streamcoretv.web.navigation.WebNavigationController
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
 import com.pampoukidis.streamcoretv.web.navigation.isDiagnosticRoute
 import com.pampoukidis.streamcoretv.web.navigation.requiresSelectedProfile
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.Koin
-import org.koin.core.qualifier.named
 
+/** Converts validated SDK context into routes; credentials and profile persistence belong to the SDK. */
 internal class WebProductCoordinator(
-    private val authenticateRepository: AuthenticateRepository,
-    private val profileRepository: ProfileRepository,
-    private val authStore: DataStore<Preferences>,
-    accountId: String,
+    private val client: StreamCoreClient,
     private val navigation: WebNavigationController,
+    initialBootstrapResult: StreamCoreResult<StreamCoreContext>? = null,
 ) {
-    private val selectedProfileIdKey = selectedProfileIdKey(accountId)
-
     constructor(
         koin: Koin,
         navigation: WebNavigationController,
+        initialBootstrapResult: StreamCoreResult<StreamCoreContext>? = null,
     ) : this(
-        authenticateRepository = koin.get<AuthenticateRepository>(),
-        profileRepository = koin.get<ProfileRepository>(),
-        authStore = koin.get<DataStore<Preferences>>(named(TMDB_AUTH_STORE_QUALIFIER)),
-        accountId = koin.get<TmdbRuntimeConfig>().accountId,
+        client = koin.get<StreamCoreClient>(),
         navigation = navigation,
+        initialBootstrapResult = initialBootstrapResult,
     )
 
-    var selectedProfile: ProfileModel? = null
+    private var pendingBootstrapResult = initialBootstrapResult
+    var autoEnterSingleProfile: Boolean = true
         private set
-    private var authenticated: Boolean = false
+
+    fun profileEntryStarted() {
+        autoEnterSingleProfile = false
+    }
+
+    val context: StateFlow<StreamCoreContext>
+        get() = client.context
+
+    val selectedProfile: StreamCoreProfile?
+        get() = context.value.profile
 
     suspend fun initialize(): WebProductInitialization {
-        val bootstrapResult = try {
-            authenticateRepository.bootstrapAuth()
-        } catch (throwable: CancellationException) {
-            authenticated = false
-            selectedProfile = null
+        val result = try {
+            val initialResult = pendingBootstrapResult
+            pendingBootstrapResult = null
+            initialResult ?: client.bootstrap()
+        } catch (exception: CancellationException) {
             navigation.replace(WebRoute.Login)
-            throw throwable
+            throw exception
         } catch (_: Throwable) {
-            authenticated = false
-            selectedProfile = null
             navigation.replace(WebRoute.Login)
             return WebProductInitialization.ReadyWithError(authBootstrapError())
         }
-        return when (bootstrapResult) {
-            is AppResult.Success -> when (bootstrapResult.value) {
-                AuthStateModel.LoggedOut -> {
-                    authenticated = false
-                    selectedProfile = null
-                    try {
-                        clearSelectedProfile()
-                        WebProductInitialization.Ready
-                    } catch (throwable: CancellationException) {
-                        throw throwable
-                    } catch (_: Throwable) {
-                        WebProductInitialization.ReadyWithError(profileSelectionStorageError())
-                    } finally {
-                        navigation.replace(WebRoute.Login)
-                    }
-                }
-                is AuthStateModel.LoggedIn -> {
-                    authenticated = true
-                    restoreAuthenticatedRoute()
-                }
-            }
-            is AppResult.Failure -> {
-                authenticated = false
-                selectedProfile = null
-                try {
-                    if (bootstrapResult.error.invalidatesPersistedSession()) {
-                        try {
-                            invalidateSessionPersistence()
-                        } catch (throwable: CancellationException) {
-                            throw throwable
-                        } catch (_: Throwable) {
-                            // Preserve the primary bootstrap failure while remaining fail-closed.
-                        }
-                    }
-                    WebProductInitialization.ReadyWithError(bootstrapResult.error)
-                } finally {
-                    navigation.replace(WebRoute.Login)
-                }
-            }
-        }
-    }
-
-    suspend fun loginSucceeded(): AppError? {
-        authenticated = true
-        // A previous session's profile must not become active in the new session.
-        selectedProfile = null
-        return try {
-            profileSelectionOperation { clearSelectedProfile() }
-        } finally {
-            navigation.navigate(WebRoute.Profiles)
-        }
-    }
-
-    suspend fun profileSelected(profile: ProfileModel): AppError? {
-        return profileSelectionOperation {
-            authStore.edit { preferences ->
-                preferences[selectedProfileIdKey] = profile.id
-            }
-            selectedProfile = profile
-            navigation.navigate(WebRoute.Home)
-        }
-    }
-
-    suspend fun changeProfile(): AppError? {
-        return profileSelectionOperation {
-            clearSelectedProfile()
-            navigation.navigate(WebRoute.Profiles)
-        }
-    }
-
-    suspend fun logout(): AppError? {
-        val result = try {
-            authenticateRepository.logoutUser()
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (_: Throwable) {
-            return AppError.Unknown(
-                source = ErrorSource(operation = "logoutUser", backendCode = "AUTH_LOGOUT_FAILURE"),
-            )
-        }
+        synchronizeContext()
         return when (result) {
-            is AppResult.Success -> {
-                authenticated = false
-                selectedProfile = null
-                val cleanupError = try {
-                    clearSelectedProfile()
-                    null
-                } catch (throwable: CancellationException) {
-                    navigation.replace(WebRoute.Login)
-                    throw throwable
-                } catch (_: Throwable) {
-                    profileSelectionStorageError()
-                }
-                navigation.replace(WebRoute.Login)
-                cleanupError
+            is StreamCoreResult.Success -> WebProductInitialization.Ready
+            is StreamCoreResult.Failure -> WebProductInitialization.ReadyWithError(result.error)
+        }
+    }
+
+    suspend fun loginSucceeded(): StreamCoreError? {
+        autoEnterSingleProfile = true
+        navigation.navigate(if (context.value.account == null) WebRoute.Login else WebRoute.Profiles)
+        return null
+    }
+
+    suspend fun profileSelected(profile: StreamCoreProfile): StreamCoreError? {
+        if (context.value.profile?.id != profile.id) {
+            return StreamCoreError.InvalidContext(StreamCoreContextFailureReason.ProfileMismatch)
+        }
+        navigation.navigate(WebRoute.Home)
+        return null
+    }
+
+    suspend fun changeProfile(): StreamCoreError? {
+        autoEnterSingleProfile = false
+        return when (val result = client.profiles.clearSelection()) {
+            is StreamCoreResult.Success -> {
+                navigation.navigate(WebRoute.Profiles)
+                null
             }
-            is AppResult.Failure -> {
-                // A rejected delete response is Authentication, but does not prove session expiry.
-                if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
-                    handleError(result.error)
-                }
+            is StreamCoreResult.Failure -> {
+                synchronizeContext()
                 result.error
             }
         }
     }
 
-    suspend fun reconcileProfiles(profiles: List<ProfileModel>): AppError? {
-        val activeProfile = selectedProfile ?: return null
-        val currentProfile = profiles.firstOrNull { profile -> profile.id == activeProfile.id }
-        if (currentProfile == null) {
-            // Repository validation is authoritative even if removing the stale id fails.
-            selectedProfile = null
-            return try {
-                profileSelectionOperation { clearSelectedProfile() }
-            } finally {
-                navigation.replace(safeProfileRestoreRoute())
-            }
-        } else if (currentProfile != activeProfile) {
-            selectedProfile = currentProfile
-        }
-        return null
-    }
-
-    suspend fun reconcileProfilesFromRepository(): AppError? {
-        return when (val result = profileRepository.getProfiles()) {
-            is AppResult.Success -> reconcileProfiles(result.value)
-            is AppResult.Failure -> result.error
-        }
-    }
-
-    suspend fun handleError(error: AppError) {
-        if (error is AppError.SessionExpired || error is AppError.Authentication || error is AppError.Unauthorized) {
-            authenticated = false
-            selectedProfile = null
-            try {
-                try {
-                    invalidateSessionPersistence()
-                } catch (throwable: CancellationException) {
-                    throw throwable
-                } catch (_: Throwable) {
-                    // The originating auth error remains primary; routing still fails closed.
-                }
-            } finally {
-                navigation.replace(WebRoute.Login)
-            }
-        }
-    }
-
-    fun sanitizeRoute(route: WebRoute) {
-        val canonicalRoute = canonicalRoute(route)
-        if (canonicalRoute != route) {
-            navigation.replace(canonicalRoute)
-        }
-    }
-
-    fun canonicalRoute(route: WebRoute): WebRoute {
-        if (route.isDiagnosticRoute()) {
-            return route
-        }
-        if (!authenticated && route !is WebRoute.Login) {
-            return WebRoute.Login
-        }
-        if (!authenticated) {
-            return route
-        }
-        if (route is WebRoute.Root || route is WebRoute.Login || route is WebRoute.AuthenticatedLanding) {
-            return if (selectedProfile == null) WebRoute.Profiles else WebRoute.Home
-        }
-        if (route.requiresSelectedProfile() && selectedProfile == null) {
-            return WebRoute.Profiles
-        }
-        return route
-    }
-
-    private suspend fun restoreAuthenticatedRoute(): WebProductInitialization {
-        val selectedProfileId = try {
-            authStore.data.first()[selectedProfileIdKey]
-        } catch (throwable: CancellationException) {
-            throw throwable
-        } catch (_: Throwable) {
-            selectedProfile = null
-            navigation.replace(safeProfileRestoreRoute())
-            return WebProductInitialization.ReadyWithError(profileSelectionStorageError())
-        }
-        val profiles = when (val result = profileRepository.getProfiles()) {
-            is AppResult.Success -> result.value
-            is AppResult.Failure -> {
-                selectedProfile = null
-                navigation.replace(safeProfileRestoreRoute())
-                return WebProductInitialization.ReadyWithError(result.error)
-            }
-        }
-        selectedProfile = profiles.firstOrNull { profile -> profile.id == selectedProfileId }
-        if (selectedProfileId != null && selectedProfile == null) {
-            val cleanupError = profileSelectionOperation { clearSelectedProfile() }
-            if (cleanupError != null) {
-                navigation.replace(safeProfileRestoreRoute())
-                return WebProductInitialization.ReadyWithError(cleanupError)
-            }
-        }
-        val requestedRoute = navigation.route.value
-        val destination = when {
-            requestedRoute.isDiagnosticRoute() -> requestedRoute
-            requestedRoute is WebRoute.Profiles || requestedRoute is WebRoute.CreateProfile ||
-                requestedRoute is WebRoute.EditProfile -> requestedRoute
-            selectedProfile == null -> WebRoute.Profiles
-            requestedRoute.requiresSelectedProfile() && requestedRoute !is WebRoute.AuthenticatedLanding -> {
-                requestedRoute
-            }
-            else -> WebRoute.Home
-        }
-        navigation.replace(destination)
-        return WebProductInitialization.Ready
-    }
-
-    private suspend fun clearSelectedProfile() {
-        authStore.edit { preferences ->
-            if (preferences[selectedProfileIdKey] != null) {
-                preferences.remove(selectedProfileIdKey)
-            }
-        }
-        selectedProfile = null
-    }
-
-    private suspend fun profileSelectionOperation(block: suspend () -> Unit): AppError? {
-        return try {
-            block()
-            null
+    suspend fun logout(): StreamCoreError? {
+        val result = try {
+            client.auth.logout()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Throwable) {
-            profileSelectionStorageError()
+            return StreamCoreError.Unknown(
+                source = StreamCoreErrorSource(operation = "logout", backendCode = "AUTH_LOGOUT_FAILURE"),
+            )
+        }
+        synchronizeContext()
+        return when (result) {
+            is StreamCoreResult.Success -> null
+            is StreamCoreResult.Failure -> result.error
         }
     }
 
-    private suspend fun invalidateSessionPersistence() {
-        authStore.edit { preferences ->
-            preferences.clearTmdbAuthSessionPreferences()
-            if (preferences[selectedProfileIdKey] != null) {
-                preferences.remove(selectedProfileIdKey)
-            }
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun reconcileProfiles(profiles: List<StreamCoreProfile>): StreamCoreError? {
+        // Loading/mutating profiles has already reconciled the SDK's active context.
+        synchronizeContext()
+        return null
+    }
+
+    suspend fun reconcileProfilesFromRepository(): StreamCoreError? {
+        val result = client.profiles.getProfiles()
+        synchronizeContext()
+        return when (result) {
+            is StreamCoreResult.Success -> null
+            is StreamCoreResult.Failure -> result.error
         }
     }
 
-    private fun safeProfileRestoreRoute(): WebRoute {
-        return if (navigation.route.value.isDiagnosticRoute()) {
-            navigation.route.value
-        } else {
-            WebRoute.Profiles
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun handleError(error: StreamCoreError) {
+        // The SDK classifies authoritative rejection; a form error never invalidates a session here.
+        synchronizeContext()
+    }
+
+    fun synchronizeContext() {
+        sanitizeRoute(navigation.route.value)
+    }
+
+    fun sanitizeRoute(route: WebRoute) {
+        val canonical = canonicalRoute(route)
+        if (canonical != route) navigation.replace(canonical)
+    }
+
+    fun canonicalRoute(route: WebRoute): WebRoute {
+        if (route.isDiagnosticRoute()) return route
+        if (context.value.account == null || context.value.isClosed) return WebRoute.Login
+        if (route is WebRoute.Root || route is WebRoute.Login || route is WebRoute.AuthenticatedLanding) {
+            return if (selectedProfile == null) WebRoute.Profiles else WebRoute.Home
         }
+        if (route.requiresSelectedProfile() && selectedProfile == null) return WebRoute.Profiles
+        return route
     }
 }
 
-internal fun selectedProfileIdKey(accountId: String): Preferences.Key<String> {
-    require(accountId.isNotBlank())
-    val encodedAccountScope = accountId.encodeToByteArray().joinToString(separator = "") { byte ->
-        (byte.toInt() and 0xff).toString(radix = 16).padStart(length = 2, padChar = '0')
-    }
-    return stringPreferencesKey("web_selected_profile_id.$encodedAccountScope")
-}
-
-private fun profileSelectionStorageError(): AppError {
-    return AppError.Unknown(
-        source = ErrorSource(
-            operation = "restoreSelectedProfile",
-            backendCode = "PROFILE_SELECTION_STORAGE_FAILURE",
-        ),
+private fun authBootstrapError(): StreamCoreError {
+    return StreamCoreError.Unknown(
+        source = StreamCoreErrorSource(operation = "bootstrapAuth", backendCode = "AUTH_BOOTSTRAP_FAILURE"),
     )
-}
-
-private fun authBootstrapError(): AppError {
-    return AppError.Unknown(
-        source = ErrorSource(
-            operation = "bootstrapAuth",
-            backendCode = "AUTH_BOOTSTRAP_FAILURE",
-        ),
-    )
-}
-
-private fun AppError.invalidatesPersistedSession(): Boolean {
-    return this is AppError.Authentication ||
-        this is AppError.Unauthorized ||
-        this is AppError.SessionExpired
 }
 
 internal sealed interface WebProductInitialization {
     data object Ready : WebProductInitialization
-    data class ReadyWithError(val error: AppError) : WebProductInitialization
+    data class ReadyWithError(val error: StreamCoreError) : WebProductInitialization
 }

@@ -11,14 +11,14 @@ import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import coil3.compose.AsyncImage
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
 fun StreamCoreProfileArtwork(
-    avatar: ProfileAvatarModel,
+    avatar: StreamCoreProfileAvatar,
     contentDescription: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -56,7 +56,7 @@ fun StreamCoreProfileArtwork(
 private fun StreamCoreProfileArtworkPreview() {
     StreamCoreTheme {
         StreamCoreProfileArtwork(
-            avatar = ProfileAvatarModel(
+            avatar = StreamCoreProfileAvatar(
                 id = "preview-avatar",
                 imageUrl = null,
             ),

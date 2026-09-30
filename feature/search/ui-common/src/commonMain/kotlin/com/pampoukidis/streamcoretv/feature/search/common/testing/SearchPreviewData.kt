@@ -1,17 +1,17 @@
 package com.pampoukidis.streamcoretv.feature.search.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.general.Cast
-import com.pampoukidis.streamcoretv.core.model.general.Genre
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCastMember
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchContentState
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchUiState
 
 object SearchPreviewData {
 
-    private val drama = Genre(id = "drama", name = "Drama")
-    private val scienceFiction = Genre(id = "science-fiction", name = "Science Fiction")
+    private val drama = StreamCoreGenre(id = "drama", name = "Drama")
+    private val scienceFiction = StreamCoreGenre(id = "science-fiction", name = "Science Fiction")
     private val leadCast = listOf(
-        Cast(
+        StreamCoreCastMember(
             id = "cast-1",
             name = "Alex Morgan",
             characterName = "Commander Vale",
@@ -57,7 +57,7 @@ object SearchPreviewData {
         query = "orbit",
         resultQuery = "orbit",
         content = SearchContentState.Failure(
-            com.pampoukidis.streamcoretv.core.model.error.AppError.Network(),
+            com.pampoukidis.streamcore.sdk.model.error.StreamCoreError.Network(),
         ),
     )
 
@@ -83,9 +83,9 @@ object SearchPreviewData {
         title: String,
         rating: Int,
         pgRatingName: String,
-        genres: List<Genre>,
-    ): ContentModel {
-        return ContentModel(
+        genres: List<StreamCoreGenre>,
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = title,
             description = "A cinematic story selected for this preview.",

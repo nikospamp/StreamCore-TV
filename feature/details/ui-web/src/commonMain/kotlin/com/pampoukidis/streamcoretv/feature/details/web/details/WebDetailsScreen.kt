@@ -48,7 +48,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
@@ -439,7 +439,7 @@ private fun WebDetailsContent(
 }
 
 @Composable
-private fun WebDetailsSynopsis(content: ContentModel, modifier: Modifier = Modifier) {
+private fun WebDetailsSynopsis(content: StreamCoreContent, modifier: Modifier = Modifier) {
     WebDetailsReadingSection(
         contentId = content.id,
         expandLabel = stringResource(Res.string.web_details_read_full_overview),
@@ -459,7 +459,7 @@ private fun WebDetailsSynopsis(content: ContentModel, modifier: Modifier = Modif
 }
 
 @Composable
-private fun WebDetailsCast(content: ContentModel, modifier: Modifier = Modifier) {
+private fun WebDetailsCast(content: StreamCoreContent, modifier: Modifier = Modifier) {
     if (content.cast.isEmpty()) return
     WebDetailsReadingSection(
         contentId = content.id,
@@ -664,11 +664,11 @@ private fun WebDetailsIconAction(
 
 @Composable
 private fun WebDetailsRecommendations(
-    recommendations: List<ContentModel>,
+    recommendations: List<StreamCoreContent>,
     listState: androidx.compose.foundation.lazy.LazyListState,
     focusRequesters: List<FocusRequester>,
     upFocusRequester: FocusRequester,
-    onSelected: (ContentModel) -> Unit,
+    onSelected: (StreamCoreContent) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Small),
@@ -730,7 +730,7 @@ private fun WebDetailsRecommendations(
 
 @Composable
 private fun WebDetailsRecommendationCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

@@ -7,14 +7,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 @Composable
 fun ProfileEditorRouteEventEffect(
     viewModel: ProfileEditorViewModel,
     onProfileSaved: () -> Unit,
     onClose: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentProfileSaved by rememberUpdatedState(onProfileSaved)

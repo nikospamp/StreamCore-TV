@@ -1,10 +1,11 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.profiles
 
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 sealed interface ProfilesEffect {
-    data class ProfileSelected(val profile: ProfileModel) : ProfilesEffect
-    data class ShowError(val error: AppError) : ProfilesEffect
+    data object EntryStarted : ProfilesEffect
+    data class ProfileSelected(val profile: StreamCoreProfile) : ProfilesEffect
+    data class ShowError(val error: StreamCoreError) : ProfilesEffect
 }
 

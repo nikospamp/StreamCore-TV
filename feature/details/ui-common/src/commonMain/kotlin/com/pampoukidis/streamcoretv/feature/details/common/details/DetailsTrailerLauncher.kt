@@ -1,9 +1,9 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
 import androidx.compose.ui.platform.UriHandler
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
 import io.ktor.http.URLProtocol
 import io.ktor.http.URLDecodeException
 import io.ktor.http.decodeURLPart
@@ -11,9 +11,9 @@ import io.ktor.http.hostIsIp
 import io.ktor.http.parseUrl
 
 internal fun openDetailsTrailer(
-    trailer: TrailerModel,
+    trailer: StreamCoreTrailer,
     uriHandler: UriHandler,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     try {
         require(isValidHttpsUrl(trailer.url))
@@ -80,9 +80,9 @@ private fun isValidIpv4Address(host: String): Boolean {
     }
 }
 
-private fun trailerLaunchError(): AppError {
-    return AppError.Unknown(
-        source = ErrorSource(operation = "openTrailer", backendCode = "TRAILER_LAUNCH_UNAVAILABLE"),
+private fun trailerLaunchError(): StreamCoreError {
+    return StreamCoreError.Unknown(
+        source = StreamCoreErrorSource(operation = "openTrailer", backendCode = "TRAILER_LAUNCH_UNAVAILABLE"),
     )
 }
 

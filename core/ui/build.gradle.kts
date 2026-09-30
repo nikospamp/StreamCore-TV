@@ -7,6 +7,7 @@ compose.resources {
 }
 
 streamCoreKmp {
+    withHostTest()
     withWasmJs()
 }
 
@@ -19,10 +20,10 @@ kotlin {
     }
 
     sourceSets {
-        remove(getByName("commonTest"))
-
         commonMain.dependencies {
-            implementation(projects.core.data)
+            api(projects.sdk.ui)
+            implementation(projects.sdk.model)
+            implementation(libs.kotlinx.datetime)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
@@ -34,6 +35,9 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.koin.core)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
         androidMain.dependencies {
             implementation(libs.androidx.compose.ui.tooling.preview)

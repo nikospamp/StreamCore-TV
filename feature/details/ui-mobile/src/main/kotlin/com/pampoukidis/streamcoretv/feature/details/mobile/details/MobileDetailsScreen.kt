@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.details.mobile.details
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +30,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
@@ -101,8 +100,8 @@ fun MobileDetailsScreen(
 
 @Composable
 private fun DetailsContent(
-    content: ContentModel,
-    recommendations: List<ContentModel>,
+    content: StreamCoreContent,
+    recommendations: List<StreamCoreContent>,
     isLoading: Boolean,
     hasResumableProgress: Boolean,
     isLibraryAvailable: Boolean,
@@ -203,7 +202,7 @@ private fun DetailsContent(
 
 @Composable
 private fun DetailsHero(
-    content: ContentModel,
+    content: StreamCoreContent,
     isLoading: Boolean,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
@@ -307,7 +306,7 @@ private fun HeroScrim() {
 
 @Composable
 private fun RecommendationsRow(
-    recommendations: List<ContentModel>,
+    recommendations: List<StreamCoreContent>,
     onAction: (DetailsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -349,7 +348,7 @@ private fun RecommendationsRow(
 
 @Composable
 private fun RecommendationCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -558,7 +557,7 @@ private fun MobileDetailsScreenTrailerPreview() {
                 isLoading = false,
                 content = DetailsPreviewData.content.copy(
                     trailers = listOf(
-                        TrailerModel(
+                        StreamCoreTrailer(
                             id = "preview-trailer",
                             title = "Official trailer",
                             url = "https://www.youtube.com/watch?v=abcdefghijk",

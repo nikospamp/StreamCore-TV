@@ -15,11 +15,17 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.pampoukidis.streamcoretv.feature.profiles.tablet.pin.TabletProfilePinScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +56,16 @@ fun TabletProfilesScreen(
     onLogoutRequested: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    state.pin?.let { pin ->
+        TabletProfilePinScreen(
+            state = pin,
+            onDraftChanged = { onAction(ProfilesAction.PinDraftChanged(it)) },
+            onCancel = { onAction(ProfilesAction.CancelPin) },
+            onRetry = { onAction(ProfilesAction.RetryPin) },
+            modifier = modifier,
+        )
+        return
+    }
     val interactionsEnabled = !state.isLoading &&
         !state.isSaving &&
         !isLogoutInProgress &&
@@ -122,6 +138,7 @@ private fun TabletProfilesRow(
     onEditProfile: (String) -> Unit,
 ) {
     LazyRow(
+        state = rememberLazyListState(initialFirstVisibleItemIndex = state.profiles.indexOfFirst { it.id == state.restoreFocusProfileId }.coerceAtLeast(0)),
         horizontalArrangement = Arrangement.spacedBy(
             StreamCoreDimens.Spacing.ExtraLarge,
             Alignment.CenterHorizontally,
@@ -137,6 +154,10 @@ private fun TabletProfilesRow(
             key = { profile -> profile.id },
             contentType = { "profile" },
         ) { profile ->
+            val restoreFocus = remember { FocusRequester() }
+            LaunchedEffect(state.restoreFocusProfileId, interactionsEnabled) {
+                if (interactionsEnabled && profile.id == state.restoreFocusProfileId) restoreFocus.requestFocus()
+            }
             TouchProfileTile(
                 profile = profile,
                 mode = state.mode,
@@ -149,7 +170,7 @@ private fun TabletProfilesRow(
                         onEditProfile(profile.id)
                     }
                 },
-                modifier = Modifier.width(StreamCoreDimens.Tablet.Profiles.TileWidth),
+                modifier = Modifier.width(StreamCoreDimens.Tablet.Profiles.TileWidth).focusRequester(restoreFocus),
             )
         }
         item(key = "add-profile", contentType = "add-profile") {

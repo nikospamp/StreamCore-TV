@@ -1,7 +1,7 @@
 package com.pampoukidis.streamcoretv.playback.web
 
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
@@ -382,8 +382,8 @@ internal class WebPlaybackSessionTest {
     private fun media(
         assetId: String = "asset-id",
         uri: String? = "https://media.example/stream.mpd",
-    ): PlaybackMediaModel {
-        return PlaybackMediaModel(
+    ): StreamCorePlaybackMedia {
+        return StreamCorePlaybackMedia(
             assetId = assetId,
             title = "Title",
             uri = uri,

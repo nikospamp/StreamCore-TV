@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.search.mobile.search
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkReadiness
-
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -38,10 +37,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -168,7 +167,7 @@ private fun SearchHeader(
 @Composable
 private fun SearchDiscoveryContent(
     recentQueries: List<String>,
-    trending: List<ContentModel>,
+    trending: List<StreamCoreContent>,
     onAction: (SearchAction) -> Unit,
 ) {
     LazyColumn(
@@ -298,7 +297,7 @@ private fun RecentQueryRow(
 
 @Composable
 private fun TrendingContentRow(
-    content: ContentModel,
+    content: StreamCoreContent,
     onSelected: () -> Unit,
 ) {
     val openDetailsDescription = stringResource(
@@ -360,10 +359,10 @@ private fun SearchEmptyState(
 
 @Composable
 private fun SearchFailureState(
-    error: AppError,
+    error: StreamCoreError,
     onRetry: () -> Unit,
 ) {
-    val isOffline = error is AppError.Network || error is AppError.Timeout
+    val isOffline = error is StreamCoreError.Network || error is StreamCoreError.Timeout
     SearchMessageState(
         title = stringResource(
             if (isOffline) {

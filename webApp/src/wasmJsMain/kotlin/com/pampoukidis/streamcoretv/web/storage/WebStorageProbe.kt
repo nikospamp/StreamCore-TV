@@ -126,6 +126,7 @@ internal fun Throwable.toWebStorageFailure(): WebStorageFailure {
         }
     }.lowercase()
     val kind = when {
+        this is WebSdkStorageException -> WebStorageFailureKind.Io
         this is CorruptionException || "corrupt" in normalized || "serial" in normalized ||
             "protobuf" in normalized || "invalid version" in normalized ||
             "unsupported version" in normalized || "version mismatch" in normalized ->

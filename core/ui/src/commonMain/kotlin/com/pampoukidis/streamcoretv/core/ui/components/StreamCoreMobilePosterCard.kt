@@ -21,7 +21,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
@@ -35,7 +35,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
 fun StreamCoreMobilePosterCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
@@ -128,8 +128,8 @@ private fun StreamCoreMobilePosterCardPreview() {
     }
 }
 
-private fun posterPreviewContent(): ContentModel {
-    return ContentModel(
+private fun posterPreviewContent(): StreamCoreContent {
+    return StreamCoreContent(
         id = "poster-preview",
         title = "The Last Horizon",
         description = "",

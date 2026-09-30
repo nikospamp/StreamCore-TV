@@ -30,7 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCheckIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
@@ -42,7 +42,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 /** Shared dialog surface and avatar grid. Callers own dialog placement and input-specific controls. */
 @Composable
 fun AvatarPickerContent(
-    avatars: List<ProfileAvatarModel>,
+    avatars: List<StreamCoreProfileAvatar>,
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,
@@ -54,7 +54,7 @@ fun AvatarPickerContent(
             StreamCoreCloseButton(onClick = onClick, enabled = enabled, modifier = controlModifier)
         },
     avatarControl: @Composable (
-        avatar: ProfileAvatarModel,
+        avatar: StreamCoreProfileAvatar,
         index: Int,
         selected: Boolean,
         onClick: () -> Unit,
@@ -128,7 +128,7 @@ fun AvatarPickerContent(
 }
 
 @Composable
-private fun AvatarPickerArtwork(avatar: ProfileAvatarModel, selected: Boolean, layout: AvatarPickerLayout) {
+private fun AvatarPickerArtwork(avatar: StreamCoreProfileAvatar, selected: Boolean, layout: AvatarPickerLayout) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxWidth().padding(StreamCoreDimens.Spacing.Tiny),

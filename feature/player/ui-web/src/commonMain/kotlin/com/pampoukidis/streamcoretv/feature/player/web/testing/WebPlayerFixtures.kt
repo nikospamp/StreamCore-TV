@@ -6,15 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerSettingsPage
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerUiState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
@@ -83,10 +83,10 @@ internal object WebPlayerFixtures {
             language = "el",
         ),
     )
-    val request = PlaybackRequestModel(
+    val request = StreamCorePlaybackRequest(
         profileId = "web-player-profile",
         contentId = "orbit-fall",
-        contentSnapshot = ContentModel(
+        contentSnapshot = StreamCoreContent(
             id = "orbit-fall",
             title = "Orbit Fall",
             description = "A backend-free player fixture.",
@@ -238,7 +238,7 @@ internal class FakeWebPlaybackSession(
     var lastResizeMode: PlaybackResizeMode? = null
         private set
 
-    override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
+    override fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long) {
         prepareCalls += 1
     }
 

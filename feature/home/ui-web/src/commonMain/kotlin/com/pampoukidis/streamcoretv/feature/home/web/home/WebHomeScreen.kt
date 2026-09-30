@@ -49,7 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCarouselIndicator
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBackIcon
@@ -201,14 +201,14 @@ fun WebHomeScreen(
 
 @Composable
 private fun WebHomeHero(
-    items: List<ContentModel>,
+    items: List<StreamCoreContent>,
     onAction: (HomeAction) -> Unit,
     returnFocusKey: WebBrowseFocusKey?,
     returnContentIndex: Int?,
     requestInitialFocus: Boolean,
     onReturnFocusConsumed: (WebBrowseFocusKey) -> Unit,
 ) {
-    var activeIndex by rememberSaveable(items.map(ContentModel::id)) { mutableIntStateOf(0) }
+    var activeIndex by rememberSaveable(items.map(StreamCoreContent::id)) { mutableIntStateOf(0) }
     val detailsFocusRequester = remember { FocusRequester() }
     val safeActiveIndex = activeIndex.coerceIn(items.indices)
     val activeContent = items[safeActiveIndex]
@@ -397,7 +397,7 @@ private fun WebHomeRow(
 
 @Composable
 private fun WebHomeContentTile(
-    content: ContentModel,
+    content: StreamCoreContent,
     row: RowModel,
     onClick: () -> Unit,
     selected: Boolean,

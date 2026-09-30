@@ -5,26 +5,26 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
 import com.pampoukidis.streamcoretv.feature.details.common.details.withInitialContent
-import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetailsRequest
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 
 @Composable
 fun MobileDetailsRoute(
     profileId: String,
     contentId: String,
-    onRecommendationSelected: (ContentModel) -> Unit,
-    onRecommendationArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
-    onPlaySelected: (PlaybackRequestModel) -> Unit,
+    onRecommendationSelected: (StreamCoreContent) -> Unit,
+    onRecommendationArtworkSelected: ((StreamCoreContent, String?) -> Unit)? = null,
+    onPlaySelected: (StreamCorePlaybackRequest) -> Unit,
     onBack: () -> Unit,
-    onError: (AppError) -> Unit,
-    initialContent: ContentModel? = null,
+    onError: (StreamCoreError) -> Unit,
+    initialContent: StreamCoreContent? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
     viewModel: DetailsViewModel = koinViewModel(),
 ) {
@@ -37,7 +37,7 @@ fun MobileDetailsRoute(
     LaunchedEffect(profileId, contentId, viewModel) {
         viewModel.onAction(
             DetailsAction.Load(
-                request = DetailsRequest(
+                request = StreamCoreDetailsRequest(
                     profileId = profileId,
                     contentId = contentId,
                 ),

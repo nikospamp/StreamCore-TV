@@ -9,7 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryAction
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryUiState
@@ -88,7 +88,7 @@ class TabletLibraryScreenTest {
         composeRule.runOnIdle {
             state = LibraryUiState(
                 isLoading = false,
-                error = AppError.Network(),
+                error = StreamCoreError.Network(),
             )
         }
         composeRule.onNodeWithTag(LibraryTestTags.Error).assertIsDisplayed()

@@ -35,8 +35,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHistoryIcon
@@ -61,7 +61,7 @@ fun MobileLibraryScreen(
     onAction: (LibraryAction) -> Unit,
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
-    activeProfile: ProfileModel? = null,
+    activeProfile: StreamCoreProfile? = null,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
@@ -159,7 +159,7 @@ fun MobileLibraryScreen(
 
 @Composable
 private fun LibraryHeader(
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     onProfileSelected: () -> Unit,
 ) {
     val chooseProfileDescription = stringResource(R.string.library_choose_profile)
@@ -247,10 +247,10 @@ private fun LibrarySection(
     title: String,
     emptyMessage: String,
     emptyTag: String,
-    items: List<ContentModel>,
+    items: List<StreamCoreContent>,
     sectionTag: String,
     emptyIcon: @Composable () -> Unit,
-    content: @Composable (ContentModel) -> Unit,
+    content: @Composable (StreamCoreContent) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Mobile.Browse.RowSpacing),
@@ -373,7 +373,7 @@ private fun LoadingShelf(cardWidth: Dp) {
     }
 }
 
-private fun contentTag(content: ContentModel): String {
+private fun contentTag(content: StreamCoreContent): String {
     return LibraryTestTags.ContentPrefix + content.row + ":" + content.id
 }
 

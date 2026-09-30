@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.navigation
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import kotlinx.serialization.Serializable
 
 internal sealed interface AppRoute {
@@ -41,7 +41,7 @@ internal sealed interface AppRoute {
         val profileId: String,
         val contentId: String,
         val sourceRow: String? = null,
-        val initialContent: ContentModel? = null,
+        val initialContent: StreamCoreContent? = null,
         val returnFocusKey: String? = null,
         val sourceArtworkUrl: String? = null,
     ) : AppRoute
@@ -50,6 +50,6 @@ internal sealed interface AppRoute {
     data class Player(
         val profileId: String,
         val contentId: String,
-        val contentSnapshot: ContentModel,
+        val contentSnapshot: StreamCoreContent,
     ) : AppRoute
 }

@@ -47,7 +47,7 @@ import com.pampoukidis.streamcoretv.feature.login.common.login.LoginFormModifier
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginHeader
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginUiState
 import com.pampoukidis.streamcoretv.feature.login.common.testing.LoginTestTags
-import com.pampoukidis.streamcoretv.feature.login.data.LoginBackgroundVariant
+import com.pampoukidis.streamcoretv.feature.login.common.login.LoginBackgroundVariant
 
 @Composable
 fun TvLoginScreen(
@@ -183,7 +183,7 @@ private fun rememberTvLoginFormModifiers(): LoginFormModifiers {
                 up = passwordFocusRequester
                 down = forgotPasswordFocusRequester
             },
-        forgotPassword = Modifier
+        recoverPassword = Modifier
             .focusRequester(forgotPasswordFocusRequester)
             .focusProperties {
                 up = submitFocusRequester

@@ -7,11 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorViewModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 
 @Composable
 fun MobileProfileEditorRoute(
@@ -19,7 +19,7 @@ fun MobileProfileEditorRoute(
     profileId: String?,
     onProfileSaved: () -> Unit,
     onClose: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     viewModel: ProfileEditorViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

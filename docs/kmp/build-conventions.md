@@ -3,6 +3,11 @@
 KMP-02 established Android-only Kotlin Multiplatform foundations. WEB-01 adds the first Wasm graph while the target architecture remains
 backend-agnostic. No JS compatibility, native, or JVM desktop target exists.
 
+Current SDK providers are `:sdk:providers:tmdb` and `:sdk:providers:clientB`, with sources in
+`sdk/providers/tmdb` and `sdk/providers/clientB`. Optional shared presentation lives in `:sdk:ui` and
+`:sdk:providers:tmdb:ui` / `:sdk:providers:clientB:ui`; screens and DI wiring remain application-owned.
+See [the SDK module tree](../sdk/integration.md#repository-structure). Milestone evidence and ticket command transcripts retain their original paths.
+
 ## Convention usage
 
 Plain shared module:
@@ -51,8 +56,8 @@ runtime dependencies. After changing this setup, sync Gradle and refresh the pre
 
 Test compilations are intentionally not enabled by either convention. A module containing `src/commonTest/kotlin/**/*.kt` must opt in with
 `streamCoreKmp { withHostTest() }`. This explicit module call invokes the official target's `withHostTest {}` without recreating the target. Root
-`verifyKmpTestTargets` compares common test sources with actual `testAndroidHostTest` tasks. `:core:domain` is compile-only: it removes the unused
-default `commonTest` source set, has no test directory, and enables no host test.
+`verifyKmpTestTargets` compares common test sources with actual `testAndroidHostTest` tasks. Compile-only modules remove the unused default
+`commonTest` source set, contain no common tests, and do not enable a host test. The former `:core:domain` example was retired by SDK extraction.
 
 ## Source placement
 
@@ -70,18 +75,20 @@ Common sources cannot import Android or JVM APIs. Platform implementations and p
 WEB-01-enabled libraries call `streamCoreKmp { withWasmJs() }`. The convention creates a library target with a non-browser Node environment needed
 by Kotlin 2.3.21 npm aggregation; it never creates executable binaries. Plain KMP library common tests compile and run through `wasmJsNodeTest`.
 Compose-owning libraries omit their library Wasm test compilation because Compose `1.12.0` otherwise registers duplicate `commonTest` resource
-tasks. A plain library whose test runtime transitively requires Compose/Skiko may explicitly call `withWasmJs(withTests = false)`: WEB-01 uses that
-exception only for `:client:tmdb:player`, `:feature:library:domain`, and `:feature:player:data`, because Node cannot load Skiko's browser runtime.
-Those suites remain covered by `testAndroidHostTest`; browser integration remains owned by `:webApp`, the only module with `browser()` and
-`binaries.executable()`.
+tasks. A plain library whose test runtime transitively requires Compose/Skiko may explicitly call `withWasmJs(withTests = false)`, because Node
+cannot load Skiko's browser runtime. WEB-01 applied that exception to provider-player and feature-domain/data modules that SDK extraction later
+retired. Current `:sdk:runtime` and the two headless `:sdk:providers:<provider>` modules run tests on Node; SDK browser-storage and application playback/UI browser
+checks are separate. See [SDK verification](../sdk/verification.md) for the recorded target coverage rather than reusing the old module exclusions.
 
 Shared dependencies must publish compatible KMP metadata and Android variants and be covered by `verifyKmpDependencyCompatibility`. Android-only
-libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility; only the 28 modules enumerated in
-`WEB-01-evidence.md` are web-ready.
+libraries belong in `androidMain` or an Android-only module. KMP membership does not imply Wasm compatibility. The 28-module list in
+`WEB-01-evidence.md` is the historical first browser graph; use current target declarations and successful verification for the current graph.
 
 Compose Resource owners must enable Android resource processing on the official Android-KMP target. This packages generated
 `composeResources` assets into the AAR and consuming APK; KMP-07 verifies both provider UI modules this way. Common vector XML uses literal
 Compose-supported colors and never Android framework resource references such as `@android:color/*`.
+
+The three optional SDK UI libraries contain resource contracts/resolvers rather than composables. They use `streamcore.kmp.resources.library`, which shares the Compose plugins and Android compiler flags with the UI convention while omitting preview tooling. Their public resource/runtime dependencies use `api`, Android resource processing is enabled, and actual published payloads are checked by separate Android/Wasm presentation consumers. The six headless SDK artifacts retain independent rendering-dependency bans.
 
 ## Root ownership and task behavior
 

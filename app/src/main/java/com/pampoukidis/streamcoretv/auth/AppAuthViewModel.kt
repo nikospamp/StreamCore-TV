@@ -2,11 +2,12 @@ package com.pampoukidis.streamcoretv.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
+import com.pampoukidis.streamcore.sdk.model.StreamCoreContext
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -20,11 +21,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AppAuthViewModel constructor(
-    private val authenticateRepository: AuthenticateRepository,
+    private val client: StreamCoreClient,
 ) : ViewModel() {
 
     private val bootstrapCompleted = MutableStateFlow(false)
-    private val activeProfileId = MutableStateFlow<String?>(null)
     private val logoutState = MutableStateFlow(LogoutState())
     private val effectsChannel = Channel<AppAuthEffect>(capacity = Channel.BUFFERED)
 
@@ -32,17 +32,16 @@ class AppAuthViewModel constructor(
 
     val uiState: StateFlow<AppAuthUiState> = combine(
         bootstrapCompleted,
-        authenticateRepository.authState,
-        activeProfileId,
+        client.context,
         logoutState,
-    ) { isBootstrapCompleted, authState, activeProfileId, logoutState ->
+    ) { isBootstrapCompleted, context, logoutState ->
         if (!isBootstrapCompleted) {
             return@combine AppAuthUiState.Loading
         }
 
         AppAuthUiState.Ready(
-            authState = authState,
-            activeProfileId = activeProfileId,
+            authState = context.account?.let { StreamCoreAuthState.LoggedIn(it) } ?: StreamCoreAuthState.LoggedOut,
+            activeProfileId = context.profile?.id,
             isLogoutConfirmationVisible = logoutState.isConfirmationVisible,
             isLogoutInProgress = logoutState.isInProgress,
         )
@@ -57,8 +56,8 @@ class AppAuthViewModel constructor(
         bootstrapAuth()
     }
 
-    fun onActiveProfileChanged(profileId: String?) {
-        activeProfileId.value = profileId
+    suspend fun clearProfileSelection(): StreamCoreResult<Unit> {
+        return client.profiles.clearSelection()
     }
 
     fun onAction(action: AppAuthAction) {
@@ -71,7 +70,7 @@ class AppAuthViewModel constructor(
 
     private fun requestLogout() {
         val readyState = uiState.value as? AppAuthUiState.Ready ?: return
-        if (readyState.authState !is AuthStateModel.LoggedIn) {
+        if (readyState.authState !is StreamCoreAuthState.LoggedIn) {
             return
         }
 
@@ -97,14 +96,12 @@ class AppAuthViewModel constructor(
 
         viewModelScope.launch {
             when (val result = logoutResult()) {
-                is AppResult.Success -> {
-                    activeProfileId.value = null
+                is StreamCoreResult.Success -> {
                     logoutState.value = LogoutState()
                 }
 
-                is AppResult.Failure -> {
-                    if (result.error is AppError.Unauthorized || result.error is AppError.SessionExpired) {
-                        activeProfileId.value = null
+                is StreamCoreResult.Failure -> {
+                    if (client.context.value.account == null) {
                         logoutState.value = LogoutState()
                     } else {
                         logoutState.update { state -> state.copy(isInProgress = false) }
@@ -115,15 +112,15 @@ class AppAuthViewModel constructor(
         }
     }
 
-    private suspend fun logoutResult(): AppResult<Unit> {
+    private suspend fun logoutResult(): StreamCoreResult<Unit> {
         return try {
-            authenticateRepository.logoutUser()
+            client.auth.logout()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Throwable) {
-            AppResult.Failure(
-                AppError.Unknown(
-                    source = ErrorSource(
+            StreamCoreResult.Failure(
+                StreamCoreError.Unknown(
+                    source = StreamCoreErrorSource(
                         operation = LOGOUT_OPERATION,
                     ),
                 ),
@@ -134,11 +131,11 @@ class AppAuthViewModel constructor(
     private fun bootstrapAuth() {
         viewModelScope.launch {
             when (val result = bootstrapResult()) {
-                is AppResult.Success -> {
+                is StreamCoreResult.Success -> {
                     bootstrapCompleted.value = true
                 }
 
-                is AppResult.Failure -> {
+                is StreamCoreResult.Failure -> {
                     bootstrapCompleted.value = true
                     effectsChannel.send(AppAuthEffect.ShowError(error = result.error))
                 }
@@ -146,15 +143,15 @@ class AppAuthViewModel constructor(
         }
     }
 
-    private suspend fun bootstrapResult(): AppResult<AuthStateModel> {
+    private suspend fun bootstrapResult(): StreamCoreResult<StreamCoreContext> {
         return try {
-            authenticateRepository.bootstrapAuth()
+            client.bootstrap()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Throwable) {
-            AppResult.Failure(
-                AppError.Unknown(
-                    source = ErrorSource(
+            StreamCoreResult.Failure(
+                StreamCoreError.Unknown(
+                    source = StreamCoreErrorSource(
                         operation = "bootstrapAuth",
                         backendCode = "AUTH_BOOTSTRAP_FAILURE",
                     ),
@@ -169,6 +166,6 @@ class AppAuthViewModel constructor(
     )
 
     private companion object {
-        const val LOGOUT_OPERATION = "logoutUser"
+        const val LOGOUT_OPERATION = "logout"
     }
 }

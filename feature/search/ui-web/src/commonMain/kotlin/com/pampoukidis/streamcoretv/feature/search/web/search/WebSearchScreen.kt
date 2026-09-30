@@ -46,7 +46,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseIcon
@@ -241,7 +241,7 @@ private fun WebSearchFieldRow(
 @Composable
 private fun WebSearchDiscovery(
     recentQueries: List<String>,
-    trending: List<ContentModel>,
+    trending: List<StreamCoreContent>,
     selectedContentKey: WebBrowseFocusKey?,
     returnFocusKey: WebBrowseFocusKey?,
     returnFocusTarget: WebSearchReturnFocusTarget,
@@ -350,7 +350,7 @@ private fun WebRecentSearches(
 
 @Composable
 private fun WebTrendingSearches(
-    items: List<ContentModel>,
+    items: List<StreamCoreContent>,
     selectedContentKey: WebBrowseFocusKey?,
     returnFocusKey: WebBrowseFocusKey?,
     returnFocusTarget: WebSearchReturnFocusTarget,
@@ -417,7 +417,7 @@ private fun WebTrendingSearches(
 
 @Composable
 private fun WebSearchResults(
-    items: List<ContentModel>,
+    items: List<StreamCoreContent>,
     showOfflineNotice: Boolean,
     selectedContentKey: WebBrowseFocusKey?,
     returnFocusKey: WebBrowseFocusKey?,
@@ -530,7 +530,7 @@ private fun WebSearchResults(
 
 @Composable
 private fun WebSearchContentTile(
-    content: ContentModel,
+    content: StreamCoreContent,
     selected: Boolean,
     type: RowType,
     onClick: () -> Unit,

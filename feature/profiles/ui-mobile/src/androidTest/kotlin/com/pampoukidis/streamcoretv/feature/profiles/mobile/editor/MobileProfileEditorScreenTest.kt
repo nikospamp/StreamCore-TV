@@ -12,8 +12,8 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditor
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorScreenUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

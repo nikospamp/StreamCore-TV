@@ -1,18 +1,23 @@
 package com.pampoukidis.streamcoretv.feature.home.common.home
 
-import com.pampoukidis.streamcoretv.core.domain.HomeRepository
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.RowModel
+import com.pampoukidis.streamcore.sdk.api.HomeService
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCollection
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCollectionPurpose
+import com.pampoukidis.streamcoretv.core.model.content.toRowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcoretv.core.tracing.NoOpPerformanceTracer
 import com.pampoukidis.streamcoretv.core.tracing.PerformanceTracer
-import com.pampoukidis.streamcoretv.feature.home.domain.LoadHomeRowsUseCase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.PlaybackProgressRecorder
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -44,14 +49,14 @@ class HomeViewModelTest {
     fun `load populates rows and ignores duplicate route load`() {
         runTest {
             val rows = listOf(rowModel())
-            val repository = FakeHomeRepository(AppResult.Success(rows))
+            val repository = FakeHomeRepository(StreamCoreResult.Success(rows))
             val subject = homeViewModel(repository)
 
             subject.onAction(HomeAction.Load("profile-1"))
             subject.onAction(HomeAction.Load("profile-1"))
             runCurrent()
 
-            assertEquals(rows, subject.uiState.value.rows)
+            assertEquals(rows.map { it.toRowModel() }, subject.uiState.value.rows)
             assertFalse(subject.uiState.value.isLoading)
             assertEquals(1, repository.requestCount)
         }
@@ -60,7 +65,7 @@ class HomeViewModelTest {
     @Test
     fun `refresh repeats active profile request`() {
         runTest {
-            val repository = FakeHomeRepository(AppResult.Success(listOf(rowModel())))
+            val repository = FakeHomeRepository(StreamCoreResult.Success(listOf(rowModel())))
             val subject = homeViewModel(repository)
 
             subject.onAction(HomeAction.Load("profile-1"))
@@ -76,8 +81,8 @@ class HomeViewModelTest {
     @Test
     fun `load failure emits error and stops loading`() {
         runTest {
-            val error = AppError.Network()
-            val subject = homeViewModel(FakeHomeRepository(AppResult.Failure(error)))
+            val error = StreamCoreError.Network()
+            val subject = homeViewModel(FakeHomeRepository(StreamCoreResult.Failure(error)))
             val effect = async { subject.effects.first() }
             runCurrent()
 
@@ -105,16 +110,16 @@ class HomeViewModelTest {
     fun `progress prepends reactive continue watching row`() {
         runTest {
             val content = contentModel()
-            val progress = MutableStateFlow(emptyList<PlaybackProgressEntryModel>())
+            val progress = MutableStateFlow(emptyList<StreamCorePlaybackProgressEntry>())
             val subject = homeViewModel(
-                repository = FakeHomeRepository(AppResult.Success(listOf(rowModel()))),
-                progressRepository = FlowPlaybackProgressRepository(progress),
+                repository = FakeHomeRepository(StreamCoreResult.Success(listOf(rowModel()))),
+                playback = FlowPlaybackService(progress),
             )
 
             subject.onAction(HomeAction.Load("profile-1"))
             runCurrent()
             progress.value = listOf(
-                PlaybackProgressEntryModel(
+                StreamCorePlaybackProgressEntry(
                     profileId = "profile-1",
                     contentId = content.id,
                     contentSnapshot = content,
@@ -132,7 +137,7 @@ class HomeViewModelTest {
             progress.value = emptyList()
             runCurrent()
 
-            assertEquals(listOf(rowModel()), subject.uiState.value.rows)
+            assertEquals(listOf(rowModel().toRowModel()), subject.uiState.value.rows)
         }
     }
 
@@ -150,13 +155,13 @@ class HomeViewModelTest {
     }
 
     private fun homeViewModel(
-        repository: HomeRepository = FakeHomeRepository(AppResult.Success(emptyList())),
-        progressRepository: PlaybackProgressRepository = EmptyPlaybackProgressRepository,
+        repository: HomeService = FakeHomeRepository(StreamCoreResult.Success(emptyList())),
+        playback: PlaybackService = EmptyPlaybackService,
         performanceTracer: PerformanceTracer = NoOpPerformanceTracer,
     ): HomeViewModel {
         return HomeViewModel(
-            loadHomeRows = LoadHomeRowsUseCase(repository),
-            progressRepository = progressRepository,
+            homeRepository = repository,
+            playback = playback,
             performanceTracer = performanceTracer,
         )
     }
@@ -178,18 +183,18 @@ class HomeViewModelTest {
         }
     }
 
-    private fun rowModel(): RowModel {
-        return RowModel(
+    private fun rowModel(): StreamCoreCollection {
+        return StreamCoreCollection(
             id = "row-1",
             title = "Featured",
             subtitle = "Selected for you",
             content = listOf(contentModel()),
-            type = RowType.Featured,
+            purpose = StreamCoreCollectionPurpose.Featured,
         )
     }
 
-    private fun contentModel(): ContentModel {
-        return ContentModel(
+    private fun contentModel(): StreamCoreContent {
+        return StreamCoreContent(
             id = "content-1",
             title = "Content",
             description = "Description",
@@ -205,8 +210,8 @@ class HomeViewModelTest {
     }
 
     private class FakeHomeRepository(
-        private val result: AppResult<List<RowModel>>,
-    ) : HomeRepository {
+        private val result: StreamCoreResult<List<StreamCoreCollection>>,
+    ) : HomeService {
 
         var requestCount: Int = 0
             private set
@@ -214,38 +219,42 @@ class HomeViewModelTest {
         var requestedProfileId: String? = null
             private set
 
-        override suspend fun getHomeRows(profileId: String): AppResult<List<RowModel>> {
+        override suspend fun getCollections(profileId: String): StreamCoreResult<List<StreamCoreCollection>> {
             requestCount += 1
             requestedProfileId = profileId
             return result
         }
     }
 
-    private object EmptyPlaybackProgressRepository : PlaybackProgressRepository {
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return flowOf(emptyList())
+    private object EmptyPlaybackService : PlaybackService {
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> { error("Not used by this screen") }
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return flowOf(StreamCoreResult.Success(emptyList()))
         }
 
-        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
-            return null
+        override suspend fun getProgress(profileId: String, contentId: String): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(null)
         }
 
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
-        override suspend fun remove(profileId: String, contentId: String) = Unit
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder { error("Not used by this screen") }
     }
 
-    private class FlowPlaybackProgressRepository(
-        private val entries: Flow<List<PlaybackProgressEntryModel>>,
-    ) : PlaybackProgressRepository {
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return entries
+    private class FlowPlaybackService(
+        private val entries: Flow<List<StreamCorePlaybackProgressEntry>>,
+    ) : PlaybackService {
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> { error("Not used by this screen") }
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return entries.map { StreamCoreResult.Success(it) }
         }
 
-        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
-            return null
+        override suspend fun getProgress(profileId: String, contentId: String): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(null)
         }
 
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
-        override suspend fun remove(profileId: String, contentId: String) = Unit
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder { error("Not used by this screen") }
     }
 }

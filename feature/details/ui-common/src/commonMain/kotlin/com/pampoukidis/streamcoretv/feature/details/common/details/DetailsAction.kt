@@ -1,16 +1,16 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetailsRequest
 
 sealed interface DetailsAction {
     data class Load(
-        val request: DetailsRequest,
-        val initialContent: ContentModel? = null,
+        val request: StreamCoreDetailsRequest,
+        val initialContent: StreamCoreContent? = null,
     ) : DetailsAction
     data object Refresh : DetailsAction
     data class RecommendationSelected(
-        val content: ContentModel,
+        val content: StreamCoreContent,
         val sourceArtworkUrl: String? = null,
     ) : DetailsAction
     data object PlaySelected : DetailsAction

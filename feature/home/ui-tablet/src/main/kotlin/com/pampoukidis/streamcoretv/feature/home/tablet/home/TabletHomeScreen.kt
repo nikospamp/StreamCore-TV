@@ -44,8 +44,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
@@ -83,7 +83,7 @@ fun TabletHomeScreen(
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
-    activeProfile: ProfileModel? = null,
+    activeProfile: StreamCoreProfile? = null,
     bottomContentPadding: Dp = StreamCoreDimens.Spacing.ExtraLarge,
 ) {
     val content = remember(state.rows) {
@@ -144,7 +144,7 @@ fun TabletHomeScreen(
 private fun TabletHomeContent(
     state: HomeUiState,
     content: HomeContentModel,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     bottomContentPadding: Dp,
@@ -208,10 +208,10 @@ private fun TabletHomeContent(
 
 @Composable
 private fun TabletHeroArea(
-    featured: List<ContentModel>,
+    featured: List<StreamCoreContent>,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
 ) {
     TabletHeroPager(
         content = featured,
@@ -224,10 +224,10 @@ private fun TabletHeroArea(
 
 @Composable
 private fun TabletHeroPager(
-    content: List<ContentModel>,
+    content: List<StreamCoreContent>,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Count and retained pager callbacks share one list snapshot during catalogue updates.
@@ -253,7 +253,7 @@ private fun TabletHeroPager(
 
 @Composable
 private fun TabletHeroCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -360,7 +360,7 @@ private fun ContinueWatchingShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
@@ -392,7 +392,7 @@ private fun ContinueWatchingShelf(
 @Composable
 private fun ContinueWatchingItem(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
     onClick: () -> Unit,
@@ -465,7 +465,7 @@ private fun TabletShelf(
     row: RowModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
@@ -548,7 +548,7 @@ private fun ShelfHeader(
 @Composable
 private fun TabletArtworkCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     width: Dp,
     aspectRatio: Float,
     imageUrl: String?,
@@ -614,7 +614,7 @@ private fun TabletArtworkCard(
 @Composable
 private fun TabletTopTenCard(
     rowId: String,
-    content: ContentModel,
+    content: StreamCoreContent,
     rank: Int,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -707,7 +707,7 @@ private fun rememberCardScrims(): List<Brush> {
     }
 }
 
-private fun ContentModel.sharedIdentity(): String {
+private fun StreamCoreContent.sharedIdentity(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,
@@ -718,7 +718,7 @@ private const val TopTenRankContentAlpha = 0.76f
 private const val TopTenRankHaloAlpha = 0.94f
 private const val TopTenRankHaloStrokeWidth = 4.0f
 
-private fun ContentModel.heroMetadata(): String {
+private fun StreamCoreContent.heroMetadata(): String {
     val values = buildList {
         val year = releaseYear(releaseDate)
         if (year > 0) {

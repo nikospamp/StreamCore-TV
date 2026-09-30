@@ -5,7 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTextButton
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -15,7 +15,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 
 @Composable
 fun ProfilesDeleteConfirmationDialog(
-    profile: ProfileModel?,
+    profile: StreamCoreProfile?,
     isSaving: Boolean,
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,

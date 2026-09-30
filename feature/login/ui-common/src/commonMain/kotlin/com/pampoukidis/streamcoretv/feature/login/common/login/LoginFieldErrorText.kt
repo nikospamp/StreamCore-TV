@@ -4,14 +4,14 @@ import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
 import streamcoretv.core.ui.generated.resources.Res
 import streamcoretv.core.ui.generated.resources.*
-import com.pampoukidis.streamcoretv.feature.login.data.LoginFieldError
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
 
 @Composable
-fun LoginFieldError.text(): String = when (this) {
-    LoginFieldError.Required -> stringResource(Res.string.login_identifier_required)
+fun StreamCoreLoginFieldError.text(): String = when (this) {
+    StreamCoreLoginFieldError.Required -> stringResource(Res.string.login_identifier_required)
 }
 
 @Composable
-fun LoginFieldError.passwordText(): String = when (this) {
-    LoginFieldError.Required -> stringResource(Res.string.login_password_required)
+fun StreamCoreLoginFieldError.passwordText(): String = when (this) {
+    StreamCoreLoginFieldError.Required -> stringResource(Res.string.login_password_required)
 }

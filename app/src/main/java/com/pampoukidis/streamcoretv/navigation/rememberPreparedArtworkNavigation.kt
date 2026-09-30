@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.motion.rememberArtworkPreparation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -14,8 +14,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** Navigation state helper; no UI to preview. The origin destination owns/cancels preparation. */
 @Composable
 internal fun rememberPreparedArtworkNavigation(
-    onNavigate: (ContentModel, String?) -> Unit,
-): (ContentModel, String?) -> Unit {
+    onNavigate: (StreamCoreContent, String?) -> Unit,
+): (StreamCoreContent, String?) -> Unit {
     val prepareArtwork = rememberArtworkPreparation()
     val currentNavigate by rememberUpdatedState(onNavigate)
     val scope = rememberCoroutineScope()

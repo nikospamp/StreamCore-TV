@@ -1,21 +1,21 @@
 package com.pampoukidis.streamcoretv.feature.home.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.RowType
-import com.pampoukidis.streamcoretv.core.model.general.Cast
-import com.pampoukidis.streamcoretv.core.model.general.Genre
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCastMember
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 
 object HomePreviewData {
 
-    private val drama = Genre(id = "drama", name = "Drama")
-    private val thriller = Genre(id = "thriller", name = "Thriller")
-    private val scienceFiction = Genre(id = "science-fiction", name = "Science Fiction")
-    private val family = Genre(id = "family", name = "Family")
+    private val drama = StreamCoreGenre(id = "drama", name = "Drama")
+    private val thriller = StreamCoreGenre(id = "thriller", name = "Thriller")
+    private val scienceFiction = StreamCoreGenre(id = "science-fiction", name = "Science Fiction")
+    private val family = StreamCoreGenre(id = "family", name = "Family")
 
     private val leadCast = listOf(
-        Cast(
+        StreamCoreCastMember(
             id = "cast-1",
             name = "Alex Morgan",
             characterName = "Commander Vale",
@@ -77,7 +77,7 @@ object HomePreviewData {
             content = content.take(3).mapIndexed { index, item ->
                 item.copy(
                     row = "continue-watching",
-                    playbackProgress = PlaybackProgressModel(
+                    playbackProgress = StreamCorePlaybackProgress(
                         positionMillis = (index + 2L) * 12L * 60L * 1000L,
                         durationMillis = 90L * 60L * 1000L,
                     ),
@@ -108,7 +108,7 @@ object HomePreviewData {
         ),
     )
 
-    private fun List<ContentModel>.withRow(row: String): List<ContentModel> {
+    private fun List<StreamCoreContent>.withRow(row: String): List<StreamCoreContent> {
         return map { content -> content.copy(row = row) }
     }
 
@@ -119,9 +119,9 @@ object HomePreviewData {
         rating: Int,
         pgRatingName: String,
         pgRatingLevel: Int,
-        genres: List<Genre>,
-    ): ContentModel {
-        return ContentModel(
+        genres: List<StreamCoreGenre>,
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = title,
             description = description,

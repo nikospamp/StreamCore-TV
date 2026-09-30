@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeAction
 import com.pampoukidis.streamcoretv.feature.home.common.home.HomeRouteEventEffect
@@ -16,8 +16,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun WebHomeRoute(
     profileId: String,
     selectedContentKey: WebBrowseFocusKey?,
-    onContentSelected: (ContentModel, WebBrowseFocusKey) -> Unit,
-    onError: (AppError) -> Unit,
+    onContentSelected: (StreamCoreContent, WebBrowseFocusKey) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     returnFocusKey: WebBrowseFocusKey?,
     onReturnFocusConsumed: (WebBrowseFocusKey) -> Unit,
     viewModel: HomeViewModel = koinViewModel(),

@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.navigation
 
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthAccount
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -9,7 +10,7 @@ class StreamCoreNavHostTest {
     @Test
     fun `logged out auth state starts at login`() {
         val result = startDestinationForAuthState(
-            authState = AuthStateModel.LoggedOut,
+            authState = StreamCoreAuthState.LoggedOut,
             activeProfileId = null,
         )
 
@@ -19,7 +20,7 @@ class StreamCoreNavHostTest {
     @Test
     fun `logged in auth state starts at profiles`() {
         val result = startDestinationForAuthState(
-            authState = AuthStateModel.LoggedIn(account = null),
+            authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null)),
             activeProfileId = null,
         )
 
@@ -29,7 +30,7 @@ class StreamCoreNavHostTest {
     @Test
     fun `logged in auth state with active profile starts at home`() {
         val result = startDestinationForAuthState(
-            authState = AuthStateModel.LoggedIn(account = null),
+            authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null)),
             activeProfileId = "profile-1",
         )
 
@@ -39,7 +40,7 @@ class StreamCoreNavHostTest {
     @Test
     fun `logged out auth state ignores active profile`() {
         val result = startDestinationForAuthState(
-            authState = AuthStateModel.LoggedOut,
+            authState = StreamCoreAuthState.LoggedOut,
             activeProfileId = "profile-1",
         )
 

@@ -1,5 +1,9 @@
 # KMP-05 — Migrate TMDB and ClientB Provider Implementations
 
+> Historical migration ticket: module names and commands below describe the original KMP work. Provider implementations now live in
+> `:sdk:providers:tmdb` and `:sdk:providers:clientB` under `sdk/providers/`; the separate provider-player modules were merged into those providers.
+> See [current SDK structure and commands](../../sdk/integration.md#repository-structure). Keep recorded evidence under its original paths.
+
 ## Goal
 
 Move eligible TMDB and ClientB provider code to KMP while preserving provider isolation, Android flavor behavior, and the Android Media3 engine.

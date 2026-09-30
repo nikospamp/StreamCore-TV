@@ -7,13 +7,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 
 @Composable
 fun SearchRouteEventEffect(
     viewModel: SearchViewModel,
-    onContentSelected: (ContentModel) -> Unit,
-    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
+    onContentSelected: (StreamCoreContent) -> Unit,
+    onContentArtworkSelected: ((StreamCoreContent, String?) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentContentSelected by rememberUpdatedState(onContentSelected)

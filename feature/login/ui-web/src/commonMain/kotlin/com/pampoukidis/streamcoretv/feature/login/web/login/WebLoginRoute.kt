@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.login.web.login
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.login.common.login.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -14,7 +14,7 @@ fun WebLoginRoute(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     auxiliaryActionsEnabled: Boolean = false,
     viewModel: LoginViewModel = koinViewModel(),
 ) {

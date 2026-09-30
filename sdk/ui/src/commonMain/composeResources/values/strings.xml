@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_action_ok">OK</string>
+    <string name="error_authentication_title">Sign-in failed</string>
+    <string name="error_authentication_message">Check your email and password, then try again.</string>
+    <string name="error_network_title">Connection issue</string>
+    <string name="error_network_message">Check your connection and try again.</string>
+    <string name="error_timeout_title">Request timed out</string>
+    <string name="error_timeout_message">The request took too long. Try again.</string>
+    <string name="error_unauthorized_title">Authentication required</string>
+    <string name="error_unauthorized_message">Sign in again to continue.</string>
+    <string name="error_session_expired_title">Session expired</string>
+    <string name="error_session_expired_message">Your session has expired. Sign in again to continue.</string>
+    <string name="error_generic_title">Something went wrong</string>
+    <string name="error_generic_message">Unable to continue. Try again.</string>
+    <string name="profile_pin_title">Enter profile PIN</string>
+    <string name="profile_pin_prompt">Enter the %1$d-digit PIN to continue.</string>
+    <string name="profile_pin_back">Back</string>
+    <string name="profile_pin_delete_digit">Delete</string>
+    <string name="profile_pin_retry">Try again</string>
+    <string name="profile_pin_checking">Checking PIN…</string>
+    <string name="profile_pin_incorrect">Incorrect PIN. Try again.</string>
+    <string name="profile_pin_unavailable">Unable to check your PIN. Check your connection, then try again.</string>
+    <string name="profile_pin_locked">PIN entry is temporarily unavailable. Go back and try again later.</string>
+    <string name="profile_pin_digits_entered">%1$d of %2$d digits entered</string>
+    <string name="profile_pin_input_label">Profile PIN</string>
+</resources>

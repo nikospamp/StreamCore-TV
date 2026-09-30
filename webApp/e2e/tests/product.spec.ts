@@ -42,6 +42,10 @@ function movieList(results = [browseMovie]) {
   };
 }
 
+function isFixtureAccountDiscovery(url: URL): boolean {
+  return url.origin === new URL(validConfig.tmdbBaseUrl).origin && url.pathname === "/3/account";
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/config.json", async (route) => {
     await route.fulfill({ json: validConfig });
@@ -64,7 +68,9 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({ headers, json: { success: true, session_id: syntheticSessionId } });
       return;
     }
-    if (url.pathname.endsWith("/account/42")) {
+    if (isFixtureAccountDiscovery(url)) {
+      expect(route.request().method()).toBe("GET");
+      expect(url.searchParams.get("session_id")).toBe(syntheticSessionId);
       await route.fulfill({
         headers,
         json: { id: 42, username: syntheticAccountUsername, name: null },
@@ -233,10 +239,10 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
         clip: firstProfileBounds,
         animations: "disabled",
       });
-      return avatarFrame.byteLength;
+      return avatarArtworkFraction(page, avatarFrame);
     },
     { timeout: 30_000, intervals: [500] },
-  ).toBeGreaterThan(10_000);
+  ).toBeGreaterThan(0.03);
   avatarVisualGatePassed = true;
   await page.mouse.move(1, 1);
   await page.waitForTimeout(500);
@@ -260,14 +266,16 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   await expect(page).toHaveURL(/\/home$/, { timeout: 30_000 });
   hardReloadPhase = "restoration";
   await page.reload();
-  await expect(page).toHaveURL(/\/home$/, { timeout: 30_000 });
-  await expect(page.locator("body")).toHaveAttribute("data-product-route", "/home");
+  await expectProductRoute(page, "/profiles");
   hardReloadPhase = null;
+  // Account restoration never restores a profile authorization grant in a fresh SDK.
+  await selectRestoredOwnerProfile(page);
 
   await page.goBack();
-  await expect(page).toHaveURL(/\/profiles$/);
+  await expectProductRoute(page, "/profiles");
   await page.goForward();
-  await expect(page).toHaveURL(/\/home$/);
+  // Browser history within the current SDK retains the explicitly selected activation.
+  await expectProductRoute(page, "/home");
 
   await page.route("**/movie/550/account_states**", async (route) => {
     await route.fulfill({
@@ -301,7 +309,7 @@ test("login, profile selection, persistence, history, keyboard and pointer contr
   )).toEqual([]);
 });
 
-test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ page }) => {
+test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ page }, testInfo) => {
   const credentialInput = ["fixture", "rejected", "credential"].join("-");
   await page.route("**/authentication/token/validate_with_login", async (route) => {
     await route.fulfill({
@@ -339,6 +347,8 @@ test("TMDB code 30 always shows deterministic sign-in failure copy", async ({ pa
   assertCredentialPayload();
   expect(page.url()).not.toContain("fixture-user");
   expect(page.url()).not.toContain(credentialInput);
+  await settleCanvasPaint(page, 1);
+  await page.screenshot({ path: testInfo.outputPath("provider-auth-error.png"), animations: "disabled" });
 });
 
 test("native credential form re-enables controls after auth failure and retries once", async ({ page }) => {
@@ -545,7 +555,8 @@ test("blank account name persists through official session-storage fallback", as
       originalSetItem.call(this, key, value);
     };
   });
-  await page.route("**/account/42**", async (route) => {
+  await page.route(isFixtureAccountDiscovery, async (route) => {
+    expect(new URL(route.request().url()).searchParams.get("session_id")).toBe(syntheticSessionId);
     await route.fulfill({
       headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
       json: { id: 42, username: syntheticAccountUsername, name: "" },
@@ -572,7 +583,8 @@ test("account verification 503 keeps login protected and reports a mapped failur
       remoteSessionCleanupRequests += 1;
     }
   });
-  await page.route("**/account/42**", async (route) => {
+  await page.route(isFixtureAccountDiscovery, async (route) => {
+    expect(new URL(route.request().url()).searchParams.get("session_id")).toBe(syntheticSessionId);
     await route.fulfill({
       status: 503,
       headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
@@ -601,7 +613,7 @@ test("hover produces visible profile-card feedback", async ({ page }) => {
   await loginToProfiles(page, "hover-user");
   await activateSemanticButton(
     page,
-    page.getByRole("button", { name: "Manage profiles", exact: true }),
+    page.getByRole("button", { name: "Manage", exact: true }),
   );
   const profile = page.getByRole("button", { name: "Edit Nikos profile", exact: true });
   const bounds = await semanticBounds(profile);
@@ -615,7 +627,7 @@ test("hover produces visible profile-card feedback", async ({ page }) => {
   expect(hoveredFrame.equals(restingFrame)).toBe(false);
 });
 
-test("profile create edit delete, editor arrows, modal trap and focused scrolling", async ({ page }) => {
+test("profile create edit delete, editor arrows, modal trap and focused scrolling", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await loginToProfiles(page, "crud-user");
   await expect(page.locator("body")).toHaveAttribute("data-profile-count", "2");
@@ -625,18 +637,39 @@ test("profile create edit delete, editor arrows, modal trap and focused scrollin
   await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", {
     timeout: 30_000,
   });
+  await activateSemanticButton(page, page.getByRole("button", { name: /^Change profile avatar/ }));
+  await expect(page.getByText("Choose an avatar", { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Avatar 1, selected", exact: true })).toHaveCount(1);
+  // Compose owns item focus inside its canvas; accessibility DIVs are projections, not keyboard hosts.
+  const avatarKeyboardHost = page.locator("#streamcore-compose-root canvas[tabindex='0']");
+  await avatarKeyboardHost.focus();
+  await expect(avatarKeyboardHost).toBeFocused();
+  const avatarViewport = page.viewportSize();
+  if (avatarViewport === null) throw new Error("Avatar keyboard review requires a configured viewport.");
+  await page.mouse.move(avatarViewport.width - 1, 1);
+  await settleCanvasPaint(page, 1);
   const avatarRowBefore = await page.screenshot({ animations: "disabled" });
-  await page.keyboard.press("ArrowRight");
-  await page.keyboard.press("Space");
-  for (let index = 0; index < 18; index += 1) {
-    await page.keyboard.press("ArrowRight");
+  for (let index = 0; index < 5; index += 1) {
+    await page.keyboard.press("ArrowDown", { delay: 50 });
+    await waitForAnimationFrames(page, 2);
   }
-  const avatarRowAfter = await page.screenshot({ animations: "disabled" });
-  expect(avatarRowAfter.equals(avatarRowBefore)).toBe(false);
+  await settleCanvasPaint(page, 1);
+  await expect.poll(async () => {
+    const avatarRowAfter = await page.screenshot({ animations: "disabled" });
+    return avatarRowAfter.equals(avatarRowBefore);
+  }, { timeout: 5_000, intervals: [100] }).toBe(false);
+  await page.keyboard.press("Space");
+  await expect(page.getByText("Choose an avatar", { exact: true })).toHaveCount(0);
+  await activateSemanticButton(page, page.getByRole("button", { name: /^Change profile avatar/ }));
+  await expect(page.getByRole("button", { name: /^Avatar (?:[2-9]|[1-9]\d+), selected$/ })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Avatar 1, selected", exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("avatar-keyboard-selection.png"), animations: "disabled" });
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Choose an avatar", { exact: true })).toHaveCount(0);
   const createNameField = page.locator('[data-testid="profile-display-name"]');
   const createSaveButton = page.locator('[data-testid="profile-editor-save"]');
-  await createSaveButton.focus();
-  await createSaveButton.press("Space");
+  await expect(createSaveButton).toBeDisabled();
+  await createNameField.press("Enter");
   await expect(page).toHaveURL(/\/profiles\/new$/);
   const displayNameError = page.locator('[data-testid="profile-display-name-error"]');
   await expect(displayNameError).toBeVisible();
@@ -770,10 +803,7 @@ test("browse routes preserve focus, library mutations, reload and logout", async
   const searchField = page.getByTestId("search:field");
   await searchField.fill("Orbit");
   await searchField.press("Enter");
-  const orbitResult = page.getByRole(
-    "button",
-    { name: "Open details for Orbit Fall", exact: true },
-  );
+  const orbitResult = searchResultCard(page, "Orbit Fall");
   await expect(orbitResult).toHaveCount(1, { timeout: 30_000 });
   await activateSemanticButton(page, orbitResult);
   await expectProductRoute(page, "/details/603");
@@ -799,6 +829,9 @@ test("browse routes preserve focus, library mutations, reload and logout", async
   );
   await expect(page.getByRole("button", { name: "In My List", exact: true })).toHaveCount(1);
 
+  // Immersive details intentionally hides the browse rail; return through its real Back control.
+  await activateSemanticButton(page, page.getByRole("button", { name: "Back", exact: true }));
+  await expectProductRoute(page, "/search");
   await activateSemanticButton(
     page,
     page.getByRole("button", { name: "Library", exact: true }),
@@ -831,9 +864,27 @@ test("browse routes preserve focus, library mutations, reload and logout", async
 
   errorMonitor.setReloadPhase("restoration");
   await page.reload();
-  await expectProductRoute(page, "/details/603");
+  await expectProductRoute(page, "/profiles");
   errorMonitor.setReloadPhase(null);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toHaveCount(0);
+  await selectRestoredOwnerProfile(page);
+  await activateSemanticButton(page, page.getByRole("button", { name: "Search", exact: true }));
+  await expectProductRoute(page, "/search");
+  await expect(page.getByRole("button", { name: "Orbit", exact: true })).toHaveCount(1);
+  await activateSemanticButton(page, page.getByRole("button", { name: "Home", exact: true }));
+  await expectProductRoute(page, "/home");
+  await activateSemanticButton(page, homeHeroDetails(page));
+  await expectProductRoute(page, "/details/603");
   await expect(page.getByRole("button", { name: "Play", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "In My List", exact: true })).toHaveCount(1);
+  await activateSemanticButton(page, page.getByRole("button", { name: "Back", exact: true }));
+  // After explicit re-entry, this details visit has Home as its safe browse origin.
+  await expectProductRoute(page, "/home");
+  await activateSemanticButton(
+    page,
+    page.getByRole("button", { name: "Change profile", exact: true }),
+  );
+  await expectProductRoute(page, "/profiles");
   await activateSemanticButton(
     page,
     page.getByRole("button", { name: "Sign out", exact: true }),
@@ -955,12 +1006,12 @@ test("browse visual states are deterministic and capturable", async ({ page }, t
   }
   slowSearch.release();
   await expect(
-    page.getByRole("button", { name: "Open details for Orbit Fall", exact: true }),
+    searchResultCard(page, "Orbit Fall"),
   ).toHaveCount(1, { timeout: 30_000 });
 
   await searchField.fill("Empty");
   await searchField.press("Enter");
-  await expect(page.getByRole("button", { name: "Clear search", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Clear query", exact: true })).toHaveCount(1);
   await captureBrowseState(page, testInfo.project.name, "empty");
 
   await searchField.fill("Error");
@@ -971,12 +1022,12 @@ test("browse visual states are deterministic and capturable", async ({ page }, t
   await searchField.fill("Cached");
   await searchField.press("Enter");
   await expect(
-    page.getByRole("button", { name: "Open details for Cached Orbit", exact: true }),
+    searchResultCard(page, "Cached Orbit"),
   ).toHaveCount(1, { timeout: 30_000 });
   await searchField.fill("Bridge");
   await searchField.press("Enter");
   await expect(
-    page.getByRole("button", { name: "Open details for Bridge Orbit", exact: true }),
+    searchResultCard(page, "Bridge Orbit"),
   ).toHaveCount(1, { timeout: 30_000 });
   failCachedQuery = true;
   const offlineResponse = page.waitForResponse((response) => {
@@ -989,19 +1040,16 @@ test("browse visual states are deterministic and capturable", async ({ page }, t
   await searchField.press("Enter");
   await offlineResponse;
   await expect(
-    page.getByRole("button", { name: "Open details for Cached Orbit", exact: true }),
+    searchResultCard(page, "Cached Orbit"),
   ).toHaveCount(1, { timeout: 30_000 });
   await expect(
-    page.getByText("You’re offline. Showing saved results.", { exact: true }),
+    page.getByText("Showing saved results while offline", { exact: true }),
   ).toHaveCount(1, { timeout: 30_000 });
   await captureBrowseState(page, testInfo.project.name, "offline");
 
   await searchField.fill("Long");
   await searchField.press("Enter");
-  const longResult = page.getByRole(
-    "button",
-    { name: `Open details for ${longTitle}`, exact: true },
-  );
+  const longResult = searchResultCard(page, longTitle);
   await expect(longResult).toHaveCount(1, { timeout: 30_000 });
   await activateSemanticButton(page, longResult);
   await expectProductRoute(page, "/details/605");
@@ -1041,10 +1089,25 @@ async function expectProductRoute(page: Page, path: string): Promise<void> {
   });
 }
 
+function searchResultCard(page: Page, title: string): Locator {
+  return page
+    .getByLabel(`Open details for ${title}`, { exact: true })
+    .getByRole("button", { name: title, exact: true });
+}
+
+async function selectRestoredOwnerProfile(page: Page): Promise<void> {
+  await expectProductRoute(page, "/profiles");
+  await activateSemanticButton(
+    page,
+    page.getByRole("button", { name: "Select Nikos profile", exact: true }),
+  );
+  await expectProductRoute(page, "/home");
+}
+
 function homeHeroDetails(page: Page): Locator {
   return page
     .getByRole("button", { name: "Open details for Orbit Fall", exact: true })
-    .filter({ hasText: "More details" });
+    .filter({ hasText: "Details" });
 }
 
 async function captureBrowseState(
@@ -1052,7 +1115,7 @@ async function captureBrowseState(
   projectName: string,
   state: "loading" | "content" | "empty" | "offline" | "error" | "long-text",
 ): Promise<void> {
-  const actionName = state === "empty" ? "Clear search" : state === "error" ? "Try again" : null;
+  const actionName = state === "empty" ? "Clear query" : state === "error" ? "Try again" : null;
   if (actionName !== null) {
     const actionBounds = await semanticBounds(
       page.getByRole("button", { name: actionName, exact: true }),
@@ -1166,7 +1229,7 @@ async function openCreatedProfileEditor(page: Page, displayName: string): Promis
     timeout: 30_000,
   });
   await expect(page.locator("body")).toHaveAttribute("data-profile-count", "3");
-  const manageProfiles = page.getByRole("button", { name: "Manage profiles", exact: true });
+  const manageProfiles = page.getByRole("button", { name: "Manage", exact: true });
   if (await manageProfiles.count() > 0) {
     await activateSemanticButton(page, manageProfiles);
   }
@@ -1181,12 +1244,42 @@ async function openCreatedProfileEditor(page: Page, displayName: string): Promis
 }
 
 async function activateSemanticButton(page: Page, button: Locator): Promise<void> {
+  // Leave the hover-expanded navigation rail before resolving a content control's hit area.
+  // Its overlay can cover the first card's center while the pointer remains on the rail.
+  const viewport = page.viewportSize();
+  if (viewport === null) throw new Error("Physical pointer activation requires a configured viewport.");
+  await page.mouse.move(viewport.width - 1, 1);
+  await waitForAnimationFrames(page, 4);
   await settleCanvasPaint(page, 1);
   const bounds = await semanticBounds(button);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 2);
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await waitForAnimationFrames(page, 4);
+}
+
+async function avatarArtworkFraction(page: Page, frame: Buffer): Promise<number> {
+  // Inspect rendered artwork, not PNG compression size (which changes with card dimensions).
+  // The fixture's first vector has a turquoise background; a fallback letter or focus ring does not.
+  return page.evaluate(async (base64) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${base64}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (context === null) throw new Error("Avatar visual evidence could not be decoded.");
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let artworkPixels = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index] < 80 && pixels[index + 1] > 120 && pixels[index + 2] > 120) {
+        artworkPixels += 1;
+      }
+    }
+    return artworkPixels / (canvas.width * canvas.height);
+  }, frame.toString("base64"));
 }
 
 async function semanticBounds(
@@ -1349,7 +1442,7 @@ async function strictPageErrors(
 }
 
 const TMDB_AVATAR_RESOURCE_PATH =
-  "/composeResources/streamcoretv.client.tmdb.ui.generated.resources/drawable/tmdb_profile_avatar_01.xml";
+  "/composeResources/com.pampoukidis.streamcore.sdk.providers.tmdb.ui.generated.resources/drawable/tmdb_profile_avatar_01.xml";
 const WEBKIT_AVATAR_ACCESS_ERROR =
   `${TMDB_AVATAR_RESOURCE_PATH.replace("/composeResources", "/127.0.0.1:4173/composeResources")} due to access control checks.`;
 const WEBKIT_AVATAR_BLOB_ACCESS_ERROR =
@@ -1389,9 +1482,25 @@ test("shared control styles preserve native focus, loading labels and DOM identi
   const originalInput = await identifier.elementHandle();
   await identifier.fill("style-viewer");
   await password.fill("style-password");
+  const unfocusedSubmit = await submit.screenshot({ animations: "disabled" });
   await submit.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
   await expect(submit).toBeFocused();
-  await expect(submit).toHaveCSS("outline-style", "solid");
+  expect(await submit.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(submit).toHaveCSS("box-shadow", /inset/);
+  const focusStyle = await submit.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { shadow: style.boxShadow, foreground: style.color, background: style.backgroundColor };
+  });
+  expect(focusStyle.shadow).toContain("3px");
+  expect(focusStyle.shadow).toContain(focusStyle.foreground);
+  expect(focusStyle.foreground).not.toBe(focusStyle.background);
+  const focusedSubmit = await submit.screenshot({
+    path: testInfo.outputPath("shared-button-keyboard-focus.png"),
+    animations: "disabled",
+  });
+  expect(focusedSubmit.equals(unfocusedSubmit)).toBe(false);
   await submit.hover();
   await expect(submit).not.toHaveCSS("background-image", "none");
   await page.mouse.down();

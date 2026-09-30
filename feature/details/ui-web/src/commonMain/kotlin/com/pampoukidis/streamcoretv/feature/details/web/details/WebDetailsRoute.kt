@@ -4,24 +4,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.ErrorSource
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
 import com.pampoukidis.streamcoretv.core.ui.web.WebBrowseFocusKey
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsViewModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun WebDetailsRoute(
     profileId: String,
     contentId: String,
-    onRecommendationSelected: (ContentModel, WebBrowseFocusKey) -> Unit,
-    onPlaySelected: (PlaybackRequestModel, WebBrowseFocusKey) -> Unit,
+    onRecommendationSelected: (StreamCoreContent, WebBrowseFocusKey) -> Unit,
+    onPlaySelected: (StreamCorePlaybackRequest, WebBrowseFocusKey) -> Unit,
     onBack: () -> Unit,
-    onError: (AppError) -> Unit,
-    initialContent: ContentModel? = null,
+    onError: (StreamCoreError) -> Unit,
+    initialContent: StreamCoreContent? = null,
     returnFocusKey: WebBrowseFocusKey?,
     onReturnFocusConsumed: (WebBrowseFocusKey) -> Unit,
     viewModel: DetailsViewModel = koinViewModel(),
@@ -70,9 +70,9 @@ fun WebDetailsRoute(
     )
 }
 
-private fun detailsFocusContractError(): AppError {
-    return AppError.Unknown(
-        source = ErrorSource(
+private fun detailsFocusContractError(): StreamCoreError {
+    return StreamCoreError.Unknown(
+        source = StreamCoreErrorSource(
             operation = "details.selectRecommendation",
             backendCode = "RECOMMENDATION_ID_MISSING",
         ),

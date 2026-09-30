@@ -1,19 +1,14 @@
 package com.pampoukidis.streamcoretv.feature.search.common.search
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.search.domain.AddRecentSearchUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.ClearRecentSearchesUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.LoadSearchDiscoveryUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.ObserveRecentSearchesUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.RecentSearchRepository
-import com.pampoukidis.streamcoretv.feature.search.domain.RemoveRecentSearchUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.SearchContentUseCase
-import com.pampoukidis.streamcoretv.feature.search.domain.SearchRepository
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.api.SearchService
+import com.pampoukidis.streamcore.sdk.model.search.StreamCoreSearchInteraction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceTimeBy
@@ -31,22 +26,15 @@ class SearchViewModelTest {
 
     private val mainDispatcherRule = MainDispatcherRule()
 
-    private lateinit var searchRepository: FakeSearchRepository
-    private lateinit var recentRepository: FakeRecentSearchRepository
+    private lateinit var search: FakeSearchService
     private lateinit var viewModel: SearchViewModel
 
     @BeforeTest
     fun setUp() {
         mainDispatcherRule.setUp()
-        searchRepository = FakeSearchRepository()
-        recentRepository = FakeRecentSearchRepository()
+        search = FakeSearchService()
         viewModel = SearchViewModel(
-            searchContent = SearchContentUseCase(searchRepository),
-            loadSearchDiscovery = LoadSearchDiscoveryUseCase(searchRepository),
-            observeRecentSearches = ObserveRecentSearchesUseCase(recentRepository),
-            addRecentSearch = AddRecentSearchUseCase(recentRepository),
-            removeRecentSearch = RemoveRecentSearchUseCase(recentRepository),
-            clearRecentSearches = ClearRecentSearchesUseCase(recentRepository),
+            search = search,
         )
     }
 
@@ -63,12 +51,12 @@ class SearchViewModelTest {
 
             advanceTimeBy(299)
             runCurrent()
-            assertTrue(searchRepository.queries.isEmpty())
+            assertTrue(search.queries.isEmpty())
 
             advanceTimeBy(1)
             runCurrent()
 
-            assertEquals(listOf("orbit fall"), searchRepository.queries)
+            assertEquals(listOf("orbit fall"), search.queries)
             val results = assertType<SearchContentState.Results>(viewModel.uiState.value.content)
             assertEquals("search:orbit fall", results.items.single().row)
         }
@@ -83,7 +71,7 @@ class SearchViewModelTest {
             advanceTimeBy(1_000)
             runCurrent()
 
-            assertTrue(searchRepository.queries.isEmpty())
+            assertTrue(search.queries.isEmpty())
             assertType<SearchContentState.Discovery>(viewModel.uiState.value.content)
         }
     }
@@ -91,7 +79,7 @@ class SearchViewModelTest {
     @Test
     fun `skeleton is delayed until request has run for 150ms`() {
         runTest {
-            searchRepository.searchDelayMillis = 200L
+            search.searchDelayMillis = 200L
             load()
             viewModel.onAction(SearchAction.QueryChanged("orbit"))
 
@@ -112,18 +100,18 @@ class SearchViewModelTest {
     @Test
     fun `new query cancels stale result`() {
         runTest {
-            searchRepository.searchDelayMillis = 400L
+            search.searchDelayMillis = 400L
             load()
             viewModel.onAction(SearchAction.QueryChanged("orbit"))
             advanceTimeBy(300)
             runCurrent()
 
-            searchRepository.searchDelayMillis = 0L
+            search.searchDelayMillis = 0L
             viewModel.onAction(SearchAction.QueryChanged("northern"))
             advanceTimeBy(300)
             runCurrent()
 
-            assertEquals(listOf("orbit", "northern"), searchRepository.queries)
+            assertEquals(listOf("orbit", "northern"), search.queries)
             assertEquals("northern", viewModel.uiState.value.resultQuery)
             val results = assertType<SearchContentState.Results>(viewModel.uiState.value.content)
             assertEquals("search:northern", results.items.single().row)
@@ -139,8 +127,8 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.SubmitQuery)
             runCurrent()
 
-            assertEquals(listOf("orbit"), searchRepository.queries)
-            assertEquals(listOf("orbit"), recentRepository.values.value)
+            assertEquals(listOf("orbit"), search.queries)
+            assertEquals(listOf("orbit"), search.values.value)
         }
     }
 
@@ -158,8 +146,8 @@ class SearchViewModelTest {
             advanceTimeBy(1_000)
             runCurrent()
 
-            assertEquals(listOf("Spider Man"), searchRepository.queries)
-            assertEquals(listOf("Spider Man"), recentRepository.values.value)
+            assertEquals(listOf("Spider Man"), search.queries)
+            assertEquals(listOf("Spider Man"), search.values.value)
             assertType<SearchContentState.Results>(viewModel.uiState.value.content)
         }
     }
@@ -175,7 +163,7 @@ class SearchViewModelTest {
             advanceTimeBy(300)
             runCurrent()
 
-            assertEquals(listOf("orbit"), searchRepository.queries)
+            assertEquals(listOf("orbit"), search.queries)
         }
     }
 
@@ -186,7 +174,7 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.QueryChanged("orbit"))
             advanceTimeBy(300)
             runCurrent()
-            searchRepository.searchResult = AppResult.Failure(AppError.Network())
+            search.searchResult = StreamCoreResult.Failure(StreamCoreError.Network())
 
             viewModel.onAction(SearchAction.Retry)
             runCurrent()
@@ -199,14 +187,14 @@ class SearchViewModelTest {
     @Test
     fun `non network failure without cache is inline failure`() {
         runTest {
-            searchRepository.searchResult = AppResult.Failure(AppError.Server())
+            search.searchResult = StreamCoreResult.Failure(StreamCoreError.Server())
             load()
             viewModel.onAction(SearchAction.QueryChanged("orbit"))
             advanceTimeBy(300)
             runCurrent()
 
             val failure = assertType<SearchContentState.Failure>(viewModel.uiState.value.content)
-            assertType<AppError.Server>(failure.error)
+            assertType<StreamCoreError.Server>(failure.error)
             assertFalse(viewModel.uiState.value.showOfflineNotice)
         }
     }
@@ -214,17 +202,17 @@ class SearchViewModelTest {
     @Test
     fun `retry forces the current failed query to execute again`() {
         runTest {
-            searchRepository.searchResult = AppResult.Failure(AppError.Server())
+            search.searchResult = StreamCoreResult.Failure(StreamCoreError.Server())
             load()
             viewModel.onAction(SearchAction.QueryChanged("orbit"))
             advanceTimeBy(300)
             runCurrent()
 
-            searchRepository.searchResult = AppResult.Success(listOf(content()))
+            search.searchResult = StreamCoreResult.Success(listOf(content()))
             viewModel.onAction(SearchAction.Retry)
             runCurrent()
 
-            assertEquals(listOf("orbit", "orbit"), searchRepository.queries)
+            assertEquals(listOf("orbit", "orbit"), search.queries)
             assertType<SearchContentState.Results>(viewModel.uiState.value.content)
         }
     }
@@ -242,7 +230,7 @@ class SearchViewModelTest {
             val effect = viewModel.effects.first()
 
             assertEquals(SearchEffect.ContentSelected(item), effect)
-            assertEquals(listOf("orbit"), recentRepository.values.value)
+            assertEquals(listOf("orbit"), search.values.value)
         }
     }
 
@@ -250,17 +238,17 @@ class SearchViewModelTest {
     fun `recent operations are delegated per active profile`() {
         runTest {
             load()
-            recentRepository.add(ProfileId, "Orbit")
+            search.recordHistory(ProfileId, "Orbit")
             runCurrent()
 
             viewModel.onAction(SearchAction.RecentRemoved("Orbit"))
             runCurrent()
-            assertTrue(recentRepository.values.value.isEmpty())
+            assertTrue(search.values.value.isEmpty())
 
-            recentRepository.add(ProfileId, "Northern")
+            search.recordHistory(ProfileId, "Northern")
             viewModel.onAction(SearchAction.ClearRecent)
             runCurrent()
-            assertTrue(recentRepository.values.value.isEmpty())
+            assertTrue(search.values.value.isEmpty())
         }
     }
 
@@ -277,55 +265,59 @@ class SearchViewModelTest {
         return value as T
     }
 
-    private class FakeSearchRepository : SearchRepository {
+    private class FakeSearchService : SearchService {
         val queries = mutableListOf<String>()
+        val values = MutableStateFlow<List<String>>(emptyList())
         var searchDelayMillis = 0L
-        var searchResult: AppResult<List<ContentModel>> = AppResult.Success(listOf(content()))
-        var discoveryResult: AppResult<List<ContentModel>> = AppResult.Success(listOf(content("trending")))
+        var searchResult: StreamCoreResult<List<StreamCoreContent>> = StreamCoreResult.Success(listOf(content()))
+        var discoveryResult: StreamCoreResult<List<StreamCoreContent>> = StreamCoreResult.Success(listOf(content("trending")))
 
-        override suspend fun search(
-            profileId: String,
-            query: String,
-        ): AppResult<List<ContentModel>> {
+        override suspend fun search(profileId: String, query: String, interaction: StreamCoreSearchInteraction): StreamCoreResult<List<StreamCoreContent>> {
             queries += query
             delay(searchDelayMillis)
-            return searchResult
+            val result = searchResult
+            if (result is StreamCoreResult.Success) displayedResults(profileId, query, result.value, interaction)
+            return result
         }
 
-        override suspend fun loadTrending(profileId: String): AppResult<List<ContentModel>> {
+        override suspend fun loadTrending(profileId: String): StreamCoreResult<List<StreamCoreContent>> {
             return discoveryResult
         }
-    }
 
-    private class FakeRecentSearchRepository : RecentSearchRepository {
-        val values = MutableStateFlow<List<String>>(emptyList())
-
-        override fun observe(profileId: String): Flow<List<String>> {
-            return values
+        override suspend fun displayedResults(profileId: String, query: String, results: List<StreamCoreContent>, interaction: StreamCoreSearchInteraction): StreamCoreResult<Unit> {
+            if (interaction == StreamCoreSearchInteraction.Typing || results.isEmpty()) return StreamCoreResult.Success(Unit)
+            return recordHistory(profileId, query)
         }
 
-        override suspend fun add(profileId: String, query: String) {
-            values.value = listOf(query) + values.value.filterNot { value ->
-                value.equals(query, ignoreCase = true)
-            }
+        override suspend fun resultSelected(profileId: String, query: String): StreamCoreResult<Unit> {
+            return recordHistory(profileId, query)
         }
 
-        override suspend fun remove(profileId: String, query: String) {
-            values.value = values.value.filterNot { value ->
-                value.equals(query, ignoreCase = true)
-            }
+        override fun observeHistory(profileId: String): Flow<StreamCoreResult<List<String>>> {
+            return values.map { StreamCoreResult.Success(it) }
         }
 
-        override suspend fun clear(profileId: String) {
+        override suspend fun recordHistory(profileId: String, query: String): StreamCoreResult<Unit> {
+            values.value = listOf(query) + values.value.filterNot { value -> value.equals(query, ignoreCase = true) }
+            return StreamCoreResult.Success(Unit)
+        }
+
+        override suspend fun removeHistoryQuery(profileId: String, query: String): StreamCoreResult<Unit> {
+            values.value = values.value.filterNot { value -> value.equals(query, ignoreCase = true) }
+            return StreamCoreResult.Success(Unit)
+        }
+
+        override suspend fun clearHistory(profileId: String): StreamCoreResult<Unit> {
             values.value = emptyList()
+            return StreamCoreResult.Success(Unit)
         }
     }
 
     private companion object {
         const val ProfileId = "profile-1"
 
-        fun content(id: String = "orbit"): ContentModel {
-            return ContentModel(
+        fun content(id: String = "orbit"): StreamCoreContent {
+            return StreamCoreContent(
                 id = id,
                 title = "Orbit Fall",
                 description = "Description",

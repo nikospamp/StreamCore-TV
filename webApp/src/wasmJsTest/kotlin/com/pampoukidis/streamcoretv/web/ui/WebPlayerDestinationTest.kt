@@ -1,10 +1,10 @@
 package com.pampoukidis.streamcoretv.web.ui
 
-import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.api.DetailsService
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
@@ -20,7 +20,7 @@ internal class WebPlayerDestinationTest {
         return runTest {
             val content = contentModel()
             val repository = FakeDetailsRepository {
-                AppResult.Success(content)
+                StreamCoreResult.Success(content)
             }
 
             val resolution = resolveWebPlaybackRequest(
@@ -31,7 +31,7 @@ internal class WebPlayerDestinationTest {
 
             val ready = assertIs<WebPlayerResolution.Ready>(resolution)
             assertEquals(
-                PlaybackRequestModel(
+                StreamCorePlaybackRequest(
                     profileId = ProfileId,
                     contentId = ContentId,
                     contentSnapshot = content,
@@ -48,7 +48,7 @@ internal class WebPlayerDestinationTest {
     fun detailsFailureReturnsUnavailable(): TestResult {
         return runTest {
             val repository = FakeDetailsRepository {
-                AppResult.Failure(AppError.Network())
+                StreamCoreResult.Failure(StreamCoreError.Network())
             }
 
             val resolution = resolveWebPlaybackRequest(
@@ -98,8 +98,8 @@ internal class WebPlayerDestinationTest {
         }
     }
 
-    private fun contentModel(): ContentModel {
-        return ContentModel(
+    private fun contentModel(): StreamCoreContent {
+        return StreamCoreContent(
             id = ContentId,
             title = "Backend-neutral title",
             description = "Backend-neutral description",
@@ -116,8 +116,8 @@ internal class WebPlayerDestinationTest {
     }
 
     private class FakeDetailsRepository(
-        private val detailsResult: suspend () -> AppResult<ContentModel>,
-    ) : DetailsRepository {
+        private val detailsResult: suspend () -> StreamCoreResult<StreamCoreContent>,
+    ) : DetailsService {
         var requestedProfileId: String? = null
             private set
         var requestedContentId: String? = null
@@ -128,7 +128,7 @@ internal class WebPlayerDestinationTest {
         override suspend fun getDetails(
             profileId: String,
             contentId: String,
-        ): AppResult<ContentModel> {
+        ): StreamCoreResult<StreamCoreContent> {
             requestedProfileId = profileId
             requestedContentId = contentId
             return detailsResult()
@@ -137,9 +137,9 @@ internal class WebPlayerDestinationTest {
         override suspend fun getRecommendations(
             profileId: String,
             contentId: String,
-        ): AppResult<List<ContentModel>> {
+        ): StreamCoreResult<List<StreamCoreContent>> {
             recommendationRequestCount += 1
-            return AppResult.Success(emptyList())
+            return StreamCoreResult.Success(emptyList())
         }
     }
 

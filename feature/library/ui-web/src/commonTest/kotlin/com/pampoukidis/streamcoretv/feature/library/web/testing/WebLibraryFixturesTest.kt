@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.feature.library.web.testing
 
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.web.testing.WebBrowseFixtureScenario
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -27,7 +27,7 @@ class WebLibraryFixturesTest {
         assertTrue(empty.continueWatching.isEmpty())
         assertTrue(empty.likedContent.isEmpty())
         assertTrue(empty.myListContent.isEmpty())
-        assertIs<AppError.Network>(offline.error)
+        assertIs<StreamCoreError.Network>(offline.error)
         assertNotNull(error.error)
         assertTrue(longText.myListContent.first().title.length > content.myListContent.first().title.length)
     }

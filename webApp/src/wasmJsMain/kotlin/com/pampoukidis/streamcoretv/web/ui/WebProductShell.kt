@@ -27,12 +27,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.avatar.LocalProfileAvatarArtworkResolver
-import com.pampoukidis.streamcoretv.core.ui.avatar.ProfileAvatarArtworkResolver
-import com.pampoukidis.streamcoretv.core.ui.error.ErrorPresentationMapper
+import com.pampoukidis.streamcore.sdk.ui.avatar.ProfileAvatarArtworkResolver
+import com.pampoukidis.streamcore.sdk.ui.error.ErrorPresentationMapper
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebBlockingSurface
@@ -47,13 +50,14 @@ import com.pampoukidis.streamcoretv.feature.home.common.home.HomeViewModel
 import com.pampoukidis.streamcoretv.feature.home.web.home.WebHomeRoute
 import com.pampoukidis.streamcoretv.feature.library.web.library.WebLibraryRoute
 import com.pampoukidis.streamcoretv.feature.login.web.login.WebLoginRoute
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.web.editor.WebProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.web.profiles.WebProfilesRoute
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchViewModel
 import com.pampoukidis.streamcoretv.feature.search.web.search.WebSearchRoute
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
+import com.pampoukidis.streamcoretv.web.navigation.requiresSelectedProfile
 import com.pampoukidis.streamcoretv.web.navigation.isDiagnosticRoute
 import com.pampoukidis.streamcoretv.web.platform.SecureWebUriHandler
 import com.pampoukidis.streamcoretv.web.product.WebProductCoordinator
@@ -118,24 +122,42 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         WebProductCoordinator(
             koin = state.graph.application.koin,
             navigation = state.navigationController,
+            initialBootstrapResult = state.graph.takeInitialBootstrapResult(),
         )
     }
     val avatarResolver = remember(state.graph) {
         state.graph.application.koin.get<ProfileAvatarArtworkResolver>()
     }
     var initializing by remember { mutableStateOf(true) }
-    var activeError by remember { mutableStateOf<AppError?>(null) }
+    val sdkContext by coordinator.context.collectAsState()
+    val accountStoreOwner = remember(sdkContext.account?.id) {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(accountStoreOwner) {
+        onDispose { accountStoreOwner.viewModelStore.clear() }
+    }
+    val profileStoreOwner = remember(accountStoreOwner, sdkContext.profileActivationId) {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(profileStoreOwner) {
+        onDispose { profileStoreOwner.viewModelStore.clear() }
+    }
+    var activeError by remember { mutableStateOf<StreamCoreError?>(null) }
     var profilesRevision by remember { mutableIntStateOf(0) }
     var logoutInProgress by remember { mutableStateOf(false) }
-    var transientDetailsContent by remember { mutableStateOf<ContentModel?>(null) }
-    var pendingPlaybackRequest by remember { mutableStateOf<PlaybackRequestModel?>(null) }
-    var inAppDetailsIds by remember { mutableStateOf(emptySet<String>()) }
+    var transientDetailsContent by remember(sdkContext.account?.id) { mutableStateOf<StreamCoreContent?>(null) }
+    var pendingPlaybackRequest by remember(sdkContext.account?.id) { mutableStateOf<StreamCorePlaybackRequest?>(null) }
+    var inAppDetailsIds by remember(sdkContext.account?.id) { mutableStateOf(emptySet<String>()) }
     val clearBrowseTransients: () -> Unit = {
         transientDetailsContent = null
         pendingPlaybackRequest = null
         inAppDetailsIds = emptySet()
     }
-    val handleProductError: (AppError) -> Unit = { error ->
+    val handleProductError: (StreamCoreError) -> Unit = { error ->
         activeError = error
         document.body?.setAttribute("data-product-error-kind", error.webErrorKind())
         scope.launch { coordinator.handleError(error) }
@@ -180,7 +202,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
             }
         }
     }
-    val openDetails: (ContentModel, WebBrowseFocusKey) -> Unit = { content, focusKey ->
+    val openDetails: (StreamCoreContent, WebBrowseFocusKey) -> Unit = { content, focusKey ->
         if (state.navigationController.captureReturnFocus(focusKey)) {
             transientDetailsContent = content
             pendingPlaybackRequest = null
@@ -204,7 +226,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         initializing = false
     }
 
-    LaunchedEffect(route, initializing) {
+    LaunchedEffect(route, initializing, sdkContext) {
         if (!initializing) {
             val canonicalRoute = coordinator.canonicalRoute(route)
             coordinator.sanitizeRoute(route)
@@ -236,11 +258,14 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         }
     }
 
-    CompositionLocalProvider(LocalProfileAvatarArtworkResolver provides avatarResolver) {
+    CompositionLocalProvider(
+        LocalProfileAvatarArtworkResolver provides avatarResolver,
+        LocalViewModelStoreOwner provides if (coordinator.canonicalRoute(route).requiresSelectedProfile()) profileStoreOwner else accountStoreOwner,
+    ) {
         if (initializing) {
             StreamCoreWebBlockingSurface(
                 title = "Restoring session",
-                message = "Validating your account and selected profile…",
+                message = "Validating your account…",
             )
         } else {
             when (val destination = coordinator.canonicalRoute(route)) {
@@ -255,6 +280,13 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
                     onError = handleProductError,
                 )
                 WebRoute.Profiles -> WebProfilesRoute(
+                    autoEnterSingleProfile = coordinator.autoEnterSingleProfile,
+                    onEntryStarted = coordinator::profileEntryStarted,
+                    onPinBackHandlerChanged = { handler ->
+                        state.navigationController.setProfilePinBackHandler(
+                            handler, activated = coordinator.selectedProfile != null,
+                        )
+                    },
                     profilesRevision = profilesRevision,
                     onProfileSelected = { profile ->
                         scope.launch {
@@ -435,7 +467,7 @@ private const val VISUAL_SETTLE_DELAY_MILLIS = 1_500L
 private fun WebBrowseFeatureSurface(
     destination: WebBrowseDestination,
     profileName: String,
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     logoutInProgress: Boolean,
     onDestinationSelected: (WebBrowseDestination) -> Unit,
     onChangeProfile: () -> Unit,
@@ -465,7 +497,7 @@ private fun WebBrowseDestination.toRoute(): WebRoute {
 
 @Composable
 private fun WebErrorDialog(
-    error: AppError,
+    error: StreamCoreError,
     mapper: ErrorPresentationMapper,
     onDismiss: () -> Unit,
 ) {
@@ -512,15 +544,21 @@ private fun WebErrorDialog(
     }
 }
 
-private fun AppError.webErrorKind(): String {
+private fun StreamCoreError.webErrorKind(): String {
     return when (this) {
-        is AppError.Authentication -> "authentication"
-        is AppError.Network -> "network"
-        is AppError.Parsing -> "parsing"
-        is AppError.Server -> "server"
-        is AppError.SessionExpired -> "session-expired"
-        is AppError.Timeout -> "timeout"
-        is AppError.Unauthorized -> "unauthorized"
-        is AppError.Unknown -> "unknown"
+        is StreamCoreError.PinRejected -> "profile-pin-rejected"
+        is StreamCoreError.Authentication -> "authentication"
+        is StreamCoreError.Network -> "network"
+        is StreamCoreError.Parsing -> "parsing"
+        is StreamCoreError.Server -> "server"
+        is StreamCoreError.SessionExpired -> "session-expired"
+        is StreamCoreError.Timeout -> "timeout"
+        is StreamCoreError.Unauthorized -> "unauthorized"
+        is StreamCoreError.Unknown -> "unknown"
+        is StreamCoreError.Unsupported -> "unsupported"
+        is StreamCoreError.Validation -> "validation"
+        is StreamCoreError.InvalidContext -> "invalid-context"
+        is StreamCoreError.Storage -> "storage"
+        is StreamCoreError.Closed -> "closed"
     }
 }

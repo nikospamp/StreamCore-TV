@@ -25,8 +25,8 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.extensions.onArtwork
@@ -40,7 +40,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
 @Composable
 fun StreamCoreMobileContinueWatchingCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selectedContentKey: String? = null,
@@ -160,8 +160,8 @@ private fun StreamCoreMobileContinueWatchingCardPreview() {
     }
 }
 
-private fun continueWatchingPreviewContent(): ContentModel {
-    return ContentModel(
+private fun continueWatchingPreviewContent(): StreamCoreContent {
+    return StreamCoreContent(
         id = "continue-watching-preview",
         title = "Northern Signal",
         description = "",
@@ -173,7 +173,7 @@ private fun continueWatchingPreviewContent(): ContentModel {
         cast = emptyList(),
         releaseDate = 0L,
         genres = emptyList(),
-        playbackProgress = PlaybackProgressModel(
+        playbackProgress = StreamCorePlaybackProgress(
             positionMillis = 42L,
             durationMillis = 100L,
         ),

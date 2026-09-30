@@ -1,18 +1,16 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
+import com.pampoukidis.streamcore.sdk.api.DetailsService
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetails
+import com.pampoukidis.streamcore.sdk.api.LibraryService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
-import com.pampoukidis.streamcoretv.feature.details.domain.LoadDetailsUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.ObserveContentLibraryStateUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.SetContentInMyListUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.SetContentLikedUseCase
-import com.pampoukidis.streamcoretv.feature.player.domain.PlaybackProgressPolicy
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetailsRequest
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -24,11 +22,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DetailsViewModel constructor(
-    private val loadDetails: LoadDetailsUseCase,
-    private val progressRepository: PlaybackProgressRepository,
-    private val observeContentLibraryState: ObserveContentLibraryStateUseCase,
-    private val setContentLiked: SetContentLikedUseCase,
-    private val setContentInMyList: SetContentInMyListUseCase,
+    private val detailsRepository: DetailsService,
+    private val playback: PlaybackService,
+    private val library: LibraryService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailsUiState())
@@ -37,7 +33,7 @@ class DetailsViewModel constructor(
     private val effectsChannel = Channel<DetailsEffect>(capacity = Channel.BUFFERED)
     val effects: Flow<DetailsEffect> = effectsChannel.receiveAsFlow()
 
-    private var activeRequest: DetailsRequest? = null
+    private var activeRequest: StreamCoreDetailsRequest? = null
     private var loadJob: Job? = null
     private var progressJob: Job? = null
     private var libraryJob: Job? = null
@@ -63,8 +59,8 @@ class DetailsViewModel constructor(
     }
 
     private fun load(
-        request: DetailsRequest,
-        initialContent: ContentModel? = null,
+        request: StreamCoreDetailsRequest,
+        initialContent: StreamCoreContent? = null,
         force: Boolean = false,
     ) {
         val requestChanged = activeRequest != request
@@ -87,7 +83,7 @@ class DetailsViewModel constructor(
         }
         loadJob = viewModelScope.launch {
             when (val result = loadDetails(request)) {
-                is AppResult.Success -> {
+                is StreamCoreResult.Success -> {
                     if (activeRequest != request) {
                         return@launch
                     }
@@ -101,7 +97,7 @@ class DetailsViewModel constructor(
                     }
                 }
 
-                is AppResult.Failure -> {
+                is StreamCoreResult.Failure -> {
                     if (activeRequest != request) {
                         return@launch
                     }
@@ -113,12 +109,23 @@ class DetailsViewModel constructor(
         }
     }
 
+    private suspend fun loadDetails(request: StreamCoreDetailsRequest): StreamCoreResult<StreamCoreDetails> {
+        val content = when (val result = detailsRepository.getDetails(request.profileId, request.contentId)) {
+            is StreamCoreResult.Success -> result.value
+            is StreamCoreResult.Failure -> return result
+        }
+        return when (val result = detailsRepository.getRecommendations(request.profileId, request.contentId)) {
+            is StreamCoreResult.Success -> StreamCoreResult.Success(StreamCoreDetails(content, result.value))
+            is StreamCoreResult.Failure -> result
+        }
+    }
+
     private fun refresh() {
         val request = activeRequest ?: return
         load(request = request, force = true)
     }
 
-    private fun selectRecommendation(content: ContentModel, sourceArtworkUrl: String?) {
+    private fun selectRecommendation(content: StreamCoreContent, sourceArtworkUrl: String?) {
         viewModelScope.launch {
             effectsChannel.send(DetailsEffect.RecommendationSelected(content, sourceArtworkUrl))
         }
@@ -130,7 +137,7 @@ class DetailsViewModel constructor(
         viewModelScope.launch {
             effectsChannel.send(
                 DetailsEffect.PlaySelected(
-                    PlaybackRequestModel(
+                    StreamCorePlaybackRequest(
                         profileId = request.profileId,
                         contentId = request.contentId,
                         contentSnapshot = content,
@@ -166,18 +173,18 @@ class DetailsViewModel constructor(
         }
         likeMutationJob = viewModelScope.launch {
             when (
-                val result = setContentLiked(
+                val result = library.setLiked(
                     profileId = request.profileId,
                     content = content,
                     isLiked = targetValue,
                 )
             ) {
-                is AppResult.Success -> finishLikeMutation(
+                is StreamCoreResult.Success -> finishLikeMutation(
                     request = request,
                     targetValue = targetValue,
                 )
 
-                is AppResult.Failure -> failLikeMutation(
+                is StreamCoreResult.Failure -> failLikeMutation(
                     request = request,
                     previousValue = previousValue,
                     error = result.error,
@@ -205,18 +212,18 @@ class DetailsViewModel constructor(
         }
         myListMutationJob = viewModelScope.launch {
             when (
-                val result = setContentInMyList(
+                val result = library.setInMyList(
                     profileId = request.profileId,
                     content = content,
                     isInMyList = targetValue,
                 )
             ) {
-                is AppResult.Success -> finishMyListMutation(
+                is StreamCoreResult.Success -> finishMyListMutation(
                     request = request,
                     targetValue = targetValue,
                 )
 
-                is AppResult.Failure -> failMyListMutation(
+                is StreamCoreResult.Failure -> failMyListMutation(
                     request = request,
                     previousValue = previousValue,
                     error = result.error,
@@ -225,29 +232,25 @@ class DetailsViewModel constructor(
         }
     }
 
-    private fun observeProgress(request: DetailsRequest) {
+    private fun observeProgress(request: StreamCoreDetailsRequest) {
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
-            progressRepository.observe(request.profileId).collect { entries ->
+            playback.observeProgress(request.profileId).collect { result ->
+                val entries = (result as? StreamCoreResult.Success)?.value.orEmpty()
                 val progress = entries.firstOrNull { entry -> entry.contentId == request.contentId }
                 _uiState.update { state ->
                     state.copy(
-                        hasResumableProgress = progress?.let { entry ->
-                            PlaybackProgressPolicy.isResumable(
-                                positionMillis = entry.positionMillis,
-                                durationMillis = entry.durationMillis,
-                            )
-                        } == true,
+                        hasResumableProgress = progress != null,
                     )
                 }
             }
         }
     }
 
-    private fun observeLibraryState(request: DetailsRequest) {
+    private fun observeLibraryState(request: StreamCoreDetailsRequest) {
         libraryJob?.cancel()
         libraryJob = viewModelScope.launch {
-            observeContentLibraryState(
+            library.observeContentState(
                 profileId = request.profileId,
                 contentId = request.contentId,
             ).collect { result ->
@@ -256,7 +259,7 @@ class DetailsViewModel constructor(
                 }
 
                 when (result) {
-                    is AppResult.Success -> {
+                    is StreamCoreResult.Success -> {
                         _uiState.update { state ->
                             state.copy(
                                 isLibraryAvailable = true,
@@ -266,7 +269,7 @@ class DetailsViewModel constructor(
                         }
                     }
 
-                    is AppResult.Failure -> {
+                    is StreamCoreResult.Failure -> {
                         _uiState.update { state -> state.copy(isLibraryAvailable = false) }
                         emitError(result.error)
                     }
@@ -276,7 +279,7 @@ class DetailsViewModel constructor(
     }
 
     private fun finishLikeMutation(
-        request: DetailsRequest,
+        request: StreamCoreDetailsRequest,
         targetValue: Boolean,
     ) {
         if (activeRequest != request) {
@@ -292,9 +295,9 @@ class DetailsViewModel constructor(
     }
 
     private suspend fun failLikeMutation(
-        request: DetailsRequest,
+        request: StreamCoreDetailsRequest,
         previousValue: Boolean,
-        error: AppError,
+        error: StreamCoreError,
     ) {
         if (activeRequest != request) {
             return
@@ -310,7 +313,7 @@ class DetailsViewModel constructor(
     }
 
     private fun finishMyListMutation(
-        request: DetailsRequest,
+        request: StreamCoreDetailsRequest,
         targetValue: Boolean,
     ) {
         if (activeRequest != request) {
@@ -326,9 +329,9 @@ class DetailsViewModel constructor(
     }
 
     private suspend fun failMyListMutation(
-        request: DetailsRequest,
+        request: StreamCoreDetailsRequest,
         previousValue: Boolean,
-        error: AppError,
+        error: StreamCoreError,
     ) {
         if (activeRequest != request) {
             return
@@ -358,7 +361,7 @@ class DetailsViewModel constructor(
         }
     }
 
-    private suspend fun emitError(error: AppError) {
+    private suspend fun emitError(error: StreamCoreError) {
         effectsChannel.send(DetailsEffect.ShowError(error))
     }
 }

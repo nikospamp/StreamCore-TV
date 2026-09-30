@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const validConfig = {
   tmdbBaseUrl: "https://api.example.test/",
@@ -25,6 +25,27 @@ test.beforeEach(async ({ page }) => {
       "access-control-allow-origin": "*",
       "content-type": "application/json",
     };
+    if (path.endsWith("/authentication/token/new") || path.endsWith("/authentication/token/validate_with_login")) {
+      await route.fulfill({ headers, json: { success: true, request_token: "runtime-fixture-token" } });
+      return;
+    }
+    if (path.endsWith("/authentication/session/new")) {
+      await route.fulfill({ headers, json: { success: true, session_id: "runtime-fixture-session" } });
+      return;
+    }
+    if (path === "/3/account") {
+      expect(new URL(route.request().url()).searchParams.get("session_id")).toBe("runtime-fixture-session");
+      await route.fulfill({ headers, json: { id: 42, username: "runtime-user", name: "Runtime fixture" } });
+      return;
+    }
+    if (/\/movie\/\d+\/account_states$/.test(path)) {
+      await route.fulfill({ headers, json: { id: 550, favorite: false, watchlist: false } });
+      return;
+    }
+    if (path.endsWith("/authentication/session") && route.request().method() === "DELETE") {
+      await route.fulfill({ headers, json: { success: true } });
+      return;
+    }
     if (path.endsWith("/configuration")) {
       await route.fulfill({
         headers,
@@ -180,7 +201,7 @@ test("four distinct official DataStore names retain values across reload", async
   expect(afterReload).toEqual(beforeReload);
 });
 
-test("corrupt persistent protobuf is replaced and remains in persistent mode", async ({ page }) => {
+test("corrupt persistent protobuf is retained for recovery without authorizing a session", async ({ page }) => {
   await page.goto("/diagnostic");
   await expect(page.locator("body")).toHaveAttribute("data-runtime-state", "ready", {
     timeout: 30_000,
@@ -194,7 +215,8 @@ test("corrupt persistent protobuf is replaced and remains in persistent mode", a
     timeout: 30_000,
   });
   await expect(page.locator("body")).toHaveAttribute("data-storage-mode", "persistent");
-  expect(await page.evaluate(() => localStorage.getItem("tmdb_auth.preferences_pb"))).not.toBe(
+  await expect(page.locator("body")).toHaveAttribute("data-network-probe", "invalid-context");
+  expect(await page.evaluate(() => localStorage.getItem("tmdb_auth.preferences_pb"))).toBe(
     "not-a-valid-preferences-protobuf",
   );
 });
@@ -229,6 +251,7 @@ test("persistent DataStore quota failure retries official session storage", asyn
 });
 
 test("Ktor Js Fetch preserves TMDB URL and headers", async ({ page }) => {
+  await authenticateRuntimeFixture(page);
   const requests: Array<{ url: string; authorization?: string; accept?: string }> = [];
   page.on("request", (request) => {
     if (request.url().startsWith("https://api.example.test/")) {
@@ -245,10 +268,12 @@ test("Ktor Js Fetch preserves TMDB URL and headers", async ({ page }) => {
     timeout: 30_000,
   });
 
-  expect(requests).toHaveLength(3);
+  expect(requests).toHaveLength(5);
   expect(requests.map((request) => new URL(request.url).pathname).sort()).toEqual([
+    "/3/account",
     "/3/configuration",
     "/3/genre/movie/list",
+    "/3/movie/550/account_states",
     "/3/search/movie",
   ]);
   for (const request of requests) {
@@ -258,8 +283,8 @@ test("Ktor Js Fetch preserves TMDB URL and headers", async ({ page }) => {
 });
 
 test("Ktor Fetch server failure maps through the repository AppError boundary", async ({ page }) => {
-  await page.unroute("https://api.example.test/**");
-  await page.route("https://api.example.test/**", async (route) => {
+  await authenticateRuntimeFixture(page);
+  await page.route("**/search/movie**", async (route) => {
     await route.fulfill({
       status: 503,
       headers: {
@@ -297,6 +322,15 @@ test("external HTTPS links cannot retain window.opener", async ({ page, context 
   expect(await popup.evaluate(() => window.opener === null)).toBe(true);
   await popup.close();
 });
+
+async function authenticateRuntimeFixture(page: Page): Promise<void> {
+  await page.goto("/login");
+  await expect(page.locator("body")).toHaveAttribute("data-product-visual-state", "ready", { timeout: 30_000 });
+  await page.getByTestId("login:identifier").fill("runtime-user");
+  await page.getByTestId("login:password").fill("runtime-password");
+  await page.getByTestId("login:password").press("Enter");
+  await expect(page).toHaveURL(/\/profiles$/, { timeout: 30_000 });
+}
 
 async function semanticBounds(
   button: Locator,

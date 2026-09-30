@@ -36,13 +36,13 @@ import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun MobilePlayerRoute(
-    request: PlaybackRequestModel,
+    request: StreamCorePlaybackRequest,
     onBack: () -> Unit,
     viewModel: PlayerViewModel = koinViewModel(),
 ) {

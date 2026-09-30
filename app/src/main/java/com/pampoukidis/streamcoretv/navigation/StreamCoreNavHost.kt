@@ -1,7 +1,6 @@
 package com.pampoukidis.streamcoretv.navigation
 
 import com.pampoukidis.streamcoretv.core.tracing.benchmarkSemantics
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
@@ -31,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,10 +44,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcoretv.core.model.general.Platform
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreMotionDurations
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
@@ -68,7 +69,7 @@ import com.pampoukidis.streamcoretv.feature.login.tablet.login.TabletLoginRoute
 import com.pampoukidis.streamcoretv.feature.login.tv.login.TvLoginRoute
 import com.pampoukidis.streamcoretv.feature.player.mobile.player.MobilePlayerRoute
 import com.pampoukidis.streamcoretv.feature.player.tv.player.TvPlayerRoute
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.editor.MobileProfileEditorRoute
 import com.pampoukidis.streamcoretv.feature.profiles.mobile.profiles.MobileProfilesRoute
 import com.pampoukidis.streamcoretv.feature.profiles.tablet.editor.TabletProfileEditorRoute
@@ -78,22 +79,26 @@ import com.pampoukidis.streamcoretv.feature.profiles.tv.profiles.TvProfilesRoute
 import com.pampoukidis.streamcoretv.feature.search.mobile.search.MobileSearchRoute
 import com.pampoukidis.streamcoretv.feature.search.tablet.search.TabletSearchRoute
 import com.pampoukidis.streamcoretv.feature.search.tv.search.TvSearchRoute
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlin.reflect.typeOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun StreamCoreNavHost(
     startDestination: AppRoute,
-    authState: AuthStateModel,
+    authState: StreamCoreAuthState,
     isLogoutConfirmationVisible: Boolean,
     isLogoutInProgress: Boolean,
-    onActiveProfileChanged: (String?) -> Unit,
+    activeProfileId: String?,
+    clearProfileSelection: suspend () -> StreamCoreResult<Unit>,
     onLogoutRequested: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
     val platform = rememberLoginPlatform()
+    val scope = rememberCoroutineScope()
+    var autoEnterSingleProfile by remember { mutableStateOf(true) }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentTopLevelDestination = currentBackStackEntry
         ?.destination
@@ -102,16 +107,16 @@ internal fun StreamCoreNavHost(
     val touchBottomContentPadding = WindowInsets.navigationBars
         .asPaddingValues()
         .calculateBottomPadding() + StreamCoreDimens.Mobile.Navigation.BottomContentClearance
-    var selectedContent by remember { mutableStateOf<ContentModel?>(null) }
+    var selectedContent by remember { mutableStateOf<StreamCoreContent?>(null) }
     var selectedContentKey by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingTvFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedProfile by remember { mutableStateOf<ProfileModel?>(null) }
+    var selectedProfile by remember { mutableStateOf<StreamCoreProfile?>(null) }
     var displayedTopLevelDestination by remember {
         mutableStateOf(TopLevelDestination.Home)
     }
     var displayedTopLevelProfileId by remember { mutableStateOf<String?>(null) }
 
-    val shouldResetToLogin = authState is AuthStateModel.LoggedOut &&
+    val shouldResetToLogin = authState is StreamCoreAuthState.LoggedOut &&
             currentBackStackEntry?.destination?.hasRoute<AppRoute.Login>() == false
 
     LaunchedEffect(shouldResetToLogin) {
@@ -121,12 +126,43 @@ internal fun StreamCoreNavHost(
             pendingTvFocusKey = null
             selectedProfile = null
             displayedTopLevelProfileId = null
-            onActiveProfileChanged(null)
             navController.navigate(AppRoute.Login) {
                 popUpTo(navController.graph.id) {
                     inclusive = true
                 }
                 launchSingleTop = true
+            }
+        }
+    }
+
+    val requestedProfileId = currentBackStackEntry?.let { entry ->
+        if (entry.destination.hasRoute<AppRoute.Home>() || entry.destination.hasRoute<AppRoute.Search>() ||
+            entry.destination.hasRoute<AppRoute.Library>() || entry.destination.hasRoute<AppRoute.AssetDetails>() ||
+            entry.destination.hasRoute<AppRoute.Player>()) {
+            entry.arguments?.getString("profileId")
+        } else null
+    }
+    LaunchedEffect(authState, activeProfileId, requestedProfileId) {
+        if (authState is StreamCoreAuthState.LoggedIn && requestedProfileId != null && requestedProfileId != activeProfileId) {
+            selectedContent = null
+            selectedContentKey = null
+            pendingTvFocusKey = null
+            selectedProfile = null
+            displayedTopLevelProfileId = null
+            navController.navigate(AppRoute.Profiles) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    val requestProfileSwitch: (String) -> Unit = { profileId ->
+        scope.launch {
+            autoEnterSingleProfile = false
+            navController.clearTopLevelState(profileId)
+            when (val result = clearProfileSelection()) {
+                is StreamCoreResult.Success -> Unit // The SDK context change guards and clears the content back stack.
+                is StreamCoreResult.Failure -> onError(result.error)
             }
         }
     }
@@ -171,14 +207,7 @@ internal fun StreamCoreNavHost(
                     selectedContent = null
                     selectedContentKey = null
                     pendingTvFocusKey = null
-                    navController.clearTopLevelState(profileId = profileId)
-                    onActiveProfileChanged(null)
-                    navController.navigate(AppRoute.Profiles) {
-                        popUpTo<AppRoute.Home> {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
+                    requestProfileSwitch(profileId)
                 }
             },
         ) {
@@ -251,7 +280,7 @@ internal fun StreamCoreNavHost(
                         selectedContent = null
                         selectedContentKey = null
                         pendingTvFocusKey = null
-                        onActiveProfileChanged(null)
+                        autoEnterSingleProfile = true
                         navController.navigate(AppRoute.Profiles) {
                             popUpTo<AppRoute.Login> {
                                 inclusive = true
@@ -270,6 +299,8 @@ internal fun StreamCoreNavHost(
 
             composable<AppRoute.Profiles> {
                 ProfilesDestination(
+                    autoEnterSingleProfile = autoEnterSingleProfile,
+                    onEntryStarted = { autoEnterSingleProfile = false },
                     sharedElementScope = StreamCoreSharedElementScope(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = this,
@@ -278,7 +309,6 @@ internal fun StreamCoreNavHost(
                         selectedContent = null
                         selectedContentKey = null
                         selectedProfile = profile
-                        onActiveProfileChanged(profile.id)
                         navController.navigate(
                             AppRoute.Home(profileId = profile.id),
                         ) {
@@ -393,14 +423,7 @@ internal fun StreamCoreNavHost(
                         selectedContent = null
                         selectedContentKey = null
                         pendingTvFocusKey = null
-                        navController.clearTopLevelState(profileId = route.profileId)
-                        onActiveProfileChanged(null)
-                        navController.navigate(AppRoute.Profiles) {
-                            popUpTo<AppRoute.Home> {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
-                        }
+                        requestProfileSwitch(route.profileId)
                     },
                     onError = onError,
                 )
@@ -485,14 +508,7 @@ internal fun StreamCoreNavHost(
                             selectedContent = null
                             selectedContentKey = null
                             pendingTvFocusKey = null
-                            navController.clearTopLevelState(profileId = route.profileId)
-                            onActiveProfileChanged(null)
-                            navController.navigate(AppRoute.Profiles) {
-                                popUpTo<AppRoute.Home> {
-                                    inclusive = true
-                                }
-                                launchSingleTop = true
-                            }
+                            requestProfileSwitch(route.profileId)
                         },
                         onError = onError,
                         sharedElementScope = StreamCoreSharedElementScope(
@@ -503,7 +519,7 @@ internal fun StreamCoreNavHost(
                 }
 
             composable<AppRoute.AssetDetails>(
-                typeMap = mapOf(typeOf<ContentModel?>() to ContentModelNavType)
+                typeMap = mapOf(typeOf<StreamCoreContent?>() to ContentModelNavType)
             ) { backStackEntry ->
                 val route = backStackEntry.toRoute<AppRoute.AssetDetails>()
 
@@ -575,10 +591,10 @@ internal fun StreamCoreNavHost(
             }
 
             composable<AppRoute.Player>(
-                typeMap = mapOf(typeOf<ContentModel>() to ContentModelNavType),
+                typeMap = mapOf(typeOf<StreamCoreContent>() to ContentModelNavType),
             ) { backStackEntry ->
                 val route = backStackEntry.toRoute<AppRoute.Player>()
-                val request = PlaybackRequestModel(
+                val request = StreamCorePlaybackRequest(
                     profileId = route.profileId,
                     contentId = route.contentId,
                     contentSnapshot = route.contentSnapshot,
@@ -675,7 +691,7 @@ private fun NavHostController.clearTopLevelState(profileId: String) {
     clearBackStack(AppRoute.Library(profileId = profileId))
 }
 
-private fun ContentModel.sharedContentKey(): String {
+private fun StreamCoreContent.sharedContentKey(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,
@@ -689,7 +705,7 @@ internal fun consumeTvReturnFocusKey(
     return pendingKey?.takeUnless { key -> key == consumedKey }
 }
 
-private fun ContentModel.withSourceRow(sourceRow: String?): ContentModel {
+private fun StreamCoreContent.withSourceRow(sourceRow: String?): StreamCoreContent {
     return if (sourceRow == null || row == sourceRow) {
         this
     } else {
@@ -701,11 +717,11 @@ private const val TopLevelTransitionMillis = 180
 private const val TouchBarVisibilityMillis = 160
 
 internal fun startDestinationForAuthState(
-    authState: AuthStateModel,
+    authState: StreamCoreAuthState,
     activeProfileId: String?,
 ): AppRoute {
     return when {
-        authState is AuthStateModel.LoggedOut -> AppRoute.Login
+        authState is StreamCoreAuthState.LoggedOut -> AppRoute.Login
         activeProfileId != null -> AppRoute.Home(profileId = activeProfileId)
         else -> AppRoute.Profiles
     }
@@ -717,7 +733,7 @@ private fun LoginDestination(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     onHelp: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileLoginRoute(
@@ -748,17 +764,21 @@ private fun LoginDestination(
 
 @Composable
 private fun ProfilesDestination(
-    onProfileSelected: (ProfileModel) -> Unit,
+    autoEnterSingleProfile: Boolean,
+    onEntryStarted: () -> Unit,
+    onProfileSelected: (StreamCoreProfile) -> Unit,
     onCreateProfile: () -> Unit,
     onEditProfile: (String) -> Unit,
     isLogoutConfirmationVisible: Boolean,
     isLogoutInProgress: Boolean,
     onLogoutRequested: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileProfilesRoute(
+            autoEnterSingleProfile = autoEnterSingleProfile,
+            onEntryStarted = onEntryStarted,
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
@@ -769,6 +789,8 @@ private fun ProfilesDestination(
         )
 
         Platform.Tablet -> TabletProfilesRoute(
+            autoEnterSingleProfile = autoEnterSingleProfile,
+            onEntryStarted = onEntryStarted,
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
@@ -778,6 +800,8 @@ private fun ProfilesDestination(
         )
 
         Platform.Tv -> TvProfilesRoute(
+            autoEnterSingleProfile = autoEnterSingleProfile,
+            onEntryStarted = onEntryStarted,
             onProfileSelected = onProfileSelected,
             onCreateProfile = onCreateProfile,
             onEditProfile = onEditProfile,
@@ -796,7 +820,7 @@ private fun ProfileEditorDestination(
     profileId: String?,
     onProfileSaved: () -> Unit,
     onClose: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileProfileEditorRoute(
@@ -828,15 +852,15 @@ private fun ProfileEditorDestination(
 @Composable
 private fun HomeDestination(
     profileId: String,
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     selectedContentKey: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
     touchBottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
     onProfileSelected: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileHomeRoute(
@@ -884,7 +908,7 @@ private fun SearchDestination(
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
     touchBottomContentPadding: Dp,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
     onBack: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
@@ -938,13 +962,13 @@ private fun SearchDestination(
 private fun LibraryDestination(
     platform: Platform,
     profileId: String,
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     selectedContentKey: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
-    onContentSelected: (ContentModel, String?) -> Unit,
+    onContentSelected: (StreamCoreContent, String?) -> Unit,
     onProfileSelected: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {
     when (platform) {
@@ -1000,15 +1024,15 @@ private fun LibraryDestination(
 private fun DetailsDestination(
     profileId: String,
     contentId: String,
-    initialContent: ContentModel?,
+    initialContent: StreamCoreContent?,
     sourceArtworkUrl: String?,
     returnFocusKey: String?,
     onReturnFocusConsumed: (String) -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onRecommendationSelected: (ContentModel, String?) -> Unit,
-    onPlaySelected: (PlaybackRequestModel) -> Unit,
+    onRecommendationSelected: (StreamCoreContent, String?) -> Unit,
+    onPlaySelected: (StreamCorePlaybackRequest) -> Unit,
     onBack: () -> Unit,
-    onError: (AppError) -> Unit,
+    onError: (StreamCoreError) -> Unit,
 ) {
     when (rememberLoginPlatform()) {
         Platform.Mobile -> MobileDetailsRoute(

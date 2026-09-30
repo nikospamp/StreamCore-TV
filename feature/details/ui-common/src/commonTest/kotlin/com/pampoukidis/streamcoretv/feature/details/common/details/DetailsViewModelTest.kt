@@ -1,23 +1,25 @@
 package com.pampoukidis.streamcoretv.feature.details.common.details
 
-import com.pampoukidis.streamcoretv.core.domain.DetailsRepository
-import com.pampoukidis.streamcoretv.core.domain.LibraryRepository
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.core.model.library.LibraryEntryModel
-import com.pampoukidis.streamcoretv.feature.details.data.DetailsRequest
-import com.pampoukidis.streamcoretv.feature.details.domain.LoadDetailsUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.ObserveContentLibraryStateUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.SetContentInMyListUseCase
-import com.pampoukidis.streamcoretv.feature.library.domain.SetContentLikedUseCase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
+import com.pampoukidis.streamcore.sdk.api.DetailsService
+import com.pampoukidis.streamcore.sdk.api.LibraryService
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibrary
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreContentLibraryState
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibraryEntry
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreDetailsRequest
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.PlaybackProgressRecorder
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -48,17 +50,17 @@ class DetailsViewModelTest {
     @Test
     fun `trailer selection emits preferred loaded trailer`() {
         runTest {
-            val trailer = TrailerModel("official", "Official Trailer", "https://www.youtube.com/watch?v=abcdefghijk")
+            val trailer = StreamCoreTrailer("official", "Official Trailer", "https://www.youtube.com/watch?v=abcdefghijk")
             val content = contentModel("content-1").copy(
                 trailers = listOf(trailer, trailer.copy(id = "other")),
             )
             val subject = detailsViewModel(
                 FakeDetailsRepository(
-                    detailsResult = AppResult.Success(content),
-                    recommendationsResult = AppResult.Success(emptyList()),
+                    detailsResult = StreamCoreResult.Success(content),
+                    recommendationsResult = StreamCoreResult.Success(emptyList()),
                 ),
             )
-            subject.onAction(DetailsAction.Load(DetailsRequest("profile-1", content.id)))
+            subject.onAction(DetailsAction.Load(StreamCoreDetailsRequest("profile-1", content.id)))
             runCurrent()
             subject.onAction(DetailsAction.TrailerSelected)
             assertEquals(DetailsEffect.OpenTrailer(trailer), subject.effects.first())
@@ -70,7 +72,7 @@ class DetailsViewModelTest {
         runTest {
             val subject = detailsViewModel()
             subject.onAction(DetailsAction.TrailerSelected)
-            subject.onAction(DetailsAction.Load(DetailsRequest("profile-1", "content-1")))
+            subject.onAction(DetailsAction.Load(StreamCoreDetailsRequest("profile-1", "content-1")))
             runCurrent()
             subject.onAction(DetailsAction.TrailerSelected)
             subject.onAction(DetailsAction.BackSelected)
@@ -84,11 +86,11 @@ class DetailsViewModelTest {
             val content = contentModel("content-1")
             val recommendations = listOf(contentModel("content-2"))
             val repository = FakeDetailsRepository(
-                detailsResult = AppResult.Success(content),
-                recommendationsResult = AppResult.Success(recommendations),
+                detailsResult = StreamCoreResult.Success(content),
+                recommendationsResult = StreamCoreResult.Success(recommendations),
             )
             val subject = detailsViewModel(repository)
-            val request = DetailsRequest(profileId = "profile-1", contentId = "content-1")
+            val request = StreamCoreDetailsRequest(profileId = "profile-1", contentId = "content-1")
 
             subject.onAction(DetailsAction.Load(request))
             subject.onAction(DetailsAction.Load(request))
@@ -105,14 +107,14 @@ class DetailsViewModelTest {
     fun `refresh repeats active request`() {
         runTest {
             val repository = FakeDetailsRepository(
-                detailsResult = AppResult.Success(contentModel("content-1")),
-                recommendationsResult = AppResult.Success(emptyList()),
+                detailsResult = StreamCoreResult.Success(contentModel("content-1")),
+                recommendationsResult = StreamCoreResult.Success(emptyList()),
             )
             val subject = detailsViewModel(repository)
 
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = "content-1"),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = "content-1"),
                 ),
             )
             runCurrent()
@@ -126,11 +128,11 @@ class DetailsViewModelTest {
     @Test
     fun `load failure emits error`() {
         runTest {
-            val error = AppError.Network()
+            val error = StreamCoreError.Network()
             val subject = detailsViewModel(
                 FakeDetailsRepository(
-                    detailsResult = AppResult.Failure(error),
-                    recommendationsResult = AppResult.Success(emptyList()),
+                    detailsResult = StreamCoreResult.Failure(error),
+                    recommendationsResult = StreamCoreResult.Success(emptyList()),
                 ),
             )
             val effect = async { subject.effects.first() }
@@ -138,7 +140,7 @@ class DetailsViewModelTest {
 
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = "content-1"),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = "content-1"),
                 ),
             )
             runCurrent()
@@ -169,13 +171,13 @@ class DetailsViewModelTest {
             val content = contentModel("content-1")
             val subject = detailsViewModel(
                 repository = FakeDetailsRepository(
-                    detailsResult = AppResult.Success(content),
-                    recommendationsResult = AppResult.Success(emptyList()),
+                    detailsResult = StreamCoreResult.Success(content),
+                    recommendationsResult = StreamCoreResult.Success(emptyList()),
                 ),
             )
             subject.onAction(
                 DetailsAction.Load(
-                    request = DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    request = StreamCoreDetailsRequest(profileId = "profile-1", contentId = content.id),
                     initialContent = content,
                 ),
             )
@@ -186,7 +188,7 @@ class DetailsViewModelTest {
 
             assertEquals(
                 DetailsEffect.PlaySelected(
-                    com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel(
+                    com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest(
                         profileId = "profile-1",
                         contentId = content.id,
                         contentSnapshot = content,
@@ -201,19 +203,19 @@ class DetailsViewModelTest {
     fun `resumable progress changes details CTA state`() {
         runTest {
             val content = contentModel("content-1")
-            val progress = MutableStateFlow(emptyList<PlaybackProgressEntryModel>())
+            val progress = MutableStateFlow(emptyList<StreamCorePlaybackProgressEntry>())
             val subject = detailsViewModel(
-                progressRepository = FlowPlaybackProgressRepository(progress),
+                playback = FlowPlaybackService(progress),
             )
 
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = content.id),
                 ),
             )
             runCurrent()
             progress.value = listOf(
-                PlaybackProgressEntryModel(
+                StreamCorePlaybackProgressEntry(
                     profileId = "profile-1",
                     contentId = content.id,
                     contentSnapshot = content,
@@ -234,7 +236,7 @@ class DetailsViewModelTest {
             val content = contentModel("content-1")
             val libraryRepository = FakeLibraryRepository(
                 initialEntries = listOf(
-                    LibraryEntryModel(
+                    StreamCoreLibraryEntry(
                         content = content,
                         likedAtMillis = 1L,
                         addedToMyListAtMillis = 2L,
@@ -245,7 +247,7 @@ class DetailsViewModelTest {
 
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = content.id),
                 ),
             )
             runCurrent()
@@ -265,7 +267,7 @@ class DetailsViewModelTest {
             val subject = detailsViewModel(libraryRepository = libraryRepository)
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = content.id),
                 ),
             )
             runCurrent()
@@ -285,16 +287,16 @@ class DetailsViewModelTest {
     @Test
     fun `failed like toggle rolls back and emits error`() {
         runTest {
-            val error = AppError.Unknown()
+            val error = StreamCoreError.Unknown()
             val content = contentModel("content-1")
             val libraryRepository = FakeLibraryRepository(
-                likeResult = AppResult.Failure(error),
+                likeResult = StreamCoreResult.Failure(error),
                 likeGate = CompletableDeferred(),
             )
             val subject = detailsViewModel(libraryRepository = libraryRepository)
             subject.onAction(
                 DetailsAction.Load(
-                    DetailsRequest(profileId = "profile-1", contentId = content.id),
+                    StreamCoreDetailsRequest(profileId = "profile-1", contentId = content.id),
                 ),
             )
             runCurrent()
@@ -313,24 +315,22 @@ class DetailsViewModelTest {
     }
 
     private fun detailsViewModel(
-        repository: DetailsRepository = FakeDetailsRepository(
-            detailsResult = AppResult.Success(contentModel("content-1")),
-            recommendationsResult = AppResult.Success(emptyList()),
+        repository: DetailsService = FakeDetailsRepository(
+            detailsResult = StreamCoreResult.Success(contentModel("content-1")),
+            recommendationsResult = StreamCoreResult.Success(emptyList()),
         ),
-        progressRepository: PlaybackProgressRepository = EmptyPlaybackProgressRepository,
-        libraryRepository: LibraryRepository = FakeLibraryRepository(),
+        playback: PlaybackService = EmptyPlaybackService,
+        libraryRepository: LibraryService = FakeLibraryRepository(),
     ): DetailsViewModel {
         return DetailsViewModel(
-            loadDetails = LoadDetailsUseCase(repository),
-            progressRepository = progressRepository,
-            observeContentLibraryState = ObserveContentLibraryStateUseCase(libraryRepository),
-            setContentLiked = SetContentLikedUseCase(libraryRepository),
-            setContentInMyList = SetContentInMyListUseCase(libraryRepository),
+            detailsRepository = repository,
+            playback = playback,
+            library = libraryRepository,
         )
     }
 
-    private fun contentModel(id: String): ContentModel {
-        return ContentModel(
+    private fun contentModel(id: String): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = "Content",
             description = "Description",
@@ -346,9 +346,9 @@ class DetailsViewModelTest {
     }
 
     private class FakeDetailsRepository(
-        private val detailsResult: AppResult<ContentModel>,
-        private val recommendationsResult: AppResult<List<ContentModel>>,
-    ) : DetailsRepository {
+        private val detailsResult: StreamCoreResult<StreamCoreContent>,
+        private val recommendationsResult: StreamCoreResult<List<StreamCoreContent>>,
+    ) : DetailsService {
 
         var detailsRequestCount: Int = 0
             private set
@@ -356,7 +356,7 @@ class DetailsViewModelTest {
         override suspend fun getDetails(
             profileId: String,
             contentId: String,
-        ): AppResult<ContentModel> {
+        ): StreamCoreResult<StreamCoreContent> {
             detailsRequestCount += 1
             return detailsResult
         }
@@ -364,67 +364,82 @@ class DetailsViewModelTest {
         override suspend fun getRecommendations(
             profileId: String,
             contentId: String,
-        ): AppResult<List<ContentModel>> {
+        ): StreamCoreResult<List<StreamCoreContent>> {
             return recommendationsResult
         }
     }
 
-    private object EmptyPlaybackProgressRepository : PlaybackProgressRepository {
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return flowOf(emptyList())
+    private object EmptyPlaybackService : PlaybackService {
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> { error("Not used by this screen") }
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return flowOf(StreamCoreResult.Success(emptyList()))
         }
 
-        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
-            return null
+        override suspend fun getProgress(profileId: String, contentId: String): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(null)
         }
 
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
-        override suspend fun remove(profileId: String, contentId: String) = Unit
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder { error("Not used by this screen") }
     }
 
-    private class FlowPlaybackProgressRepository(
-        private val entries: Flow<List<PlaybackProgressEntryModel>>,
-    ) : PlaybackProgressRepository {
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return entries
+    private class FlowPlaybackService(
+        private val entries: Flow<List<StreamCorePlaybackProgressEntry>>,
+    ) : PlaybackService {
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> { error("Not used by this screen") }
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return entries.map { StreamCoreResult.Success(it) }
         }
 
-        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? {
-            return null
+        override suspend fun getProgress(profileId: String, contentId: String): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(null)
         }
 
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) = Unit
-        override suspend fun remove(profileId: String, contentId: String) = Unit
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder { error("Not used by this screen") }
     }
 
     private class FakeLibraryRepository(
-        initialEntries: List<LibraryEntryModel> = emptyList(),
-        private val likeResult: AppResult<Unit> = AppResult.Success(Unit),
-        private val myListResult: AppResult<Unit> = AppResult.Success(Unit),
+        initialEntries: List<StreamCoreLibraryEntry> = emptyList(),
+        private val likeResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit),
+        private val myListResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit),
         private val likeGate: CompletableDeferred<Unit>? = null,
-    ) : LibraryRepository {
-        private val entries = MutableStateFlow<AppResult<List<LibraryEntryModel>>>(
-            AppResult.Success(initialEntries),
+    ) : LibraryService {
+        private val entries = MutableStateFlow<StreamCoreResult<List<StreamCoreLibraryEntry>>>(
+            StreamCoreResult.Success(initialEntries),
         )
 
         var likeMutationCount: Int = 0
             private set
 
-        override fun observe(profileId: String): Flow<AppResult<List<LibraryEntryModel>>> {
-            return entries
+        override fun observe(profileId: String): Flow<StreamCoreResult<StreamCoreLibrary>> {
+            error("Details consumes membership state only")
+        }
+
+        override fun observeContentState(profileId: String, contentId: String): Flow<StreamCoreResult<StreamCoreContentLibraryState>> {
+            return entries.map { result ->
+                when (result) {
+                    is StreamCoreResult.Failure -> result
+                    is StreamCoreResult.Success -> {
+                        val entry = result.value.find { it.content.id == contentId }
+                        StreamCoreResult.Success(StreamCoreContentLibraryState(entry?.likedAtMillis != null, entry?.addedToMyListAtMillis != null))
+                    }
+                }
+            }
         }
 
         override suspend fun setLiked(
             profileId: String,
-            content: ContentModel,
+            content: StreamCoreContent,
             isLiked: Boolean,
-            changedAtMillis: Long,
-        ): AppResult<Unit> {
+        ): StreamCoreResult<Unit> {
             likeMutationCount += 1
             likeGate?.await()
-            if (likeResult is AppResult.Success) {
+            if (likeResult is StreamCoreResult.Success) {
                 updateEntry(content) { entry ->
-                    entry.copy(likedAtMillis = changedAtMillis.takeIf { isLiked })
+                    entry.copy(likedAtMillis = 1L.takeIf { isLiked })
                 }
             }
             return likeResult
@@ -432,13 +447,12 @@ class DetailsViewModelTest {
 
         override suspend fun setInMyList(
             profileId: String,
-            content: ContentModel,
+            content: StreamCoreContent,
             isInMyList: Boolean,
-            changedAtMillis: Long,
-        ): AppResult<Unit> {
-            if (myListResult is AppResult.Success) {
+        ): StreamCoreResult<Unit> {
+            if (myListResult is StreamCoreResult.Success) {
                 updateEntry(content) { entry ->
-                    entry.copy(addedToMyListAtMillis = changedAtMillis.takeIf { isInMyList })
+                    entry.copy(addedToMyListAtMillis = 1L.takeIf { isInMyList })
                 }
             }
             return myListResult
@@ -449,15 +463,15 @@ class DetailsViewModelTest {
         }
 
         private fun updateEntry(
-            content: ContentModel,
-            transform: (LibraryEntryModel) -> LibraryEntryModel,
+            content: StreamCoreContent,
+            transform: (StreamCoreLibraryEntry) -> StreamCoreLibraryEntry,
         ) {
-            val current = (entries.value as? AppResult.Success)?.value.orEmpty()
+            val current = (entries.value as? StreamCoreResult.Success)?.value.orEmpty()
             val existing = current.firstOrNull { entry -> entry.content.id == content.id }
-                ?: LibraryEntryModel(content = content)
+                ?: StreamCoreLibraryEntry(content = content)
             val updated = transform(existing)
             val retained = current.filterNot { entry -> entry.content.id == content.id }
-            entries.value = AppResult.Success(
+            entries.value = StreamCoreResult.Success(
                 if (updated.likedAtMillis == null && updated.addedToMyListAtMillis == null) {
                     retained
                 } else {

@@ -69,7 +69,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreLoadingChip
@@ -407,7 +407,7 @@ private fun HeroActionsSection(
 
 @Composable
 private fun DetailsInformationBand(
-    content: ContentModel,
+    content: StreamCoreContent,
     overviewFocusRequester: FocusRequester,
     playFocusRequester: FocusRequester,
     downFocusRequester: FocusRequester,
@@ -775,7 +775,7 @@ private fun DetailsLabeledAction(
 
 @Composable
 private fun RecommendationsRow(
-    recommendations: List<ContentModel>,
+    recommendations: List<StreamCoreContent>,
     onAction: (DetailsAction) -> Unit,
     recommendationsFocusRequester: FocusRequester,
     actionsUpFocusRequester: FocusRequester,
@@ -865,7 +865,7 @@ private fun RecommendationsRow(
 
 @Composable
 private fun RecommendationCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -903,7 +903,7 @@ private fun RecommendationCard(
     }
 }
 
-private fun ContentModel.sharedContentKey(): String {
+private fun StreamCoreContent.sharedContentKey(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,

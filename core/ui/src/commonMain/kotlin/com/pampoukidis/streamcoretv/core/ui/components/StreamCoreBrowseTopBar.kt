@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,7 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 fun StreamCoreBrowseTopBar(
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
-    profileAvatar: ProfileAvatarModel? = null,
+    profileAvatar: StreamCoreProfileAvatar? = null,
     profileArtworkModifier: Modifier = Modifier,
     onSearchSelected: (() -> Unit)? = null,
 ) {

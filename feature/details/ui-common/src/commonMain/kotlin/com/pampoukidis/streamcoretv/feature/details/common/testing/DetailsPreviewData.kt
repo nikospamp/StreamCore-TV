@@ -1,23 +1,23 @@
 package com.pampoukidis.streamcoretv.feature.details.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.general.Cast
-import com.pampoukidis.streamcoretv.core.model.general.Genre
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCastMember
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 
 object DetailsPreviewData {
 
-    private val drama = Genre(id = "drama", name = "Drama")
-    private val thriller = Genre(id = "thriller", name = "Thriller")
-    private val scienceFiction = Genre(id = "science-fiction", name = "Science Fiction")
+    private val drama = StreamCoreGenre(id = "drama", name = "Drama")
+    private val thriller = StreamCoreGenre(id = "thriller", name = "Thriller")
+    private val scienceFiction = StreamCoreGenre(id = "science-fiction", name = "Science Fiction")
 
     private val cast = listOf(
-        Cast(
+        StreamCoreCastMember(
             id = "cast-1",
             name = "Alex Morgan",
             characterName = "Commander Vale",
             image = null,
         ),
-        Cast(
+        StreamCoreCastMember(
             id = "cast-2",
             name = "Jordan Lee",
             characterName = "Dr. Ilya Chen",
@@ -25,7 +25,7 @@ object DetailsPreviewData {
         ),
     )
 
-    val content = ContentModel(
+    val content = StreamCoreContent(
         id = "orbit-fall",
         title = "Orbit Fall",
         description = "A rescue crew races to stabilize a failing orbital station while a hidden signal pulls them deeper into the debris field.",

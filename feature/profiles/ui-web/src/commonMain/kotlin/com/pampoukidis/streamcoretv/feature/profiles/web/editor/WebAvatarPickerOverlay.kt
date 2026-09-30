@@ -19,14 +19,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebActionSurface
@@ -39,12 +46,13 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPrev
 
 @Composable
 internal fun WebAvatarPickerOverlay(
-    avatars: List<ProfileAvatarModel>,
+    avatars: List<StreamCoreProfileAvatar>,
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
     WebAvatarPickerEscapeEffect(onDismissRequest)
+    val focusManager = LocalFocusManager.current
     val closeFocus = remember { FocusRequester() }
     LaunchedEffect(avatars.isEmpty()) {
         if (avatars.isEmpty()) closeFocus.requestFocus()
@@ -57,6 +65,24 @@ internal fun WebAvatarPickerOverlay(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
             .webEscape(onDismissRequest)
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val direction = when (event.key) {
+                    Key.DirectionUp -> FocusDirection.Up
+                    Key.DirectionDown -> FocusDirection.Down
+                    Key.DirectionLeft -> FocusDirection.Left
+                    Key.DirectionRight -> FocusDirection.Right
+                    else -> null
+                }
+                if (direction == null) {
+                    false
+                } else {
+                    // Compose/Wasm's default traversal handles Tab, not directional keys.
+                    // Consume arrows at grid edges too, retaining the existing modal focus trap.
+                    focusManager.moveFocus(direction)
+                    true
+                }
+            }
             .semantics {
                 paneTitle = "Choose an avatar"
                 isTraversalGroup = true

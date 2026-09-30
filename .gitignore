@@ -333,6 +333,7 @@ hs_err_pid*
 /webApp/e2e/playwright-report/
 /webApp/e2e/test-results/
 /webApp/e2e/.playwright-browsers/
+/screenshots/
 
 ## Kotlin
 /.kotlin

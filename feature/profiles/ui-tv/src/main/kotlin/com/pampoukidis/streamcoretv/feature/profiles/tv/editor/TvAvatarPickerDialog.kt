@@ -25,7 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvActionSurface
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvIconButton
@@ -37,7 +37,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPrev
 
 @Composable
 internal fun TvAvatarPickerDialog(
-    avatars: List<ProfileAvatarModel>,
+    avatars: List<StreamCoreProfileAvatar>,
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,
@@ -61,7 +61,7 @@ internal fun TvAvatarPickerDialog(
 
 @Composable
 private fun TvAvatarPickerContent(
-    avatars: List<ProfileAvatarModel>,
+    avatars: List<StreamCoreProfileAvatar>,
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,

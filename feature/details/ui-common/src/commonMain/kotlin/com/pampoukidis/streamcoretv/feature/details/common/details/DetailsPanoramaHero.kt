@@ -25,7 +25,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.heroMetadata
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
@@ -43,7 +43,7 @@ import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTa
 /** Platforms supply hero height, copy insets, and any interactive artwork overlays. */
 @Composable
 fun DetailsPanoramaHero(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
     titleStyle: TextStyle = MaterialTheme.typography.displaySmall,
     metadataStyle: TextStyle = MaterialTheme.typography.labelMedium,

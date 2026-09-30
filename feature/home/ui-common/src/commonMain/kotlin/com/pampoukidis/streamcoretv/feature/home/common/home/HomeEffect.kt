@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcoretv.feature.home.common.home
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 
 sealed interface HomeEffect {
     data class ContentSelected(
-        val content: ContentModel,
+        val content: StreamCoreContent,
         val sourceArtworkUrl: String? = null,
     ) : HomeEffect
-    data class ShowError(val error: AppError) : HomeEffect
+    data class ShowError(val error: StreamCoreError) : HomeEffect
 }

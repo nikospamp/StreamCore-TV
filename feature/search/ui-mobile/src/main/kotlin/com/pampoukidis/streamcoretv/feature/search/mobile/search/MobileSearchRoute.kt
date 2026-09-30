@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.Dp
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedElementScope
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchAction
 import com.pampoukidis.streamcoretv.feature.search.common.search.SearchRouteEventEffect
@@ -28,8 +28,8 @@ import com.pampoukidis.streamcoretv.feature.search.common.search.SearchViewModel
 fun MobileSearchRoute(
     profileId: String,
     selectedContentKey: String?,
-    onContentSelected: (ContentModel) -> Unit,
-    onContentArtworkSelected: ((ContentModel, String?) -> Unit)? = null,
+    onContentSelected: (StreamCoreContent) -> Unit,
+    onContentArtworkSelected: ((StreamCoreContent, String?) -> Unit)? = null,
     onBack: () -> Unit,
     bottomContentPadding: Dp,
     sharedElementScope: StreamCoreSharedElementScope? = null,

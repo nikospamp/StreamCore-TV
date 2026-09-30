@@ -10,7 +10,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreTvButtonVariant
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -20,7 +20,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 
 @Composable
 internal fun TvProfileDeleteConfirmationDialog(
-    profile: ProfileModel?,
+    profile: StreamCoreProfile?,
     isSaving: Boolean,
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,

@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsPreviewData
@@ -17,7 +17,7 @@ import com.pampoukidis.streamcoretv.feature.details.common.testing.DetailsTestTa
 
 @Composable
 fun DetailsOverview(
-    content: ContentModel,
+    content: StreamCoreContent,
     modifier: Modifier = Modifier,
     headingStyle: TextStyle = MaterialTheme.typography.titleMedium,
     genresStyle: TextStyle = MaterialTheme.typography.labelLarge,

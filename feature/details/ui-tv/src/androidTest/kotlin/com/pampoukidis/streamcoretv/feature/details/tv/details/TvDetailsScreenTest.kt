@@ -25,7 +25,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
-import com.pampoukidis.streamcoretv.core.model.content.TrailerModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreTrailer
 import com.pampoukidis.streamcoretv.core.ui.motion.StreamCoreSharedKey
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.details.common.details.DetailsAction
@@ -75,7 +75,7 @@ class TvDetailsScreenTest {
                 contentState().copy(
                     content = contentState().content?.copy(
                         trailers = listOf(
-                            TrailerModel(
+                            StreamCoreTrailer(
                                 id = "trailer-1",
                                 title = "Official trailer",
                                 url = "https://example.com/trailer",

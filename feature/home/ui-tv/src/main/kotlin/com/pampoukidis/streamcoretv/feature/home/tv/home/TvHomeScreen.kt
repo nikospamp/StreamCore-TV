@@ -35,7 +35,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowModel
 import com.pampoukidis.streamcoretv.core.model.content.imageUrl
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreInfoIcon
@@ -283,12 +283,12 @@ private fun TvHomeBody(
 
 @Composable
 private fun TvHomeHeroCarousel(
-    content: List<ContentModel>,
+    content: List<StreamCoreContent>,
     initialActiveItemIndex: Int,
     focusRequester: FocusRequester,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onContentSelected: (ContentModel) -> Unit,
+    onContentSelected: (StreamCoreContent) -> Unit,
 ) {
     StreamCoreTvCarousel(
         itemCount = content.size,
@@ -311,7 +311,7 @@ private fun TvHomeHeroCarousel(
 
 @Composable
 private fun TvHomeHero(
-    content: ContentModel,
+    content: StreamCoreContent,
     focusRequester: FocusRequester,
     useSharedTransition: Boolean,
     sharedElementScope: StreamCoreSharedElementScope?,
@@ -485,7 +485,7 @@ private fun TvHomeLoadingContent() {
     }
 }
 
-private fun List<ContentModel>.indexOfContentKey(selectedContentKey: String?): Int {
+private fun List<StreamCoreContent>.indexOfContentKey(selectedContentKey: String?): Int {
     if (selectedContentKey == null) {
         return -1
     }
@@ -521,7 +521,7 @@ private fun List<RowModel>.findFocusLocation(
     )
 }
 
-private fun ContentModel.sharedContentKey(): String {
+private fun StreamCoreContent.sharedContentKey(): String {
     return StreamCoreSharedKey.content(
         contentId = id,
         row = row,

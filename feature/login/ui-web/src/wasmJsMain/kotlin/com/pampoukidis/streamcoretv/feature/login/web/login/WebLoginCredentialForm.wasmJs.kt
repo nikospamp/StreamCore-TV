@@ -353,6 +353,7 @@ private fun focusStyle(colors: LoginFormColors, controls: StreamCoreWebControlSt
         ${controls.buttonStates("[data-testid='${LoginTestTags.SubmitButton}']")}
         ${controls.buttonStates("[data-testid='${LoginTestTags.PasswordVisibilityToggle}']")}
         [data-testid='${LoginTestTags.SubmitButton}']:focus-visible,[data-testid='${LoginTestTags.PasswordVisibilityToggle}']:focus-visible{outline:none;border-color:${colors.primary.cssColor()}}
+        [data-testid='${LoginTestTags.SubmitButton}']:focus-visible{box-shadow:inset 0 0 0 ${StreamCoreWebDimens.FocusBorder.value}px ${controls.roles.onPrimary.cssColor()}}
         @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
     """.trimIndent()
 }

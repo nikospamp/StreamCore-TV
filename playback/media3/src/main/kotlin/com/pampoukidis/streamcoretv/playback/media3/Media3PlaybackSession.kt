@@ -32,7 +32,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
@@ -114,7 +114,7 @@ internal class Media3PlaybackSession(
         }
     }
 
-    override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
+    override fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long) {
         val uri = media.uri ?: run {
             publishSourceError()
             return

@@ -18,7 +18,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.RowType
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
@@ -32,7 +32,7 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 /** TV artwork composition with browser activation and focus; all data remains provider-neutral. */
 @Composable
 fun StreamCoreWebMediaCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     type: RowType,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -98,7 +98,7 @@ fun StreamCoreWebMediaCard(
 private fun StreamCoreWebMediaCardPreview() {
     StreamCoreTheme(darkTheme = true) {
         StreamCoreWebMediaCard(
-            content = ContentModel(
+            content = StreamCoreContent(
                 id = "preview",
                 title = "The Last Horizon",
                 description = "",

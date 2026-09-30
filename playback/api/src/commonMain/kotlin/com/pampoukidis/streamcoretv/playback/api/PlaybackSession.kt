@@ -1,5 +1,6 @@
 package com.pampoukidis.streamcoretv.playback.api
 
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -7,7 +8,7 @@ interface PlaybackSession : AutoCloseable {
     val state: StateFlow<PlaybackEngineState>
     val videoSurface: PlaybackVideoSurface
 
-    fun prepare(media: PlaybackMediaModel, startPositionMillis: Long)
+    fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long)
     fun play()
     fun pause()
     fun seekTo(positionMillis: Long)

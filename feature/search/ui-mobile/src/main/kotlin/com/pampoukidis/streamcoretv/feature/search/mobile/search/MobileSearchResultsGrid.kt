@@ -29,7 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreContentImage
@@ -45,8 +45,8 @@ import com.pampoukidis.streamcoretv.feature.search.mobile.R
 
 @Composable
 fun MobileSearchResultsGrid(
-    items: List<ContentModel>,
-    onContentSelected: (ContentModel) -> Unit,
+    items: List<StreamCoreContent>,
+    onContentSelected: (StreamCoreContent) -> Unit,
     state: LazyGridState,
     modifier: Modifier = Modifier,
     showOfflineNotice: Boolean = false,
@@ -110,7 +110,7 @@ fun MobileSearchResultsGrid(
 
 @Composable
 private fun SearchResultCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     onClick: () -> Unit,
     sharedElementScope: StreamCoreSharedElementScope?,
 ) {

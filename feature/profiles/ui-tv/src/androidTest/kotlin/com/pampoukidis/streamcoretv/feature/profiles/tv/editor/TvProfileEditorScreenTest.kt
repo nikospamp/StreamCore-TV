@@ -13,15 +13,15 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorAction
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorFormUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorScreenUiState
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -56,29 +56,36 @@ class TvProfileEditorScreenTest {
     }
 
     @Test
-    fun initialFocusStartsAtDisplayNameAndActionsTraverseCancelSaveDelete() {
-        setScreen()
+    fun initialFocusStartsAtDisplayNameAndActionsTraverseKidsDeleteSaveClose() {
+        val profile = ProfilesPreviewData.profiles.first { it.canDelete }
+        val initialState = editorState(profile)
+        val initialEditor = requireNotNull(initialState.editor)
+        val state = initialState.copy(editor = initialEditor.copy(draft = initialEditor.draft.copy(displayName = "Edited profile")))
+        composeRule.setContent {
+            StreamCoreTheme(darkTheme = true) { TvProfileEditorScreen(state, {}) }
+        }
 
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorDisplayNameField)
             .assertIsFocused()
         composeRule
-            .onNodeWithTag(
-                ProfilesTestTags.EditorParentalLevelOptionPrefix +
-                        ProfilesPreviewData.parentalLevels.last().id,
-            )
+            .onNodeWithTag(ProfilesTestTags.EditorKidsSwitch)
             .performSemanticsAction(SemanticsActions.RequestFocus)
             .performKeyInput { pressKey(Key.DirectionDown) }
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionDown) }
+        composeRule
+            .onNodeWithTag(ProfilesTestTags.EditorSubmitButton)
+            .assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionLeft) }
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorCancelButton)
             .assertIsFocused()
             .performKeyInput { pressKey(Key.DirectionRight) }
         composeRule
             .onNodeWithTag(ProfilesTestTags.EditorSubmitButton)
-            .assertIsFocused()
-            .performKeyInput { pressKey(Key.DirectionRight) }
-        composeRule
-            .onNodeWithTag(ProfilesTestTags.EditorDeleteButton)
             .assertIsFocused()
     }
 
@@ -211,9 +218,9 @@ class TvProfileEditorScreenTest {
     }
 
     private fun setScreen(
-        profile: ProfileModel = ProfilesPreviewData.profiles.first { it.canDelete },
+        profile: StreamCoreProfile = ProfilesPreviewData.profiles.first { it.canDelete },
         isSaving: Boolean = false,
-        pendingDeleteProfile: ProfileModel? = null,
+        pendingDeleteProfile: StreamCoreProfile? = null,
         onAction: (ProfileEditorAction) -> Unit = {},
     ) {
         composeRule.setContent {
@@ -245,9 +252,9 @@ class TvProfileEditorScreenTest {
     }
 
     private fun editorState(
-        profile: ProfileModel,
+        profile: StreamCoreProfile,
         isSaving: Boolean = false,
-        pendingDeleteProfile: ProfileModel? = null,
+        pendingDeleteProfile: StreamCoreProfile? = null,
     ): ProfileEditorScreenUiState {
         return ProfileEditorScreenUiState(
             mode = ProfileEditorMode.Edit,

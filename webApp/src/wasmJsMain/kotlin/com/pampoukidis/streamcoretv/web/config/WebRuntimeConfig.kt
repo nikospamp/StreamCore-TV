@@ -1,6 +1,6 @@
 package com.pampoukidis.streamcoretv.web.config
 
-import com.pampoukidis.streamcoretv.client.tmdb.data.config.TmdbRuntimeConfig
+import com.pampoukidis.streamcore.sdk.providers.tmdb.TmdbConnectionConfiguration
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import kotlinx.serialization.Serializable
@@ -39,12 +39,15 @@ data class WebRuntimeConfig(
         return WebRuntimeConfigValidationResult.Valid(this)
     }
 
-    fun toTmdbRuntimeConfig(): TmdbRuntimeConfig {
-        return TmdbRuntimeConfig(
+    fun toTmdbRuntimeConfig(): TmdbConnectionConfiguration {
+        return TmdbConnectionConfiguration(
             baseUrl = tmdbBaseUrl,
             readAccessToken = tmdbReadAccessToken,
-            accountId = tmdbAccountId,
         )
+    }
+
+    override fun toString(): String {
+        return "WebRuntimeConfig(tmdbBaseUrl=$tmdbBaseUrl, tmdbReadAccessToken=<redacted>, tmdbAccountId=$tmdbAccountId)"
     }
 }
 

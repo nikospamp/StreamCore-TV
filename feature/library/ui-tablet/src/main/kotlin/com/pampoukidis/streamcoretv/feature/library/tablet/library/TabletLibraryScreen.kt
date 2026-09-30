@@ -34,11 +34,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.core.model.content.fallbackText
 import com.pampoukidis.streamcoretv.core.model.content.homeMetadataText
-import com.pampoukidis.streamcoretv.core.model.error.AppError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreBookmarkIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSharedArtworkImage
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreHeartIcon
@@ -65,7 +65,7 @@ fun TabletLibraryScreen(
     onAction: (LibraryAction) -> Unit,
     onProfileSelected: () -> Unit,
     modifier: Modifier = Modifier,
-    activeProfile: ProfileModel? = null,
+    activeProfile: StreamCoreProfile? = null,
     selectedContentKey: String? = null,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
@@ -127,7 +127,7 @@ fun TabletLibraryScreen(
 
 @Composable
 private fun TabletLibraryHeader(
-    activeProfile: ProfileModel?,
+    activeProfile: StreamCoreProfile?,
     onProfileSelected: () -> Unit,
 ) {
     val chooseProfileDescription = stringResource(R.string.library_choose_profile)
@@ -210,7 +210,7 @@ private fun TabletLibrarySection(
     section: TabletLibrarySectionModel,
     selectedContentKey: String?,
     sharedElementScope: StreamCoreSharedElementScope?,
-    onSelected: (ContentModel) -> Unit,
+    onSelected: (StreamCoreContent) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Tablet.Browse.RowSpacing),
@@ -261,7 +261,7 @@ private fun TabletLibrarySection(
 
 @Composable
 private fun TabletLibraryCard(
-    content: ContentModel,
+    content: StreamCoreContent,
     cardWidth: Dp,
     aspectRatio: Float,
     onClick: () -> Unit,
@@ -308,7 +308,7 @@ private fun TabletLibraryCard(
     }
 }
 
-private fun ContentModel.tabletLibraryImageUrl(aspectRatio: Float): String? {
+private fun StreamCoreContent.tabletLibraryImageUrl(aspectRatio: Float): String? {
     if (aspectRatio == StreamCoreDimens.Artwork.LandscapeAspectRatio) {
         return backdrop ?: poster
     }
@@ -440,7 +440,7 @@ private data class TabletLibrarySectionModel(
     val titleRes: Int,
     val emptyMessageRes: Int,
     val testTag: String,
-    val items: List<ContentModel>,
+    val items: List<StreamCoreContent>,
     val contentType: String,
     val cardWidth: Dp,
     val aspectRatio: Float,
@@ -498,7 +498,7 @@ private fun TabletLibraryErrorPreview() {
         TabletLibraryScreen(
             state = LibraryUiState(
                 isLoading = false,
-                error = AppError.Network(),
+                error = StreamCoreError.Network(),
             ),
             onAction = {},
             onProfileSelected = {},

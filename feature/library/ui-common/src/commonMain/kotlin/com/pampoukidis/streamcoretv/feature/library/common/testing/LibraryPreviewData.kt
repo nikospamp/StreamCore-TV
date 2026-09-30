@@ -1,7 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.library.common.testing
 
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.feature.library.common.library.LibraryUiState
 
 object LibraryPreviewData {
@@ -10,7 +10,7 @@ object LibraryPreviewData {
         title = "Northern Signal",
         row = "library:continue-watching",
     ).copy(
-        playbackProgress = PlaybackProgressModel(
+        playbackProgress = StreamCorePlaybackProgress(
             positionMillis = 42_000L,
             durationMillis = 100_000L,
         ),
@@ -39,8 +39,8 @@ object LibraryPreviewData {
         id: String,
         title: String,
         row: String,
-    ): ContentModel {
-        return ContentModel(
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = title,
             description = "",

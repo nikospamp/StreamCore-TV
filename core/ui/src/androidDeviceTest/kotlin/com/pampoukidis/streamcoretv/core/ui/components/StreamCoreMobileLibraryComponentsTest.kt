@@ -5,8 +5,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.content.PlaybackProgressModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -63,7 +63,7 @@ class StreamCoreMobileLibraryComponentsTest {
             id = "continue",
             title = "Continue title",
         ).copy(
-            playbackProgress = PlaybackProgressModel(
+            playbackProgress = StreamCorePlaybackProgress(
                 positionMillis = 40L,
                 durationMillis = 100L,
             ),
@@ -93,8 +93,8 @@ class StreamCoreMobileLibraryComponentsTest {
     private fun content(
         id: String,
         title: String,
-    ): ContentModel {
-        return ContentModel(
+    ): StreamCoreContent {
+        return StreamCoreContent(
             id = id,
             title = title,
             description = "",

@@ -1,20 +1,21 @@
 package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 
+import com.pampoukidis.streamcore.sdk.api.ProfileService
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreUpdateProfile
+import com.pampoukidis.streamcore.sdk.api.validation.ProfileValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.feature.profiles.data.EditorRequest
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.domain.CreateProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.DeleteProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfileEditorOptionsUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.LoadProfilesUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.UpdateProfileUseCase
-import com.pampoukidis.streamcoretv.feature.profiles.domain.ValidateProfileDraftUseCase
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationField
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationReason
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.EditorRequest
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,12 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ProfileEditorViewModel constructor(
-    private val loadProfiles: LoadProfilesUseCase,
-    private val loadProfileEditorOptions: LoadProfileEditorOptionsUseCase,
-    private val validateProfileDraft: ValidateProfileDraftUseCase,
-    private val createProfile: CreateProfileUseCase,
-    private val updateProfile: UpdateProfileUseCase,
-    private val deleteProfile: DeleteProfileUseCase,
+    private val profileRepository: ProfileService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileEditorScreenUiState())
@@ -111,10 +107,10 @@ class ProfileEditorViewModel constructor(
         }
     }
 
-    private suspend fun loadOptions(): ProfileEditorOptionsModel? {
-        return when (val result = loadProfileEditorOptions()) {
-            is AppResult.Success -> result.value
-            is AppResult.Failure -> {
+    private suspend fun loadOptions(): StreamCoreProfileEditorOptions? {
+        return when (val result = profileRepository.getProfileEditorOptions()) {
+            is StreamCoreResult.Success -> result.value
+            is StreamCoreResult.Failure -> {
                 _uiState.update { it.copy(isLoading = false) }
                 emitError(result.error)
                 null
@@ -122,7 +118,7 @@ class ProfileEditorViewModel constructor(
         }
     }
 
-    private fun createDraft(options: ProfileEditorOptionsModel): ProfileDraftModel {
+    private fun createDraft(options: StreamCoreProfileEditorOptions): ProfileDraftModel {
         return ProfileDraftModel(
             avatarId = options.avatars.firstOrNull()?.id.orEmpty(),
             parentalLevelId = options.parentalLevels
@@ -133,20 +129,20 @@ class ProfileEditorViewModel constructor(
         )
     }
 
-    private suspend fun loadEditProfile(profileId: String?): ProfileModel? {
+    private suspend fun loadEditProfile(profileId: String?): StreamCoreProfile? {
         if (profileId == null) {
             _uiState.update { it.copy(isLoading = false) }
-            emitError(AppError.Unknown())
+            emitError(StreamCoreError.Unknown())
             emitClose()
             return null
         }
 
-        return when (val result = loadProfiles()) {
-            is AppResult.Success -> {
+        return when (val result = profileRepository.getProfiles()) {
+            is StreamCoreResult.Success -> {
                 val profile = result.value.firstOrNull { it.id == profileId }
                 if (profile == null) {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitError(AppError.Unknown())
+                    emitError(StreamCoreError.Unknown())
                     emitClose()
                     null
                 } else {
@@ -154,7 +150,7 @@ class ProfileEditorViewModel constructor(
                 }
             }
 
-            is AppResult.Failure -> {
+            is StreamCoreResult.Failure -> {
                 _uiState.update { it.copy(isLoading = false) }
                 emitError(result.error)
                 null
@@ -169,7 +165,7 @@ class ProfileEditorViewModel constructor(
             state.copy(
                 editor = editor.copy(
                     draft = draft,
-                    validation = validateProfileDraft(draft, state.editorOptions),
+                    validation = ProfileValidator.validate(draft.toCreateInput(), state.editorOptions),
                 ),
             )
         }
@@ -195,7 +191,7 @@ class ProfileEditorViewModel constructor(
         if (state.isSaving) return
 
         val editor = state.editor ?: return
-        val validation = validateProfileDraft(editor.draft, state.editorOptions)
+        val validation = ProfileValidator.validate(editor.draft.toCreateInput(), state.editorOptions)
         if (!validation.isValid) {
             _uiState.update {
                 it.copy(editor = editor.copy(validation = validation))
@@ -206,8 +202,15 @@ class ProfileEditorViewModel constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             val result = when (editor.mode) {
-                ProfileEditorMode.Create -> createProfile(editor.draft)
-                ProfileEditorMode.Edit -> updateProfile(editor.draft)
+                ProfileEditorMode.Create -> profileRepository.createProfile(editor.draft.toCreateInput())
+                ProfileEditorMode.Edit -> profileRepository.updateProfile(
+                    StreamCoreUpdateProfile(
+                        profileId = editor.draft.profileId.orEmpty(),
+                        displayName = editor.draft.displayName,
+                        avatarId = editor.draft.avatarId,
+                        parentalLevelId = editor.draft.parentalLevelId,
+                    ),
+                )
             }
             handleSubmitResult(result)
         }
@@ -232,8 +235,8 @@ class ProfileEditorViewModel constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            when (val result = deleteProfile(profile.id)) {
-                is AppResult.Success -> {
+            when (val result = profileRepository.deleteProfile(profile.id)) {
+                is StreamCoreResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isSaving = false,
@@ -243,7 +246,7 @@ class ProfileEditorViewModel constructor(
                     effectsChannel.send(ProfileEditorEffect.ProfileDeleted)
                 }
 
-                is AppResult.Failure -> {
+                is StreamCoreResult.Failure -> {
                     _uiState.update {
                         it.copy(
                             isSaving = false,
@@ -256,18 +259,44 @@ class ProfileEditorViewModel constructor(
         }
     }
 
-    private suspend fun handleSubmitResult(result: AppResult<ProfileModel>) {
+    private suspend fun handleSubmitResult(result: StreamCoreResult<StreamCoreProfile>) {
         when (result) {
-            is AppResult.Success -> {
+            is StreamCoreResult.Success -> {
                 _uiState.update { it.copy(isSaving = false) }
                 effectsChannel.send(ProfileEditorEffect.ProfileSaved)
             }
 
-            is AppResult.Failure -> {
+            is StreamCoreResult.Failure -> {
                 _uiState.update { it.copy(isSaving = false) }
-                emitError(result.error)
+                if (!applyOperationValidation(result.error)) emitError(result.error)
             }
         }
+    }
+
+    private fun applyOperationValidation(error: StreamCoreError): Boolean {
+        if (error !is StreamCoreError.Validation || error.issues.isEmpty()) return false
+        val state = _uiState.value
+        val editor = state.editor ?: return false
+        var validation = editor.validation
+        var mapped = 0
+        error.issues.forEach { issue ->
+            val fieldError = when (issue.reason) {
+                StreamCoreValidationReason.Required -> if (issue.field == StreamCoreValidationField.ProfileName) StreamCoreProfileFieldError.Blank else StreamCoreProfileFieldError.MissingSelection
+                StreamCoreValidationReason.TooLong -> if (issue.field == StreamCoreValidationField.ProfileName) StreamCoreProfileFieldError.TooLong else null
+                StreamCoreValidationReason.UnknownSelection -> StreamCoreProfileFieldError.UnknownSelection
+                else -> null
+            }
+            if (fieldError != null) {
+                when (issue.field) {
+                    StreamCoreValidationField.ProfileName -> { validation = validation.copy(displayNameError = fieldError); mapped++ }
+                    StreamCoreValidationField.AvatarId -> { validation = validation.copy(avatarError = fieldError); mapped++ }
+                    StreamCoreValidationField.ParentalLevelId -> { validation = validation.copy(parentalLevelError = fieldError); mapped++ }
+                    else -> Unit
+                }
+            }
+        }
+        _uiState.update { it.copy(editor = editor.copy(validation = validation)) }
+        return mapped == error.issues.size
     }
 
     private fun close() {
@@ -281,11 +310,15 @@ class ProfileEditorViewModel constructor(
         effectsChannel.send(ProfileEditorEffect.Close)
     }
 
-    private suspend fun emitError(error: AppError) {
+    private suspend fun emitError(error: StreamCoreError) {
         effectsChannel.send(ProfileEditorEffect.ShowError(error))
     }
 
-    private fun ProfileModel.toDraftModel(): ProfileDraftModel {
+    private fun ProfileDraftModel.toCreateInput(): StreamCoreCreateProfile {
+        return StreamCoreCreateProfile(displayName, avatarId, parentalLevelId)
+    }
+
+    private fun StreamCoreProfile.toDraftModel(): ProfileDraftModel {
         return ProfileDraftModel(
             profileId = id,
             displayName = displayName,

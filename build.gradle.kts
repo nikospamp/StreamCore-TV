@@ -368,7 +368,7 @@ val verifyKmpTestTargets by tasks.registering(VerifyKmpTestTargetsTask::class) {
     group = "verification"
     description = "Fails when common KMP tests have no executable Android host-test target."
     commonTestSourceFiles.from(kmpCommonTestSourceFiles)
-    compileOnlyModules.set(listOf(":core:domain"))
+    compileOnlyModules.set(emptyList())
 }
 val verifyKmpAndroidCompilerFlags by tasks.registering(VerifyKmpAndroidCompilerFlagsTask::class) {
     group = "verification"
@@ -510,7 +510,7 @@ gradle.projectsEvaluated {
     allprojects.forEach { project ->
         project.extensions.findByType(WasmNodeJsEnvSpec::class.java)?.apply {
             download.set(false)
-            command.set("node")
+            command.set(providers.gradleProperty("streamcoreNodeExecutable").orElse("node"))
         }
         project.extensions.findByType(WasmYarnRootEnvSpec::class.java)?.apply {
             download.set(false)

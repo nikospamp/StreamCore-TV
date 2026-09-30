@@ -53,8 +53,8 @@ class KoinGraphTest {
     }
 
     private companion object {
-        const val EXPECTED_COMMON_MODULE_COUNT = 19
-        const val EXPECTED_PROVIDER_MODULE_COUNT = 4
+        const val EXPECTED_COMMON_MODULE_COUNT = 11
+        const val EXPECTED_PROVIDER_MODULE_COUNT = 3
         const val KTOR_HTTP_CLIENT_ENGINE_CLASS = "io.ktor.client.engine.HttpClientEngine"
     }
 }

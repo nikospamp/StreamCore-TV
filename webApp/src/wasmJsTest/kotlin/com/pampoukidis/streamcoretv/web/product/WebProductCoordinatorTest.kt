@@ -1,959 +1,600 @@
 package com.pampoukidis.streamcoretv.web.product
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.pampoukidis.streamcoretv.client.tmdb.data.di.TMDB_AUTH_STORE_QUALIFIER
-import com.pampoukidis.streamcoretv.core.domain.AuthenticateRepository
-import com.pampoukidis.streamcoretv.core.domain.ProfileRepository
-import com.pampoukidis.streamcoretv.core.model.auth.AuthStateModel
-import com.pampoukidis.streamcoretv.core.model.auth.CreateProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileEditorOptionsModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileParentalLevelModel
-import com.pampoukidis.streamcoretv.core.model.auth.UpdateProfileModel
-import com.pampoukidis.streamcoretv.core.model.error.AppError
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.web.config.WebRuntimeConfig
-import com.pampoukidis.streamcoretv.web.graph.webModules
+import com.pampoukidis.streamcore.sdk.api.AuthService
+import com.pampoukidis.streamcore.sdk.api.DetailsService
+import com.pampoukidis.streamcore.sdk.api.HomeService
+import com.pampoukidis.streamcore.sdk.api.ProfileService
+import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthAccount
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryNoProfiles
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryChooseProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryReady
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileSelectionResult
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileParentalLevel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreUpdateProfile
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.api.SearchService
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.LibraryService
+import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
+import com.pampoukidis.streamcore.sdk.model.StreamCoreCapabilities
+import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
+import com.pampoukidis.streamcore.sdk.model.StreamCoreContext
 import com.pampoukidis.streamcoretv.web.navigation.WebNavigationController
 import com.pampoukidis.streamcoretv.web.navigation.WebRoute
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
-import org.koin.core.qualifier.named
-import org.koin.dsl.koinApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
+/**
+ * Application routing tests consume only the public client.
+ * Storage transactions, legacy attribution and rejected-session cleanup are SDK contract tests.
+ */
 class WebProductCoordinatorTest {
     @Test
-    fun failedProfileSelectionPreservesMemoryPersistenceAndRouteUntilRetry(): TestResult {
+    fun initialSessionRejectionIsPresentedOnceBeforeRetryingSdkBootstrap(): TestResult {
         return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("original"))
-            fixture.navigation.replace(WebRoute.Profiles)
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
-
-            val error = fixture.coordinator.profileSelected(profile("replacement"))
-
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertEquals("original", fixture.coordinator.selectedProfile?.id)
-            assertEquals("original", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-
-            authStore.updateFailure = null
-            assertNull(fixture.coordinator.profileSelected(profile("replacement")))
-            assertEquals("replacement", fixture.coordinator.selectedProfile?.id)
-            assertEquals("replacement", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-            fixture.close()
+            withFixture {
+                val failure = StreamCoreResult.Failure(StreamCoreError.SessionExpired())
+                client.contextState.value = StreamCoreContext(isBootstrapped = true)
+                navigation.replace(WebRoute.Home)
+                val initialized = WebProductCoordinator(client, navigation, initialBootstrapResult = failure)
+                assertEquals(WebProductInitialization.ReadyWithError(failure.error), initialized.initialize())
+                assertEquals(WebRoute.Login, navigation.route.value)
+                assertEquals(0, client.bootstrapCalls)
+                assertEquals(WebProductInitialization.Ready, initialized.initialize())
+                assertEquals(1, client.bootstrapCalls)
+            }
         }
     }
 
     @Test
-    fun failedProfileSwitchPreservesMemoryPersistenceAndRouteUntilRetry(): TestResult {
+    fun profileCallbackRequiresSdkActivationAndNeverSelectsAgain(): TestResult {
         return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+            withFixture {
+                client.select(profile("original"))
+                navigation.replace(WebRoute.Profiles)
+                assertIs<StreamCoreError.InvalidContext>(coordinator.profileSelected(profile("replacement")))
+                assertEquals("original", coordinator.selectedProfile?.id)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+                assertEquals(0, client.selectionCalls)
 
-            val error = fixture.coordinator.changeProfile()
-
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
-            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-
-            authStore.updateFailure = null
-            assertNull(fixture.coordinator.changeProfile())
-            assertNull(fixture.coordinator.selectedProfile)
-            assertNull(authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            fixture.close()
+                client.select(profile("replacement"))
+                assertNull(coordinator.profileSelected(profile("replacement")))
+                assertEquals(WebRoute.Home, navigation.route.value)
+                assertEquals(0, client.selectionCalls)
+            }
         }
     }
-
     @Test
-    fun cancelledProfileSelectionAndSwitchPropagateWithoutChangingSelectionOrRoute(): TestResult {
+    fun failedProfileSwitchPersistenceStillRevokesSelectionBeforeRetry(): TestResult {
         return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("selected"))
-            val cancellation = CancellationException("cancelled write")
-            authStore.updateFailure = cancellation
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                val failure = StreamCoreError.Storage()
+                client.clearResult = StreamCoreResult.Failure(failure)
 
-            assertEquals(cancellation, assertFailsWith<CancellationException> {
-                fixture.coordinator.profileSelected(profile("replacement"))
-            })
-            assertEquals(cancellation, assertFailsWith<CancellationException> {
-                fixture.coordinator.changeProfile()
-            })
-            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
-            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-            fixture.close()
+                assertEquals(failure, coordinator.changeProfile())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+
+                client.clearResult = StreamCoreResult.Success(Unit)
+                assertNull(coordinator.changeProfile())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
         }
     }
-
     @Test
-    fun successfulLoginWithFailedSelectionCleanupRoutesSafelyAndReturnsSanitizedError(): TestResult {
+    fun cancelledProfileSwitchPropagatesAfterRevokingSelection(): TestResult {
         return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("previous-session"))
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                val cancellation = CancellationException("cancelled SDK operation")
+                client.profileThrowable = cancellation
 
-            val error = fixture.coordinator.loginSucceeded()
+                assertEquals(cancellation, assertFailsWith<CancellationException> {
+                    coordinator.changeProfile()
+                })
+                coordinator.synchronizeContext()
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
+        }
+    }
+    @Test
+    fun loginSucceededUsesSdkAccountContextAndDoesNotWriteSelection(): TestResult {
+        return runTest {
+            withFixture {
+                client.contextState.value = authenticatedContext()
+                assertNull(coordinator.loginSucceeded())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+                assertEquals(0, client.clearCalls)
 
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Home))
-            fixture.close()
+                client.contextState.value = StreamCoreContext(isBootstrapped = true)
+                coordinator.loginSucceeded()
+                assertEquals(WebRoute.Login, navigation.route.value)
+            }
         }
     }
 
     @Test
     fun staleSelectionCleanupFailureFinishesInitializationAtProfiles(): TestResult {
         return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                authStoreOverride = authStore,
-            )
-            fixture.coordinator.profileSelected(profile("deleted"))
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+            withFixture {
+                val failure = StreamCoreError.Storage()
+                client.contextState.value = authenticatedContext()
+                client.bootstrapResult = StreamCoreResult.Failure(failure)
+                navigation.replace(WebRoute.Home)
 
-            val initialization = fixture.coordinator.initialize()
-
-            val error = (initialization as WebProductInitialization.ReadyWithError).error
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            assertEquals("deleted", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun deletedActiveProfileCleanupFailureStillClosesProtectedRoutes(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.loginSucceeded()
-            fixture.coordinator.profileSelected(profile("deleted"))
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
-
-            val error = fixture.coordinator.reconcileProfilesFromRepository()
-
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Home))
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun authoritativeLogoutFailuresInvalidateSessionSelectionAndRouting(): TestResult {
-        return runTest {
-            for (error in listOf(AppError.Unauthorized(), AppError.SessionExpired())) {
-                val authStore = ControllablePreferencesDataStore()
-                val fixture = coordinatorFixture(
-                    authStoreOverride = authStore,
-                    logoutResult = AppResult.Failure(error),
-                )
-                fixture.coordinator.loginSucceeded()
-                fixture.coordinator.profileSelected(profile("selected"))
-                authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
-
-                assertEquals(error, fixture.coordinator.logout())
-
-                assertNull(authStore.snapshot()[stringPreferencesKey("session_id")])
-                assertNull(authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-                assertNull(fixture.coordinator.selectedProfile)
-                assertEquals(WebRoute.Login, fixture.navigation.route.value)
-                assertEquals(WebRoute.Login, fixture.coordinator.canonicalRoute(WebRoute.Home))
-                fixture.close()
+                assertEquals(WebProductInitialization.ReadyWithError(failure), coordinator.initialize())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
             }
         }
     }
 
     @Test
-    fun failedInvalidatingLogoutCleanupPreservesPrimaryErrorAndRoutesFailClosed(): TestResult {
+    fun deletedActiveProfileClosesProtectedRoutesFromSdkContext(): TestResult {
         return runTest {
-            val error = AppError.Unauthorized()
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                authStoreOverride = authStore,
-                logoutResult = AppResult.Failure(error),
-            )
-            fixture.coordinator.loginSucceeded()
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
+            withFixture {
+                client.select(profile("deleted"))
+                navigation.replace(WebRoute.Home)
+                client.profilesResult = StreamCoreResult.Success(emptyList())
 
-            assertEquals(error, fixture.coordinator.logout())
-
-            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
+                assertNull(coordinator.reconcileProfilesFromRepository())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+                assertEquals(WebRoute.Profiles, coordinator.canonicalRoute(WebRoute.Home))
+            }
         }
     }
 
     @Test
-    fun genericLogoutRejectionPreservesAuthenticatedSessionSelectionAndRoute(): TestResult {
+    fun sdkInvalidationDuringFailedLogoutRoutesToLoginAndPreservesPrimaryError(): TestResult {
         return runTest {
-            val error = AppError.Authentication()
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                authStoreOverride = authStore,
-                logoutResult = AppResult.Failure(error),
-            )
-            fixture.coordinator.loginSucceeded()
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.edit { it[stringPreferencesKey("session_id")] = "session" }
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                val failure = StreamCoreError.SessionExpired()
+                client.logoutResult = StreamCoreResult.Failure(failure)
+                client.logoutContext = StreamCoreContext(isBootstrapped = true)
 
-            assertEquals(error, fixture.coordinator.logout())
+                assertEquals(failure, coordinator.logout())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Login, navigation.route.value)
+                assertEquals(WebRoute.Login, coordinator.canonicalRoute(WebRoute.Home))
+            }
+        }
+    }
 
-            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
-            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-            assertEquals(WebRoute.Home, fixture.coordinator.canonicalRoute(WebRoute.Home))
-            fixture.close()
+    @Test
+    fun failedLogoutPreservesSdkAuthenticatedSessionSelectionAndRoute(): TestResult {
+        return runTest {
+            for (error in listOf(StreamCoreError.Network(), StreamCoreError.Authentication(), StreamCoreError.Unauthorized(), StreamCoreError.Storage())) {
+                withFixture {
+                    client.select(profile("selected"))
+                    navigation.replace(WebRoute.Home)
+                    client.logoutResult = StreamCoreResult.Failure(error)
+
+                    assertEquals(error, coordinator.logout())
+                    assertEquals("selected", coordinator.selectedProfile?.id)
+                    assertEquals(WebRoute.Home, navigation.route.value)
+                    assertEquals(WebRoute.Home, coordinator.canonicalRoute(WebRoute.Home))
+                }
+            }
         }
     }
 
     @Test
     fun logoutExceptionIsSanitizedWhileCancellationPropagates(): TestResult {
         return runTest {
-            val failure = coordinatorFixture(logoutThrowable = IllegalStateException("sensitive detail"))
-            failure.coordinator.profileSelected(profile("selected"))
-            val error = failure.coordinator.logout()
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertEquals("selected", failure.coordinator.selectedProfile?.id)
-            failure.close()
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                client.logoutThrowable = IllegalStateException("sensitive transport detail")
 
-            val cancellation = CancellationException("cancelled logout")
-            val cancelled = coordinatorFixture(logoutThrowable = cancellation)
-            cancelled.coordinator.profileSelected(profile("selected"))
-            assertEquals(cancellation, assertFailsWith<CancellationException> { cancelled.coordinator.logout() })
-            assertEquals("selected", cancelled.coordinator.selectedProfile?.id)
-            cancelled.close()
-        }
-    }
+                val failure = assertIs<StreamCoreError.Unknown>(coordinator.logout())
+                assertNull(failure.source?.backendMessage)
+                assertEquals("selected", coordinator.selectedProfile?.id)
+                assertEquals(WebRoute.Home, navigation.route.value)
 
-    @Test
-    fun successfulLogoutWithFailedSelectionCleanupStillRoutesToLogin(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.loginSucceeded()
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.updateFailure = IllegalStateException("sensitive storage detail")
-
-            val error = fixture.coordinator.logout()
-
-            assertTrue(error is AppError.Unknown)
-            assertNull(error.source?.backendMessage)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            assertEquals(WebRoute.Login, fixture.coordinator.canonicalRoute(WebRoute.Home))
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun unauthorizedEditorErrorClearsOnlyAuthAndScopedSelectionPreferences(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture()
-            val profileSnapshotKey = stringPreferencesKey("profiles_json.account-scope")
-            fixture.coordinator.profileSelected(profile("selected"))
-            fixture.authStore.edit { preferences ->
-                preferences[stringPreferencesKey("session_id")] = "opaque-fixture"
-                preferences[intPreferencesKey("account_id")] = 7
-                preferences[stringPreferencesKey("account_username")] = "fixture-user"
-                preferences[profileSnapshotKey] = "profile-snapshot-sentinel"
+                val cancellation = CancellationException("cancelled")
+                client.logoutThrowable = cancellation
+                assertEquals(cancellation, assertFailsWith<CancellationException> { coordinator.logout() })
+                assertEquals(WebRoute.Home, navigation.route.value)
             }
-
-            fixture.coordinator.handleError(AppError.Unauthorized())
-
-            val preferences = fixture.authStore.data.first()
-            assertNull(preferences[stringPreferencesKey("session_id")])
-            assertNull(preferences[intPreferencesKey("account_id")])
-            assertNull(preferences[stringPreferencesKey("account_username")])
-            assertNull(preferences[selectedProfileIdKey(fixture.accountId)])
-            assertEquals("profile-snapshot-sentinel", preferences[profileSnapshotKey])
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            assertEquals("/login", kotlinx.browser.window.location.pathname)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun runtimeInvalidationRemovesAuthAndSelectionInOneTransaction(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.edit { preferences ->
-                preferences[stringPreferencesKey("session_id")] = "session"
-                preferences[intPreferencesKey("account_id")] = 7
-            }
-            val updatesBeforeInvalidation = authStore.updateCount
-
-            fixture.coordinator.handleError(AppError.SessionExpired())
-
-            assertEquals(updatesBeforeInvalidation + 1, authStore.updateCount)
-            assertNull(authStore.snapshot()[stringPreferencesKey("session_id")])
-            assertNull(authStore.snapshot()[intPreferencesKey("account_id")])
-            assertNull(authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun failedRuntimeInvalidationRollsBackAtomicallyAndRoutesFailClosed(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            val profileSnapshotKey = stringPreferencesKey("profiles_json.atomic-failure")
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.edit { preferences ->
-                preferences[stringPreferencesKey("session_id")] = "session"
-                preferences[profileSnapshotKey] = "profile-snapshot-sentinel"
-            }
-            val updatesBeforeInvalidation = authStore.updateCount
-            authStore.updateFailure = IllegalStateException("storage unavailable")
-
-            fixture.coordinator.handleError(AppError.Authentication())
-
-            assertEquals(updatesBeforeInvalidation + 1, authStore.updateCount)
-            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
-            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals("profile-snapshot-sentinel", authStore.snapshot()[profileSnapshotKey])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.navigation.replace(WebRoute.AuthenticatedLanding)
-            fixture.coordinator.sanitizeRoute(WebRoute.AuthenticatedLanding)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun cancelledRuntimeInvalidationPropagatesAfterRoutingFailClosed(): TestResult {
-        return runTest {
-            val cancellation = CancellationException("cancelled")
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(authStoreOverride = authStore)
-            fixture.coordinator.profileSelected(profile("selected"))
-            authStore.edit { preferences ->
-                preferences[stringPreferencesKey("session_id")] = "session"
-            }
-            val updatesBeforeInvalidation = authStore.updateCount
-            authStore.updateFailure = cancellation
-
-            val thrown = assertFailsWith<CancellationException> {
-                fixture.coordinator.handleError(AppError.Unauthorized())
-            }
-
-            assertEquals(cancellation, thrown)
-            assertEquals(updatesBeforeInvalidation + 1, authStore.updateCount)
-            assertEquals("session", authStore.snapshot()[stringPreferencesKey("session_id")])
-            assertEquals("selected", authStore.snapshot()[selectedProfileIdKey(fixture.accountId)])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun selectedProfilePreferenceIsAccountScopedWithoutEmbeddingAccountId(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture(accountId = "Aa")
-            val secondCoordinator = fixture.coordinatorFor(accountId = "BB")
-
-            fixture.coordinator.profileSelected(profile("first-profile"))
-            secondCoordinator.profileSelected(profile("second-profile"))
-
-            val preferences = fixture.authStore.data.first()
-            val firstKey = selectedProfileIdKey("Aa")
-            val secondKey = selectedProfileIdKey("BB")
-            assertNotEquals(firstKey, secondKey)
-            assertEquals("first-profile", preferences[firstKey])
-            assertEquals("second-profile", preferences[secondKey])
-            assertTrue(firstKey.name.contains("Aa").not())
-            assertTrue(secondKey.name.contains("BB").not())
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun definitiveLoggedOutBootstrapClearsPersistedSelection(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedOut),
-            )
-            fixture.coordinator.profileSelected(profile("previous-session"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            assertEquals(WebProductInitialization.Ready, initialization)
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun thrownBootstrapFailureReturnsGenericErrorAndRoutesFailClosed(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture(
-                bootstrapThrowable = IllegalStateException("sensitive storage detail"),
-            )
-            fixture.coordinator.profileSelected(profile("previous-session"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            val error = (initialization as WebProductInitialization.ReadyWithError).error
-            assertTrue(error is AppError.Unknown)
-            assertEquals("bootstrapAuth", error.source?.operation)
-            assertEquals("AUTH_BOOTSTRAP_FAILURE", error.source?.backendCode)
-            assertNull(error.source?.backendMessage)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun thrownBootstrapCancellationRoutesFailClosedBeforePropagation(): TestResult {
-        return runTest {
-            val cancellation = CancellationException("cancelled")
-            val fixture = coordinatorFixture(bootstrapThrowable = cancellation)
-            fixture.coordinator.profileSelected(profile("previous-session"))
-
-            val thrown = assertFailsWith<CancellationException> {
-                fixture.coordinator.initialize()
-            }
-
-            assertEquals(cancellation, thrown)
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun failedLoggedOutCleanupReturnsSafeErrorAndRoutesFailClosed(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedOut),
-                authStoreOverride = authStore,
-            )
-            fixture.coordinator.profileSelected(profile("previous-session"))
-            val updatesBeforeCleanup = authStore.updateCount
-            authStore.updateFailure = IllegalStateException("storage unavailable")
-
-            val initialization = fixture.coordinator.initialize()
-
-            val error = (initialization as WebProductInitialization.ReadyWithError).error
-            assertTrue(error is AppError.Unknown)
-            assertEquals("restoreSelectedProfile", error.source?.operation)
-            assertEquals(updatesBeforeCleanup + 1, authStore.updateCount)
-            assertEquals(
-                "previous-session",
-                authStore.snapshot()[selectedProfileIdKey(fixture.accountId)],
-            )
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun successfulLoginClearsSelectionFromPreviousSession(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture()
-            fixture.coordinator.profileSelected(profile("previous-session"))
-
-            fixture.coordinator.loginSucceeded()
-
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun invalidatingColdStartFailureClearsPersistedSelection(): TestResult {
-        return runTest {
-            val error = AppError.SessionExpired()
-            val fixture = coordinatorFixture(bootstrapResult = AppResult.Failure(error))
-            fixture.coordinator.profileSelected(profile("persisted"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            assertEquals(WebProductInitialization.ReadyWithError(error), initialization)
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun transientColdStartFailurePreservesPersistedSelection(): TestResult {
-        return runTest {
-            val error = AppError.Network()
-            val fixture = coordinatorFixture(bootstrapResult = AppResult.Failure(error))
-            fixture.coordinator.profileSelected(profile("persisted"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            assertEquals(WebProductInitialization.ReadyWithError(error), initialization)
-            assertEquals(
-                "persisted",
-                fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)],
-            )
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun profileReadFailurePreservesSelectionAndRoutesToSafeProfilesScreen(): TestResult {
-        return runTest {
-            val error = AppError.Unknown()
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Failure(error),
-            )
-            fixture.coordinator.profileSelected(profile("persisted"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            assertEquals(WebProductInitialization.ReadyWithError(error), initialization)
-            assertEquals(
-                "persisted",
-                fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)],
-            )
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun selectionStorageReadFailureReturnsErrorWithoutMutatingPersistence(): TestResult {
-        return runTest {
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Success(listOf(profile("persisted"))),
-                authStoreOverride = authStore,
-            )
-            fixture.coordinator.profileSelected(profile("persisted"))
-            fixture.navigation.replace(WebRoute.Diagnostic)
-            val updatesBeforeRestore = authStore.updateCount
-            authStore.readFailure = IllegalStateException("storage unavailable")
-
-            val initialization = fixture.coordinator.initialize()
-
-            val error = (initialization as WebProductInitialization.ReadyWithError).error
-            assertTrue(error is AppError.Unknown)
-            assertEquals("restoreSelectedProfile", error.source?.operation)
-            assertEquals("PROFILE_SELECTION_STORAGE_FAILURE", error.source?.backendCode)
-            assertEquals(updatesBeforeRestore, authStore.updateCount)
-            assertEquals(
-                "persisted",
-                authStore.snapshot()[selectedProfileIdKey(fixture.accountId)],
-            )
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Diagnostic, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun cancellationReadingSelectionStoragePropagatesWithoutMutation(): TestResult {
-        return runTest {
-            val cancellation = CancellationException("cancelled")
-            val authStore = ControllablePreferencesDataStore()
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Success(listOf(profile("persisted"))),
-                authStoreOverride = authStore,
-            )
-            fixture.coordinator.profileSelected(profile("persisted"))
-            val updatesBeforeRestore = authStore.updateCount
-            authStore.readFailure = cancellation
-
-            val thrown = assertFailsWith<CancellationException> {
-                fixture.coordinator.initialize()
-            }
-
-            assertEquals(cancellation, thrown)
-            assertEquals(updatesBeforeRestore, authStore.updateCount)
-            assertEquals(
-                "persisted",
-                authStore.snapshot()[selectedProfileIdKey(fixture.accountId)],
-            )
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun successfulRestoreValidationClearsSelectionProvenStale(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Success(listOf(profile("other"))),
-            )
-            fixture.coordinator.profileSelected(profile("stale"))
-
-            val initialization = fixture.coordinator.initialize()
-
-            assertEquals(WebProductInitialization.Ready, initialization)
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            assertNull(fixture.coordinator.selectedProfile)
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun deletingSelectedProfileViaProfilesHistoryClearsPersistedSelection(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture()
-            val repository = fixture.application.koin.get<ProfileRepository>()
-            val profiles = (repository.getProfiles() as AppResult.Success).value
-            val selected = profiles.first { profile -> profile.canDelete }
-            fixture.coordinator.profileSelected(selected)
-
-            fixture.coordinator.reconcileProfiles(profiles.filterNot { profile -> profile.id == selected.id })
-
-            assertNull(fixture.coordinator.selectedProfile)
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun repeatedChangeProfileSafelyRemovesAbsentSelectionFromRealWebStore(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture()
-
-            fixture.coordinator.changeProfile()
-            fixture.coordinator.changeProfile()
-
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun authenticatedReloadPreservesEveryProtectedBrowseRoute(): TestResult {
-        return runTest {
-            listOf<WebRoute>(
-                WebRoute.Home,
-                WebRoute.Search,
-                WebRoute.Library,
-                WebRoute.Details("603"),
-                WebRoute.Player("603"),
-            ).forEach { route ->
-                val selected = profile("selected")
-                val fixture = coordinatorFixture(
-                    bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                    profilesResult = AppResult.Success(listOf(selected)),
-                )
-                fixture.coordinator.profileSelected(selected)
-                fixture.navigation.replace(route)
-
-                assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
-                assertEquals(route, fixture.navigation.route.value)
-                fixture.close()
-            }
-        }
-    }
-
-    @Test
-    fun protectedRouteWithoutSelectedProfileCanonicalizesToProfiles(): TestResult {
-        return runTest {
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Success(listOf(profile("available"))),
-            )
-            fixture.navigation.replace(WebRoute.Details("603"))
-
-            assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
-            assertEquals(WebRoute.Profiles, fixture.coordinator.canonicalRoute(WebRoute.Details("603")))
-            assertEquals(WebRoute.Profiles, fixture.navigation.route.value)
-            fixture.close()
-        }
-    }
-
-    @Test
-    fun authenticatedLegacyLandingCanonicalizesToHome(): TestResult {
-        return runTest {
-            val selected = profile("selected")
-            val fixture = coordinatorFixture(
-                bootstrapResult = AppResult.Success(AuthStateModel.LoggedIn(account = null)),
-                profilesResult = AppResult.Success(listOf(selected)),
-            )
-            fixture.coordinator.profileSelected(selected)
-            fixture.navigation.replace(WebRoute.AuthenticatedLanding)
-
-            assertEquals(WebProductInitialization.Ready, fixture.coordinator.initialize())
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-            fixture.close()
         }
     }
 
     @Test
     fun successfulLogoutClearsSelectionAndRoutesToLogin(): TestResult {
         return runTest {
-            val fixture = coordinatorFixture(
-                logoutResult = AppResult.Success(Unit),
-            )
-            fixture.coordinator.profileSelected(profile("selected"))
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                client.logoutContext = StreamCoreContext(isBootstrapped = true)
 
-            assertNull(fixture.coordinator.logout())
-            assertNull(fixture.coordinator.selectedProfile)
-            assertNull(fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)])
-            assertEquals(WebRoute.Login, fixture.navigation.route.value)
-            fixture.close()
+                assertNull(coordinator.logout())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Login, navigation.route.value)
+            }
         }
     }
 
     @Test
-    fun failedLogoutPreservesSelectedProfileAndRoute(): TestResult {
+    fun authoritativeSdkContextChangeRoutesWithoutAnApplicationErrorCallback(): TestResult {
         return runTest {
-            val error = AppError.Network()
-            val fixture = coordinatorFixture(
-                logoutResult = AppResult.Failure(error),
-            )
-            fixture.coordinator.loginSucceeded()
-            fixture.coordinator.profileSelected(profile("selected"))
-            fixture.authStore.edit { it[stringPreferencesKey("session_id")] = "retained-session" }
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                client.contextState.value = StreamCoreContext(isBootstrapped = true)
 
-            assertEquals(error, fixture.coordinator.logout())
-            assertEquals("selected", fixture.coordinator.selectedProfile?.id)
-            assertEquals(
-                "selected",
-                fixture.authStore.data.first()[selectedProfileIdKey(fixture.accountId)],
-            )
-            assertEquals(WebRoute.Home, fixture.navigation.route.value)
-            assertEquals(WebRoute.Home, fixture.coordinator.canonicalRoute(WebRoute.Home))
-            assertEquals("retained-session", fixture.authStore.data.first()[stringPreferencesKey("session_id")])
-            fixture.close()
+                coordinator.synchronizeContext()
+
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Login, navigation.route.value)
+                assertEquals(0, client.clearCalls)
+            }
+        }
+    }
+
+    @Test
+    fun applicationErrorPresentationCannotInvalidateAnOtherwiseValidSdkSession(): TestResult {
+        return runTest {
+            for (error in listOf(StreamCoreError.Authentication(), StreamCoreError.Unauthorized(), StreamCoreError.SessionExpired())) {
+                withFixture {
+                    client.select(profile("selected"))
+                    navigation.replace(WebRoute.Home)
+
+                    coordinator.handleError(error)
+
+                    assertEquals("selected", coordinator.selectedProfile?.id)
+                    assertEquals(WebRoute.Home, navigation.route.value)
+                    assertEquals(0, client.clearCalls)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun switchingAccountCannotReuseAnApplicationCachedSelection(): TestResult {
+        return runTest {
+            withFixture {
+                client.select(profile("same-id"))
+                navigation.replace(WebRoute.Home)
+                client.contextState.value = authenticatedContext(accountId = "account-b")
+
+                coordinator.synchronizeContext()
+
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+                assertEquals("account-b", coordinator.context.value.account?.id)
+            }
+        }
+    }
+
+    @Test
+    fun definitiveLoggedOutBootstrapRoutesToLoginWithoutApplicationCleanup(): TestResult {
+        return runTest {
+            withFixture {
+                client.bootstrapResult = StreamCoreResult.Success(StreamCoreContext(isBootstrapped = true))
+                navigation.replace(WebRoute.Home)
+
+                assertEquals(WebProductInitialization.Ready, coordinator.initialize())
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Login, navigation.route.value)
+                assertEquals(0, client.clearCalls)
+            }
+        }
+    }
+
+    @Test
+    fun thrownBootstrapFailureReturnsGenericErrorAndRoutesFailClosed(): TestResult {
+        return runTest {
+            withFixture {
+                client.bootstrapThrowable = IllegalStateException("sensitive backend detail")
+                navigation.replace(WebRoute.Home)
+
+                val failure = assertIs<WebProductInitialization.ReadyWithError>(coordinator.initialize()).error
+                assertIs<StreamCoreError.Unknown>(failure)
+                assertNull(failure.source?.backendMessage)
+                assertEquals(WebRoute.Login, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun thrownBootstrapCancellationRoutesFailClosedBeforePropagation(): TestResult {
+        return runTest {
+            withFixture {
+                val cancellation = CancellationException("cancelled bootstrap")
+                client.bootstrapThrowable = cancellation
+                navigation.replace(WebRoute.Home)
+
+                assertEquals(cancellation, assertFailsWith<CancellationException> { coordinator.initialize() })
+                assertEquals(WebRoute.Login, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun sdkBootstrapFailuresKeepTheirErrorAndUseValidatedContextForRouting(): TestResult {
+        return runTest {
+            for (error in listOf(StreamCoreError.SessionExpired(), StreamCoreError.Network(), StreamCoreError.Storage())) {
+                withFixture {
+                    client.contextState.value = StreamCoreContext()
+                    client.bootstrapResult = StreamCoreResult.Failure(error)
+                    navigation.replace(WebRoute.Home)
+
+                    assertEquals(WebProductInitialization.ReadyWithError(error), coordinator.initialize())
+                    assertEquals(WebRoute.Login, navigation.route.value)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun profileReadFailurePreservesSdkSelection(): TestResult {
+        return runTest {
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                val failure = StreamCoreError.Network()
+                client.profilesResult = StreamCoreResult.Failure(failure)
+
+                assertEquals(failure, coordinator.reconcileProfilesFromRepository())
+                assertEquals("selected", coordinator.selectedProfile?.id)
+                assertEquals(WebRoute.Home, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun profileEventsRenderReconciledSdkValuesInsteadOfTrustingEventPayload(): TestResult {
+        return runTest {
+            withFixture {
+                client.select(profile("selected").copy(displayName = "Updated in SDK"))
+                navigation.replace(WebRoute.Profiles)
+
+                assertNull(coordinator.reconcileProfiles(listOf(profile("selected"))))
+                assertEquals("Updated in SDK", coordinator.selectedProfile?.displayName)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun repeatedChangeProfileSafelyRemovesAbsentSelection(): TestResult {
+        return runTest {
+            withFixture {
+                assertNull(coordinator.changeProfile())
+                assertNull(coordinator.changeProfile())
+                assertEquals(2, client.clearCalls)
+                assertNull(coordinator.selectedProfile)
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun freshAuthenticatedReloadReentersProfilesFromEveryProtectedBrowseRoute(): TestResult {
+        return runTest {
+            val routes = listOf(WebRoute.Home, WebRoute.Search, WebRoute.Library, WebRoute.Details("film"), WebRoute.Player("film"))
+            for (route in routes) {
+                withFixture {
+                    client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                    navigation.replace(route)
+
+                    assertEquals(WebProductInitialization.Ready, coordinator.initialize())
+                    assertNull(coordinator.selectedProfile)
+                    assertEquals(WebRoute.Profiles, navigation.route.value)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun activeSessionPreservesProtectedBrowseRoutes(): TestResult {
+        return runTest {
+            val routes = listOf(WebRoute.Home, WebRoute.Search, WebRoute.Library, WebRoute.Details("film"), WebRoute.Player("film"))
+            for (route in routes) {
+                withFixture {
+                    client.select(profile("selected"))
+                    navigation.replace(route)
+                    coordinator.synchronizeContext()
+                    assertEquals(route, navigation.route.value)
+                }
+            }
+        }
+    }
+    @Test
+    fun protectedRouteWithoutSelectedProfileCanonicalizesToProfiles(): TestResult {
+        return runTest {
+            withFixture {
+                client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                navigation.replace(WebRoute.Home)
+
+                assertEquals(WebProductInitialization.Ready, coordinator.initialize())
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
+        }
+    }
+
+    @Test
+    fun authenticatedLegacyLandingRequiresFreshProfileEntry(): TestResult {
+        return runTest {
+            withFixture {
+                client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                navigation.replace(WebRoute.AuthenticatedLanding)
+
+                assertEquals(WebProductInitialization.Ready, coordinator.initialize())
+                assertEquals(WebRoute.Profiles, navigation.route.value)
+            }
+        }
+    }
+    @Test
+    fun closedSdkCannotKeepProtectedRoutesOpen(): TestResult {
+        return runTest {
+            withFixture {
+                client.select(profile("selected"))
+                navigation.replace(WebRoute.Home)
+                client.close()
+
+                coordinator.synchronizeContext()
+
+                assertEquals(WebRoute.Login, navigation.route.value)
+            }
         }
     }
 }
 
-private fun coordinatorFixture(
-    accountId: String = "fixture-account",
-    bootstrapResult: AppResult<AuthStateModel> = AppResult.Success(AuthStateModel.LoggedOut),
-    bootstrapThrowable: Throwable? = null,
-    profilesResult: AppResult<List<ProfileModel>> = AppResult.Success(emptyList()),
-    authStoreOverride: DataStore<Preferences>? = null,
-    logoutResult: AppResult<Unit> = AppResult.Success(Unit),
-    logoutThrowable: Throwable? = null,
-): CoordinatorFixture {
-    val application = koinApplication {
-        modules(
-            webModules(
-                config = WebRuntimeConfig(
-                    tmdbBaseUrl = "https://api.example.test/3/",
-                    tmdbReadAccessToken = "browser-visible-fixture",
-                    tmdbAccountId = accountId,
-                ),
-                useSessionStorage = true,
-            ),
-        )
-    }
+private suspend fun withFixture(block: suspend CoordinatorFixture.() -> Unit) {
+    val client = StubStreamCoreClient()
     val navigation = WebNavigationController()
-    val authStore = authStoreOverride ?: application.koin.get<DataStore<Preferences>>(
-        named(TMDB_AUTH_STORE_QUALIFIER),
-    )
-    val authenticateRepository = StubAuthenticateRepository(
-        bootstrapResult = bootstrapResult,
-        bootstrapThrowable = bootstrapThrowable,
-        logoutResult = logoutResult,
-        logoutThrowable = logoutThrowable,
-    )
-    val profileRepository = StubProfileRepository(profilesResult)
-    val coordinator = WebProductCoordinator(
-        authenticateRepository = authenticateRepository,
-        profileRepository = profileRepository,
-        authStore = authStore,
-        accountId = accountId,
-        navigation = navigation,
-    )
-    return CoordinatorFixture(
-        application = application,
-        navigation = navigation,
-        coordinator = coordinator,
-        authStore = authStore,
-        accountId = accountId,
-        authenticateRepository = authenticateRepository,
-        profileRepository = profileRepository,
-    )
+    val fixture = CoordinatorFixture(client, navigation, WebProductCoordinator(client, navigation))
+    try {
+        fixture.block()
+    } finally {
+        navigation.close()
+        client.close()
+    }
 }
 
 private data class CoordinatorFixture(
-    val application: org.koin.core.KoinApplication,
+    val client: StubStreamCoreClient,
     val navigation: WebNavigationController,
     val coordinator: WebProductCoordinator,
-    val authStore: DataStore<Preferences>,
-    val accountId: String,
-    val authenticateRepository: AuthenticateRepository,
-    val profileRepository: ProfileRepository,
-) {
-    fun coordinatorFor(accountId: String): WebProductCoordinator {
-        return WebProductCoordinator(
-            authenticateRepository = authenticateRepository,
-            profileRepository = profileRepository,
-            authStore = authStore,
-            accountId = accountId,
-            navigation = navigation,
-        )
-    }
+)
 
-    fun close() {
-        navigation.close()
-        application.close()
-    }
-}
-
-private class StubAuthenticateRepository(
-    private val bootstrapResult: AppResult<AuthStateModel>,
-    private val bootstrapThrowable: Throwable?,
-    private val logoutResult: AppResult<Unit>,
-    private val logoutThrowable: Throwable?,
-) : AuthenticateRepository {
-    override val authState: Flow<AuthStateModel> = MutableStateFlow(AuthStateModel.LoggedOut)
-
-    override suspend fun bootstrapAuth(): AppResult<AuthStateModel> {
-        bootstrapThrowable?.let { throwable -> throw throwable }
-        return bootstrapResult
-    }
-
-    override suspend fun loginUser(identifier: String, password: String): AppResult<Unit> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun loginUserWithQR(qrCode: String): AppResult<Unit> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun logoutUser(): AppResult<Unit> {
-        logoutThrowable?.let { throwable -> throw throwable }
-        return logoutResult
-    }
-
-    override suspend fun forgotPassword(email: String, otp: String?): AppResult<Unit> {
-        error("Not used by coordinator tests")
-    }
-}
-
-private class StubProfileRepository(
-    private val profilesResult: AppResult<List<ProfileModel>>,
-) : ProfileRepository {
-    override suspend fun getProfiles(): AppResult<List<ProfileModel>> {
-        return profilesResult
-    }
-
-    override suspend fun getProfileEditorOptions(): AppResult<ProfileEditorOptionsModel> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun createProfile(profile: CreateProfileModel): AppResult<ProfileModel> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun updateProfile(profile: UpdateProfileModel): AppResult<ProfileModel> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun deleteProfile(profileId: String): AppResult<Unit> {
-        error("Not used by coordinator tests")
-    }
-
-    override suspend fun selectProfile(profileId: String): AppResult<ProfileModel> {
-        error("Not used by coordinator tests")
-    }
-}
-
-private class ControllablePreferencesDataStore(
-    initial: Preferences = emptyPreferences(),
-) : DataStore<Preferences> {
-    private val state = MutableStateFlow(initial)
-
-    var readFailure: Throwable? = null
-    var updateFailure: Throwable? = null
-    var updateCount: Int = 0
+private class StubStreamCoreClient : StreamCoreClient {
+    val contextState = MutableStateFlow(authenticatedContext())
+    override val context: StateFlow<StreamCoreContext> = contextState
+    override val configuration = StreamCoreConfiguration("test", "web-coordinator")
+    override val capabilities = StreamCoreCapabilities()
+    var bootstrapResult: StreamCoreResult<StreamCoreContext>? = null
+    var bootstrapThrowable: Throwable? = null
+    var bootstrapCalls = 0
+        private set
+    var selectionCalls = 0
+        private set
+    private var activationCount = 0
+    var profilesResult: StreamCoreResult<List<StreamCoreProfile>> = StreamCoreResult.Success(emptyList())
+    var clearResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit)
+    var profileThrowable: Throwable? = null
+    var logoutResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit)
+    var logoutThrowable: Throwable? = null
+    var logoutContext: StreamCoreContext? = null
+    var clearCalls = 0
         private set
 
-    override val data: Flow<Preferences>
-        get() = flow {
-            readFailure?.let { throwable -> throw throwable }
-            emit(state.value)
-        }
-
-    override suspend fun updateData(
-        transform: suspend (t: Preferences) -> Preferences,
-    ): Preferences {
-        updateCount += 1
-        val updated = transform(state.value)
-        updateFailure?.let { throwable -> throw throwable }
-        state.value = updated
-        return updated
+    override suspend fun bootstrap(): StreamCoreResult<StreamCoreContext> {
+        bootstrapCalls += 1
+        bootstrapThrowable?.let { throw it }
+        val result = bootstrapResult ?: StreamCoreResult.Success(contextState.value)
+        if (result is StreamCoreResult.Success) contextState.value = result.value
+        return result
     }
 
-    fun snapshot(): Preferences {
-        return state.value
+    fun select(profile: StreamCoreProfile) {
+        contextState.value = contextState.value.copy(profile = profile, profileActivationId = "fixture-${++activationCount}")
+    }
+
+    override val auth: AuthService = object : AuthService {
+        override suspend fun login(identifier: String, password: String): StreamCoreResult<Unit> { error("Unused") }
+        override suspend fun loginWithQr(qrCode: String): StreamCoreResult<Unit> { error("Unused") }
+        override suspend fun recoverPassword(email: String, otp: String?): StreamCoreResult<Unit> { error("Unused") }
+        override suspend fun logout(): StreamCoreResult<Unit> {
+            logoutThrowable?.let { throw it }
+            logoutContext?.let { contextState.value = it }
+            return logoutResult
+        }
+    }
+
+    override val profiles: ProfileService = object : ProfileService {
+        override suspend fun getProfiles(): StreamCoreResult<List<StreamCoreProfile>> {
+            val result = profilesResult
+            if (result is StreamCoreResult.Success) {
+                val selected = result.value.find { it.id == contextState.value.profile?.id }
+                contextState.value = contextState.value.copy(
+                    profile = selected,
+                    profileActivationId = contextState.value.profileActivationId.takeIf { selected != null },
+                )
+            }
+            return result
+        }
+        override suspend fun beginEntry(): StreamCoreResult<StreamCoreProfileEntryResult> {
+            return when (val result = getProfiles()) {
+                is StreamCoreResult.Failure -> result
+                is StreamCoreResult.Success -> StreamCoreResult.Success(
+                    if (result.value.isEmpty()) StreamCoreProfileEntryNoProfiles else StreamCoreProfileEntryChooseProfile(result.value),
+                )
+            }
+        }
+        override suspend fun selectProfile(profileId: String): StreamCoreResult<StreamCoreProfileSelectionResult> {
+            selectionCalls += 1
+            val selected = profile(profileId)
+            select(selected)
+            return StreamCoreResult.Success(StreamCoreProfileEntryReady(selected))
+        }
+        override suspend fun confirmPin(challengeId: String, pin: String): StreamCoreResult<StreamCoreProfile> { error("Unused") }
+        override fun cancelPin(challengeId: String): StreamCoreResult<Unit> { return StreamCoreResult.Success(Unit) }
+        override suspend fun clearSelection(): StreamCoreResult<Unit> {
+            clearCalls += 1
+            contextState.value = contextState.value.copy(profile = null, profileActivationId = null)
+            profileThrowable?.let { throw it }
+            return clearResult
+        }
+        override suspend fun getProfileEditorOptions(): StreamCoreResult<StreamCoreProfileEditorOptions> { error("Unused") }
+        override suspend fun createProfile(profile: StreamCoreCreateProfile): StreamCoreResult<StreamCoreProfile> { error("Unused") }
+        override suspend fun updateProfile(profile: StreamCoreUpdateProfile): StreamCoreResult<StreamCoreProfile> { error("Unused") }
+        override suspend fun deleteProfile(profileId: String): StreamCoreResult<Unit> { error("Unused") }
+    }
+
+    override val home: HomeService get() = error("Unused")
+    override val details: DetailsService get() = error("Unused")
+    override val search: SearchService get() = error("Unused")
+    override val library: LibraryService get() = error("Unused")
+    override val playback: PlaybackService get() = error("Unused")
+
+    override fun close() {
+        contextState.value = contextState.value.copy(isClosed = true, account = null, profile = null, profileActivationId = null)
     }
 }
 
-private fun profile(id: String): ProfileModel {
-    return ProfileModel(
+private fun authenticatedContext(
+    accountId: String = "fixture-account",
+    profile: StreamCoreProfile? = null,
+): StreamCoreContext {
+    return StreamCoreContext(
+        account = StreamCoreAuthAccount(accountId, "fixture", null),
+        profile = profile,
+        isBootstrapped = true,
+        profileActivationId = profile?.let { "fixture-${it.id}" },
+    )
+}
+
+private fun profile(id: String): StreamCoreProfile {
+    return StreamCoreProfile(
         id = id,
         displayName = id,
-        avatar = ProfileAvatarModel(id = "avatar", imageUrl = null),
-        parentalLevel = ProfileParentalLevelModel(
-            id = "all",
-            label = "All maturity",
-            rank = 100,
-        ),
+        avatar = StreamCoreProfileAvatar(id = "avatar", imageUrl = null),
+        parentalLevel = StreamCoreProfileParentalLevel(id = "all", label = "All maturity", rank = 100),
         canDelete = true,
         isKidsProfile = false,
     )

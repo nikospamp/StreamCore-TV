@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.core.ui.utils.PreviewMobile
@@ -20,7 +20,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPrev
 
 @Composable
 internal fun MobileAvatarPickerDialog(
-    avatars: List<ProfileAvatarModel>,
+    avatars: List<StreamCoreProfileAvatar>,
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,

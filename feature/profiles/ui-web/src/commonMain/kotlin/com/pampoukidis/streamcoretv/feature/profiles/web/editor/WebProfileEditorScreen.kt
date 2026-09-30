@@ -27,7 +27,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreSettingsSwitchRow
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
@@ -43,10 +43,10 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditor
 import com.pampoukidis.streamcoretv.feature.profiles.common.profiles.ProfilesBackdrop
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileFieldError
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileValidationResult
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileValidationResult
 
 @Composable
 fun WebProfileEditorScreen(
@@ -244,10 +244,10 @@ private fun WebProfileEditorValidationErrorPreview() {
                 profile = null,
                 mode = ProfileEditorMode.Create,
                 displayName = "",
-                validation = ProfileValidationResult(
-                    displayNameError = ProfileFieldError.Blank,
-                    avatarError = ProfileFieldError.MissingSelection,
-                    parentalLevelError = ProfileFieldError.MissingSelection,
+                validation = StreamCoreProfileValidationResult(
+                    displayNameError = StreamCoreProfileFieldError.Blank,
+                    avatarError = StreamCoreProfileFieldError.MissingSelection,
+                    parentalLevelError = StreamCoreProfileFieldError.MissingSelection,
                 ),
             ),
             onAction = {},
@@ -294,11 +294,11 @@ private fun WebProfileEditorLongTextPreview() {
 }
 
 private fun editorPreviewState(
-    profile: ProfileModel?,
+    profile: StreamCoreProfile?,
     mode: ProfileEditorMode = ProfileEditorMode.Edit,
     displayName: String = profile?.displayName.orEmpty(),
-    validation: ProfileValidationResult = ProfileValidationResult(),
-    pendingDeleteProfile: ProfileModel? = null,
+    validation: StreamCoreProfileValidationResult = StreamCoreProfileValidationResult(),
+    pendingDeleteProfile: StreamCoreProfile? = null,
 ): ProfileEditorScreenUiState {
     val avatarId = profile?.avatar?.id ?: ProfilesPreviewData.avatars.first().id
     val parentalLevelId = profile?.parentalLevel?.id ?: ProfilesPreviewData.parentalLevels.first().id

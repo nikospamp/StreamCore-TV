@@ -2,10 +2,10 @@ package com.pampoukidis.streamcoretv.feature.library.common.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
-import com.pampoukidis.streamcoretv.core.model.error.AppResult
-import com.pampoukidis.streamcoretv.core.model.library.LibraryModel
-import com.pampoukidis.streamcoretv.feature.library.domain.ObserveLibraryUseCase
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibrary
+import com.pampoukidis.streamcore.sdk.api.LibraryService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LibraryViewModel constructor(
-    private val observeLibrary: ObserveLibraryUseCase,
+    private val library: LibraryService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -49,10 +49,10 @@ class LibraryViewModel constructor(
         observeJob?.cancel()
         _uiState.update { state -> state.copy(isLoading = true, error = null) }
         observeJob = viewModelScope.launch {
-            observeLibrary(profileId).collect { result ->
+            library.observe(profileId).collect { result ->
                 when (result) {
-                    is AppResult.Success -> applyLibrary(result.value)
-                    is AppResult.Failure -> {
+                    is StreamCoreResult.Success -> applyLibrary(result.value)
+                    is StreamCoreResult.Failure -> {
                         _uiState.update { state ->
                             state.copy(isLoading = false, error = result.error)
                         }
@@ -68,7 +68,7 @@ class LibraryViewModel constructor(
         load(profileId = profileId, force = true)
     }
 
-    private fun applyLibrary(library: LibraryModel) {
+    private fun applyLibrary(library: StreamCoreLibrary) {
         _uiState.value = LibraryUiState(
             isLoading = false,
             continueWatching = library.continueWatching,
@@ -77,7 +77,7 @@ class LibraryViewModel constructor(
         )
     }
 
-    private fun selectContent(content: ContentModel, sourceArtworkUrl: String?) {
+    private fun selectContent(content: StreamCoreContent, sourceArtworkUrl: String?) {
         viewModelScope.launch {
             effectsChannel.send(LibraryEffect.ContentSelected(content, sourceArtworkUrl))
         }

@@ -17,7 +17,7 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 
@@ -30,7 +30,7 @@ fun StreamCoreWebBrowseScaffold(
     onChangeProfile: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
-    profile: ProfileModel? = null,
+    profile: StreamCoreProfile? = null,
     content: @Composable () -> Unit,
 ) {
     val contentFocus = remember { FocusRequester() }

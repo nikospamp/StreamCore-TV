@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButton
 import com.pampoukidis.streamcoretv.core.ui.web.StreamCoreWebButtonVariant
@@ -29,7 +29,7 @@ import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTest
 
 @Composable
 internal actual fun WebProfileEditorDeleteDialog(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     isSaving: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,

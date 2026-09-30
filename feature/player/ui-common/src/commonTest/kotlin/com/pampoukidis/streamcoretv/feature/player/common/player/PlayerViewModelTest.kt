@@ -7,19 +7,22 @@ import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.colorspace.ColorSpace
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.lifecycle.ViewModelStore
-import com.pampoukidis.streamcoretv.core.model.content.ContentModel
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcoretv.playback.api.PlaybackEngineState
 import com.pampoukidis.streamcoretv.playback.api.PlaybackErrorModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackFilmstripFrameModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackMediaModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackMedia
 import com.pampoukidis.streamcoretv.playback.api.PlaybackPhase
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressEntryModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackProgressRepository
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.api.PlaybackService
+import com.pampoukidis.streamcore.sdk.api.PlaybackProgressRecorder
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEvent
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
+import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcoretv.playback.api.PlaybackResizeMode
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSession
 import com.pampoukidis.streamcoretv.playback.api.PlaybackSessionFactory
-import com.pampoukidis.streamcoretv.playback.api.PlaybackSourceRepository
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackModel
 import com.pampoukidis.streamcoretv.playback.api.PlaybackTrackType
 import com.pampoukidis.streamcoretv.playback.api.PlaybackVideoSurface
@@ -68,13 +71,11 @@ class PlayerViewModelTest {
 
     @Test
     fun `load resolves source prepares one session at persisted position`() = runTest {
-        val progress = FakeProgressRepository().apply { current = progressEntry(position = 45_000L) }
+        val progress = FakePlaybackService().apply { current = progressEntry(position = 45_000L) }
         val factory = FakeSessionFactory()
         val subject = PlayerViewModel(
-            sourceRepository = FakeSourceRepository(),
-            progressRepository = progress,
+            playback = progress,
             sessionFactory = factory,
-            clock = PlayerClock { 1_234L },
         )
 
         subject.onAction(PlayerAction.Load(request(), isPipSupported = true))
@@ -88,9 +89,32 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun resolvedSampleTitleIsDisplayedWhileProgressKeepsCatalogueIdentity(): TestResult {
+        return runTest {
+            val requested = request("catalogue-movie")
+            val playback = FakePlaybackService(
+                mediaOverride = StreamCorePlaybackMedia("demo:sintel", "Sintel (sample playback)", "https://example.test/demo.mpd", "application/dash+xml"),
+            )
+            val factory = FakeSessionFactory()
+            val subject = PlayerViewModel(playback, factory)
+
+            subject.onAction(PlayerAction.Load(requested, false))
+            runCurrent()
+            assertEquals("Sintel (sample playback)", subject.uiState.value.title)
+
+            factory.sessions.single().emit(
+                PlaybackEngineState(phase = PlaybackPhase.Ready, isPlaying = true, positionMillis = 45_000L, durationMillis = 100_000L),
+            )
+            runCurrent()
+            assertEquals(requested.contentId, playback.upserts.last().contentId)
+            assertEquals(requested.contentSnapshot, playback.upserts.last().contentSnapshot)
+        }
+    }
+
+    @Test
     fun `commands are forwarded and scrub seeks only on finish`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         val session = factory.sessions.single()
@@ -116,7 +140,7 @@ class PlayerViewModelTest {
     @Test
     fun `rapid scrubbing conflates pending filmstrip targets`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         val session = factory.sessions.single()
@@ -149,7 +173,7 @@ class PlayerViewModelTest {
     @Test
     fun `filmstrip frames are rendered progressively`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         val session = factory.sessions.single()
@@ -183,10 +207,9 @@ class PlayerViewModelTest {
 
     @Test
     fun `retry re-resolves source and reuses session for subsequent loads`() = runTest {
-        val source = FakeSourceRepository(fail = true)
-        val progress = FakeProgressRepository().apply { current = progressEntry(position = 42_000L) }
+        val source = FakePlaybackService(fail = true).apply { current = progressEntry(position = 42_000L) }
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(source, progress, factory)
+        val subject = PlayerViewModel(source, factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
 
@@ -213,11 +236,11 @@ class PlayerViewModelTest {
     @Test
     fun `source resolution failure exposes only sanitized copy`() = runTest {
         val secret = "super-secret-token"
-        val source = FakeSourceRepository(
+        val source = FakePlaybackService(
             fail = true,
             failureMessage = "Request failed: https://example.test/video.mpd?access_token=$secret",
         )
-        val subject = PlayerViewModel(source, FakeProgressRepository(), FakeSessionFactory())
+        val subject = PlayerViewModel(source, FakeSessionFactory())
 
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
@@ -230,7 +253,7 @@ class PlayerViewModelTest {
     fun `engine failure exposes only app owned error details`() = runTest {
         val secret = "super-secret-token"
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
 
@@ -255,9 +278,9 @@ class PlayerViewModelTest {
 
     @Test
     fun `preparing next content clears retained engine state without saving old progress`() = runTest {
-        val progress = FakeProgressRepository()
+        val progress = FakePlaybackService()
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+        val subject = PlayerViewModel(progress, factory)
         subject.onAction(PlayerAction.Load(request(contentId = "content-a"), false))
         runCurrent()
         val session = factory.sessions.single()
@@ -311,7 +334,7 @@ class PlayerViewModelTest {
     @Test
     fun `clearing view model closes its single session exactly once`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         val store = ViewModelStore()
         store.put("player", subject)
 
@@ -327,13 +350,11 @@ class PlayerViewModelTest {
 
     @Test
     fun `pause persists only eligible progress`() = runTest {
-        val progress = FakeProgressRepository()
+        val progress = FakePlaybackService()
         val factory = FakeSessionFactory()
         val subject = PlayerViewModel(
-            sourceRepository = FakeSourceRepository(),
-            progressRepository = progress,
+            playback = progress,
             sessionFactory = factory,
-            clock = PlayerClock { 1_234L },
         )
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
@@ -356,12 +377,11 @@ class PlayerViewModelTest {
 
     @Test
     fun `back before duration is known preserves existing resume progress`() = runTest {
-        val progress = FakeProgressRepository().apply {
+        val progress = FakePlaybackService().apply {
             current = progressEntry(position = 45_000L)
         }
         val subject = PlayerViewModel(
-            sourceRepository = FakeSourceRepository(),
-            progressRepository = progress,
+            playback = progress,
             sessionFactory = FakeSessionFactory(),
         )
         subject.onAction(PlayerAction.Load(request(), false))
@@ -377,9 +397,9 @@ class PlayerViewModelTest {
 
     @Test
     fun `back navigates once when progress persistence fails`() = runTest {
-        val progress = FakeProgressRepository()
+        val progress = FakePlaybackService()
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+        val subject = PlayerViewModel(progress, factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         factory.sessions.single().emit(
@@ -402,8 +422,8 @@ class PlayerViewModelTest {
 
     @Test
     fun `back closes settings without persisting or navigating`() = runTest {
-        val progress = FakeProgressRepository()
-        val subject = PlayerViewModel(FakeSourceRepository(), progress, FakeSessionFactory())
+        val progress = FakePlaybackService()
+        val subject = PlayerViewModel(progress, FakeSessionFactory())
         val effects = mutableListOf<PlayerEffect>()
         backgroundScope.launch { subject.effects.collect(effects::add) }
         subject.onAction(PlayerAction.Load(request(), false))
@@ -421,7 +441,7 @@ class PlayerViewModelTest {
     @Test
     fun `playing engine updates do not postpone controls auto hide`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         val session = factory.sessions.single()
@@ -449,7 +469,7 @@ class PlayerViewModelTest {
     @Test
     fun `explicit user interaction restarts controls auto hide`() = runTest {
         val factory = FakeSessionFactory()
-        val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+        val subject = PlayerViewModel(FakePlaybackService(), factory)
         subject.onAction(PlayerAction.Load(request(), false))
         runCurrent()
         factory.sessions.single().emit(
@@ -477,9 +497,9 @@ class PlayerViewModelTest {
     @Test
     fun failedAutosavesDoNotStopEngineUpdatesAndLaterSavesRecover(): TestResult {
         return runTest {
-            val progress = FakeProgressRepository().apply { failWrites = true }
+            val progress = FakePlaybackService().apply { failWrites = true }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+            val subject = PlayerViewModel(progress, factory)
             subject.onAction(PlayerAction.Load(request(), false))
             runCurrent()
             val session = factory.sessions.single()
@@ -509,9 +529,9 @@ class PlayerViewModelTest {
     @Test
     fun failedPauseSeekBackgroundPipAndScrubWritesLeaveControlsUsable(): TestResult {
         return runTest {
-            val progress = FakeProgressRepository()
+            val progress = FakePlaybackService()
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+            val subject = PlayerViewModel(progress, factory)
             subject.onAction(PlayerAction.Load(request(), true))
             runCurrent()
             val session = factory.sessions.single()
@@ -555,9 +575,9 @@ class PlayerViewModelTest {
     @Test
     fun failedRemovalForShortAndEndedProgressDoesNotBreakPlaybackOrExit(): TestResult {
         return runTest {
-            val progress = FakeProgressRepository().apply { failWrites = true }
+            val progress = FakePlaybackService().apply { failWrites = true }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+            val subject = PlayerViewModel(progress, factory)
             subject.onAction(PlayerAction.Load(request(), false))
             runCurrent()
             val session = factory.sessions.single()
@@ -593,11 +613,11 @@ class PlayerViewModelTest {
     @Test
     fun saveCancellationRemainsCancellationAndDoesNotEmitNavigation(): TestResult {
         return runTest {
-            val progress = FakeProgressRepository().apply {
+            val progress = FakePlaybackService().apply {
                 writeFailure = CancellationException("cancel write")
             }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), progress, factory)
+            val subject = PlayerViewModel(progress, factory)
             val effects = mutableListOf<PlayerEffect>()
             backgroundScope.launch { subject.effects.collect(effects::add) }
             subject.onAction(PlayerAction.Load(request(), false))
@@ -623,9 +643,9 @@ class PlayerViewModelTest {
     fun hideDuringSourceResolutionRemainsPausedAfterResolutionAndForegroundRestoration(): TestResult {
         return runTest {
             val gate = CompletableDeferred<Unit>()
-            val source = FakeSourceRepository().apply { beforeResolve = { gate.await() } }
+            val source = FakePlaybackService().apply { beforeResolve = { gate.await() } }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(source, FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(source, factory)
             subject.onAction(PlayerAction.Load(request(), false))
             runCurrent()
 
@@ -650,9 +670,9 @@ class PlayerViewModelTest {
     fun pauseWhilePreparingSourceIsAppliedToThePreparedSession(): TestResult {
         return runTest {
             val gate = CompletableDeferred<Unit>()
-            val source = FakeSourceRepository().apply { beforeResolve = { gate.await() } }
+            val source = FakePlaybackService().apply { beforeResolve = { gate.await() } }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(source, FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(source, factory)
             subject.onAction(PlayerAction.Load(request(), false))
             runCurrent()
 
@@ -669,7 +689,7 @@ class PlayerViewModelTest {
     fun hideDuringEnginePreparationPausesWithoutResumingWhenVisible(): TestResult {
         return runTest {
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(FakePlaybackService(), factory)
             val session = factory.sessions.single()
             session.stateOnPrepare = PlaybackEngineState(phase = PlaybackPhase.Preparing)
             subject.onAction(PlayerAction.Load(request(), false))
@@ -690,7 +710,7 @@ class PlayerViewModelTest {
     fun backgroundingDuringScrubPreventsItsDeferredResumeAndPipStillAllowsPlayback(): TestResult {
         return runTest {
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(FakeSourceRepository(), FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(FakePlaybackService(), factory)
             subject.onAction(PlayerAction.Load(request(), true))
             runCurrent()
             val session = factory.sessions.single()
@@ -720,7 +740,7 @@ class PlayerViewModelTest {
     fun replacementDiscardsLateNonCooperativeSourceResolution(): TestResult {
         return runTest {
             lateinit var lateResolution: Continuation<Unit>
-            val source = FakeSourceRepository().apply {
+            val source = FakePlaybackService().apply {
                 beforeResolve = { activeRequest ->
                     if (activeRequest.contentId == "first") {
                         suspendCoroutine { lateResolution = it }
@@ -728,7 +748,7 @@ class PlayerViewModelTest {
                 }
             }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(source, FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(source, factory)
             subject.onAction(PlayerAction.Load(request("first"), false))
             runCurrent()
             subject.onAction(PlayerAction.Load(request("second"), false))
@@ -746,11 +766,11 @@ class PlayerViewModelTest {
     fun exitAndClearInvalidatePendingSourceResolution(): TestResult {
         return runTest {
             lateinit var lateResolution: Continuation<Unit>
-            val source = FakeSourceRepository().apply {
+            val source = FakePlaybackService().apply {
                 beforeResolve = { suspendCoroutine { lateResolution = it } }
             }
             val factory = FakeSessionFactory()
-            val subject = PlayerViewModel(source, FakeProgressRepository(), factory)
+            val subject = PlayerViewModel(source, factory)
             val store = ViewModelStore().apply { put("player", subject) }
             subject.onAction(PlayerAction.Load(request(), false))
             runCurrent()
@@ -770,64 +790,90 @@ class PlayerViewModelTest {
         }
     }
 
-    private fun request(contentId: String = "content"): PlaybackRequestModel {
-        return PlaybackRequestModel("profile", contentId, content(contentId))
+    private fun request(contentId: String = "content"): StreamCorePlaybackRequest {
+        return StreamCorePlaybackRequest("profile", contentId, content(contentId))
     }
 
-    private fun progressEntry(position: Long): PlaybackProgressEntryModel {
-        return PlaybackProgressEntryModel("profile", "content", content(), position, 100_000L, 1L)
+    private fun progressEntry(position: Long): StreamCorePlaybackProgressEntry {
+        return StreamCorePlaybackProgressEntry("profile", "content", content(), position, 100_000L, 1L)
     }
 
-    private fun content(contentId: String = "content"): ContentModel {
-        return ContentModel(contentId, "Title", "", 0, "", 0, "", null, emptyList(), 0L, emptyList())
+    private fun content(contentId: String = "content"): StreamCoreContent {
+        return StreamCoreContent(contentId, "Title", "", 0, "", 0, "", null, emptyList(), 0L, emptyList())
     }
 
-    private class FakeSourceRepository(
+    private class FakePlaybackService(
         var fail: Boolean = false,
         private val failureMessage: String = "source failed",
-    ) : PlaybackSourceRepository {
-        val resolvedRequests = mutableListOf<PlaybackRequestModel>()
-        var beforeResolve: suspend (PlaybackRequestModel) -> Unit = {}
-
-        override suspend fun resolve(request: PlaybackRequestModel): PlaybackMediaModel {
-            resolvedRequests += request
-            beforeResolve(request)
-            if (fail) {
-                error(failureMessage)
-            }
-            return PlaybackMediaModel(request.contentId, request.contentSnapshot.title, "https://example.test/video.mpd", "application/dash+xml")
-        }
-    }
-
-    private class FakeProgressRepository : PlaybackProgressRepository {
-        var current: PlaybackProgressEntryModel? = null
-        val upserts = mutableListOf<PlaybackProgressEntryModel>()
+        private val mediaOverride: StreamCorePlaybackMedia? = null,
+    ) : PlaybackService {
+        val resolvedRequests = mutableListOf<StreamCorePlaybackRequest>()
+        var beforeResolve: suspend (StreamCorePlaybackRequest) -> Unit = {}
+        var current: StreamCorePlaybackProgressEntry? = null
+        val upserts = mutableListOf<StreamCorePlaybackProgressEntry>()
         var removeCount = 0
         var upsertAttemptCount = 0
         var failWrites = false
         var writeFailure: Exception? = null
         var lastWriteJob: Job? = null
-        override fun observe(profileId: String): Flow<List<PlaybackProgressEntryModel>> {
-            return MutableStateFlow(current?.let(::listOf).orEmpty())
+
+        override suspend fun resolveSource(request: StreamCorePlaybackRequest): StreamCoreResult<StreamCorePlaybackMedia> {
+            resolvedRequests += request
+            beforeResolve(request)
+            if (fail) error(failureMessage)
+            return StreamCoreResult.Success(mediaOverride ?: StreamCorePlaybackMedia(request.contentId, request.contentSnapshot.title, "https://example.test/video.mpd", "application/dash+xml"))
         }
 
-        override suspend fun get(profileId: String, contentId: String): PlaybackProgressEntryModel? = current
-        override suspend fun upsert(entry: PlaybackProgressEntryModel) {
+        override fun observeProgress(profileId: String): Flow<StreamCoreResult<List<StreamCorePlaybackProgressEntry>>> {
+            return MutableStateFlow(StreamCoreResult.Success(current?.let(::listOf).orEmpty()))
+        }
+
+        override suspend fun getProgress(profileId: String, contentId: String): StreamCoreResult<StreamCorePlaybackProgressEntry?> {
+            return StreamCoreResult.Success(current)
+        }
+
+        override suspend fun updateProgress(entry: StreamCorePlaybackProgressEntry): StreamCoreResult<Unit> {
+            if (entry.durationMillis <= 0L || entry.positionMillis < 30_000L ||
+                entry.positionMillis.toDouble() / entry.durationMillis >= 0.95
+            ) {
+                return removeProgress(entry.profileId, entry.contentId)
+            }
             upsertAttemptCount += 1
             lastWriteJob = currentCoroutineContext()[Job]
             writeFailure?.let { throw it }
-            if (failWrites) {
-                error("progress write failed")
-            }
+            if (failWrites) return StreamCoreResult.Failure(StreamCoreError.Storage())
             upserts += entry
+            return StreamCoreResult.Success(Unit)
         }
 
-        override suspend fun remove(profileId: String, contentId: String) {
+        override suspend fun removeProgress(profileId: String, contentId: String): StreamCoreResult<Unit> {
             removeCount += 1
             lastWriteJob = currentCoroutineContext()[Job]
             writeFailure?.let { throw it }
-            if (failWrites) {
-                error("progress write failed")
+            return if (failWrites) StreamCoreResult.Failure(StreamCoreError.Storage()) else StreamCoreResult.Success(Unit)
+        }
+
+        // The fake models the public recorder contract; actual cadence/threshold rules have headless SDK tests.
+        override fun createProgressRecorder(request: StreamCorePlaybackRequest, initialPositionMillis: Long): PlaybackProgressRecorder {
+            return object : PlaybackProgressRecorder {
+                private var bucket = initialPositionMillis / 10_000L
+                override suspend fun reportEvent(
+                    event: StreamCorePlaybackProgressEvent,
+                    positionMillis: Long,
+                    durationMillis: Long,
+                ): StreamCoreResult<Unit> {
+                    if (event == StreamCorePlaybackProgressEvent.Completed) return removeProgress(request.profileId, request.contentId)
+                    if (durationMillis <= 0L) return StreamCoreResult.Success(Unit)
+                    if (event == StreamCorePlaybackProgressEvent.Periodic) {
+                        val next = positionMillis / 10_000L
+                        if (next <= bucket) return StreamCoreResult.Success(Unit)
+                        bucket = next
+                    }
+                    return updateProgress(StreamCorePlaybackProgressEntry(
+                        request.profileId, request.contentId, request.contentSnapshot,
+                        positionMillis, durationMillis, 1_234L,
+                    ))
+                }
             }
         }
     }
@@ -859,7 +905,7 @@ class PlayerViewModelTest {
             mutableState.value = value
         }
 
-        override fun prepare(media: PlaybackMediaModel, startPositionMillis: Long) {
+        override fun prepare(media: StreamCorePlaybackMedia, startPositionMillis: Long) {
             preparedAt = startPositionMillis
             preparedMediaIds += media.assetId
             preparedPositions += startPositionMillis

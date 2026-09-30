@@ -38,7 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileAvatarModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreCloseButton
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreEditIcon
 import com.pampoukidis.streamcoretv.core.ui.components.StreamCoreProfileArtwork
@@ -48,9 +48,9 @@ import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreDimens
 import com.pampoukidis.streamcoretv.core.ui.theme.StreamCoreTheme
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesPreviewData
 import com.pampoukidis.streamcoretv.feature.profiles.common.testing.ProfilesTestTags
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileEditorMode
-import com.pampoukidis.streamcoretv.feature.profiles.data.ProfileFieldError
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
+import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
 
 /** Shared editor rendering and action wiring. Window placement, dialogs and focus belong to callers. */
 @Composable
@@ -269,7 +269,7 @@ fun ProfileEditorContent(
 }
 
 @Composable
-private fun ProfileEditorAvatarArtwork(avatar: ProfileAvatarModel, layout: ProfileEditorLayout) {
+private fun ProfileEditorAvatarArtwork(avatar: StreamCoreProfileAvatar, layout: ProfileEditorLayout) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StreamCoreDimens.Spacing.Medium),
@@ -308,12 +308,12 @@ private fun ProfileEditorAvatarArtwork(avatar: ProfileAvatarModel, layout: Profi
     }
 }
 
-private fun ProfileFieldError.message(): String {
+private fun StreamCoreProfileFieldError.message(): String {
     return when (this) {
-        ProfileFieldError.Blank -> "Required"
-        ProfileFieldError.TooLong -> "Maximum 32 characters"
-        ProfileFieldError.MissingSelection -> "Select an option"
-        ProfileFieldError.UnknownSelection -> "Selection is unavailable"
+        StreamCoreProfileFieldError.Blank -> "Required"
+        StreamCoreProfileFieldError.TooLong -> "Maximum 32 characters"
+        StreamCoreProfileFieldError.MissingSelection -> "Select an option"
+        StreamCoreProfileFieldError.UnknownSelection -> "Selection is unavailable"
     }
 }
 

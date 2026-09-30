@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.pampoukidis.streamcoretv.feature.profiles.tv.pin.TvProfilePinScreen
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +56,21 @@ fun TvProfilesScreen(
     modifier: Modifier = Modifier,
     sharedElementScope: StreamCoreSharedElementScope? = null,
 ) {
-    val initialFocusTarget = remember { TvProfilesFocusRestorationStore.consume() }
+    state.pin?.let { pin ->
+        TvProfilePinScreen(
+            state = pin,
+            onDigitEntered = { onAction(ProfilesAction.PinDigitEntered(it)) },
+            onDeleteDigit = { onAction(ProfilesAction.PinDeleteDigit) },
+            onCancel = { onAction(ProfilesAction.CancelPin) },
+            onRetry = { onAction(ProfilesAction.RetryPin) },
+            modifier = modifier,
+        )
+        return
+    }
+    val initialFocusTarget = remember(state.restoreFocusProfileId) {
+        state.restoreFocusProfileId?.let { id -> TvProfilesFocusTarget(id, state.profiles.indexOfFirst { it.id == id }.coerceAtLeast(0)) }
+            ?: TvProfilesFocusRestorationStore.consume()
+    }
     val profileInteractionsEnabled = !state.isLoading &&
             !state.isSaving &&
             !isLogoutInProgress &&

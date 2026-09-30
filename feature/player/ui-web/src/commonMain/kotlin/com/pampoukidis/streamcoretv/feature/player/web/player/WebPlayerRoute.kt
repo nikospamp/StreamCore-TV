@@ -9,12 +9,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerAction
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerRouteEventEffect
 import com.pampoukidis.streamcoretv.feature.player.common.player.PlayerViewModel
-import com.pampoukidis.streamcoretv.playback.api.PlaybackRequestModel
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun WebPlayerRoute(
-    request: PlaybackRequestModel,
+    request: StreamCorePlaybackRequest,
     onBack: () -> Unit,
     viewModel: PlayerViewModel = koinViewModel(),
 ) {

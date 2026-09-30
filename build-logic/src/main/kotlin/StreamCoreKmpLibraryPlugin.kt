@@ -67,7 +67,7 @@ class StreamCoreKmpExtension internal constructor(
         }
         project.extensions.getByType(WasmNodeJsEnvSpec::class.java).apply {
             download.set(false)
-            command.set("node")
+            command.set(project.providers.gradleProperty("streamcoreNodeExecutable").orElse("node"))
         }
     }
 }
@@ -77,5 +77,9 @@ private fun Project.streamCoreNamespace(): String {
         .removePrefix(":")
         .split(':')
         .joinToString(".") { segment -> segment.replace("-", "") }
-    return "com.pampoukidis.streamcoretv.$suffix"
+    return if (path.startsWith(":sdk:")) {
+        "com.pampoukidis.streamcore.$suffix"
+    } else {
+        "com.pampoukidis.streamcoretv.$suffix"
+    }
 }

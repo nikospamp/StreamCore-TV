@@ -1,11 +1,11 @@
 package com.pampoukidis.streamcoretv.feature.profiles.web.editor
 
 import androidx.compose.runtime.Composable
-import com.pampoukidis.streamcoretv.core.model.auth.ProfileModel
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
 
 @Composable
 internal expect fun WebProfileEditorDeleteDialog(
-    profile: ProfileModel,
+    profile: StreamCoreProfile,
     isSaving: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
