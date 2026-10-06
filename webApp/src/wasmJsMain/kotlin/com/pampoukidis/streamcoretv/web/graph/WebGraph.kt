@@ -52,15 +52,15 @@ suspend fun startWebGraph(
     return try {
         val resolved = resolveWebGraph(application.koin)
         // Exercise storage through the public SDK before choosing persistent versus session mode.
-        val initialBootstrapResult = application.koin.get<StreamCoreClient>().bootstrap()
-        if (initialBootstrapResult is StreamCoreResult.Failure && initialBootstrapResult.error is StreamCoreError.Storage) {
+        val initialSessionRestorationResult = application.koin.get<StreamCoreClient>().auth.restoreSession()
+        if (initialSessionRestorationResult is StreamCoreResult.Failure && initialSessionRestorationResult.error is StreamCoreError.Storage) {
             throw WebSdkStorageException()
         }
         WebGraphHandle(
             application = application,
             resolvedDefinitions = resolved,
             storageNames = listOf("StreamCore SDK: streamcore"),
-            initialBootstrapResult = initialBootstrapResult,
+            initialSessionRestorationResult = initialSessionRestorationResult,
         )
     } catch (throwable: Throwable) {
         application.close()
@@ -83,7 +83,6 @@ fun webModules(
                     ),
                     connection = config.toTmdbRuntimeConfig(),
                     demoPlayback = true,
-                    legacyApplicationStorage = true,
                 ),
                 useSessionStorage = useSessionStorage,
             )
@@ -119,11 +118,11 @@ data class WebGraphHandle(
     val application: KoinApplication,
     val resolvedDefinitions: List<String>,
     val storageNames: List<String>,
-    private var initialBootstrapResult: StreamCoreResult<StreamCoreContext>? = null,
+    private var initialSessionRestorationResult: StreamCoreResult<StreamCoreContext>? = null,
 ) : AutoCloseable {
-    internal fun takeInitialBootstrapResult(): StreamCoreResult<StreamCoreContext>? {
-        val result = initialBootstrapResult
-        initialBootstrapResult = null
+    internal fun takeInitialSessionRestorationResult(): StreamCoreResult<StreamCoreContext>? {
+        val result = initialSessionRestorationResult
+        initialSessionRestorationResult = null
         return result
     }
 

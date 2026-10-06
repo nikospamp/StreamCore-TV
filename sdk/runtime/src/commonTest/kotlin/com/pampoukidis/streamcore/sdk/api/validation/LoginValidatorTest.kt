@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcore.sdk.api.validation
 
 import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
+import com.pampoukidis.streamcore.sdk.validation.LoginValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

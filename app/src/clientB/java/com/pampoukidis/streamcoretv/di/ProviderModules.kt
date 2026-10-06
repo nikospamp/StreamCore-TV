@@ -25,7 +25,7 @@ private val clientBProviderDataModule = module {
             androidContext(),
             ClientBSdkConfiguration(
                 common = StreamCoreConfiguration(backend = "clientb-simulated", storageNamespace = "streamcore"),
-                demoPlayback = true, legacyApplicationStorage = true,
+                demoPlayback = true,
                 referenceProfileScenario = ClientBReferenceProfileScenario.valueOf(BuildConfig.CLIENTB_REFERENCE_PROFILE_SCENARIO),
             ),
         )

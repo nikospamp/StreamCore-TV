@@ -38,8 +38,11 @@ kotlin {
             implementation(libs.ktor.client.js)
             implementation(libs.androidx.datastore.core.okio.web)
         }
+        // Compile the shared provider checks as test sources, outside published SDK artifacts.
+        commonTest {
+            kotlin.srcDir(rootProject.layout.projectDirectory.dir("sdk/testing/src/commonTest/kotlin"))
+        }
         commonTest.dependencies {
-            implementation(projects.sdk.testing)
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)

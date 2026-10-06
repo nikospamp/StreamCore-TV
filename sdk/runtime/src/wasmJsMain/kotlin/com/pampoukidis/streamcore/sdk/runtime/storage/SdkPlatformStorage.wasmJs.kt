@@ -16,11 +16,10 @@ import kotlinx.coroutines.cancel
 fun createWebSdkStorage(
     config: StreamCoreConfiguration,
     authFileName: String,
-    legacyNames: Boolean = false,
     useSessionStorage: Boolean = false,
 ): SdkPlatformStorage {
     if (config.persistence == StreamCorePersistenceMode.InMemory) return SdkPlatformStorage.inMemory()
-    val prefix = if (legacyNames) "" else "sdk_${encodeStorageName(authFileName)}_${encodeStorageName(config.backend)}_${encodeStorageName(config.storageNamespace)}_"
+    val prefix = "sdk_${encodeStorageName(authFileName)}_${encodeStorageName(config.backend)}_${encodeStorageName(config.storageNamespace)}_"
     val names = listOf(authFileName, "library.preferences_pb", "search_history.preferences_pb", "playback_progress.preferences_pb").map { prefix + it }
     val ownerKeys = names.map { "${if (useSessionStorage) "session" else "local"}:$it" }
     check(ownerKeys.none { it in webStorageOwners }) { "An SDK instance already owns this storage namespace." }

@@ -10,7 +10,7 @@ import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginFieldError
 import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginCredentials
 import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreLoginValidationResult
 import com.pampoukidis.streamcore.sdk.api.AuthService
-import com.pampoukidis.streamcore.sdk.api.validation.LoginValidator
+import com.pampoukidis.streamcore.sdk.validation.LoginValidator
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -29,17 +29,17 @@ class AppAuthViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `starts as loading until bootstrap runs`() {
+    fun `starts as loading until session restoration runs`() {
         val repository = FakeSdkClient()
 
         val subject = AppAuthViewModel(client = repository)
 
         assertEquals(AppAuthUiState.Loading, subject.uiState.value)
-        assertEquals(0, repository.bootstrapCalls)
+        assertEquals(0, repository.sessionRestorationCalls)
     }
 
     @Test
-    fun `emits ready logged in after valid bootstrap`() {
+    fun `emits ready logged in after valid session restoration`() {
         val authState = StreamCoreAuthState.LoggedIn(
             account = StreamCoreAuthAccount(
                 id = "548",
@@ -48,7 +48,7 @@ class AppAuthViewModelTest {
             ),
         )
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(authState),
+            sessionRestorationResult = StreamCoreResult.Success(authState),
         )
         val subject = AppAuthViewModel(client = repository)
 
@@ -61,14 +61,14 @@ class AppAuthViewModelTest {
             ),
             subject.uiState.value,
         )
-        assertEquals(1, repository.bootstrapCalls)
+        assertEquals(1, repository.sessionRestorationCalls)
     }
 
     @Test
-    fun `emits ready logged out and error effect after failed bootstrap`() = runTest {
+    fun `emits ready logged out and error effect after failed session restoration`() = runTest {
         val error = StreamCoreError.Network()
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Failure(error),
+            sessionRestorationResult = StreamCoreResult.Failure(error),
         )
         val subject = AppAuthViewModel(client = repository)
 
@@ -82,14 +82,14 @@ class AppAuthViewModelTest {
             subject.uiState.value,
         )
         assertEquals(AppAuthEffect.ShowError(error), subject.effects.first())
-        assertEquals(1, repository.bootstrapCalls)
+        assertEquals(1, repository.sessionRestorationCalls)
     }
 
     @Test
-    fun `unexpected bootstrap storage exception resolves loading with a sanitized error`() {
+    fun `unexpected session restoration storage exception resolves loading with a sanitized error`() {
         runTest {
             val repository = FakeSdkClient(
-                bootstrapThrowable = IllegalStateException("sensitive storage detail"),
+                sessionRestorationThrowable = IllegalStateException("sensitive storage detail"),
             )
             val subject = AppAuthViewModel(client = repository)
 
@@ -100,15 +100,15 @@ class AppAuthViewModelTest {
             assertTrue(error is StreamCoreError.Unknown)
             assertEquals("AUTH_BOOTSTRAP_FAILURE", error.source?.backendCode)
             assertNull(error.source?.backendMessage)
-            assertEquals(1, repository.bootstrapCalls)
+            assertEquals(1, repository.sessionRestorationCalls)
         }
     }
 
     @Test
-    fun `bootstrap cancellation does not become a ready outcome or error effect`() {
+    fun `session restoration cancellation does not become a ready outcome or error effect`() {
         runTest {
             val repository = FakeSdkClient(
-                bootstrapThrowable = CancellationException("cancelled bootstrap"),
+                sessionRestorationThrowable = CancellationException("cancelled session restoration"),
             )
             val subject = AppAuthViewModel(client = repository)
             val effect = async { subject.effects.first() }
@@ -117,7 +117,7 @@ class AppAuthViewModelTest {
 
             assertEquals(AppAuthUiState.Loading, subject.uiState.value)
             assertFalse(effect.isCompleted)
-            assertEquals(1, repository.bootstrapCalls)
+            assertEquals(1, repository.sessionRestorationCalls)
             effect.cancel()
         }
     }
@@ -126,7 +126,7 @@ class AppAuthViewModelTest {
     fun `retains active profile in app state`() {
         val authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(authState),
+            sessionRestorationResult = StreamCoreResult.Success(authState),
         )
         val subject = AppAuthViewModel(client = repository)
 
@@ -148,7 +148,7 @@ class AppAuthViewModelTest {
         val authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))
         val subject = AppAuthViewModel(
             client = FakeSdkClient(
-                bootstrapResult = StreamCoreResult.Success(authState),
+                sessionRestorationResult = StreamCoreResult.Success(authState),
             ),
         )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
@@ -177,7 +177,7 @@ class AppAuthViewModelTest {
     fun `duplicate logout confirmation submits once while in progress`() {
         val logoutGate = CompletableDeferred<Unit>()
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
+            sessionRestorationResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
             logoutGate = logoutGate,
         )
         val subject = AppAuthViewModel(client = repository)
@@ -198,7 +198,7 @@ class AppAuthViewModelTest {
     @Test
     fun `successful logout clears profile and confirmation state`() {
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
+            sessionRestorationResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
         )
         val subject = AppAuthViewModel(client = repository)
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
@@ -220,7 +220,7 @@ class AppAuthViewModelTest {
         val error = StreamCoreError.Network()
         val authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(authState),
+            sessionRestorationResult = StreamCoreResult.Success(authState),
             logoutResult = StreamCoreResult.Failure(error),
         )
         val subject = AppAuthViewModel(client = repository)
@@ -247,7 +247,7 @@ class AppAuthViewModelTest {
         runTest {
             for (error in listOf(StreamCoreError.Unauthorized(), StreamCoreError.SessionExpired())) {
                 val repository = FakeSdkClient(
-                    bootstrapResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
+                    sessionRestorationResult = StreamCoreResult.Success(StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))),
                     logoutResult = StreamCoreResult.Failure(error),
                     logoutAuthState = StreamCoreAuthState.LoggedOut,
                 )
@@ -278,7 +278,7 @@ class AppAuthViewModelTest {
             val authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))
             for (error in listOf(StreamCoreError.Authentication(), StreamCoreError.Unknown(), StreamCoreError.Unauthorized())) {
                 val repository = FakeSdkClient(
-                    bootstrapResult = StreamCoreResult.Success(authState),
+                    sessionRestorationResult = StreamCoreResult.Success(authState),
                     logoutResult = StreamCoreResult.Failure(error),
                 )
                 val subject = AppAuthViewModel(client = repository)
@@ -306,7 +306,7 @@ class AppAuthViewModelTest {
     fun `unexpected logout exception clears progress and emits unknown error`() = runTest {
         val authState = StreamCoreAuthState.LoggedIn(account = StreamCoreAuthAccount(id = "fixture", username = "fixture", displayName = null))
         val repository = FakeSdkClient(
-            bootstrapResult = StreamCoreResult.Success(authState),
+            sessionRestorationResult = StreamCoreResult.Success(authState),
             logoutThrowable = IllegalStateException("store failed"),
         )
         val subject = AppAuthViewModel(client = repository)
@@ -329,8 +329,8 @@ class AppAuthViewModelTest {
     }
 
     private class FakeSdkClient(
-        private val bootstrapResult: StreamCoreResult<StreamCoreAuthState> = StreamCoreResult.Success(StreamCoreAuthState.LoggedOut),
-        private val bootstrapThrowable: Throwable? = null,
+        private val sessionRestorationResult: StreamCoreResult<StreamCoreAuthState> = StreamCoreResult.Success(StreamCoreAuthState.LoggedOut),
+        private val sessionRestorationThrowable: Throwable? = null,
         private val logoutResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit),
         private val logoutAuthState: StreamCoreAuthState? = null,
         private val logoutGate: CompletableDeferred<Unit>? = null,
@@ -340,7 +340,7 @@ class AppAuthViewModelTest {
         override val context: StateFlow<StreamCoreContext> = state
         override val configuration = StreamCoreConfiguration("test", "auth-view-model", persistence = StreamCorePersistenceMode.InMemory)
         override val capabilities = StreamCoreCapabilities()
-        var bootstrapCalls = 0
+        var sessionRestorationCalls = 0
             private set
         var logoutCalls = 0
             private set
@@ -352,25 +352,25 @@ class AppAuthViewModelTest {
             ))
         }
 
-        override suspend fun bootstrap(): StreamCoreResult<StreamCoreContext> {
-            bootstrapCalls += 1
-            bootstrapThrowable?.let { throw it }
-            return when (val result = bootstrapResult) {
-                is StreamCoreResult.Success -> {
-                    state.value = StreamCoreContext(
-                        account = (result.value as? StreamCoreAuthState.LoggedIn)?.account,
-                        isBootstrapped = true,
-                    )
-                    StreamCoreResult.Success(state.value)
-                }
-                is StreamCoreResult.Failure -> result
-            }
-        }
-
         override val auth: AuthService = object : AuthService {
+            override suspend fun restoreSession(): StreamCoreResult<StreamCoreContext> {
+                sessionRestorationCalls += 1
+                sessionRestorationThrowable?.let { throw it }
+                return when (val result = sessionRestorationResult) {
+                    is StreamCoreResult.Success -> {
+                        state.value = StreamCoreContext(
+                            account = (result.value as? StreamCoreAuthState.LoggedIn)?.account,
+                            isAuthInitialized = true,
+                        )
+                        StreamCoreResult.Success(state.value)
+                    }
+                    is StreamCoreResult.Failure -> result
+                }
+            }
+
             override suspend fun login(identifier: String, password: String): StreamCoreResult<Unit> {
                 state.value = StreamCoreContext(
-                    account = StreamCoreAuthAccount("fixture", "fixture", null), isBootstrapped = true,
+                    account = StreamCoreAuthAccount("fixture", "fixture", null), isAuthInitialized = true,
                 )
                 return StreamCoreResult.Success(Unit)
             }
@@ -385,7 +385,7 @@ class AppAuthViewModelTest {
                 logoutGate?.await()
                 logoutThrowable?.let { throw it }
                 if (logoutAuthState is StreamCoreAuthState.LoggedOut || logoutResult is StreamCoreResult.Success) {
-                    state.value = StreamCoreContext(isBootstrapped = true)
+                    state.value = StreamCoreContext(isAuthInitialized = true)
                 }
                 return logoutResult
             }

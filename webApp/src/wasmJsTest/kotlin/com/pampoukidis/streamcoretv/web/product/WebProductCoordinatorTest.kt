@@ -40,22 +40,22 @@ import kotlin.test.assertNull
 
 /**
  * Application routing tests consume only the public client.
- * Storage transactions, legacy attribution and rejected-session cleanup are SDK contract tests.
+ * Storage transactions, account isolation and rejected-session cleanup are SDK contract tests.
  */
 class WebProductCoordinatorTest {
     @Test
-    fun initialSessionRejectionIsPresentedOnceBeforeRetryingSdkBootstrap(): TestResult {
+    fun initialSessionRejectionIsPresentedOnceBeforeRetryingSdkSessionRestoration(): TestResult {
         return runTest {
             withFixture {
                 val failure = StreamCoreResult.Failure(StreamCoreError.SessionExpired())
-                client.contextState.value = StreamCoreContext(isBootstrapped = true)
+                client.contextState.value = StreamCoreContext(isAuthInitialized = true)
                 navigation.replace(WebRoute.Home)
-                val initialized = WebProductCoordinator(client, navigation, initialBootstrapResult = failure)
+                val initialized = WebProductCoordinator(client, navigation, initialSessionRestorationResult = failure)
                 assertEquals(WebProductInitialization.ReadyWithError(failure.error), initialized.initialize())
                 assertEquals(WebRoute.Login, navigation.route.value)
-                assertEquals(0, client.bootstrapCalls)
+                assertEquals(0, client.sessionRestorationCalls)
                 assertEquals(WebProductInitialization.Ready, initialized.initialize())
-                assertEquals(1, client.bootstrapCalls)
+                assertEquals(1, client.sessionRestorationCalls)
             }
         }
     }
@@ -126,7 +126,7 @@ class WebProductCoordinatorTest {
                 assertEquals(WebRoute.Profiles, navigation.route.value)
                 assertEquals(0, client.clearCalls)
 
-                client.contextState.value = StreamCoreContext(isBootstrapped = true)
+                client.contextState.value = StreamCoreContext(isAuthInitialized = true)
                 coordinator.loginSucceeded()
                 assertEquals(WebRoute.Login, navigation.route.value)
             }
@@ -139,7 +139,7 @@ class WebProductCoordinatorTest {
             withFixture {
                 val failure = StreamCoreError.Storage()
                 client.contextState.value = authenticatedContext()
-                client.bootstrapResult = StreamCoreResult.Failure(failure)
+                client.sessionRestorationResult = StreamCoreResult.Failure(failure)
                 navigation.replace(WebRoute.Home)
 
                 assertEquals(WebProductInitialization.ReadyWithError(failure), coordinator.initialize())
@@ -173,7 +173,7 @@ class WebProductCoordinatorTest {
                 navigation.replace(WebRoute.Home)
                 val failure = StreamCoreError.SessionExpired()
                 client.logoutResult = StreamCoreResult.Failure(failure)
-                client.logoutContext = StreamCoreContext(isBootstrapped = true)
+                client.logoutContext = StreamCoreContext(isAuthInitialized = true)
 
                 assertEquals(failure, coordinator.logout())
                 assertNull(coordinator.selectedProfile)
@@ -228,7 +228,7 @@ class WebProductCoordinatorTest {
             withFixture {
                 client.select(profile("selected"))
                 navigation.replace(WebRoute.Home)
-                client.logoutContext = StreamCoreContext(isBootstrapped = true)
+                client.logoutContext = StreamCoreContext(isAuthInitialized = true)
 
                 assertNull(coordinator.logout())
                 assertNull(coordinator.selectedProfile)
@@ -243,7 +243,7 @@ class WebProductCoordinatorTest {
             withFixture {
                 client.select(profile("selected"))
                 navigation.replace(WebRoute.Home)
-                client.contextState.value = StreamCoreContext(isBootstrapped = true)
+                client.contextState.value = StreamCoreContext(isAuthInitialized = true)
 
                 coordinator.synchronizeContext()
 
@@ -290,10 +290,10 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun definitiveLoggedOutBootstrapRoutesToLoginWithoutApplicationCleanup(): TestResult {
+    fun definitiveLoggedOutSessionRestorationRoutesToLoginWithoutApplicationCleanup(): TestResult {
         return runTest {
             withFixture {
-                client.bootstrapResult = StreamCoreResult.Success(StreamCoreContext(isBootstrapped = true))
+                client.sessionRestorationResult = StreamCoreResult.Success(StreamCoreContext(isAuthInitialized = true))
                 navigation.replace(WebRoute.Home)
 
                 assertEquals(WebProductInitialization.Ready, coordinator.initialize())
@@ -305,10 +305,10 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun thrownBootstrapFailureReturnsGenericErrorAndRoutesFailClosed(): TestResult {
+    fun thrownSessionRestorationFailureReturnsGenericErrorAndRoutesFailClosed(): TestResult {
         return runTest {
             withFixture {
-                client.bootstrapThrowable = IllegalStateException("sensitive backend detail")
+                client.sessionRestorationThrowable = IllegalStateException("sensitive backend detail")
                 navigation.replace(WebRoute.Home)
 
                 val failure = assertIs<WebProductInitialization.ReadyWithError>(coordinator.initialize()).error
@@ -320,11 +320,11 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun thrownBootstrapCancellationRoutesFailClosedBeforePropagation(): TestResult {
+    fun thrownSessionRestorationCancellationRoutesFailClosedBeforePropagation(): TestResult {
         return runTest {
             withFixture {
-                val cancellation = CancellationException("cancelled bootstrap")
-                client.bootstrapThrowable = cancellation
+                val cancellation = CancellationException("cancelled session restoration")
+                client.sessionRestorationThrowable = cancellation
                 navigation.replace(WebRoute.Home)
 
                 assertEquals(cancellation, assertFailsWith<CancellationException> { coordinator.initialize() })
@@ -334,12 +334,12 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun sdkBootstrapFailuresKeepTheirErrorAndUseValidatedContextForRouting(): TestResult {
+    fun sdkSessionRestorationFailuresKeepTheirErrorAndUseValidatedContextForRouting(): TestResult {
         return runTest {
             for (error in listOf(StreamCoreError.SessionExpired(), StreamCoreError.Network(), StreamCoreError.Storage())) {
                 withFixture {
                     client.contextState.value = StreamCoreContext()
-                    client.bootstrapResult = StreamCoreResult.Failure(error)
+                    client.sessionRestorationResult = StreamCoreResult.Failure(error)
                     navigation.replace(WebRoute.Home)
 
                     assertEquals(WebProductInitialization.ReadyWithError(error), coordinator.initialize())
@@ -398,7 +398,7 @@ class WebProductCoordinatorTest {
             val routes = listOf(WebRoute.Home, WebRoute.Search, WebRoute.Library, WebRoute.Details("film"), WebRoute.Player("film"))
             for (route in routes) {
                 withFixture {
-                    client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                    client.sessionRestorationResult = StreamCoreResult.Success(authenticatedContext())
                     navigation.replace(route)
 
                     assertEquals(WebProductInitialization.Ready, coordinator.initialize())
@@ -427,7 +427,7 @@ class WebProductCoordinatorTest {
     fun protectedRouteWithoutSelectedProfileCanonicalizesToProfiles(): TestResult {
         return runTest {
             withFixture {
-                client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                client.sessionRestorationResult = StreamCoreResult.Success(authenticatedContext())
                 navigation.replace(WebRoute.Home)
 
                 assertEquals(WebProductInitialization.Ready, coordinator.initialize())
@@ -437,10 +437,10 @@ class WebProductCoordinatorTest {
     }
 
     @Test
-    fun authenticatedLegacyLandingRequiresFreshProfileEntry(): TestResult {
+    fun restoredSessionLandingRequiresFreshProfileEntry(): TestResult {
         return runTest {
             withFixture {
-                client.bootstrapResult = StreamCoreResult.Success(authenticatedContext())
+                client.sessionRestorationResult = StreamCoreResult.Success(authenticatedContext())
                 navigation.replace(WebRoute.AuthenticatedLanding)
 
                 assertEquals(WebProductInitialization.Ready, coordinator.initialize())
@@ -487,9 +487,9 @@ private class StubStreamCoreClient : StreamCoreClient {
     override val context: StateFlow<StreamCoreContext> = contextState
     override val configuration = StreamCoreConfiguration("test", "web-coordinator")
     override val capabilities = StreamCoreCapabilities()
-    var bootstrapResult: StreamCoreResult<StreamCoreContext>? = null
-    var bootstrapThrowable: Throwable? = null
-    var bootstrapCalls = 0
+    var sessionRestorationResult: StreamCoreResult<StreamCoreContext>? = null
+    var sessionRestorationThrowable: Throwable? = null
+    var sessionRestorationCalls = 0
         private set
     var selectionCalls = 0
         private set
@@ -503,19 +503,19 @@ private class StubStreamCoreClient : StreamCoreClient {
     var clearCalls = 0
         private set
 
-    override suspend fun bootstrap(): StreamCoreResult<StreamCoreContext> {
-        bootstrapCalls += 1
-        bootstrapThrowable?.let { throw it }
-        val result = bootstrapResult ?: StreamCoreResult.Success(contextState.value)
-        if (result is StreamCoreResult.Success) contextState.value = result.value
-        return result
-    }
-
     fun select(profile: StreamCoreProfile) {
         contextState.value = contextState.value.copy(profile = profile, profileActivationId = "fixture-${++activationCount}")
     }
 
     override val auth: AuthService = object : AuthService {
+        override suspend fun restoreSession(): StreamCoreResult<StreamCoreContext> {
+            sessionRestorationCalls += 1
+            sessionRestorationThrowable?.let { throw it }
+            val result = sessionRestorationResult ?: StreamCoreResult.Success(contextState.value)
+            if (result is StreamCoreResult.Success) contextState.value = result.value
+            return result
+        }
+
         override suspend fun login(identifier: String, password: String): StreamCoreResult<Unit> { error("Unused") }
         override suspend fun loginWithQr(qrCode: String): StreamCoreResult<Unit> { error("Unused") }
         override suspend fun recoverPassword(email: String, otp: String?): StreamCoreResult<Unit> { error("Unused") }
@@ -584,7 +584,7 @@ private fun authenticatedContext(
     return StreamCoreContext(
         account = StreamCoreAuthAccount(accountId, "fixture", null),
         profile = profile,
-        isBootstrapped = true,
+        isAuthInitialized = true,
         profileActivationId = profile?.let { "fixture-${it.id}" },
     )
 }

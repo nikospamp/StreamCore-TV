@@ -1,12 +1,12 @@
 package com.pampoukidis.streamcore.sdk.providers.clientb
 
-import com.pampoukidis.streamcore.sdk.model.StreamCorePersistenceMode
 import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
+import com.pampoukidis.streamcore.sdk.model.StreamCorePersistenceMode
 import com.pampoukidis.streamcore.sdk.testing.ProviderContract
-import kotlinx.coroutines.test.TestResult
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertNull
+import kotlinx.coroutines.test.TestResult
+import kotlinx.coroutines.test.runTest
 
 /** Simulated-provider substitution checks, not a claim of production backend coverage. */
 class ClientBSdkContractTest {

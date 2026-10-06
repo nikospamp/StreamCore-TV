@@ -6,6 +6,5 @@ import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
 data class ClientBSdkConfiguration(
     val common: StreamCoreConfiguration,
     val demoPlayback: Boolean = false,
-    val legacyApplicationStorage: Boolean = false,
     val referenceProfileScenario: ClientBReferenceProfileScenario = ClientBReferenceProfileScenario.Standard,
 )

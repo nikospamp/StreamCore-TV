@@ -11,7 +11,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibraryEntry
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
 import com.pampoukidis.streamcore.sdk.runtime.storage.PreferencesSdkStorage
+import com.pampoukidis.streamcore.sdk.runtime.storage.SdkLocalRepositories
+import com.pampoukidis.streamcore.sdk.runtime.storage.accountStorageKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,15 +25,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.SerializationException
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.time.Clock
 
 class BrowserPreferencesRestartTest {
     @Test
-    fun browserLocalStoragePreservesOwnedAndQuarantinedDataAcrossRestart(): TestResult {
+    fun browserSavedDataSurvivesRestartWithoutCrossingPartitions(): TestResult {
         return runTest {
             if (!hasBrowserStorage()) {
                 println("SKIPPED browser persistence: this Node execution has no browser localStorage; run wasmJsBrowserTest.")
@@ -36,41 +43,79 @@ class BrowserPreferencesRestartTest {
             }
             val prefix = "streamcore_sdk_test_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt().toUInt()}"
             val configuration = StreamCoreConfiguration("browser:test", prefix)
-            val account = "λογαριασμός"
-            val profile = "日本語"
-            val original = """{"queriesByProfile":{"日本語":["Ταινία"]}}"""
+            val partitions = listOf(
+                accountStorageKey(configuration, "λογαριασμός", "日本語"),
+                accountStorageKey(configuration, "another-account", "日本語"),
+                accountStorageKey(configuration, "λογαριασμός", "another-profile"),
+            )
             var opened = open(prefix)
             try {
-                opened.search.edit { it[stringPreferencesKey("recent_searches_json")] = original }
-                assertIs<StreamCoreResult.Success<*>>(opened.repositories.migrateLegacy(configuration, account))
+                partitions.forEachIndexed { index, partition ->
+                    val content = content("Ταινία $index")
+                    assertIs<StreamCoreResult.Success<*>>(
+                        opened.repositories.library.setLiked(partition, content, true, 1_725_000_000_123L + index),
+                    )
+                    opened.repositories.history.add(partition, content.title)
+                    opened.repositories.progress.upsert(progress(partition, content, index))
+                }
                 opened.job.cancelAndJoin()
                 opened = open(prefix)
-                assertIs<StreamCoreResult.Success<*>>(opened.repositories.migrateLegacy(configuration, account))
-                assertEquals(listOf("Ταινία"), opened.repositories.history.observe(accountStorageKey(configuration, account, profile)).first())
-                assertEquals(original, opened.search.data.first()[stringPreferencesKey("sdk_v1_backup_recent_searches_json")])
+                partitions.forEachIndexed { index, partition ->
+                    val content = content("Ταινία $index")
+                    val library = assertIs<StreamCoreResult.Success<*>>(opened.repositories.library.observe(partition).first()).value
+                    assertEquals(listOf(StreamCoreLibraryEntry(content, 1_725_000_000_123L + index)), library)
+                    assertEquals(listOf(content.title), opened.repositories.history.observe(partition).first())
+                    assertEquals(listOf(progress(partition, content, index)), opened.repositories.progress.observe(partition).first())
+                }
             } finally {
                 opened.job.cancelAndJoin()
                 clean(prefix)
             }
 
-            val unknownPrefix = prefix + "_unknown"
-            val unownedBytes = "{malformed legacy data 日本語 retained verbatim"
-            opened = open(unknownPrefix)
+        }
+    }
+
+    @Test
+    fun malformedSavedDataRemainsUnchangedAndReportsFailureAfterRestart(): TestResult {
+        return runTest {
+            if (!hasBrowserStorage()) {
+                println("SKIPPED browser persistence: this Node execution has no browser localStorage; run wasmJsBrowserTest.")
+                return@runTest
+            }
+            val prefix = "streamcore_sdk_test_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt().toUInt()}"
+            val configuration = StreamCoreConfiguration("browser:test", prefix)
+            val partition = accountStorageKey(configuration, "account", "profile")
+            val original = "{malformed saved JSON 日本語"
+            val rawKey = stringPreferencesKey("recent_searches_json")
+            var opened = open(prefix)
             try {
-                opened.search.edit { it[stringPreferencesKey("recent_searches_json")] = unownedBytes }
-                assertIs<StreamCoreResult.Success<*>>(opened.repositories.migrateLegacy(configuration, null))
-                val newPartition = accountStorageKey(configuration, "new-account", profile)
-                opened.repositories.history.add(newPartition, "New movie")
+                opened.search.edit { it[rawKey] = original }
                 opened.job.cancelAndJoin()
-                opened = open(unknownPrefix)
-                assertIs<StreamCoreResult.Success<*>>(opened.repositories.migrateLegacy(configuration, "new-account"))
-                assertEquals(listOf("New movie"), opened.repositories.history.observe(newPartition).first())
-                assertEquals(unownedBytes, opened.search.data.first()[stringPreferencesKey("sdk_v2_unowned_recent_searches_json")])
+                opened = open(prefix)
+                assertFailsWith<SerializationException> { opened.repositories.history.observe(partition).first() }
+                assertFailsWith<SerializationException> { opened.repositories.history.add(partition, "New movie") }
+                assertEquals(original, opened.search.data.first()[rawKey])
             } finally {
                 opened.job.cancelAndJoin()
-                clean(unknownPrefix)
+                clean(prefix)
             }
         }
+    }
+
+    private fun content(title: String): StreamCoreContent {
+        return StreamCoreContent(
+            id = "shared-content", title = title, description = "", rating = 0,
+            pgRatingName = "", pgRatingLevel = 0, poster = "", backdrop = null,
+            cast = emptyList(), releaseDate = 0L, genres = emptyList(),
+        )
+    }
+
+    private fun progress(partition: String, content: StreamCoreContent, index: Int): StreamCorePlaybackProgressEntry {
+        return StreamCorePlaybackProgressEntry(
+            profileId = partition, contentId = content.id, contentSnapshot = content,
+            positionMillis = 40_000L + index, durationMillis = 100_000L,
+            updatedAtMillis = 1_725_000_000_456L + index,
+        )
     }
 
     private fun open(prefix: String): OpenStorage {
@@ -90,7 +135,7 @@ class BrowserPreferencesRestartTest {
     private data class OpenStorage(
         val job: kotlinx.coroutines.CompletableJob,
         val search: DataStore<Preferences>,
-        val repositories: com.pampoukidis.streamcore.sdk.runtime.storage.SdkLocalRepositories,
+        val repositories: SdkLocalRepositories,
     )
 }
 

@@ -3,7 +3,7 @@ package com.pampoukidis.streamcoretv.feature.profiles.common.editor
 import com.pampoukidis.streamcore.sdk.api.ProfileService
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreUpdateProfile
-import com.pampoukidis.streamcore.sdk.api.validation.ProfileValidator
+import com.pampoukidis.streamcore.sdk.validation.ProfileValidator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
@@ -13,9 +13,6 @@ import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationField
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreValidationReason
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.EditorRequest
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileDraftModel
-import com.pampoukidis.streamcoretv.feature.profiles.common.editor.ProfileEditorMode
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

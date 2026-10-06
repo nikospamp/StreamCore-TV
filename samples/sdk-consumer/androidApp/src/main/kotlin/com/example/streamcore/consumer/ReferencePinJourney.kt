@@ -10,7 +10,7 @@ import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryReady
 /** Published-API exercise for opt-in ClientB fixtures. `1234` is only the demonstration PIN. */
 suspend fun exerciseReferencePinJourney(client: StreamCoreClient, multipleProfiles: Boolean) {
     try {
-        client.bootstrap().pinValueOrThrow()
+        client.auth.restoreSession().pinValueOrThrow()
         client.auth.login("pin-viewer", "reference-password").pinValueOrThrow()
         val entry = client.profiles.beginEntry().pinValueOrThrow()
         val challenge = if (multipleProfiles) {

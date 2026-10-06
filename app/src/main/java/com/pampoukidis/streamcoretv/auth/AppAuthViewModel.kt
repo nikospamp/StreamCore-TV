@@ -24,18 +24,18 @@ class AppAuthViewModel constructor(
     private val client: StreamCoreClient,
 ) : ViewModel() {
 
-    private val bootstrapCompleted = MutableStateFlow(false)
+    private val sessionRestorationCompleted = MutableStateFlow(false)
     private val logoutState = MutableStateFlow(LogoutState())
     private val effectsChannel = Channel<AppAuthEffect>(capacity = Channel.BUFFERED)
 
     val effects: Flow<AppAuthEffect> = effectsChannel.receiveAsFlow()
 
     val uiState: StateFlow<AppAuthUiState> = combine(
-        bootstrapCompleted,
+        sessionRestorationCompleted,
         client.context,
         logoutState,
-    ) { isBootstrapCompleted, context, logoutState ->
-        if (!isBootstrapCompleted) {
+    ) { isSessionRestorationCompleted, context, logoutState ->
+        if (!isSessionRestorationCompleted) {
             return@combine AppAuthUiState.Loading
         }
 
@@ -53,7 +53,7 @@ class AppAuthViewModel constructor(
         )
 
     init {
-        bootstrapAuth()
+        restoreSession()
     }
 
     suspend fun clearProfileSelection(): StreamCoreResult<Unit> {
@@ -128,24 +128,24 @@ class AppAuthViewModel constructor(
         }
     }
 
-    private fun bootstrapAuth() {
+    private fun restoreSession() {
         viewModelScope.launch {
-            when (val result = bootstrapResult()) {
+            when (val result = sessionRestorationResult()) {
                 is StreamCoreResult.Success -> {
-                    bootstrapCompleted.value = true
+                    sessionRestorationCompleted.value = true
                 }
 
                 is StreamCoreResult.Failure -> {
-                    bootstrapCompleted.value = true
+                    sessionRestorationCompleted.value = true
                     effectsChannel.send(AppAuthEffect.ShowError(error = result.error))
                 }
             }
         }
     }
 
-    private suspend fun bootstrapResult(): StreamCoreResult<StreamCoreContext> {
+    private suspend fun sessionRestorationResult(): StreamCoreResult<StreamCoreContext> {
         return try {
-            client.bootstrap()
+            client.auth.restoreSession()
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Throwable) {

@@ -1,5 +1,120 @@
 # SDK candidate verification
 
+## Legacy saved-data migration removed — 2026-10-02
+
+Removed the unneeded pre-release data conversion, backup/quarantine/owner markers, `legacyAccountId` configuration and provider hook, provider `legacyApplicationStorage` options, and platform `legacyNames` parameters. Applications now use the same namespaced storage defaults as external consumers. Old development files/browser keys remain untouched and unimported; no data reset was performed. Current SDK schemas, account/profile partition keys and saved-state retention remain unchanged in the backend-agnostic SDK.
+
+Authentication retains only `checkContextStorage` through `ensureContextStorageAvailable`, including its existing context-schema write before backend authentication. Failure remains retryable and cancellation propagates. Saved-data stores report their own decoding/storage failures without startup conversion or data erasure.
+
+| Check | Result / evidence |
+| --- | --- |
+| Runtime host / Wasm Node / browser | 68 / 68 / 68 cases passed. Obsolete migration cases were replaced by current-format restart coverage and checks for context-storage failure/cancellation/retry and malformed saved data remaining unchanged. [SDK/application run](../../build/sdk-no-legacy/runtime-app-check.log), [counts](../../build/sdk-no-legacy/test-counts.json). |
+| Providers | TMDB 112 and ClientB 35 cases passed on each of Android host and Wasm Node. Authentication behavior and shared journeys remain covered. |
+| Android applications | Both debug flavors assembled; 25 application unit cases per flavor passed. Authenticated TMDB configuration verification passed. |
+| Browser application | 82 cases passed; Wasm application and test compilations completed. |
+| Published consumers | Fresh artifacts staged in `build/sdk-no-legacy/maven`; source/dependency/metadata gates passed. Separate coordinate-only Android and headless Wasm consumers passed three cases each. All eight staged Android artifacts exclude removed legacy configuration/hooks/implementation. [Publication run](../../build/sdk-no-legacy/publication-check.log), [archive inspection](../../build/sdk-no-legacy/artifact-inspection.json). |
+| Optional UI consumers | Android application/test APK builds and the browser resource check completed successfully, reusing unchanged outputs where reported up-to-date. No device execution. |
+| Local guide | Regenerated 14 chapters, seven walkthroughs and 497 source/resource entries. Existing interaction/source-reference checks passed at 1440, 390 and 360 pixel widths, with no JavaScript errors or external requests. [Guide run](../../build/sdk-no-legacy/guide-check.log). |
+
+The Android and browser restart tests now write and reopen all three saved-data domains with Unicode identifiers and overlapping account/profile/content IDs. Malformed current JSON remains unchanged and its operation reports failure. The two browser-storage tests return early under Node; the separate browser run supplies actual localStorage coverage. Counts above have zero reported failures/errors/skips.
+
+Two independent focused reviews found no introduced issue. Session/profile implementations, account partitioning and all three saved-store implementations match the pre-change snapshot. Current default storage filenames, instance ownership/close behavior and browser session-storage selection are unchanged; only the old unprefixed filename option is removed. Source/diff checks passed and pre-existing staged work was preserved.
+
+No live-backend, device or application visual journey was run. The local HTML guide was updated; its hosted Site was not republished. Earlier entries retain their original compatibility requirements and verification scope, superseded for current behavior by this change.
+
+## Registered test-support project — 2026-10-02
+
+Restored `:sdk:testing` in settings with a minimal `build.gradle.kts` applying only `base`. There are nine registered SDK projects and still eight published artifacts. The backend-agnostic SDK's shared helper code and provider `commonTest` source-directory wiring are unchanged; the support project has no Kotlin compilation or standalone test execution.
+
+`:sdk:testing:tasks --all :sdk:testing:check` passed, including the existing repository checks attached to `check`. Its task listing contains no compilation or publishing tasks. [Gradle evidence](../../build/sdk-testing-project/gradle-project-check.log). Source boundaries and diff checks passed; pre-existing staged work is preserved. Provider suites and artifact consumption were verified in the preceding migration below and were not rerun for this registration-only follow-up.
+
+The local guide now indexes the registered support project and retains `commonTest` classification for both helper files. Its existing navigation, source-reader, example and responsive checks passed at 1440, 390 and 360 pixel widths with no JavaScript errors or external requests. [Guide evidence](../../build/sdk-testing-project/guide-check.log). Android Studio icons/deletion warnings were not verified; Gradle project registration does not guarantee either. The hosted guide remains its previously published snapshot.
+
+## Shared provider checks in test sources — 2026-10-02
+
+`ProviderContract` and `ContractResult` now live in `sdk/testing/src/commonTest/kotlin`, included directly in both providers' `commonTest` source sets. The `:sdk:testing` module and its publication are retired. The backend-agnostic SDK's operations and saved-data behavior are unchanged; comparison with the pre-change helper files confirms identical executable code apart from test-only `internal` visibility.
+
+| Check | Result / evidence |
+| --- | --- |
+| Provider Android host tests | TMDB 112 and ClientB 35 cases passed, including the existing shared contract callers. [Host run](../../build/sdk-shared-tests/provider-tests.log). |
+| Provider Wasm Node tests | TMDB 112 and ClientB 35 cases passed on Node 24.19.0. [Node run](../../build/sdk-shared-tests/provider-node24-tests.log), [case counts](../../build/sdk-shared-tests/test-counts.json). |
+| Published headless consumers | Separate coordinate-only Android and headless Wasm consumers passed three cases each; the Android sample assembled. [Publication run](../../build/sdk-shared-tests/publication-check.log), [case counts](../../build/sdk-shared-tests/consumer-test-counts.json). |
+| Optional UI consumers | Publication script completed successfully, including Android application/test APK builds and the browser resource test task; unchanged outputs were reused, including the browser test result. Device execution was not requested. |
+| Artifact inspection | Eight root artifacts and their Android/Wasm variants staged into the fresh `build/sdk-shared-tests/maven` repository. All 48 AAR/JAR/KLIB archives exclude the shared helper package; no `sdk-testing` coordinate is present. Source, dependency and metadata gates passed. [Archive inspection](../../build/sdk-shared-tests/artifact-inspection.json). |
+| Local interactive guide | Eight modules plus the shared test-source directory; 14 chapters, seven walkthroughs and 497 source/resource entries. Navigation, source anchors, quizzes, examples and themes passed at 1440, 390 and 360 pixel widths, with no JavaScript errors or external requests. Both helper entries are classified as `commonTest`. [Guide run](../../build/sdk-shared-tests/guide-check.log). |
+
+All counted provider/consumer cases have zero failures, errors and skips. The first Wasm attempt used the PATH's Node 20 runtime and failed to instantiate Wasm before executing tests; rerunning with the installed Node 24 runtime passed. No production change was needed for that environment mismatch. Independent source review and diff checks passed; pre-existing staged work remains unchanged.
+
+Android Studio source-root presentation and usage-search filtering were not exercised. Sync Gradle and exclude test sources when tracing production usages; an all-usages search can still include the helpers. No device, live-backend or application visual journey was run. The HTML guide was regenerated locally; the hosted Site remains its previously published snapshot. Earlier entries below retain their original artifact sets and verification scope.
+
+## Authentication session restoration — 2026-10-02
+
+**Passed within the scope below.** The backend-agnostic SDK exposes restoration as `client.auth.restoreSession(): StreamCoreResult<StreamCoreContext>`. The client forwarding method is removed, `RuntimeAuthService` implements the operation directly, and provider adapters implement `AuthProvider.restoreSession()`. Readiness uses `isAuthInitialized` and `AuthNotInitialized`. See the [migration note](alpha02-migration.md#authentication-restoration-on-authservice--2026-10-02).
+
+| Check | Result / evidence |
+| --- | --- |
+| Runtime Android host / Wasm Node / browser | 69 / 68 / 68 cases. The existing lazy-construction test now also checks initialized logged-out restoration, idempotency and retention of an active profile after login. [SDK/application run](../../build/sdk-restore-session/runtime-consumers.log). |
+| Provider Android host / Wasm Node | TMDB 112 per target; ClientB 35 per target, in the same run. |
+| Android applications | Both debug flavors assembled; 25 application unit cases per flavor passed, along with TMDB runtime configuration verification. |
+| Browser application | 82 browser cases passed; current application source and test fakes use the authentication service operation. |
+| Interactive guide | 14 chapters, seven walkthroughs and 499 source/resource entries regenerated. Navigation, quizzes, source anchors, state/cadence/history examples and themes passed at 1440, 390 and 360 pixel widths, with zero JavaScript errors or external requests. [Guide run](../../build/sdk-restore-session/guide-check.log). |
+| Independent artifact consumption | All nine artifacts staged into `build/sdk-restore-session/maven`; source/dependency/metadata/resource gates passed. Separate coordinate-only Android and headless Wasm consumers passed 3 cases each. Optional UI browser verification and Android application/test APK builds passed, reusing unchanged outputs where reported up-to-date. Packaged Android classes expose `AuthService.restoreSession`, `AuthProvider.restoreSession` and `isAuthInitialized`; the old client restoration method and names are absent. [Publication run](../../build/sdk-restore-session/publication-check.log). |
+
+All listed executed suites have zero failures, errors and skips; counts are per target. Source-boundary checks passed. Comparison with the pre-change source confirmed the restoration body and session/profile logic are unchanged after method relocation and symbol renames. Both concrete provider implementations are declaration-only renames. Existing diagnostic strings/codes, storage keys, serialization, cancellation, migration ordering and account/profile isolation remain unchanged. No compatibility forwarding aliases or extra production layers were added; the pre-existing staged index was preserved.
+
+No device, live-backend, application visual journey or production-webpack run was performed. Android resource test APK builds do not establish device execution. Historical generated baseline-profile captures were not regenerated. The Node browser-storage fixture exits early without browser storage; the separate runtime browser suite supplies that coverage. Older entries below retain their original scope and evidence.
+
+## Consolidated playback implementation — 2026-09-30
+
+**Passed within the scope below.** The backend-agnostic SDK now keeps progress logic and its private recorder inside `RuntimePlaybackService`. Three production helper files and the library's progress-factory callback were removed. API/model/provider contracts and production semantics are unchanged. See the [consolidation note](alpha02-migration.md#consolidated-playback-implementation--2026-09-30).
+
+| Check | Result / evidence |
+| --- | --- |
+| Runtime Android host / Wasm Node / browser | 69 / 68 / 68 cases, confirmed from current XML reports. [Runtime run](../../build/sdk-playback-consolidation/runtime-check.log). |
+| Provider Android host / Wasm Node | TMDB 112 per target; ClientB 35 per target. [Provider/application run](../../build/sdk-playback-consolidation/provider-app-check.log). |
+| Feature/application checks | Player ViewModel 26, Library ViewModel 3 and application unit tests 25 per flavor; both debug APKs assembled and TMDB runtime configuration passed. |
+| Browser application | 82 browser cases passed in the provider/application run. |
+| Independent artifact consumption | All nine artifacts staged into `build/sdk-playback-consolidation/maven`; source/dependency/metadata/resource gates passed. Separate coordinate-only Android and headless Wasm consumers passed 3 cases each. Optional UI browser verification and Android application/test APK builds passed, reusing unchanged outputs where reported up-to-date. The runtime Android AAR contains the private recorder inside `RuntimePlaybackService` and none of the three removed helper classes. [Publication run](../../build/sdk-playback-consolidation/publication-check.log). |
+
+All listed suites have zero failures, errors and skips; counts are per target. Six recorder tests create recorders through the real playback service and a fake `PlaybackProgressStore`, including a new independent-recorder bucket case. Five library tests now use that real service. The former fake allowed progress failure followed by success in the same collection, which did not represent production behavior. The replacement test preserves precedence when both inputs fail, checks that a terminated store collection remains failed, and verifies recovery through a fresh observation.
+
+Scoped review found no change to cancellation, capture timing, shared authorization across library/progress inputs or per-recorder state. Persistence behavior remains unchanged. AGENTS now explicitly preserves the preference for human-readable production code without separations created merely for partial reuse or isolated tests; meaningful provider/platform/storage boundaries remain.
+
+Consumer API/model sources and the pre-existing staged index are unchanged. No device, live-backend, manual visual or production-webpack run was performed. Android resource test APK builds do not establish device execution. The Node browser-storage fixture exits early without browser storage; the separate runtime browser suite supplies that coverage. Historical entries retain their original artifacts, evidence and scope.
+
+## Provider contracts beside runtime features — 2026-09-30
+
+**Passed within the scope below.** The backend-agnostic SDK's public provider contracts now sit beside their runtime features. Shared policy, session assembly and provider-error contracts use `content`, `session` and `error`; the `integration/provider` tree is removed. See the [SPI import migration](alpha02-migration.md#provider-contracts-beside-runtime-features--2026-09-30).
+
+| Check | Result / evidence |
+| --- | --- |
+| Runtime Android host / Wasm Node / browser | 68 / 67 / 67 cases, confirmed from current XML reports. [SDK/application run](../../build/sdk-feature-contracts/sdk-app-check.log). |
+| Provider Android host / Wasm Node | TMDB 112 per target; ClientB 35 per target, in the same run. |
+| Application compilation | Both Android debug flavors assembled, TMDB runtime configuration passed, and the Wasm application compiled. Application tests were not rerun for this move. |
+| Static review | All ten contract bodies, signatures and KDoc match the index baseline apart from packages/imports. Other existing Kotlin changes are imports or fully qualified reference relocations. API/model sources and the staged index are unchanged. |
+| Independent artifact consumption | All nine artifacts staged into `build/sdk-feature-contracts/maven`; source/dependency/metadata/resource gates passed. Separate coordinate-only Android and headless Wasm consumers passed 3 cases each. Optional UI browser verification and Android application/test APK builds passed, reusing unchanged outputs where reported up-to-date. The runtime Android AAR contains all ten relocated contracts and no retired integration-package classes. [Publication run](../../build/sdk-feature-contracts/publication-check.log). |
+
+Executed suites have zero failures, errors and skips; counts are per target. This package-only change adds no modules or API/ABI snapshots and changes no runtime behavior or storage format. Device/live-backend/manual visual journeys and production webpack were not rerun. Android resource test APK builds do not establish device execution. The Node browser-storage fixture exits early without browser storage; the separate runtime browser suite supplies that coverage. Historical verification entries retain their original scope and evidence.
+
+## SDK implementation organization — 2026-09-30
+
+**Passed within the scope below.** The backend-agnostic SDK now has a thin `RuntimeStreamCoreClient` composition entry point, internal domain services and one shared session owner. Provider implementation code uses canonical SDK namespaces and domain folders. See the [organization migration](alpha02-migration.md#sdk-implementation-organization--2026-09-30).
+
+| Check | Result / evidence |
+| --- | --- |
+| Runtime Android host / Wasm Node / browser | 68 / 67 / 67 cases, confirmed from current XML reports. [Initial runtime run](../../build/sdk-organization/runtime-check.log) and [final run](../../build/sdk-organization/runtime-final-check.log) after library/playback test-package alignment. |
+| Provider Android host / Wasm Node | TMDB 112 per target; ClientB 35 per target. [Provider/application run](../../build/sdk-organization/provider-app-check.log). |
+| Android applications | 25 unit cases per flavor; both debug APKs assembled and TMDB runtime configuration passed in the same run. |
+| Browser application | 82 browser cases passed in the provider/application run. Production webpack was not rerun. |
+| Source and review | Source boundaries passed. Separate auth/profile/session and domain/library/progress/storage reviews found no introduced behavioral regression. Consumer API/model sources are byte-for-byte unchanged. |
+| Independent artifact consumption | All nine artifacts staged into the fresh `build/sdk-organization/maven` repository; source/dependency/metadata/resource gates passed. Separate coordinate-only Android and headless Wasm consumers passed 3 cases each. Optional UI browser verification and Android application/test APK builds passed, reusing unchanged outputs where reported up-to-date. [Publication run](../../build/sdk-organization/publication-check.log). |
+
+All listed executed suites have zero failures, errors and skips; counts are per target. New assertions cover the same captured authorization across combined library/progress reads and the membership clock running before a rejected mutation without a store write. Existing cancellation, PIN-race, context-publication, policy and migration coverage remains exercised.
+
+The organization moved 98 provider source/test files and removed 86 empty directories. Only the client composition file remains directly in the runtime production package; domain tests mirror their implementation packages. Library operations apply shared guards and write the real store without an anonymous adapter or callback through the client. Four private schema files were folded into their owning repositories with unchanged serialized shapes. The unused `loadSelectedProfile` assembly callback was removed; the migration guide records that provider-integration change. Storage formats are preserved, no modules or API/ABI snapshots were added, and the pre-existing staged index is unchanged. The staged runtime and provider Android AARs were inspected: domain/session implementation classes have their new paths, and none retains the old `streamcoretv` namespace.
+
+No device, live-backend or manual visual journey was rerun. Android resource test APK builds do not establish device execution. Browser test execution above does not establish production-bundle acceptance. The Node browser-storage fixture still exits early without browser storage; the separate runtime browser suite supplies that coverage. Older records remain historical evidence for their own artifacts and scope.
+
 ## Bounded runtime readability refactor — 2026-09-30
 
 **Passed within the scope below.** The backend-agnostic SDK's runtime operations now expose captured context, checks, side effects and result reconciliation through expanded blocks and clearer internal names. Public API/SPI declarations, `ContextStateFlow`, storage implementations and persisted formats are unchanged.

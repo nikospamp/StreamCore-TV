@@ -4,15 +4,15 @@ import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackRequest
 import com.pampoukidis.streamcore.sdk.testing.ProviderContract
 import com.pampoukidis.streamcore.sdk.testing.contractValue
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class TmdbSdkContractTest {
     @Test
@@ -45,7 +45,7 @@ class TmdbSdkContractTest {
                 val fixture = TmdbSdkContractFixture()
                 val client = fixture.create()
                 try {
-                    client.bootstrap().contractValue()
+                    client.auth.restoreSession().contractValue()
                     client.auth.login("External", "password").contractValue()
                     fixture.rejectCredentials = true
                     assertTrue(client.auth.login("Wrong", "wrong") is StreamCoreResult.Failure)
@@ -71,7 +71,7 @@ class TmdbSdkContractTest {
                 val fixture = TmdbSdkContractFixture()
                 val client = fixture.create()
                 try {
-                    client.bootstrap().contractValue()
+                    client.auth.restoreSession().contractValue()
                     client.auth.login("External", "password").contractValue()
                     val kid = client.profiles.getProfiles().contractValue().first { it.isKidsProfile }
                     client.profiles.selectProfile(kid.id).contractValue()

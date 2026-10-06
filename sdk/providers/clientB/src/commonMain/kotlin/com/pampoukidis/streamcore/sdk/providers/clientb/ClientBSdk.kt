@@ -1,19 +1,22 @@
 package com.pampoukidis.streamcore.sdk.providers.clientb
 
-import com.pampoukidis.streamcoretv.client.clientb.data.auth.*
-import com.pampoukidis.streamcoretv.client.clientb.data.catalog.*
-import com.pampoukidis.streamcoretv.client.clientb.data.profile.ClientBProfileRepository
-import com.pampoukidis.streamcoretv.client.clientb.player.ClientBPlaybackSourceRepository
-import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
-import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
-import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackSupport
 import com.pampoukidis.streamcore.sdk.model.StreamCoreCapabilities
 import com.pampoukidis.streamcore.sdk.model.StreamCorePersistenceMode
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackSupport
+import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfile
+import com.pampoukidis.streamcore.sdk.providers.clientb.auth.*
+import com.pampoukidis.streamcore.sdk.providers.clientb.catalog.*
+import com.pampoukidis.streamcore.sdk.providers.clientb.details.ClientBDetailsRepository
+import com.pampoukidis.streamcore.sdk.providers.clientb.home.ClientBHomeRepository
+import com.pampoukidis.streamcore.sdk.providers.clientb.playback.ClientBPlaybackSourceRepository
+import com.pampoukidis.streamcore.sdk.providers.clientb.profile.ClientBProfileRepository
+import com.pampoukidis.streamcore.sdk.providers.clientb.search.ClientBSearchRepository
 import com.pampoukidis.streamcore.sdk.runtime.RuntimeStreamCoreClient
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ContentPolicyProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProviderSessionFactory
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProviderSessionServices
+import com.pampoukidis.streamcore.sdk.runtime.content.ContentPolicyProvider
+import com.pampoukidis.streamcore.sdk.runtime.session.ProviderSessionFactory
+import com.pampoukidis.streamcore.sdk.runtime.session.ProviderSessionServices
 import com.pampoukidis.streamcore.sdk.runtime.storage.PreferencesSdkStorage
 import com.pampoukidis.streamcore.sdk.runtime.storage.SdkPlatformStorage
 import kotlinx.serialization.json.Json
@@ -36,7 +39,7 @@ internal fun createClientBSdk(config: ClientBSdkConfiguration, storage: SdkPlatf
         authentication = ClientBAuthenticateRepository(ClientBPreferencesAuthStore(storage.auth)),
         sessions = ProviderSessionFactory { account ->
             val profiles = accountProfiles.getOrPut(account.id) { ClientBProfileRepository(config.referenceProfileScenario) }
-            val home = ClientBCatalogRepository(catalogueSource)
+            val home = ClientBHomeRepository(catalogueSource)
             val details = ClientBDetailsRepository(catalogueSource)
             val search = ClientBSearchRepository(catalogueSource, profiles)
             val contentPolicy = object : ContentPolicyProvider {

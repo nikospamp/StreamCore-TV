@@ -1,0 +1,43 @@
+package com.pampoukidis.streamcore.sdk.providers.tmdb.catalog
+
+import com.pampoukidis.streamcore.sdk.providers.tmdb.network.TmdbApi
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Loads and caches TMDB reference data for the process lifetime.
+ *
+ * The first caller fetches configuration and movie genres. Concurrent callers wait
+ * on [mutex], then reuse the same cached value once loading completes.
+ */
+internal class TmdbReferenceDataSource constructor(
+    private val tmdbApi: TmdbApi,
+) {
+
+    private val mutex = Mutex()
+    private var cachedReferenceData: TmdbReferenceData? = null
+
+    /**
+     * Returns cached reference data, loading it once if needed.
+     */
+    suspend fun getReferenceData(): TmdbReferenceData {
+        cachedReferenceData?.let { referenceData ->
+            return referenceData
+        }
+
+        return mutex.withLock {
+            cachedReferenceData?.let { referenceData ->
+                return@withLock referenceData
+            }
+
+            val configuration = tmdbApi.getConfiguration()
+            val genres = tmdbApi.getMovieGenres()
+            val referenceData = TmdbReferenceData(
+                images = configuration.images,
+                genresById = genres.genres.associateBy { genre -> genre.id },
+            )
+            cachedReferenceData = referenceData
+            return@withLock referenceData
+        }
+    }
+}

@@ -1,10 +1,9 @@
 package com.pampoukidis.streamcore.sdk.providers.tmdb
 
-import com.pampoukidis.streamcore.sdk.providers.tmdb.TmdbConnectionConfiguration
-import com.pampoukidis.streamcoretv.client.tmdb.data.network.createTmdbHttpClient
 import com.pampoukidis.streamcore.sdk.api.StreamCoreClient
-import com.pampoukidis.streamcore.sdk.model.StreamCorePersistenceMode
 import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
+import com.pampoukidis.streamcore.sdk.model.StreamCorePersistenceMode
+import com.pampoukidis.streamcore.sdk.providers.tmdb.network.createTmdbHttpClient
 import com.pampoukidis.streamcore.sdk.runtime.storage.SdkPlatformStorage
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond

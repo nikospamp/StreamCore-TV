@@ -3,10 +3,10 @@ package com.pampoukidis.streamcore.sdk.runtime.storage.playback
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.mutablePreferencesOf
-import androidx.datastore.preferences.core.stringPreferencesKey
+import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgressEntry
+import com.pampoukidis.streamcore.sdk.runtime.storage.accountStorageKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.TestResult
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -63,17 +64,16 @@ class PreferencesPlaybackProgressRepositoryTest {
     }
 
     @Test
-    fun preMigrationKeyJsonAndEpochMillisecondsRemainReadableAfterRecreation() = runTest {
-        val dataStore = TestPreferencesDataStore(
-            mutablePreferencesOf(EntriesKey to LegacyProgressJson),
-        )
+    fun accountPartitionAndEpochMillisecondsSurviveRepositoryRecreation(): TestResult {
+        return runTest {
+            val dataStore = TestPreferencesDataStore()
+            val configuration = StreamCoreConfiguration("test:catalogue", "saved-data")
+            val partition = accountStorageKey(configuration, "λογαριασμός", "日本語")
+            val saved = entry(partition, "saved", 40_000L, updatedAt = 1_725_000_000_123L)
+            repository(dataStore).upsert(saved)
 
-        val first = repository(dataStore).get("profile", "legacy")
-        val recreated = repository(dataStore).get("profile", "legacy")
-
-        assertEquals(40_000L, first?.positionMillis)
-        assertEquals(1_725_000_000_123L, first?.updatedAtMillis)
-        assertEquals(first, recreated)
+            assertEquals(saved, repository(dataStore).get(partition, "saved"))
+        }
     }
 
     @Test
@@ -160,13 +160,4 @@ class PreferencesPlaybackProgressRepositoryTest {
 
     private class StorageFailure : RuntimeException()
 
-    private companion object {
-        val EntriesKey = stringPreferencesKey("entries_json")
-        const val LegacyProgressJson =
-            "[{\"profileId\":\"profile\",\"contentId\":\"legacy\",\"contentSnapshot\":{" +
-                "\"id\":\"legacy\",\"title\":\"Legacy\",\"description\":\"\",\"rating\":0," +
-                "\"pgRatingName\":\"\",\"pgRatingLevel\":0,\"poster\":\"\",\"backdrop\":null," +
-                "\"cast\":[],\"releaseDate\":0,\"genres\":[]},\"positionMillis\":40000," +
-                "\"durationMillis\":100000,\"updatedAtMillis\":1725000000123}]"
-    }
 }

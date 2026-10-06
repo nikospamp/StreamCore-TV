@@ -8,15 +8,15 @@ import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryChoose
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryPinRequired
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEntryReady
 import com.pampoukidis.streamcore.sdk.testing.contractValue
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestResult
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestResult
+import kotlinx.coroutines.test.runTest
 
 /** Public-client reference checks; PIN `1234` belongs only to the simulated provider. */
 class ClientBProfileEntryContractTest {
@@ -173,7 +173,7 @@ class ClientBProfileEntryContractTest {
     }
 
     private suspend fun login(client: StreamCoreClient, identifier: String = "Viewer") {
-        client.bootstrap().contractValue()
+        client.auth.restoreSession().contractValue()
         client.auth.login(identifier, "password").contractValue()
     }
 }

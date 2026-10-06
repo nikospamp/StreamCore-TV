@@ -63,6 +63,12 @@ One deliberate existing distinction matters: **direct update with unknown/nonpos
 
 Both paths enforce the same account/profile authorization and provider content rules. Neither API permits a caller to write into a different profile's partition. A recorder is bound to its original activation; after a profile change or re-entry, create a new recorder. The recorder has no rendering resources to close; cancel the application's player-event coroutine when that playback ends.
 
+## Maintainer implementation
+
+[`RuntimePlaybackService`](../../sdk/runtime/src/commonMain/kotlin/com/pampoukidis/streamcore/sdk/runtime/playback/RuntimePlaybackService.kt) implements source resolution, progress operations and recorder creation. Its private inner recorder owns its request, captured authorization, mutex and position bucket. The playback package contains only this internal service and the `PlaybackProvider` backend contract; progress logic is not separated merely for partial reuse or isolated tests.
+
+`RuntimeLibraryService` uses the actual playback service's internal `observeProgress(profileId, capturedAuthorization)` overload so both combined flows retain the same authorization. There is no progress-factory callback. This implementation consolidation leaves the public API, event ordering, cadence, resume policy, cancellation and stored data unchanged.
+
 ## Names before and after this migration
 
 | Previous call | Current call |

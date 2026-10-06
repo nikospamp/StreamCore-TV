@@ -24,7 +24,7 @@ suspend fun exerciseClient(
 ) {
     try {
         check(client.configuration.expectedAccountId == null)
-        client.bootstrap().valueOrThrow()
+        client.auth.restoreSession().valueOrThrow()
         client.auth.login(identifier, password).valueOrThrow()
         val accountId = checkNotNull(client.context.value.account).id
         check(accountId.isNotBlank())

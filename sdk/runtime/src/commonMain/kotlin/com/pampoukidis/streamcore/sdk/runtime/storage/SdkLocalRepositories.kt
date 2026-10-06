@@ -11,7 +11,7 @@ data class SdkLocalRepositories(
     val library: LibraryStore,
     val history: SearchHistoryStore,
     val progress: PlaybackProgressStore,
-    val loadSelectedProfile: suspend (StreamCoreConfiguration, String) -> String? = { _, _ -> null },
     val saveSelectedProfile: suspend (StreamCoreConfiguration, String, String?) -> Unit = { _, _, _ -> },
-    val migrateLegacy: suspend (StreamCoreConfiguration, String?) -> StreamCoreResult<Unit> = { _, _ -> StreamCoreResult.Success(Unit) },
+    /** Checks auth/profile-context storage before the backend is contacted; no saved-data conversion. */
+    val checkContextStorage: suspend () -> StreamCoreResult<Unit> = { StreamCoreResult.Success(Unit) },
 )

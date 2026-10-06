@@ -3,8 +3,8 @@ package com.pampoukidis.streamcore.sdk.runtime.storage.search
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.mutablePreferencesOf
-import androidx.datastore.preferences.core.stringPreferencesKey
+import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
+import com.pampoukidis.streamcore.sdk.runtime.storage.accountStorageKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.TestResult
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -53,22 +54,20 @@ class PreferencesRecentSearchRepositoryTest {
     }
 
     @Test
-    fun preMigrationKeyAndJsonRemainReadableAfterRepositoryRecreation() = runTest {
-        val dataStore = TestPreferencesDataStore(
-            mutablePreferencesOf(
-                RecentSearchesKey to
-                    "{\"queriesByProfile\":{\"profile\":[\"Legacy query\",\"Older query\"]}}",
-            ),
-        )
+    fun accountPartitionAndQueriesSurviveRepositoryRecreation(): TestResult {
+        return runTest {
+            val dataStore = TestPreferencesDataStore()
+            val configuration = StreamCoreConfiguration("test:catalogue", "saved-data")
+            val partition = accountStorageKey(configuration, "λογαριασμός", "日本語")
+            val original = repository(dataStore)
+            original.add(partition, "Older query")
+            original.add(partition, "Ταινία")
 
-        assertEquals(
-            listOf("Legacy query", "Older query"),
-            repository(dataStore).observe("profile").first(),
-        )
-        assertEquals(
-            listOf("Legacy query", "Older query"),
-            repository(dataStore).observe("profile").first(),
-        )
+            assertEquals(
+                listOf("Ταινία", "Older query"),
+                repository(dataStore).observe(partition).first(),
+            )
+        }
     }
 
     @Test
@@ -122,7 +121,4 @@ class PreferencesRecentSearchRepositoryTest {
 
     private class StorageFailure : RuntimeException()
 
-    private companion object {
-        val RecentSearchesKey = stringPreferencesKey("recent_searches_json")
-    }
 }

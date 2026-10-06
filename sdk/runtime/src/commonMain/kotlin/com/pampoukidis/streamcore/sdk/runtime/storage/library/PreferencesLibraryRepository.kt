@@ -4,8 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.pampoukidis.streamcore.sdk.runtime.storage.library.LibraryStore
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
+import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreErrorSource
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 internal class PreferencesLibraryRepository constructor(
@@ -190,7 +191,7 @@ internal class PreferencesLibraryRepository constructor(
     }
 
     private fun Throwable.toAppError(operation: String): StreamCoreError {
-        if (this is com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProviderOperationException) return error
+        if (this is com.pampoukidis.streamcore.sdk.runtime.error.ProviderOperationException) return error
         val source = StreamCoreErrorSource(operation = operation)
         return if (this is SerializationException) {
             StreamCoreError.Parsing(source = source)
@@ -210,4 +211,72 @@ internal class PreferencesLibraryRepository constructor(
         const val SetLikedOperation = "library.setLiked"
         const val SetMyListOperation = "library.setInMyList"
     }
+}
+
+@Serializable
+private data class LibraryPreferences(
+    val version: Int = CurrentLibraryPreferencesVersion,
+    val entriesByProfile: Map<String, List<LibraryEntryPreferences>> = emptyMap(),
+)
+
+private const val CurrentLibraryPreferencesVersion = 1
+
+@Serializable
+private data class LibraryEntryPreferences(
+    val content: LibraryContentPreferences,
+    val likedAtMillis: Long? = null,
+    val addedToMyListAtMillis: Long? = null,
+)
+
+private fun LibraryEntryPreferences.toModel(): StreamCoreLibraryEntry {
+    return StreamCoreLibraryEntry(
+        content = content.toModel(),
+        likedAtMillis = likedAtMillis,
+        addedToMyListAtMillis = addedToMyListAtMillis,
+    )
+}
+
+@Serializable
+private data class LibraryContentPreferences(
+    val id: String,
+    val title: String,
+    val rating: Int,
+    val pgRatingName: String,
+    val pgRatingLevel: Int,
+    val poster: String,
+    val backdrop: String?,
+    val releaseDate: Long,
+    val genres: List<StreamCoreGenre>,
+)
+
+private fun StreamCoreContent.toLibraryPreferences(): LibraryContentPreferences {
+    return LibraryContentPreferences(
+        id = id,
+        title = title,
+        rating = rating,
+        pgRatingName = pgRatingName,
+        pgRatingLevel = pgRatingLevel,
+        poster = poster,
+        backdrop = backdrop,
+        releaseDate = releaseDate,
+        genres = genres,
+    )
+}
+
+private fun LibraryContentPreferences.toModel(): StreamCoreContent {
+    return StreamCoreContent(
+        id = id,
+        title = title,
+        description = "",
+        rating = rating,
+        pgRatingName = pgRatingName,
+        pgRatingLevel = pgRatingLevel,
+        poster = poster,
+        backdrop = backdrop,
+        cast = emptyList(),
+        releaseDate = releaseDate,
+        genres = genres,
+        row = null,
+        playbackProgress = null,
+    )
 }

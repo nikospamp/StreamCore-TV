@@ -4,7 +4,7 @@ Use the simulated ClientB provider to exercise the backend-agnostic SDK without 
 
 ## Get the artifacts
 
-Use the provider-domain candidate staged locally in `build/sdk-provider-domains/maven`, not a remote registry. Obtain that staged repository from the maintainer, or use the [maintainer publication workflow](integration.md#maintainer-publication-and-verification). Check the [verification record](verification.md) for evidence from this candidate; earlier alpha02 runs do not verify the reorganized artifacts. Consumer applications do not run the SDK's internal build tasks.
+Use the current candidate staged locally through the [maintainer publication workflow](integration.md#maintainer-publication-and-verification), with a fresh repository such as `build/sdk-no-legacy/maven`; this is not a remote registry release. Obtain the staged repository from the maintainer and check the [verification record](verification.md) for the exact candidate and checks performed. Earlier alpha02 runs describe their original contracts and artifact set. Consumer applications do not run the SDK's internal build tasks.
 
 The complete runnable project is [samples/sdk-consumer](../../samples/sdk-consumer). Its [settings](../../samples/sdk-consumer/settings.gradle.kts) accepts `-PsdkRepository=<absolute staged repository path>`. It resolves SDK coordinates only; there is no checkout-source or composite-build substitution. The [headless module](../../samples/sdk-consumer/headless/build.gradle.kts) runs as Kotlin/Wasm on Node (verified with Node 24), and the [Android module](../../samples/sdk-consumer/androidApp/build.gradle.kts) demonstrates the platform factory and the same public operations.
 
@@ -24,7 +24,7 @@ kotlin {
 }
 ```
 
-API/model/coroutine signature dependencies arrive through the provider. This example does not require Koin, Compose, a player engine, `sdk-runtime`, or `sdk-testing` in the consuming project. The sample pins Kotlin 2.3.21 and AGP 9.1.1; those are candidate verification versions, not a measured minimum-version range. Android SDK libraries declare API 24 minimum; samples compile against 37 and target 36. Optional Compose UI has its own dependency closure. Check [recorded verification](verification.md) for executed build/platform evidence.
+API/model/coroutine signature dependencies arrive through the provider. This example does not require Koin, Compose, a player engine, or a direct `sdk-runtime` dependency in the consuming project. The sample pins Kotlin 2.3.21 and AGP 9.1.1; those are candidate verification versions, not a measured minimum-version range. Android SDK libraries declare API 24 minimum; samples compile against 37 and target 36. Optional Compose UI has its own dependency closure. Check [recorded verification](verification.md) for executed build/platform evidence.
 
 ## Copy the complete reference journey
 
@@ -53,7 +53,7 @@ import kotlin.time.Clock
 suspend fun exerciseClient(client: StreamCoreClient) {
     try {
         check(client.configuration.expectedAccountId == null)
-        client.bootstrap().valueOrThrow()
+        client.auth.restoreSession().valueOrThrow()
         client.auth.login("external@example.test", "reference-password").valueOrThrow()
         val accountId = checkNotNull(client.context.value.account).id
         check(accountId.isNotBlank())
@@ -156,7 +156,7 @@ The reference journey automatically chooses the first profile solely to keep a h
 
 The [complete published PIN journey](../../samples/sdk-consumer/headless/src/commonMain/kotlin/com/example/streamcore/consumer/ReferencePinJourney.kt) and [its tests](../../samples/sdk-consumer/headless/src/commonTest/kotlin/com/example/streamcore/consumer/PublishedClientTest.kt) exercise wrong/right PIN, profile switching, logout and close. Set `ClientBSdkConfiguration.referenceProfileScenario` to `SingleProtected` or `HouseholdProtected` from `ClientBReferenceProfileScenario`; the opt-in demo PIN is `1234`. `Standard` preserves the existing two unprotected reference profiles; `Single` demonstrates direct entry without a chooser. These are reference fixtures, not production backend authentication.
 
-Fresh clients restore account identity but never profile authorization. After login/bootstrap, call `beginEntry`: one unprotected profile activates, one protected profile requires PIN, and multiple profiles require a choice. All ordinary content/state IDs must match the authorized profile. Observe `client.context`; use its `profileActivationId` to reset cached profile presentation across activations. Before explicit switching, `clearSelection` revokes current access. The host also owns and cancels its Flow collection scopes when ending use of the client.
+Call `auth.restoreSession()` explicitly to restore persisted account identity; it returns `StreamCoreResult<StreamCoreContext>` and never restores profile authorization. Direct login is also valid without first restoring a session. `context.isAuthInitialized` distinguishes pending authentication initialization from a completed logged-out state. After login or `auth.restoreSession()`, call `beginEntry`: one unprotected profile activates, one protected profile requires PIN, and multiple profiles require a choice. All ordinary content/state IDs must match the authorized profile. Observe `client.context`; use its `profileActivationId` to reset cached profile presentation across activations. Before explicit switching, `clearSelection` revokes current access. The host also owns and cancels its Flow collection scopes when ending use of the client.
 
 ## Connect TMDB
 

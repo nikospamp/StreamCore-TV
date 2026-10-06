@@ -19,19 +19,19 @@ import org.koin.core.Koin
 internal class WebProductCoordinator(
     private val client: StreamCoreClient,
     private val navigation: WebNavigationController,
-    initialBootstrapResult: StreamCoreResult<StreamCoreContext>? = null,
+    initialSessionRestorationResult: StreamCoreResult<StreamCoreContext>? = null,
 ) {
     constructor(
         koin: Koin,
         navigation: WebNavigationController,
-        initialBootstrapResult: StreamCoreResult<StreamCoreContext>? = null,
+        initialSessionRestorationResult: StreamCoreResult<StreamCoreContext>? = null,
     ) : this(
         client = koin.get<StreamCoreClient>(),
         navigation = navigation,
-        initialBootstrapResult = initialBootstrapResult,
+        initialSessionRestorationResult = initialSessionRestorationResult,
     )
 
-    private var pendingBootstrapResult = initialBootstrapResult
+    private var pendingSessionRestorationResult = initialSessionRestorationResult
     var autoEnterSingleProfile: Boolean = true
         private set
 
@@ -47,15 +47,15 @@ internal class WebProductCoordinator(
 
     suspend fun initialize(): WebProductInitialization {
         val result = try {
-            val initialResult = pendingBootstrapResult
-            pendingBootstrapResult = null
-            initialResult ?: client.bootstrap()
+            val initialResult = pendingSessionRestorationResult
+            pendingSessionRestorationResult = null
+            initialResult ?: client.auth.restoreSession()
         } catch (exception: CancellationException) {
             navigation.replace(WebRoute.Login)
             throw exception
         } catch (_: Throwable) {
             navigation.replace(WebRoute.Login)
-            return WebProductInitialization.ReadyWithError(authBootstrapError())
+            return WebProductInitialization.ReadyWithError(sessionRestorationError())
         }
         synchronizeContext()
         return when (result) {
@@ -151,7 +151,7 @@ internal class WebProductCoordinator(
     }
 }
 
-private fun authBootstrapError(): StreamCoreError {
+private fun sessionRestorationError(): StreamCoreError {
     return StreamCoreError.Unknown(
         source = StreamCoreErrorSource(operation = "bootstrapAuth", backendCode = "AUTH_BOOTSTRAP_FAILURE"),
     )

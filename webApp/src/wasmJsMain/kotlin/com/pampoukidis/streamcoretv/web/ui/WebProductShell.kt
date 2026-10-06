@@ -122,7 +122,7 @@ private fun ReadyProductShell(state: WebStartupState.Ready) {
         WebProductCoordinator(
             koin = state.graph.application.koin,
             navigation = state.navigationController,
-            initialBootstrapResult = state.graph.takeInitialBootstrapResult(),
+            initialSessionRestorationResult = state.graph.takeInitialSessionRestorationResult(),
         )
     }
     val avatarResolver = remember(state.graph) {

@@ -10,15 +10,16 @@ import com.pampoukidis.streamcore.sdk.model.catalog.*
 import com.pampoukidis.streamcore.sdk.model.error.*
 import com.pampoukidis.streamcore.sdk.model.playback.*
 import com.pampoukidis.streamcore.sdk.model.*
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.AuthProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.HomeProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.DetailsProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.SearchProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.PlaybackProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ContentPolicyProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProfileProvider
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProviderSessionFactory
-import com.pampoukidis.streamcore.sdk.runtime.integration.provider.ProviderSessionServices
+import com.pampoukidis.streamcore.sdk.runtime.auth.AuthProvider
+import com.pampoukidis.streamcore.sdk.runtime.home.HomeProvider
+import com.pampoukidis.streamcore.sdk.runtime.details.DetailsProvider
+import com.pampoukidis.streamcore.sdk.runtime.search.SearchProvider
+import com.pampoukidis.streamcore.sdk.runtime.playback.PlaybackProvider
+import com.pampoukidis.streamcore.sdk.runtime.content.ContentPolicyProvider
+import com.pampoukidis.streamcore.sdk.runtime.profile.ProfileProvider
+import com.pampoukidis.streamcore.sdk.runtime.session.ProviderSessionFactory
+import com.pampoukidis.streamcore.sdk.runtime.session.ProviderSessionServices
+import com.pampoukidis.streamcore.sdk.runtime.storage.accountStorageKey
 import com.pampoukidis.streamcore.sdk.runtime.storage.PreferencesSdkStorage
 import com.pampoukidis.streamcore.sdk.runtime.storage.SdkPlatformStorage
 import com.pampoukidis.streamcore.sdk.model.search.StreamCoreSearchInteraction
@@ -47,7 +48,7 @@ class RuntimeStreamCoreClientTest {
     fun loginPublishesAccountOnlyAfterProfileEntryIsReady(): TestResult {
         return runTest {
             val f = Fixture()
-            f.client.bootstrap().valueOrThrow()
+            f.client.auth.restoreSession().valueOrThrow()
             val started = CompletableDeferred<Unit>()
             val release = CompletableDeferred<Unit>()
             f.contextStore.beforeWrite = { started.complete(Unit); release.await() }
@@ -60,14 +61,14 @@ class RuntimeStreamCoreClientTest {
             started.await()
             assertIs<StreamCoreAuthState.LoggedIn>(f.auth.authState.value)
             assertNull(f.client.context.value.account)
-            assertFalse(f.client.context.value.isBootstrapped)
+            assertFalse(f.client.context.value.isAuthInitialized)
             assertTrue(observed.all { it.account == null })
 
             release.complete(Unit)
             login.await().valueOrThrow()
             assertEquals("A", f.client.context.value.account?.id)
-            assertTrue(f.client.context.value.isBootstrapped)
-            assertTrue(observed.all { it.account == null || it.isBootstrapped })
+            assertTrue(f.client.context.value.isAuthInitialized)
+            assertTrue(observed.all { it.account == null || it.isAuthInitialized })
             assertIs<StreamCoreProfileEntryReady>(f.client.profiles.beginEntry().valueOrThrow())
         }
     }
@@ -92,27 +93,27 @@ class RuntimeStreamCoreClientTest {
             login.cancel()
             assertFailsWith<CancellationException> { login.await() }
             assertEquals("B", f.client.context.value.account?.id)
-            assertTrue(f.client.context.value.isBootstrapped)
+            assertTrue(f.client.context.value.isAuthInitialized)
             assertNull(f.client.context.value.profile)
             assertIs<StreamCoreProfileEntryReady>(f.client.profiles.beginEntry().valueOrThrow())
         }
     }
 
     @Test
-    fun accountInstallationStorageFailureRemainsHiddenAndBootstrapCanRetry(): TestResult {
+    fun accountInstallationStorageFailureRemainsHiddenAndRestoreSessionCanRetry(): TestResult {
         return runTest {
             val f = Fixture()
-            f.client.bootstrap().valueOrThrow()
+            f.client.auth.restoreSession().valueOrThrow()
             f.contextStore.failWrites = true
             val failed = assertIs<StreamCoreResult.Failure>(f.client.auth.login("A", "password"))
             assertIs<StreamCoreError.Storage>(failed.error)
             assertNull(f.client.context.value.account)
-            assertFalse(f.client.context.value.isBootstrapped)
+            assertFalse(f.client.context.value.isAuthInitialized)
 
             f.contextStore.failWrites = false
-            f.client.bootstrap().valueOrThrow()
+            f.client.auth.restoreSession().valueOrThrow()
             assertEquals("A", f.client.context.value.account?.id)
-            assertTrue(f.client.context.value.isBootstrapped)
+            assertTrue(f.client.context.value.isAuthInitialized)
             assertIs<StreamCoreProfileEntryReady>(f.client.profiles.beginEntry().valueOrThrow())
         }
     }
@@ -120,13 +121,22 @@ class RuntimeStreamCoreClientTest {
     @Test
     fun lazyConstructionValidationAndUnsupportedOperations() = runTest {
         val f = Fixture()
-        assertEquals(0, f.auth.bootstrapCalls)
+        assertEquals(0, f.auth.restoreSessionCalls)
         assertIs<StreamCoreError.Validation>(assertIs<StreamCoreResult.Failure>(f.client.auth.login(" ", "secret")).error)
         assertEquals(0, f.auth.loginCalls)
         assertIs<StreamCoreError.Unsupported>(assertIs<StreamCoreResult.Failure>(f.client.auth.loginWithQr("code")).error)
         assertIs<StreamCoreError.Unsupported>(assertIs<StreamCoreResult.Failure>(f.client.auth.recoverPassword("user@example.org")).error)
-        f.client.bootstrap()
-        assertTrue(f.client.context.value.isBootstrapped)
+        val restored = f.client.auth.restoreSession().valueOrThrow()
+        assertTrue(restored.isAuthInitialized)
+        assertNull(restored.account)
+        assertNull(restored.profile)
+        assertEquals(restored, f.client.auth.restoreSession().valueOrThrow())
+        assertEquals(1, f.auth.restoreSessionCalls)
+
+        f.login("A")
+        val activeContext = f.client.context.value
+        assertEquals(activeContext, f.client.auth.restoreSession().valueOrThrow())
+        assertEquals(1, f.auth.restoreSessionCalls)
     }
 
     @Test
@@ -311,31 +321,14 @@ class RuntimeStreamCoreClientTest {
         f.client.close(); f.client.close()
         assertEquals(1, f.closeCalls); assertEquals(0, f.auth.logoutCalls)
         assertIs<StreamCoreError.Closed>(assertIs<StreamCoreResult.Failure>(f.client.details.getDetails("profile", "movie")).error)
-        val next = f.newClient(); next.bootstrap()
+        val next = f.newClient(); next.auth.restoreSession()
         assertNull(next.context.value.profile)
         assertNull(next.context.value.profileActivationId)
         assertIs<StreamCoreResult.Failure>(next.search.observeHistory("profile").first())
         assertIs<StreamCoreProfileEntryReady>(next.profiles.beginEntry().valueOrThrow())
         assertEquals(listOf("movie"), next.search.observeHistory("profile").first().valueOrThrow())
         next.profiles.clearSelection(); next.close()
-        val cleared = f.newClient(); cleared.bootstrap(); assertNull(cleared.context.value.profile)
-    }
-
-    @Test
-    fun legacyMigrationIsOwnedRestartSafeAndPreservesUnknownBytes() = runTest {
-        val f = Fixture(); val key = stringPreferencesKey("recent_searches_json")
-        f.storage.search.edit { it[key] = """{"queriesByProfile":{"profile":["Ταινία 日本語"]}}""" }
-        f.auth.legacyOwner = "λογαριασμός"; f.client.bootstrap(); f.login("other")
-        assertEquals(emptyList(), f.client.search.observeHistory("profile").first().valueOrThrow())
-        f.client.auth.logout(); f.login("λογαριασμός")
-        assertEquals(listOf("Ταινία 日本語"), f.client.search.observeHistory("profile").first().valueOrThrow())
-        f.client.close(); val restarted = f.newClient(); restarted.bootstrap(); restarted.profiles.beginEntry()
-        assertEquals(listOf("Ταινία 日本語"), restarted.search.observeHistory("profile").first().valueOrThrow())
-        val unknown = Fixture()
-        unknown.storage.search.edit { it[key] = """{"queriesByProfile":{"profile":["unowned"]}}""" }
-        unknown.client.bootstrap(); unknown.login("next")
-        assertEquals(emptyList(), unknown.client.search.observeHistory("profile").first().valueOrThrow())
-        assertNotNull(unknown.storage.search.data.first()[stringPreferencesKey("sdk_v2_unowned_recent_searches_json")])
+        val cleared = f.newClient(); cleared.auth.restoreSession(); assertNull(cleared.context.value.profile)
     }
 
     @Test
@@ -386,50 +379,22 @@ class RuntimeStreamCoreClientTest {
     }
 
     @Test
-    fun legacyUnicodeSelectionNeverBecomesRestoredAuthorization() = runTest {
+    fun persistedUnicodeSelectionNeverBecomesRestoredAuthorization() = runTest {
         val f = Fixture(); val account = "λογαριασμός"
         f.auth.authState.value = StreamCoreAuthState.LoggedIn(StreamCoreAuthAccount(account, account, null))
-        val suffix = account.encodeToByteArray().joinToString("") { (it.toInt() and 255).toString(16).padStart(2, '0') }
-        val key = stringPreferencesKey("web_selected_profile_id.$suffix")
+        val partition = accountStorageKey(StreamCoreConfiguration("test", "isolated"), account, "")
+        val key = stringPreferencesKey("sdk_selected_profile.$partition")
         f.storage.auth.edit { it[key] = "profile" }
         f.contextStore.failReads = true
-        assertIs<StreamCoreResult.Success<*>>(f.client.bootstrap())
+        assertIs<StreamCoreResult.Success<*>>(f.client.auth.restoreSession())
         assertEquals(account, f.client.context.value.account?.id)
         assertNull(f.client.context.value.profile)
         assertNull(f.client.context.value.profileActivationId)
-        assertTrue(f.client.context.value.isBootstrapped)
-        assertEquals("profile", f.storage.auth.data.first()[key])
+        assertTrue(f.client.context.value.isAuthInitialized)
+        assertEquals("", f.storage.auth.data.first()[key])
         f.contextStore.failReads = false
         assertIs<StreamCoreProfileEntryReady>(f.client.profiles.beginEntry().valueOrThrow())
         assertEquals("profile", f.client.context.value.profile?.id)
-    }
-
-    @Test
-    fun loginWithoutBootstrapMigratesBeforeDiscoveringNewAccount() = runTest {
-        val f = Fixture(); val key = stringPreferencesKey("recent_searches_json")
-        f.storage.search.edit { it[key] = """{"queriesByProfile":{"profile":["Original owner"]}}""" }
-        f.auth.legacyOwner = "A"
-        f.login("B")
-        assertEquals(emptyList(), f.client.search.observeHistory("profile").first().valueOrThrow())
-        f.client.auth.logout(); f.login("A")
-        assertEquals(listOf("Original owner"), f.client.search.observeHistory("profile").first().valueOrThrow())
-    }
-
-    @Test
-    fun interruptedStoreMigrationResumesWithoutReencodingCompletedPartitions() = runTest {
-        val f = Fixture()
-        val key = stringPreferencesKey("recent_searches_json")
-        f.storage.search.edit { it[key] = """{"queriesByProfile":{"profile":["Legacy movie"]}}""" }
-        f.auth.legacyOwner = "A"
-        f.searchStore.failWrites = true
-        assertIs<StreamCoreResult.Failure>(f.client.bootstrap())
-        assertEquals("empty", f.storage.library.data.first()[stringPreferencesKey("sdk_v2_migration_owner_library_json")])
-        f.searchStore.failWrites = false
-        assertIs<StreamCoreResult.Success<*>>(f.client.bootstrap())
-        f.login("A")
-        assertEquals(listOf("Legacy movie"), f.client.search.observeHistory("profile").first().valueOrThrow())
-        f.client.close(); val next = f.newClient(); next.bootstrap(); next.profiles.beginEntry()
-        assertEquals(listOf("Legacy movie"), next.search.observeHistory("profile").first().valueOrThrow())
     }
 
     @Test
@@ -483,15 +448,54 @@ class RuntimeStreamCoreClientTest {
     fun unavailableAuthStorageFailsBeforeAuthenticationAndCanRetry() = runTest {
         val fixture = Fixture()
         fixture.contextStore.failWrites = true
-        assertIs<StreamCoreError.Storage>(assertIs<StreamCoreResult.Failure>(fixture.client.bootstrap()).error)
+        assertIs<StreamCoreError.Storage>(assertIs<StreamCoreResult.Failure>(fixture.client.auth.restoreSession()).error)
         assertIs<StreamCoreError.Storage>(assertIs<StreamCoreResult.Failure>(fixture.client.auth.login("A", "password")).error)
+        assertIs<StreamCoreError.Storage>(assertIs<StreamCoreResult.Failure>(fixture.client.auth.logout()).error)
+        assertEquals(0, fixture.auth.restoreSessionCalls)
+        assertEquals(0, fixture.auth.loginCalls)
+        assertEquals(0, fixture.auth.logoutCalls)
         assertNull(fixture.client.context.value.account)
-        assertFalse(fixture.client.context.value.isBootstrapped)
+        assertFalse(fixture.client.context.value.isAuthInitialized)
         assertEquals(StreamCoreAuthState.LoggedOut, fixture.auth.authState.value)
         fixture.contextStore.failWrites = false
-        assertIs<StreamCoreResult.Success<*>>(fixture.client.bootstrap())
+        assertIs<StreamCoreResult.Success<*>>(fixture.client.auth.restoreSession())
         fixture.login("A")
         assertEquals("A", fixture.client.context.value.account?.id)
+    }
+
+    @Test
+    fun cancelledContextStorageCheckCanBeRetriedBeforeLogin() = runTest {
+        val fixture = Fixture()
+        val cancelled = CancellationException("Context storage check cancelled")
+        fixture.contextStore.writeFailure = cancelled
+
+        val propagated = assertFailsWith<CancellationException> {
+            fixture.client.auth.login("A", "password")
+        }
+        assertEquals(cancelled.message, propagated.message)
+        assertEquals(0, fixture.auth.loginCalls)
+        assertFalse(fixture.client.context.value.isAuthInitialized)
+
+        fixture.contextStore.writeFailure = null
+        fixture.login("A")
+        assertEquals(1, fixture.auth.loginCalls)
+        assertEquals("A", fixture.client.context.value.account?.id)
+    }
+
+    @Test
+    fun authenticationLeavesMalformedSavedDataForItsOwningOperationToReport() = runTest {
+        val fixture = Fixture()
+        val key = stringPreferencesKey("library_json")
+        val malformed = "{invalid stored library"
+        fixture.storage.library.edit { it[key] = malformed }
+
+        fixture.client.auth.restoreSession().valueOrThrow()
+        fixture.login("A")
+        val result = assertIs<StreamCoreResult.Failure>(fixture.client.library.observe("profile").first())
+
+        assertIs<StreamCoreError.Parsing>(result.error)
+        assertEquals(malformed, fixture.storage.library.data.first()[key])
+        assertEquals(setOf(key), fixture.storage.library.data.first().asMap().keys)
     }
 
     @Test
@@ -557,7 +561,7 @@ class RuntimeStreamCoreClientTest {
             f.client.profiles.confirmPin(second.challengeId, "1234").valueOrThrow()
             assertNotEquals(activation, f.client.context.value.profileActivationId)
             f.client.close()
-            val reopened = f.newClient(); reopened.bootstrap().valueOrThrow()
+            val reopened = f.newClient(); reopened.auth.restoreSession().valueOrThrow()
             assertNull(reopened.context.value.profile)
             assertIs<StreamCoreProfileEntryPinRequired>(reopened.profiles.selectProfile("profile").valueOrThrow())
             val unsupported = Fixture(pinSupported = false); unsupported.authenticate()
@@ -730,11 +734,10 @@ class RuntimeStreamCoreClientTest {
     }
     private class TestAuthentication : AuthProvider {
         override val authState = MutableStateFlow<StreamCoreAuthState>(StreamCoreAuthState.LoggedOut)
-        var bootstrapCalls = 0; var loginCalls = 0; var logoutCalls = 0; var invalidations = 0
-        var legacyOwner: String? = null; var cancelLogout = false; var clearBeforeLogoutCancellation = false; var failInvalidation = false; var clearDuringLogin = false
+        var restoreSessionCalls = 0; var loginCalls = 0; var logoutCalls = 0; var invalidations = 0
+        var cancelLogout = false; var clearBeforeLogoutCancellation = false; var failInvalidation = false; var clearDuringLogin = false
         var loginResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit); var logoutResult: StreamCoreResult<Unit> = StreamCoreResult.Success(Unit)
-        override suspend fun legacyAccountId(): String? { return legacyOwner }
-        override suspend fun bootstrapAuth(): StreamCoreResult<StreamCoreAuthState> { bootstrapCalls++; return StreamCoreResult.Success(authState.value) }
+        override suspend fun restoreSession(): StreamCoreResult<StreamCoreAuthState> { restoreSessionCalls++; return StreamCoreResult.Success(authState.value) }
         override suspend fun login(identifier: String, password: String): StreamCoreResult<Unit> {
             loginCalls++; if (clearDuringLogin) authState.value = StreamCoreAuthState.LoggedOut
             if (loginResult is StreamCoreResult.Success) authState.value = StreamCoreAuthState.LoggedIn(StreamCoreAuthAccount(identifier, identifier, null)); return loginResult

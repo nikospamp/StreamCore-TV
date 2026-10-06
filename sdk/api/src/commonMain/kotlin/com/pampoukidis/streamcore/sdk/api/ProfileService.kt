@@ -17,7 +17,7 @@ interface ProfileService {
     /**
      * Starts a fresh entry attempt, revoking previous profile authorization and any pending PIN challenge.
      * Returns no profiles, a chooser for multiple profiles, an activated singleton, or a singleton PIN challenge.
-     * Use after login/fresh bootstrap, not on every chooser/editor refresh; [getProfiles] only refreshes the list.
+     * Use after login or restoration in a fresh client, not on every chooser/editor refresh; [getProfiles] only refreshes the list.
      */
     suspend fun beginEntry(): StreamCoreResult<StreamCoreProfileEntryResult>
     /** Lists account profiles and reconciles a changed/deleted active profile with client context. Does not select. */

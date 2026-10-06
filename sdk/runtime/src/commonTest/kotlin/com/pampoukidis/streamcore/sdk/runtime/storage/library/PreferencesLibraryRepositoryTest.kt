@@ -4,8 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.pampoukidis.streamcore.sdk.model.StreamCoreConfiguration
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcore.sdk.model.playback.StreamCorePlaybackProgress
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
@@ -13,6 +13,7 @@ import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreCastMember
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreGenre
 import com.pampoukidis.streamcore.sdk.model.library.StreamCoreLibraryEntry
+import com.pampoukidis.streamcore.sdk.runtime.storage.accountStorageKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -154,18 +156,22 @@ class PreferencesLibraryRepositoryTest {
     }
 
     @Test
-    fun `pre migration key json and epoch timestamps remain readable after recreation`() = runTest {
-        val dataStore = TestPreferencesDataStore(
-            mutablePreferencesOf(LibraryJsonKey to LegacyLibraryJson),
-        )
+    fun `account partition and epoch timestamps survive repository recreation`(): TestResult {
+        return runTest {
+            val dataStore = TestPreferencesDataStore()
+            val configuration = StreamCoreConfiguration("test:catalogue", "saved-data")
+            val partition = accountStorageKey(configuration, "λογαριασμός", "日本語")
+            val original = repository(dataStore)
+            original.setLiked(partition, content("saved"), true, 1_725_000_000_123L)
+            original.setInMyList(partition, content("saved"), true, 1_725_000_000_456L)
 
-        val first = repository(dataStore).observe("profile").first().successValue().single()
-        val recreated = repository(dataStore).observe("profile").first().successValue().single()
+            val recreated = repository(dataStore).observe(partition).first().successValue().single()
 
-        assertEquals("legacy", first.content.id)
-        assertEquals(1_725_000_000_123L, first.likedAtMillis)
-        assertEquals(1_725_000_000_456L, first.addedToMyListAtMillis)
-        assertEquals(first, recreated)
+            assertEquals("saved", recreated.content.id)
+            assertEquals(1_725_000_000_123L, recreated.likedAtMillis)
+            assertEquals(1_725_000_000_456L, recreated.addedToMyListAtMillis)
+            assertEquals(original.observe(partition).first().successValue().single(), recreated)
+        }
     }
 
     @Test
@@ -275,11 +281,5 @@ class PreferencesLibraryRepositoryTest {
 
     private companion object {
         val LibraryJsonKey = stringPreferencesKey("library_json")
-        const val LegacyLibraryJson =
-            "{\"version\":1,\"entriesByProfile\":{\"profile\":[{\"content\":{" +
-                "\"id\":\"legacy\",\"title\":\"Legacy\",\"rating\":8,\"pgRatingName\":\"PG-13\"," +
-                "\"pgRatingLevel\":13,\"poster\":\"poster\",\"backdrop\":null,\"releaseDate\":0," +
-                "\"genres\":[]},\"likedAtMillis\":1725000000123," +
-                "\"addedToMyListAtMillis\":1725000000456}]}}"
     }
 }

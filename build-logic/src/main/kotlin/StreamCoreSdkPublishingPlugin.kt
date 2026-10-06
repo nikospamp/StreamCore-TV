@@ -18,7 +18,6 @@ class StreamCoreSdkPublishingPlugin : Plugin<Project> {
                 ":sdk:model" -> "sdk-model"
                 ":sdk:api" -> "sdk-api"
                 ":sdk:runtime" -> "sdk-runtime"
-                ":sdk:testing" -> "sdk-testing"
                 ":sdk:ui" -> "sdk-ui"
                 ":sdk:providers:tmdb" -> "provider-tmdb"
                 ":sdk:providers:clientB" -> "provider-clientb"
@@ -133,7 +132,7 @@ class StreamCoreSdkPublishingPlugin : Plugin<Project> {
                                 val disallowed = if (optionalUi) {
                                     projectId.projectPath !in setOf(target.path, ":sdk:model", ":sdk:ui")
                                 } else {
-                                    projectId.projectPath in OptionalUiProjects
+                                    projectId.projectPath in OptionalUiProjects || projectId.projectPath == ":sdk:testing"
                                 }
                                 if (disallowed) violations.add("${configuration.name}: ${projectId.projectPath}")
                                 return@componentLoop
@@ -143,7 +142,8 @@ class StreamCoreSdkPublishingPlugin : Plugin<Project> {
                                 isForbiddenOptionalUiDependency(id.group, id.module, artifactBase)
                             } else {
                                 isRenderingDependency(id.group, id.module) ||
-                                    id.group == "com.pampoukidis.streamcore" && isOptionalUiArtifact(id.module)
+                                    id.group == "com.pampoukidis.streamcore" &&
+                                    (isOptionalUiArtifact(id.module) || id.module in setOf("sdk-testing", "sdk-testing-android", "sdk-testing-wasm-js"))
                             }
                             if (disallowed) {
                                 violations.add("${configuration.name}: ${id.group}:${id.module}:${id.version}")

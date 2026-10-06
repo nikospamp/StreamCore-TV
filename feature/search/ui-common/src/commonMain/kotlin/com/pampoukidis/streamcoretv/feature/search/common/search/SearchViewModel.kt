@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.pampoukidis.streamcore.sdk.model.catalog.StreamCoreContent
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
-import com.pampoukidis.streamcore.sdk.api.validation.SearchQueryNormalizer
+import com.pampoukidis.streamcore.sdk.validation.SearchQueryNormalizer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async

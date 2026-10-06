@@ -28,8 +28,11 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.datastore.preferences)
         }
+        // Compile the shared provider checks as test sources, outside published SDK artifacts.
+        commonTest {
+            kotlin.srcDir(rootProject.layout.projectDirectory.dir("sdk/testing/src/commonTest/kotlin"))
+        }
         commonTest.dependencies {
-            implementation(projects.sdk.testing)
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
         }

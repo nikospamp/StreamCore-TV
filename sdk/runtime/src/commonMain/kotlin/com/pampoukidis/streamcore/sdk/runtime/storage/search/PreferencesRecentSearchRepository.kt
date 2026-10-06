@@ -5,14 +5,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.pampoukidis.streamcore.sdk.runtime.storage.search.SearchHistoryStore
-import com.pampoukidis.streamcore.sdk.api.validation.SearchQueryNormalizer
+import com.pampoukidis.streamcore.sdk.validation.SearchQueryNormalizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 
 internal class PreferencesRecentSearchRepository constructor(
     private val dataStore: DataStore<Preferences>,
@@ -117,3 +117,8 @@ internal class PreferencesRecentSearchRepository constructor(
         const val MaxQueriesPerProfile = 5
     }
 }
+
+@Serializable
+private data class RecentSearchPreferences(
+    val queriesByProfile: Map<String, List<String>> = emptyMap(),
+)

@@ -10,16 +10,29 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROVIDER_MODULES = ("sdk/providers/tmdb", "sdk/providers/clientB")
-HEADLESS_MODULES = ("sdk/model", "sdk/api", "sdk/runtime", "sdk/testing", *PROVIDER_MODULES)
+HEADLESS_MODULES = ("sdk/model", "sdk/api", "sdk/runtime", *PROVIDER_MODULES)
 PROVIDER_UI_MODULES = ("sdk/providers/tmdb/ui", "sdk/providers/clientB/ui")
 OPTIONAL_UI_MODULES = ("sdk/ui", *PROVIDER_UI_MODULES)
 MODULES = (*HEADLESS_MODULES, *OPTIONAL_UI_MODULES)
-HEADLESS_ARTIFACTS = {"sdk-model", "sdk-api", "sdk-runtime", "sdk-testing", "provider-tmdb", "provider-clientb"}
+HEADLESS_ARTIFACTS = {"sdk-model", "sdk-api", "sdk-runtime", "provider-tmdb", "provider-clientb"}
 OPTIONAL_UI_ARTIFACTS = {"sdk-ui", "provider-tmdb-ui", "provider-clientb-ui"}
 UI_RESOURCE_PACKAGES = {
     "sdk-ui": "com.pampoukidis.streamcore.sdk.ui.generated.resources",
     "provider-tmdb-ui": "com.pampoukidis.streamcore.sdk.providers.tmdb.ui.generated.resources",
     "provider-clientb-ui": "com.pampoukidis.streamcore.sdk.providers.clientb.ui.generated.resources",
+}
+# Deliberate public provider-integration types colocated with internal runtime implementations.
+RUNTIME_PROVIDER_CONTRACTS = {
+    "auth.AuthProvider": "interface",
+    "profile.ProfileProvider": "interface",
+    "home.HomeProvider": "interface",
+    "details.DetailsProvider": "interface",
+    "search.SearchProvider": "interface",
+    "playback.PlaybackProvider": "interface",
+    "content.ContentPolicyProvider": "interface",
+    "session.ProviderSessionFactory": "interface",
+    "session.ProviderSessionServices": "class",
+    "error.ProviderOperationException": "class",
 }
 PUBLIC_TOP_LEVEL = re.compile(
     r"^(?P<modifiers>(?:(?:public|internal|private|protected|open|abstract|sealed|data|enum|expect|actual|value|inline|suspend|fun|const|lateinit)\s+)*)"
@@ -48,6 +61,8 @@ def public_declarations(text: str):
 
 def boundaries() -> list[str]:
     errors = []
+    for path in production_files("sdk/testing"):
+        errors.append(f"Shared SDK test helper belongs in commonTest: {path.relative_to(ROOT)}")
     for module in MODULES:
         build = ROOT / module / "build.gradle.kts"
         if not build.is_file():
@@ -66,11 +81,16 @@ def boundaries() -> list[str]:
                 errors.append(f"Forbidden optional SDK UI dependency in {module}")
         elif re.search(r"projects\.(feature|core\.ui|playback|sdk\.ui|sdk\.providers\.\w+\.ui)|libs\.(compose|koin|androidx\.media3)", production_declarations):
             errors.append(f"Application/rendering dependency in {module}")
-        if module != "sdk/testing" and re.search(r"(?:api|implementation)\(projects\.sdk\.testing\)", production_declarations):
+        if re.search(r"(?:api|implementation)\(projects\.sdk\.testing\)", production_declarations):
             errors.append(f"Testing infrastructure is a production dependency in {module}")
         for path in production_files(module):
             text = path.read_text(encoding="utf-8-sig")
+            package = re.search(r"^package\s+(\S+)", text, re.M)
             imports = re.findall(r"^import\s+(\S+)", text, re.M)
+            if re.search(r"\bcom\.pampoukidis\.streamcore\.sdk\.testing\b", without_comments(text)):
+                errors.append(f"Testing infrastructure in published SDK source: {path.relative_to(ROOT)}")
+            if re.search(r"\bcom\.pampoukidis\.streamcoretv\b", without_comments(text)):
+                errors.append(f"Legacy application namespace in published SDK source: {path.relative_to(ROOT)}")
             if not optional_ui and any(re.match(r"(?:androidx\.(?:compose|tv|media3)|org\.(?:koin|jetbrains\.compose)|com\.pampoukidis\.streamcoretv\.core\.ui|com\.pampoukidis\.streamcore\.sdk\.(?:ui|providers\.[^.]+\.ui))", item) for item in imports):
                 errors.append(f"Non-headless source: {path.relative_to(ROOT)}")
             if optional_ui:
@@ -86,11 +106,21 @@ def boundaries() -> list[str]:
                     name = declaration["name"].partition("<")[0]
                     if not name.startswith("StreamCore") or name.endswith("Model"):
                         errors.append(f"SDK model type must use StreamCore without a Model suffix: {path.relative_to(ROOT)}: {name}")
-            if module in PROVIDER_MODULES and public_declarations(text):
-                package = re.search(r"^package\s+(\S+)", text, re.M)
-                allowed = package and package[1] in ("com.pampoukidis.streamcore.sdk.providers.tmdb", "com.pampoukidis.streamcore.sdk.providers.clientb")
-                if not allowed:
+            if module in PROVIDER_MODULES:
+                provider_package = "com.pampoukidis.streamcore.sdk.providers." + module.rsplit("/", 1)[1].lower()
+                if not package or not (package[1] == provider_package or package[1].startswith(provider_package + ".")):
+                    errors.append(f"Noncanonical provider namespace: {path.relative_to(ROOT)}")
+                if public_declarations(text) and (not package or package[1] != provider_package):
                     errors.append(f"Raw provider symbol is public: {path.relative_to(ROOT)}")
+            if module == "sdk/runtime" and package:
+                runtime_package = package[1].removeprefix("com.pampoukidis.streamcore.sdk.runtime.")
+                if runtime_package == "integration" or runtime_package.startswith("integration."):
+                    errors.append(f"Retired runtime integration package: {path.relative_to(ROOT)}")
+                if re.match(r"(?:auth|profile|home|details|search|library|playback|content|session|error)(?:\.|$)", runtime_package):
+                    for declaration in public_declarations(text):
+                        contract = runtime_package + "." + declaration["name"]
+                        if RUNTIME_PROVIDER_CONTRACTS.get(contract) != declaration["kind"]:
+                            errors.append(f"Runtime implementation symbol is public: {path.relative_to(ROOT)}: {declaration['name']}")
     for application in ("feature", "app", "webApp"):
         for path in (ROOT / application).rglob("*.kt"):
             relative_parts = path.relative_to(ROOT / application).parts
@@ -184,6 +214,8 @@ def staged_metadata(repository: Path) -> list[str]:
 def forbidden_published_dependency(owner: str | None, group: str, module: str) -> bool:
     """Check direct SDK metadata edges; this does not inspect Compose's transitive resource closure."""
     coordinate = f"{group}:{module}"
+    if group == "com.pampoukidis.streamcore" and module in ("sdk-testing", "sdk-testing-android", "sdk-testing-wasm-js"):
+        return True
     if owner in OPTIONAL_UI_ARTIFACTS:
         if OPTIONAL_UI_DIRECT_FORBIDDEN_DEPENDENCY.search(coordinate):
             return True

@@ -7,12 +7,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreResult
 import com.pampoukidis.streamcore.sdk.runtime.storage.library.PreferencesLibraryRepository
-import com.pampoukidis.streamcore.sdk.runtime.storage.migration.migrateLegacyPreferences
 import com.pampoukidis.streamcore.sdk.runtime.storage.playback.PreferencesPlaybackProgressRepository
 import com.pampoukidis.streamcore.sdk.runtime.storage.search.PreferencesRecentSearchRepository
-import com.pampoukidis.streamcore.sdk.runtime.accountStorageKey
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -25,31 +22,22 @@ object PreferencesSdkStorage {
         json: Json,
         authStore: DataStore<Preferences>? = null,
     ): SdkLocalRepositories {
-        val contextStore = authStore?.let(::ReportingPreferencesStore)
+        val contextStore = authStore?.let(::ErrorMappingPreferencesStore)
         return SdkLocalRepositories(
-            library = PreferencesLibraryRepository(ReportingPreferencesStore(libraryStore), json),
-            history = PreferencesRecentSearchRepository(ReportingPreferencesStore(searchStore), json, reportFailures = true),
-            progress = PreferencesPlaybackProgressRepository(ReportingPreferencesStore(progressStore), json, reportFailures = true),
-            loadSelectedProfile = { configuration, account ->
-                val values = contextStore?.data?.first()
-                val scoped = stringPreferencesKey("sdk_selected_profile." + accountStorageKey(configuration, account, ""))
-                val legacySuffix = account.encodeToByteArray().joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
-                values?.get(scoped) ?: values?.get(stringPreferencesKey("web_selected_profile_id.$legacySuffix"))
-            },
+            library = PreferencesLibraryRepository(ErrorMappingPreferencesStore(libraryStore), json),
+            history = PreferencesRecentSearchRepository(ErrorMappingPreferencesStore(searchStore), json, reportFailures = true),
+            progress = PreferencesPlaybackProgressRepository(ErrorMappingPreferencesStore(progressStore), json, reportFailures = true),
             saveSelectedProfile = { configuration, account, profile ->
                 contextStore?.edit { values ->
                     val scoped = stringPreferencesKey("sdk_selected_profile." + accountStorageKey(configuration, account, ""))
-                    // Empty sentinel prevents accidentally reviving a legacy selection after clearing it.
+                    // An empty value records that this account has no selected profile.
                     values[scoped] = profile.orEmpty()
                 }
             },
-            migrateLegacy = { configuration, trustedOwner ->
+            checkContextStorage = {
                 try {
-                    migrateLegacyPreferences(libraryStore, json, "library_json", "entriesByProfile", configuration, trustedOwner)
-                    migrateLegacyPreferences(searchStore, json, "recent_searches_json", "queriesByProfile", configuration, trustedOwner)
-                    migrateLegacyPreferences(progressStore, json, "entries_json", null, configuration, trustedOwner)
-                    // Validate the credential/profile-context store during explicit bootstrap too.
-                    // This lets browser hosts select their existing session-storage fallback before login.
+                    // Check context writes before authentication so browser hosts can offer their
+                    // existing session-storage fallback when persistent storage is unavailable.
                     contextStore?.edit { values ->
                         values[stringPreferencesKey("sdk_context_schema")] = "2"
                     }

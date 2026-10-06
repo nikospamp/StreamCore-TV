@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $taskWrapper = Join-Path $taskRoot 'gradlew.bat'
-$taskHeadlessModules = @(':sdk:model', ':sdk:api', ':sdk:runtime', ':sdk:testing', ':sdk:providers:tmdb', ':sdk:providers:clientB')
+$taskHeadlessModules = @(':sdk:model', ':sdk:api', ':sdk:runtime', ':sdk:providers:tmdb', ':sdk:providers:clientB')
 $taskUiModules = @(':sdk:ui', ':sdk:providers:tmdb:ui', ':sdk:providers:clientB:ui')
 $taskModules = $taskHeadlessModules + $taskUiModules
 $taskRepository = [System.IO.Path]::GetFullPath($RepositoryPath, $taskRoot)

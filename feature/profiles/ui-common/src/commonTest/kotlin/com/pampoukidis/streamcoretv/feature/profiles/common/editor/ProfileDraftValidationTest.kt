@@ -4,7 +4,7 @@ import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileAvatar
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileEditorOptions
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileParentalLevel
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreCreateProfile
-import com.pampoukidis.streamcore.sdk.api.validation.ProfileValidator
+import com.pampoukidis.streamcore.sdk.validation.ProfileValidator
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileValidationResult
 import com.pampoukidis.streamcore.sdk.model.profile.StreamCoreProfileFieldError
 import kotlin.test.Test

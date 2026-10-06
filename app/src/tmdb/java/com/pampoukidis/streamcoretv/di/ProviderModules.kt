@@ -31,13 +31,15 @@ private val tmdbProviderDataModule = module {
     includes(tmdbRuntimeConfigModule)
     single<StreamCoreClient> {
         TmdbSdk.createAndroid(
-            androidContext(),
-            TmdbSdkConfiguration(
+            context = androidContext(),
+            config = TmdbSdkConfiguration(
                 common = StreamCoreConfiguration(
-                    backend = "tmdb-production", storageNamespace = "streamcore",
+                    backend = "tmdb-production",
+                    storageNamespace = "streamcore",
                     expectedAccountId = BuildConfig.TMDB_ACCOUNT_ID.takeIf { it.isNotBlank() },
                 ),
-                connection = get(), demoPlayback = true, legacyApplicationStorage = true,
+                connection = get(),
+                demoPlayback = true,
             ),
         )
     } onClose { it?.close() }

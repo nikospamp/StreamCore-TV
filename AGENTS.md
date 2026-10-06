@@ -33,6 +33,8 @@ The project is backend-agnostic. Core, domain, and UI modules must not depend on
 
 Prefer the simplest design that meets current requirements. Add layers, abstractions or modules only when they provide a concrete benefit.
 
+Do not split production code into extra interfaces, classes, files or callbacks merely to reuse part of an implementation or make it independently testable. A separation must be necessary for the current production design and keep the execution path easy for a human to read. Preserve meaningful provider, platform and persistence boundaries; adapt tests to the real design instead of adding production layers for isolated tests.
+
 Default to:
 
 - Kotlin only
@@ -71,7 +73,7 @@ Recommended module groups:
 - `:sdk:model`
 - `:sdk:api`
 - `:sdk:runtime`
-- `:sdk:testing` (test dependencies only)
+- `:sdk:testing` (non-published support project; shared test sources only)
 - `:sdk:ui` (optional shared presentation resources/contracts)
 - `:core:ui`
 - `:core:designsystem`
@@ -88,11 +90,29 @@ account/profile context, saved-state policies, search interactions and playback 
 SDK operations. Do not reintroduce forwarding feature-domain modules or provider-specific models in shared contracts.
 Keep collection layout, editor drafts, navigation and player rendering in application UI/playback modules.
 
-Group runtime code by responsibility. Keep provider contracts in `runtime.integration.provider` and persistence in `runtime.storage`, with small store contracts beside their implementations in the `library`, `search`, and `playback` packages. Share legacy migration logic in `runtime.storage.migration`. Colocate related contracts and implementations when that keeps navigation simple; do not add layers or abstractions without a concrete benefit. Application and feature code must use `sdk-api`, not runtime provider or storage contracts.
+Organize runtime by feature/responsibility. Colocate `AuthProvider`, `ProfileProvider`, `HomeProvider`, `DetailsProvider`, `SearchProvider` and `PlaybackProvider` with their runtime services in `runtime.auth`, `.profile`, `.home`, `.details`, `.search` and `.playback`. Put `ContentPolicyProvider` in `runtime.content`, `ProviderSessionFactory` / `ProviderSessionServices` in `runtime.session`, and `ProviderOperationException` in `runtime.error`; the former `runtime.integration.provider` package is retired. These named contracts are deliberate public provider-integration surfaces; neighboring implementation types remain internal. Keep persistence in `runtime.storage`, with small store contracts beside their implementations in the `library`, `search`, and `playback` packages. Shared pure validators live in `com.pampoukidis.streamcore.sdk.validation`. Do not add layers or abstractions without a concrete benefit. Application and feature code must use `sdk-api`, not runtime provider or storage contracts.
+
+Expose authentication restoration only as `AuthService.restoreSession()` through `sdk.auth`, returning
+`StreamCoreResult<StreamCoreContext>`. `RuntimeAuthService` implements it directly and invokes the backend
+`AuthProvider.restoreSession()`, whose result remains `StreamCoreResult<StreamCoreAuthState>`. Keep the auth-storage availability
+check internal to the authentication workflow; do not add a client forwarding wrapper. Construction
+performs no network work, restoration is explicit and idempotent once `isAuthInitialized` is true, and direct login
+does not require restoration first. Fresh restoration never grants profile authorization. Use `isAuthInitialized` and
+`StreamCoreContextFailureReason.AuthNotInitialized` for initialization state; retain established provider diagnostic metadata.
+
+Keep `RuntimeStreamCoreClient` focused on composition. Internal services in `runtime.auth`, `.profile`, `.home`, `.details`, `.search`, `.library` and `.playback` own domain workflows and use the shared session's guards directly. `runtime.session` owns atomic state, lifecycle, authorization and SDK-owned work; services must not call back into the client or duplicate that ownership. Library mutations reach the real store through shared session checks; playback recorders and progress operations retain their captured activation. Keep these implementation types internal.
+
+Keep progress operations in `RuntimePlaybackService` and each recorder's request, captured authorization, mutex and cadence bucket in its private inner recorder. Library observation uses the actual playback service with the same captured authorization as its library flow. Do not reintroduce a progress-only interface, helper layer or factory callback without a necessary production requirement.
 
 Align domain names across consumer `<Domain>Service`, backend `<Domain>Provider` and SDK-local `<Domain>Store` contracts where each responsibility exists, and align method names for equivalent operations. Do not create a provider or store just to complete that sequence: library/history/progress are SDK-local, authentication persistence is provider-owned, and `ContentPolicyProvider` is a shared backend policy without a consumer service. Provider repositories implement the narrow ports directly; avoid forwarding wrappers that add no behavior. Runtime retains authorization, validation and policy enforcement.
 
+Use current namespaced persistence with backend/account/profile isolation. There are no shipped-data compatibility requirements:
+do not add legacy conversion, owner mappings, backups, quarantine or alternate legacy filenames. Existing development
+files and browser keys are left untouched and are not imported. Preserve current storage availability/error handling,
+saved-state behavior and the rule that persisted profile selection never grants authorization.
+
 Provider implementations live in `sdk/providers/<provider>` (`:sdk:providers:tmdb` and `:sdk:providers:clientB`).
+Use only their canonical `com.pampoukidis.streamcore.sdk.providers.tmdb` / `.clientb` namespaces, with implementation code grouped by `auth`, `profile`, `home`, `details`, `search`, `playback`, `network` and shared catalogue responsibility. Public factories/configuration remain at the provider root; optional UI stays separate. Do not reintroduce application `streamcoretv` namespaces into published SDK source. Keep private serialization types used by one repository in that repository's file; keep genuinely shared types separate.
 Reusable avatar artwork, avatar-ID mappings and provider error wording live in optional `:sdk:providers:<provider>:ui`
 modules. Shared presentation contracts, default error mapping and common error strings live in `:sdk:ui`.
 Presentation modules depend on SDK models and Compose resources; they must not depend on application `core:ui`, features,
@@ -326,6 +346,14 @@ Measure runtime performance from release or benchmark builds, not debug builds.
 
 ## Testing Rules
 
+Keep SDK tests in their owning module's `commonTest`. The shared provider journeys live in
+`sdk/testing/src/commonTest/kotlin`; provider `commonTest` source sets include that directory explicitly.
+`:sdk:testing` is a registered support project applying only Gradle's `base` plugin. It has no Kotlin/Android
+plugin, publication, compilation or test execution of its own; the providers compile and run the shared
+sources. Do not move these helpers back into production source sets or add a published testing library
+merely to share them. Sync Gradle after changing source roots; IDE searches that include tests can still
+find these helpers.
+
 Add focused tests for:
 
 - Use cases
@@ -390,7 +418,7 @@ Prefer:
   touch, adaptive-window, Android lifecycle integration, D-pad focus, and TV Material behavior in the platform UI module.
 - `commonMain` must not import `android.*`, `java.*`, `androidx.annotation.*`, or `androidx.core.*`. Keep provider SDKs, DTOs, API responses, and
   client-specific models out of shared/core/feature contracts so the target architecture remains backend-agnostic.
-- Android host and device tests use `androidHostTest` and `androidDeviceTest`. A module with Kotlin files in `commonTest` must explicitly call
+- Android host and device tests use `androidHostTest` and `androidDeviceTest`. A Kotlin Multiplatform module with Kotlin files in `commonTest` must explicitly call
   `streamCoreKmp { withHostTest() }`; `testAndroidHostTest` is its Phase 1 executable test task.
 - Do not enable host/device test compilations in a convention plugin. Compile-only modules must not add `commonTest` sources or filler tests;
   every module that adds common tests must explicitly enable an executable host-test target.

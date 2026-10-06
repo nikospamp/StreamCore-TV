@@ -1,0 +1,15 @@
+package com.pampoukidis.streamcore.sdk.providers.tmdb.auth
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+internal data class TmdbRequestTokenResponseDto(
+    val success: Boolean = false,
+    @SerialName("expires_at")
+    val expiresAt: String? = null,
+    @SerialName("request_token")
+    val requestToken: String = "",
+    @SerialName("status_code")
+    val statusCode: Int? = null,
+)

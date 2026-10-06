@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>SDK usage explorer · StreamCore</title>
+  <style>/* EXPLORER_CSS */</style>
+</head>
+<body>
+  <a class="skip-link" href="#graph">Skip to usage graph</a>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="StreamCore SDK explorer home"><span class="brand-mark" aria-hidden="true">S</span><span>StreamCore<small>SDK usage explorer</small></span></a>
+    <div class="snapshot-pill"><span class="status-dot" aria-hidden="true"></span>Source snapshot <code id="snapshot-commit"></code></div>
+    <div class="top-actions"><a class="guide-link" href="streamcore-sdk-guide.html">Read the guide ↗</a><label class="theme-control"><span class="sr-only">Appearance</span><select id="theme" aria-label="Appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></div>
+  </header>
+  <div class="workspace">
+    <aside id="navigator" class="navigator" aria-label="Explore the SDK">
+      <div class="nav-heading"><p class="eyebrow">Explore the source</p><button class="mobile-close" data-close-pane="navigator" aria-label="Close navigation">Close</button></div>
+      <label class="search-label" for="search">Find a symbol or file <kbd>/</kbd></label>
+      <input id="search" type="search" placeholder="httpClient, profiles, storage…" autocomplete="off" spellcheck="false">
+      <div class="scope-fields"><label>Provider<select id="provider"><option value="tmdb">TMDB</option><option value="clientb">ClientB</option></select></label><label>Platform<select id="platform"><option value="android">Android</option><option value="web">Browser</option></select></label></div>
+      <p id="context-note" class="context-note"></p>
+      <div id="search-results" hidden><p id="search-count" class="eyebrow" role="status"></p><div id="symbol-results"></div><div id="file-results"></div></div>
+      <div id="journey-navigation"><div class="section-heading"><h2>Usage paths</h2><span id="journey-count"></span></div><nav id="journeys" aria-label="SDK journeys"></nav></div>
+      <details class="node-shape-legend-panel"><summary>Node shapes</summary><div id="shape-legend"></div></details>
+      <details class="snapshot-details"><summary>About this map</summary><p>The target architecture is backend-agnostic. This map follows source relationships, including provider bindings and deferred work.</p><p>It is a static snapshot. Highlighted paths describe possible connections, not a recorded execution.</p><p id="snapshot-detail"></p><button id="show-coverage" class="text-button">View coverage</button></details>
+      <p class="nav-footer">Local source. No backend requests.</p>
+    </aside>
+    <main id="main" class="graph-pane">
+      <div class="graph-heading"><div><div class="breadcrumb"><span id="context-label"></span><span aria-hidden="true">/</span><span id="journey-kicker">Usage path</span></div><h1 id="journey-title">Client construction</h1><p id="journey-description"></p></div><div class="history-buttons"><button id="history-back" aria-label="Previous selection" title="Previous selection">←</button><button id="history-forward" aria-label="Next selection" title="Next selection">→</button></div></div>
+      <div class="toolbar"><div class="view-switch" aria-label="Explorer view"><button id="tree-view" aria-pressed="true">Full tree</button><button id="graph-view" aria-pressed="false">Graph</button></div><button id="tree-root-selected" hidden>Tree of selection</button><div class="mobile-pane-controls"><button id="open-navigator" aria-expanded="false" aria-controls="navigator">Explore</button><button id="open-inspector" aria-expanded="false" aria-controls="inspector">Inspect</button></div><label class="compact-label graph-only">Trace<select id="trace-mode"><option value="auto">Automatic</option><option value="call">Function calls</option><option value="value">Value flow</option></select></label><label class="compact-label graph-only">Direction<select id="direction"><option value="both">Both ways</option><option value="upstream">To origin</option><option value="downstream">To consumers</option></select></label><label class="values-toggle graph-only" title="Hide unrelated values. Values in the active trace remain visible."><input id="show-values" type="checkbox" checked>All values</label><button class="graph-only" id="expand-node" title="Reveal direct connections without moving the map">Reveal connections</button></div>
+      <div class="reading-guide"><p id="trace-explanation"></p><p id="graph-guidance">Click to select and highlight. The map stays still. Use <strong>Center selection</strong> to move to a node.</p></div>
+      <div id="pinned-summary" class="pinned-summary" hidden><span id="pinned-function-name"></span><button id="clear-function">Clear pinned function</button></div>
+      <div id="graph-viewport" class="graph-viewport"><svg id="graph" tabindex="0" role="group" aria-label="SDK source relationship graph. Use arrow keys to pan, plus and minus to zoom. Tab to select nodes."><defs></defs><g id="graph-world"></g></svg><p id="graph-empty" class="graph-empty" hidden>No mapped symbols in this context.</p><div class="graph-controls" aria-label="Graph viewport"><button id="zoom-out" aria-label="Zoom out">−</button><output id="zoom-level" aria-label="Zoom level">100%</output><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-graph" title="Zoom out to see the whole map">Fit map</button><button id="focus-node" title="Move the view to the selected node">Center selection</button><button id="arrange-trace" title="Rearrange nodes around the selected path">Arrange path</button></div><div class="graph-instruction">Click selects · Drag pans · Scroll zooms</div></div>
+      <div id="tree-viewport" class="tree-viewport"><p role="status">Loading source index…</p></div>
+      <footer class="graph-footer"><div class="legend" aria-label="Highlight colors"><span><i class="legend-origin"></i>Origin</span><span><i class="legend-selected"></i>Selected</span><span><i class="legend-consumer"></i>Consumer</span><span class="deferred-legend">┄ Deferred</span></div><p id="graph-status" role="status"></p></footer>
+    </main>
+    <aside id="inspector" class="inspector" aria-label="Selected symbol">
+      <div class="inspector-heading"><p class="eyebrow">Selected symbol</p><button class="mobile-close" data-close-pane="inspector" aria-label="Close inspector">Close</button></div>
+      <div id="node-detail"></div>
+    </aside>
+  </div>
+  <dialog id="source-dialog" aria-labelledby="source-title"><div class="dialog-heading"><div><p class="eyebrow">Source snapshot</p><h2 id="source-title"></h2></div><button id="close-source" aria-label="Close source">Close</button></div><p id="source-path" class="source-path" data-source-reference></p><div class="source-toolbar"><label>Find in file<input id="source-find" type="search" placeholder="Symbol or expression" spellcheck="false"></label><button id="source-next">Next match</button><button id="source-copy">Copy path:line</button></div><p id="source-status" class="small" role="status"></p><div id="source-code" class="source-code" tabindex="0" aria-label="Source code with line numbers"></div><p class="dialog-note">This is the embedded source from this snapshot. Regenerate the explorer to include later changes.</p></dialog>
+  <dialog id="coverage-dialog" aria-labelledby="coverage-title"><div class="dialog-heading"><div><p class="eyebrow">Map boundaries</p><h2 id="coverage-title">Coverage &amp; snapshot</h2></div><button id="close-coverage">Close</button></div><p>Search includes the captured SDK source. Reviewed graph paths cover the mapped relationships; a file in search does not imply every expression has a graph node.</p><div id="coverage-content"></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><p class="no-script">Enable JavaScript to explore the embedded source graph. All data is stored in this file.</p></noscript>
+  <script type="application/octet-stream" id="explorer-data" data-encoding="gzip-base64"><!-- EXPLORER_DATA --></script>
+  <script>/* EXPLORER_JS */</script>
+</body>
+</html>
