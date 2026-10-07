@@ -1,6 +1,7 @@
 package com.pampoukidis.streamcoretv.feature.login.common.login
 
 import com.pampoukidis.streamcore.sdk.api.AuthService
+import com.pampoukidis.streamcore.sdk.model.StreamCoreContext
 import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthAccount
 import com.pampoukidis.streamcore.sdk.model.auth.StreamCoreAuthState
 import com.pampoukidis.streamcore.sdk.model.error.StreamCoreError
@@ -144,6 +145,10 @@ class LoginViewModelTest {
 
         var loginPassword: String? = null
             private set
+
+        override suspend fun restoreSession(): StreamCoreResult<StreamCoreContext> {
+            throw AssertionError("LoginViewModel must not restore a session during explicit login.")
+        }
 
         override suspend fun login(
             identifier: String,

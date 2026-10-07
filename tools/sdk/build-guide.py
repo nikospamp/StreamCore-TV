@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from source_inventory import git, source_inventory
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTENT = ROOT / 'docs/sdk/guide-content'
+CONTENT = ROOT / 'docs/tracked/sdk/guide-content'
 ORDER = ['overview', 'modules', 'contracts', 'lifetime', 'profiles', 'session',
          'catalog', 'playback', 'persistence', 'providers', 'applications',
          'verification', 'changes', 'reference']
@@ -68,7 +68,8 @@ def main():
     result = result.replace('/* GUIDE_CSS */', (CONTENT / 'guide.css').read_text(encoding='utf-8'))
     result = result.replace('/* GUIDE_JS */', (CONTENT / 'guide.js').read_text(encoding='utf-8'))
     result = result.replace('<!-- GUIDE_DATA -->', serialized)
-    out = ROOT / 'docs/sdk/streamcore-sdk-guide.html'
+    out = ROOT / 'build/sdk-docs/streamcore-sdk-guide.html'
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(result, encoding='utf-8', newline='\n')
     word_count = sum(len(re.sub('<[^>]+>', ' ', c['body']).split()) for c in chapters)
     print(f'Built {out.relative_to(ROOT)}: {len(chapters)} chapters, {word_count:,} lesson words, {len(files)} source/resource entries, {len(result.encode()):,} bytes')

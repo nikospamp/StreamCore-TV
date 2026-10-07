@@ -15,11 +15,11 @@ Mobile/tablet use Jetpack Compose with Material 3 and adaptive layouts.
 
 TV uses Compose for TV / `androidx.tv.material3` where TV-specific UI is required.
 
-The project is backend-agnostic. Core, domain, and UI modules must not depend on provider SDKs, DTOs, API responses, or client-specific models.
+The project is backend-agnostic. Shared core and feature UI consume public SDK API/model contracts, never provider DTOs, backend API responses, or runtime integration/storage ports. Application composition roots select provider factories and optional presentation modules.
 
 ## Agent workflow
 
-- For environment setup, multi-client launch/capture, or review boards, read `docs/agent-workflow.md` and use the applicable shared helpers.
+- For environment setup, multi-client launch/capture, or review boards, read `docs/tracked/agent-workflow.md` and use the applicable shared helpers.
   The certified build/capture path supports TMDB acceptance reviews; keep Android Studio, development web, other flavors, and benchmark workflows available.
   Run only checks needed by the current task; do not bootstrap devices for source-only changes or require a production build for ordinary iteration.
 - Keep one shared setup/build/server owner. Delegate ready, independent surfaces with explicit inputs, acceptance checks, and stop conditions.
@@ -66,21 +66,25 @@ Use `collectAsStateWithLifecycle()` for StateFlow collection in Compose.
 
 ## Module Rules
 
-Recommended module groups:
+Current module groups (see `settings.gradle.kts`):
 
-- `:app:mobile`
-- `:app:tv`
+- `:app` (one Android application with mobile/tablet/TV surfaces)
+- `:webApp` (browser application)
 - `:sdk:model`
 - `:sdk:api`
 - `:sdk:runtime`
 - `:sdk:testing` (non-published support project; shared test sources only)
 - `:sdk:ui` (optional shared presentation resources/contracts)
-- `:core:ui`
-- `:core:designsystem`
-- `:core:testing`
+- `:core:ui` (application design system and shared rendering)
+- `:core:ui-web` (browser UI helpers)
+- `:core:tracing-api` / `:core:tracing`
 - `:feature:*:ui-common`
 - `:feature:*:ui-mobile`
+- `:feature:*:ui-tablet` (except Player, which has no separate tablet module)
 - `:feature:*:ui-tv`
+- `:feature:*:ui-web`
+- `:playback:api` / `:playback:media3` / `:playback:web`
+- `:benchmark` / `:benchmark:ui-driver` / `:baselineprofile`
 - `:sdk:providers:<provider>`
 - `:sdk:providers:<provider>:ui` (optional provider presentation)
 
@@ -134,7 +138,7 @@ Client-specific models must never be imported by core, domain, or feature UI mod
 
 Every future feature must define shared models/operations, SDK-enforced rules, provider responsibilities and
 unsupported behavior, account/profile/persistence ownership, and direct SDK contract tests plus application effects.
-Use `docs/sdk/integration.md` and `docs/sdk/provider-template.md` for integration, public contract review and verification requirements.
+Use `docs/tracked/sdk/integration.md` and `docs/tracked/sdk/provider-template.md` for integration, public contract review and verification requirements.
 
 ## Model Rules
 
@@ -305,7 +309,7 @@ interop, pointer/keyboard handling, focus, fullscreen, and responsive placement 
 shared leaves. Browser overlays must restore both focus and the accessibility tree when dismissed; prefer the existing single-viewport overlay
 pattern for avatar/player panels over creating another Compose dialog viewport.
 
-Feature UI should compose standardized components from `:common` / design-system modules where practical, so visual changes are made centrally instead of hunting raw component usages across the codebase.
+Feature UI should compose standardized components from `:core:ui` and `:core:ui-web` where practical, so visual changes are made centrally instead of hunting raw component usages across the codebase.
 
 Every reusable UI component must follow the Compose preview rules.
 
@@ -424,8 +428,9 @@ Prefer:
   every module that adds common tests must explicitly enable an executable host-test target.
 - Compose KMP Android compilations receive `-Xlambdas=class` from the shared Compose KMP conventions (UI or resource-only). Never apply that JVM-only flag to common metadata
   or Wasm compilations.
-- KMP membership does not imply browser support. A module is web-ready only after WEB-01 or a later web ticket adds `wasmJs`, resolves its shared
-  dependencies, compiles the target, and verifies browser-specific implementations.
+- KMP membership does not imply browser support. A module is web-ready only after it declares `wasmJs`, resolves its shared dependencies,
+  compiles the target, and verifies browser-specific implementations. Both headless SDK providers have Wasm targets; the browser application
+  currently wires TMDB only. Historical migration ticket closures do not describe the current module inventory.
 
 Do not add new production dependencies without a clear reason.
 

@@ -18,7 +18,7 @@ page.on('pageerror',error=>errors.push(error.message));
 page.on('request',request=>{if(/^https?:/.test(request.url()))requests.push(request.url());});
 await page.route(/^https?:/,route=>route.abort());
 try {
-  await page.goto(pathToFileURL(path.join(root,'docs/sdk/streamcore-sdk-explorer.html')).href);
+  await page.goto(pathToFileURL(path.join(root,'build/sdk-docs/streamcore-sdk-explorer.html')).href);
   await page.waitForFunction(()=>window.SDK_EXPLORER);
   const data=JSON.parse(gunzipSync(Buffer.from(await page.locator('#explorer-data').textContent(),'base64')).toString('utf8'));
   const nodes=new Map(data.nodes.map(node=>[node.id,node]));

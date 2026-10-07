@@ -18,8 +18,8 @@ import sys
 
 from source_inventory import ROOT, git, source_inventory
 
-CONTENT = ROOT / 'docs/sdk/explorer-content'
-OUTPUT = ROOT / 'docs/sdk/streamcore-sdk-explorer.html'
+CONTENT = ROOT / 'docs/tracked/sdk/explorer-content'
+OUTPUT = ROOT / 'build/sdk-docs/streamcore-sdk-explorer.html'
 CONTEXTS = [
     {'id': 'tmdb-android', 'provider': 'tmdb', 'platform': 'android', 'label': 'TMDB · Android app', 'currentAppWiring': True},
     {'id': 'tmdb-web', 'provider': 'tmdb', 'platform': 'web', 'label': 'TMDB · Browser app', 'currentAppWiring': True},
@@ -260,6 +260,7 @@ def main():
             if not OUTPUT.exists() or OUTPUT.read_text(encoding='utf-8') != result:
                 raise ValueError('Explorer snapshot is stale. Run python tools/sdk/build-explorer.py')
         else:
+            OUTPUT.parent.mkdir(parents=True, exist_ok=True)
             OUTPUT.write_text(result, encoding='utf-8', newline='\n')
         print(f'{"Checked" if args.check else "Built"} SDK explorer: {len(data["nodes"])} nodes, {len(data["edges"])} relationships, '
               f'{len(data["coverage"])} public operations, {len(data["files"])} source entries; {data["snapshot"]["fingerprint"]}')

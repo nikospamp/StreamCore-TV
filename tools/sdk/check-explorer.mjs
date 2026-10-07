@@ -20,7 +20,7 @@ const errors = [], external = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('request', request => { if (/^https?:/.test(request.url())) external.push(request.url()); });
 await context.route(/^https?:/, route => route.abort());
-const url = pathToFileURL(path.join(root, 'docs/sdk/streamcore-sdk-explorer.html')).href;
+const url = pathToFileURL(path.join(root, 'build/sdk-docs/streamcore-sdk-explorer.html')).href;
 const state = async () => {
   await page.waitForFunction(() => window.SDK_EXPLORER);
   return page.evaluate(() => window.SDK_EXPLORER.readState());

@@ -13,8 +13,8 @@ const require = createRequire(path.join(root, 'webApp/e2e/package.json'));
 const {chromium} = require('playwright');
 const output = path.join(root, 'build/sdk-explorer');
 const [script, css] = await Promise.all([
-  fs.readFile(path.join(root, 'docs/sdk/explorer-content/tree.js'), 'utf8'),
-  fs.readFile(path.join(root, 'docs/sdk/explorer-content/explorer.css'), 'utf8'),
+  fs.readFile(path.join(root, 'docs/tracked/sdk/explorer-content/tree.js'), 'utf8'),
+  fs.readFile(path.join(root, 'docs/tracked/sdk/explorer-content/explorer.css'), 'utf8'),
 ]);
 await fs.mkdir(output, {recursive:true});
 const browser = await chromium.launch({channel:'chrome', headless:true});
@@ -281,7 +281,7 @@ try {
 
   if(!process.argv.includes('--skip-real')) {
     await check('Generated explorer defaults to Full tree and can reroot to createAndroid',async()=>{
-      const url=pathToFileURL(path.join(root,'docs/sdk/streamcore-sdk-explorer.html')).href;
+      const url=pathToFileURL(path.join(root,'build/sdk-docs/streamcore-sdk-explorer.html')).href;
       await page.goto(url);
       await page.waitForFunction(()=>window.SDK_EXPLORER && window.SDK_RELATION_TREE);
       assert.equal(await page.locator('#tree-view').getAttribute('aria-pressed'),'true');

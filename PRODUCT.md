@@ -35,7 +35,8 @@ provider-specific branding in shared or feature UI.
 1. Content carries the experience: posters, backdrops, rows, details, and profile imagery should create the cinematic feel before brand color does.
 2. Earn streaming familiarity: use category-standard navigation, carousel, row, details, profile, and login patterns, but keep visual identity
    original and client-neutral.
-3. Preserve backend agnosticism: shared product UI should depend on app models, UI state, actions, and effects, never provider DTOs or SDK concepts.
+3. Preserve backend agnosticism: shared product UI consumes public StreamCore SDK services/models and app-owned UI state, actions, and effects.
+   Provider DTOs, backend client libraries and SDK runtime internals stay outside shared product UI.
 4. Fit the platform: mobile and tablet prioritize touch ergonomics and adaptive density; TV prioritizes 10-foot readability, deterministic D-pad
    focus, and large focus states.
 5. Keep states production-ready: loading, empty, offline, error, unauthenticated, entitlement-blocked, and long-localized-text states should feel

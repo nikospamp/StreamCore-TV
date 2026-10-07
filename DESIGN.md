@@ -518,17 +518,37 @@ platform-specific components, never by adding boolean tablet/TV flags to the mob
 
 - **Structure:** one vertical surface with Continue Watching, Liked, and My List in that order. Empty shelves remain visible with compact guidance.
 - **Cards:** Continue Watching reuses the `192dp` landscape/progress treatment; Liked and My List reuse the `120dp` poster treatment.
-- **Saved state:** Like and My List are independent profile-scoped memberships. Feature UI observes backend-agnostic app models and never exposes a
+- **Saved state:** Like and My List are independent profile-scoped memberships. Feature UI observes backend-agnostic SDK models through public services and never exposes a
   provider's remote favorite/watchlist terminology.
 - **Details actions:** Play/Resume is followed by Like, My List, Trailer, and Share. Like/My List are toggles. On mobile, Trailer opens the preferred
   available trailer in a video app or browser; it remains disabled when no supported trailer is present. Share remains disabled.
+
+### Search
+
+- Keep one persistent query field, recent/trending discovery for a blank query, and one result grid with Details as its primary action.
+  Loading, empty, offline and retryable failure states preserve a useful query/recovery path.
+- Clear-query retains field focus. Preserve query, results and scroll position after a Details round trip. On mobile, Back dismisses the IME before
+  returning Home; authenticated top-level navigation owns destination switching.
+- SDK search operations own normalized validation and saved history. Input timing, keyboard behavior and platform composition remain application-owned.
+  Do not add taxonomy tabs, filters, voice or inline playback without a defined product capability.
+
+### Tablet/TV Details and web
+
+- Details follows the accepted Panorama direction: full-width top artwork with rounded bottom corners, an action-area gradient, Play/Resume priority,
+  independent Like/My List actions, and platform-appropriate text and focus targets. Retain recommendations and source-item return focus.
+- Web follows the accepted TV visual language while retaining browser input, navigation and responsive layout. Reuse portable drawing/content;
+  keep native editing, media, fullscreen and focus lifecycle in web modules.
+- Avatar and Player overlays remain in the current Compose viewport, isolate the background and restore focus/accessibility after dismissal.
+  Shape alignment and TV focus-ring clearance apply to all shared rendering.
+- Use the [shared-control guide](docs/tracked/shared-control-styling.md) for rendering boundaries and the current regression checklist. Changes must preserve
+  mobile/tablet appearance unless the product change explicitly alters that baseline.
 
 ## 6. Do's and Don'ts
 
 ### Do:
 
-- **Do** keep the target architecture backend-agnostic: feature UI consumes app models, UI state, actions, and effects, not provider DTOs or SDK
-  types.
+- **Do** keep the target architecture backend-agnostic: feature UI consumes public SDK services/models and app-owned UI state, actions, and
+  effects. Provider DTOs, backend client libraries and runtime integration/storage contracts stay outside feature UI.
 - **Do** use `StreamCoreButton`, `StreamCoreTextButton`, `StreamCoreTvButton`, `StreamCoreContentImage`, and other app-owned components before raw
   Material primitives in feature UI.
 - **Do** keep StreamCore orange (`primary`) reserved for primary action, selection, focus, and meaningful status.
@@ -537,7 +557,7 @@ platform-specific components, never by adding boolean tablet/TV flags to the mob
 - **Do** preserve preview-friendly composables wrapped in `StreamCoreTheme`.
 - **Do** start portable feature state, actions, effects, ViewModels, and neutral composables in `ui-common`; keep platform input/layout assumptions
   in mobile, tablet, or TV modules.
-- **Do** treat web support as explicit target work. Shared Android-KMP code is not web-ready until a later ticket adds and verifies `wasmJs`.
+- **Do** treat web support as explicit target work. Shared Android-KMP code is not web-ready until its owning module adds and verifies `wasmJs`.
 
 ### Don't:
 
@@ -550,4 +570,4 @@ platform-specific components, never by adding boolean tablet/TV flags to the mob
 - **Don't** place device mockups inside the app UI.
 - **Don't** add busy chrome, random notification actions, decorative badges, or non-content UI noise.
 - **Don't** ship tiny TV controls or subtle TV focus rings.
-- **Don't** put provider-specific branding, DTO language, SDK concepts, or client-specific model names in shared UI.
+- **Don't** expose provider-specific branding, DTO terminology or runtime/provider internals in shared UI. Public SDK models/services remain valid application contracts.

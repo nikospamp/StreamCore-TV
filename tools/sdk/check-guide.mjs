@@ -18,7 +18,7 @@ const errors=[];
 const external=[];
 page.on('pageerror',error=>errors.push(error.message));
 page.on('request',request=>{if(/^https?:/.test(request.url())) external.push(request.url());});
-const url=pathToFileURL(path.join(root,'docs/sdk/streamcore-sdk-guide.html')).href;
+const url=pathToFileURL(path.join(root,'build/sdk-docs/streamcore-sdk-guide.html')).href;
 try {
   await page.goto(url);
   const data=await page.locator('#guide-data').textContent().then(JSON.parse);

@@ -6,7 +6,7 @@ import {
   reserveOutput, ReviewError, safeFailure, verifyReviewServer,
 } from "./review-common.mjs";
 
-const usage = `Capture an existing StreamCoreTV web preview (PowerShell examples in docs/agent-workflow.md).
+const usage = `Capture an existing StreamCoreTV web preview (PowerShell examples in docs/tracked/agent-workflow.md).
   node webApp/e2e/review-web.mjs --screen profiles|home|details [options]
   --base-url URL                 Loopback preview origin (default http://127.0.0.1:8080)
   --profile NAME                Exact profile name or "Select NAME profile" label

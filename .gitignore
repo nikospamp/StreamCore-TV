@@ -317,12 +317,6 @@ hs_err_pid*
 
 /marketing/
 /presentations/
-/docs/inspiration/
-/docs/issues/
-/docs/guidelines/
-/docs/ui/
-/docs/mobbin-previews/
-/docs/credentials/
 /benchmark-results/
 /tools/performance/.tools/
 /tools/performance/__pycache__/
@@ -336,4 +330,18 @@ hs_err_pid*
 /screenshots/
 
 ## Kotlin
-/.kotlin
+**/.kotlin/
+
+# Local captures and interpreter caches
+/.codex-remote-attachments/
+/artifacts/
+/webApp/e2e/screenshots/
+__pycache__/
+*.pyc
+
+# Retired root review retained locally
+/CODEBASE_REVIEW.md
+
+# Only maintained documentation is shared; other docs stay local.
+/docs/*
+!/docs/tracked/

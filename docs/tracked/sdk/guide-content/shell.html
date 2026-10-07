@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive, source-backed maintainer course for the StreamCore SDK.">
+  <title>Inside StreamCore | SDK maintainer guide</title>
+  <style>/* GUIDE_CSS */</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to lesson</a>
+<header class="topbar">
+  <a class="brand" href="#overview"><span class="brand-mark" aria-hidden="true">S</span><span>StreamCore <small>Maintainer guide</small></span></a>
+  <div class="top-actions"><button id="search-open" type="button">Find a concept <kbd>/</kbd></button><button id="theme" type="button" aria-label="Change color theme">Theme</button><button id="menu" type="button" aria-expanded="false" aria-controls="sidebar">Contents</button></div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head"><p class="eyebrow">Learn the system</p><p id="read-progress" class="small"></p></div>
+    <nav id="chapters" aria-label="Guide chapters"></nav>
+    <div class="sidebar-tools"><p class="eyebrow">Explore</p><a href="#workbench">Request walkthroughs</a><a href="#source">Source explorer</a><a href="streamcore-sdk-explorer.html">SDK usage graph</a><button id="print" type="button">Print the full course</button></div>
+    <p class="sidebar-note">Read in order, or jump directly to the code you are changing. Everything works offline.</p>
+  </aside>
+  <main id="main" tabindex="-1"></main>
+</div>
+<dialog id="source-dialog" aria-labelledby="source-title">
+  <div class="dialog-top"><div><p class="eyebrow" id="source-meta">Source snapshot</p><h2 id="source-title"></h2></div><button type="button" data-close="source-dialog" aria-label="Close source">Close</button></div>
+  <p id="source-path" class="source-path"></p><p id="source-description"></p>
+  <div class="source-tools"><label>Jump to text <input id="source-find" type="search" placeholder="e.g. withAuthorizedProfile"></label><button id="source-next" type="button">Find next</button><button id="copy-path" type="button">Copy path</button><span id="source-status" role="status"></span></div>
+  <div id="code-reader" tabindex="0" aria-label="Source code with line numbers"></div>
+  <div class="dialog-bottom">Read-only snapshot. Change the original Kotlin file in your IDE. Rebuild this guide after source changes.</div>
+</dialog>
+<dialog id="search-dialog" aria-labelledby="search-title">
+  <div class="dialog-top"><h2 id="search-title">Find a concept or file</h2><button type="button" data-close="search-dialog">Close</button></div>
+  <label class="search-label">Search lessons and filenames <input type="search" id="global-search" placeholder="Try: bootstrap, storage, AuthProvider, cancellation" autocomplete="off"></label>
+  <div id="global-results" aria-live="polite"></div>
+</dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+<noscript><p class="no-script">This interactive guide requires JavaScript. The <a href="../../docs/tracked/sdk/maintainer-guide.md">Markdown maintainer guide</a> is available without scripting.</p></noscript>
+<script id="guide-data" type="application/json"><!-- GUIDE_DATA --></script>
+<script>/* GUIDE_JS */</script>
+</body>
+</html>

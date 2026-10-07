@@ -1,183 +1,98 @@
 # StreamCore TV
 
-Compose-first Android VOD application for mobile, tablet, and TV. StreamCore TV is designed as a reusable, backend-agnostic streaming foundation: shared core, domain, and feature UI modules do not depend on provider SDKs, DTOs, or API response models.
+Streaming application for Android phones, tablets, Android TV, and browsers, with a reusable Kotlin Multiplatform SDK. The target architecture is backend-agnostic: shared UI consumes SDK services and models; provider DTOs, networking, and authentication protocols stay inside provider modules.
 
-> [!NOTE]
-> This project is under active development. The `tmdb` flavor is the reference integration; `clientB` demonstrates how another provider can be connected without leaking provider types into shared modules.
+Android has TMDB and simulated ClientB flavors. The browser application currently selects TMDB. The SDK is a development `0.1.0-alpha02` candidate with locally staged Maven artifacts; remote publication and stable API compatibility are not implied.
 
-> [!IMPORTANT]
-> Android/KMP Phase 1 is Accepted at verified production commit `b8236b7`. The historical physical-device performance campaign remains
-> informational; a new campaign is optional and was owner-skipped for this gate. For browser development,
-> see [Run the web app locally](#run-the-web-app-locally).
+## Start here
 
-## Highlights
+1. Follow the setup and commands below to run the application.
+2. Read the [module graph](MODULE_DEPENDENCY_GRAPH.md) for ownership and [project conventions](AGENTS.md) before changing code.
+3. Use the [developer documentation map](docs/tracked/README.md) to find the runbook for your task and the [maintenance register](docs/tracked/maintenance.md) for unresolved work.
 
-- One application targeting Android phones, tablets, and Android TV
-- Adaptive Material 3 UI for touch devices
-- Compose for TV components, D-pad navigation, and 10-foot layouts
-- Login, profile management, catalogue browsing, content details, and playback flows
-- Provider-swappable data and playback implementations through repository contracts
-- Media3 playback with progress persistence and Picture-in-Picture support
-- Immutable UI state with UDF, `StateFlow`, and lifecycle-aware collection
-- Client-specific product flavors: `tmdb` and `clientB`
+## Requirements
 
-## Architecture
+- Android Studio compatible with AGP 9.1.1
+- JDK 21 for the Gradle daemon, selected by `gradle/gradle-daemon-jvm.properties`
+- Android SDK 37; the application targets API 36 and runs on API 26 or newer
+- Node.js 22+ and Yarn on `PATH` for Wasm builds/tests
 
-The project follows Clean Architecture in a multi-module setup. Routes collect state and handle navigation, stateless screens render immutable UI state, and ViewModels expose a single `StateFlow` per screen. Provider implementations remain at the outer edge of the dependency graph.
+Open the repository root in Android Studio. Use the checked-in Gradle 9.3.1 wrapper. Dependency versions live in `gradle/libs.versions.toml`; shared build setup lives in `build-logic`. SDK Android libraries have minimum API 24, independently of the application's API 26 minimum.
 
-```mermaid
-flowchart LR
-    App[":app\napplication shell"] --> PlatformUI["Platform UI\nmobile / tablet / TV"]
-    PlatformUI --> CommonUI["Feature UI common\nstate, actions, effects, ViewModels"]
-    CommonUI --> FeatureDomain["Feature domain\nuse cases and policies"]
-    FeatureDomain --> CoreDomain["Core domain\nrepository contracts"]
-    CommonUI --> CoreModels["Core data\nbackend-agnostic models"]
-    Providers["Client modules\nTMDB / Client B"] --> CoreDomain
-    App --> Providers
-    PlayerUI["Player feature"] --> PlaybackAPI["Playback API"]
-    Media3["Media3 engine"] --> PlaybackAPI
-    Providers --> PlaybackAPI
-```
+## Configure and run Android
 
-### Modules
-
-| Group | Responsibility |
-| --- | --- |
-| `:app` | Application entry point, navigation, dependency wiring, and client flavor selection |
-| `:core:data` | KMP application models and infrastructure result/error contracts |
-| `:core:domain` | KMP provider-independent repository interfaces |
-| `:core:ui` | Compose KMP theme, design tokens, shared resources/components, previews, and UI utilities |
-| `:feature:<name>:domain` | Feature use cases and business rules |
-| `:feature:<name>:ui-common` | Shared UI contracts, ViewModels, and platform-neutral components |
-| `:feature:<name>:ui-mobile` | Phone-specific touch UI |
-| `:feature:<name>:ui-tablet` | Adaptive tablet UI |
-| `:feature:<name>:ui-tv` | TV UI, focus behavior, and D-pad interaction |
-| `:client:<client>:data` | DTOs, networking, persistence, mappers, and repository implementations |
-| `:client:<client>:ui` | Client-owned artwork and presentation mappings |
-| `:client:<client>:player` | Client playback-source resolution |
-| `:playback:api` | Provider- and engine-independent playback contracts |
-| `:playback:media3` | AndroidX Media3 playback implementation |
-
-Current feature areas are `login`, `profiles`, `home`, `search`, `details`, `library`, and `player`.
-
-## Tech stack
-
-- Kotlin 2.3
-- Kotlin Multiplatform with Android-hosted `commonMain`/`androidMain` modules
-- Jetpack Compose and Material 3
-- Compose for TV
-- Coroutines, Flow, and StateFlow
-- Navigation Compose
-- Koin 4.2.2 with constructor injection
-- Ktor and Kotlinx Serialization
-- AndroidX Media3
-- DataStore
-- Coil
-- JUnit and Compose UI testing
-
-## Getting started
-
-### Requirements
-
-- Android Studio with support for Android Gradle Plugin 9.1.1
-- JDK 17 or newer (the Android Studio bundled runtime is recommended)
-- Android SDK 37 (the shipping application continues to target SDK 36)
-- An emulator or device running Android 8.0 / API 26 or newer
-
-Clone the repository and open its root directory in Android Studio. Gradle uses the checked-in wrapper (`9.3.1`) and version catalog.
-
-### Configure the TMDB flavor
-
-The TMDB integration reads credentials from Gradle properties or the untracked root `local.properties` file. Add the following values for the complete authenticated flow:
+The simulated `clientB` flavor runs without TMDB credentials. For TMDB, add the following to the ignored root `local.properties`, alongside your Android SDK path:
 
 ```properties
 tmdbReadAccessToken=YOUR_TMDB_READ_ACCESS_TOKEN
 tmdbAccountId=YOUR_TMDB_ACCOUNT_ID
 ```
 
-Do not commit credentials. `local.properties` is already ignored by Git.
-
-Linked worktrees can read the primary ignored file without copying secrets:
+Select `tmdbDebug` or `clientBDebug` in Android Studio's **Build Variants**, then run `app` on a phone, tablet, or Android TV device/emulator.
 
 ```powershell
-.\gradlew.bat :app:verifyTmdbRuntimeConfig :app:assembleTmdbDebug `
-  -PstreamcoreLocalPropertiesPath="<primary-checkout>\local.properties" `
-  -PrequireTmdbRuntimeConfig=true
+# Credential-free provider
+.\gradlew.bat :app:assembleClientBDebug
+
+# Configured TMDB application
+.\gradlew.bat :app:verifyTmdbRuntimeConfig :app:assembleTmdbDebug -PrequireTmdbRuntimeConfig=true
 ```
 
-`STREAMCORE_LOCAL_PROPERTIES` provides the same path through the environment. The preflight reports only pass/fail and never logs values. Keep
-`requireTmdbRuntimeConfig` enabled for authenticated device/release verification; ordinary credential-free graph/unit-test builds remain supported.
+On other platforms, replace `.\gradlew.bat` with `./gradlew`. Keep `requireTmdbRuntimeConfig` enabled for authenticated verification; the preflight checks configuration without printing values.
 
-The `clientB` flavor uses local placeholder implementations and does not require TMDB credentials.
+Linked worktrees can read an existing ignored configuration file with `-PstreamcoreLocalPropertiesPath="<primary-checkout>\local.properties"` or `STREAMCORE_LOCAL_PROPERTIES`. Resolution order is Gradle properties, checkout-local `local.properties`, then the selected external file. Do not copy or commit credentials.
 
-## Build and run
+## Run the browser application
 
-Select `tmdbDebug` or `clientBDebug` from Android Studio's **Build Variants** tool window, then run the `app` configuration on a phone, tablet, or Android TV target.
+With TMDB configured, run `main()` in `webApp/src/wasmJsMain/kotlin/com/pampoukidis/streamcoretv/web/Main.kt` from Android Studio, or:
 
-From the command line:
-
-```bash
-# TMDB reference integration
-./gradlew :app:assembleTmdbDebug
-
-# Alternative client integration
-./gradlew :app:assembleClientBDebug
+```powershell
+.\gradlew.bat :webApp:wasmJsBrowserDevelopmentRun
 ```
 
-On Windows, replace `./gradlew` with `.\gradlew.bat`.
+The task generates `/config.json` under `webApp/build/generated/webDevelopmentConfig` and serves it only through the development server. `tmdbBaseUrl` optionally overrides `https://api.themoviedb.org/`. Restart after changing configuration. Missing settings fail before the server starts; browser configuration is visible to browser users.
 
-### Run the web app locally
+Production builds exclude real configuration and require a separately supplied `/config.json`. Stop development serving before building a production distribution. See [web testing](docs/tracked/kmp/web-testing.md) and [deployment](docs/tracked/kmp/web-release.md).
 
-Run `main()` in `webApp/src/wasmJsMain/kotlin/com/pampoukidis/streamcoretv/web/Main.kt` from Android Studio,
-or execute `./gradlew :webApp:wasmJsBrowserDevelopmentRun`.
+## Architecture
 
-The development run automatically generates `/config.json` from the TMDB settings above. Values are resolved from Gradle properties,
-then root `local.properties`, then the file selected by `streamcoreLocalPropertiesPath` or `STREAMCORE_LOCAL_PROPERTIES`.
-`tmdbBaseUrl` optionally overrides the default `https://api.themoviedb.org/`.
+Routes collect state and navigate; stateless screens render it; ViewModels call public SDK services. Runtime services own validation, authorization, account/profile isolation, saved state, and progress. Application roots create one provider client and register its public services with Koin. Rendering and playback engines remain application-owned.
 
-The generated file lives under `webApp/build/generated/webDevelopmentConfig` and is served only by the development server. There is no
-resource file to copy or revert. Restart the run after changing credentials. A missing setting fails the development run with guidance
-before the server starts. Browser runtime configuration is browser-visible.
+| Area | Where to work |
+|---|---|
+| Shared models and consumer services | `sdk/model`, `sdk/api` |
+| SDK workflows, session guards, storage, provider ports | `sdk/runtime` |
+| Backend integrations | `sdk/providers/tmdb`, `sdk/providers/clientB` |
+| Optional presentation resources/mappings | `sdk/ui`, `sdk/providers/<provider>/ui` |
+| Feature state and platform screens | `feature/<name>/ui-common`, `ui-mobile`, `ui-tablet`, `ui-tv`, `ui-web` |
+| Application design system | `core/ui`, `core/ui-web` |
+| Application entry points and DI | `app`, `webApp` |
+| Playback contracts and engines | `playback/api`, `playback/media3`, `playback/web` |
 
-Production builds exclude real `config.json` resources and do not run this generator. Supply production configuration separately as described
-in [the web release contract](docs/kmp/web-release.md).
+Player has mobile, TV, and web modules, with no separate tablet module. Provider-shared test journeys live in `sdk/testing/src/commonTest/kotlin` and run inside each provider's suites. See [SDK documentation](docs/tracked/sdk/README.md) for integration and [the module graph](MODULE_DEPENDENCY_GRAPH.md) for full dependency boundaries.
 
-## Verification
+## Verify a change
 
-```bash
-# Run the project verification lifecycle, including unit tests and design-token checks
-./gradlew check
+Run the checks appropriate to the change. These commands do not require a device:
 
-# Build the reference application
-./gradlew :app:assembleTmdbDebug
+```powershell
+# Repository design and build-convention gates
+.\gradlew.bat check
 
-# Run a focused migrated feature test suite
-./gradlew :feature:home:domain:testAndroidHostTest
+# All enabled KMP Android host-test suites
+.\gradlew.bat testAndroidHostTest
 
-# Run the design-system token guard directly
-./gradlew verifyDesignTokens
+# Focused feature and SDK suites
+.\gradlew.bat :feature:home:ui-common:testAndroidHostTest :sdk:runtime:testAndroidHostTest
 ```
 
-Compose instrumentation tests require a connected emulator or device and can be run from Android Studio or through the relevant module's `connectedDebugAndroidTest` task.
+Application assembly, SDK publication/independent-consumer checks, browser suites, and device tests are separate. Use [SDK verification](docs/tracked/sdk/verification.md), [web testing](docs/tracked/kmp/web-testing.md), and the [local review workflow](docs/tracked/agent-workflow.md) for their commands and limits. A successful compile is not device/browser acceptance.
 
-## Project conventions
+## Documentation and local output
 
-- UI consumes only shared `Model`, `UiState`, `Action`, and `Effect` types.
-- Provider DTOs and SDK details remain internal to client modules.
-- Screen composables are stateless and preview-friendly; routes own ViewModel access and lifecycle-aware state collection.
-- Lazy layouts use stable keys and content types where applicable.
-- TV implementations explicitly handle focus, D-pad navigation, spacing, and readability.
-- Raw UI values are guarded by `verifyDesignTokens`; feature code should use the shared design system.
-- KMP does not imply web support. No Wasm target exists in Phase 1; browser support begins only after its target and platform adapters are verified.
+The [documentation map](docs/tracked/README.md) lists maintained developer guides. [Product direction](PRODUCT.md), [design rules](DESIGN.md), and the [maintenance register](docs/tracked/maintenance.md) describe current decisions and open work.
 
-## Documentation
-
-- [Portable agent setup and multi-client review workflow](docs/agent-workflow.md)
-- [Product direction](PRODUCT.md)
-- [Design system](DESIGN.md)
-- [Feature module template](docs/guidelines/feature-template.md)
-- [Module dependency graph](MODULE_DEPENDENCY_GRAPH.md)
-- [Codebase review](CODEBASE_REVIEW.md)
+SDK interactive pages are optional generated output. Their authored sources remain tracked under `docs/tracked/sdk/guide-content` and `docs/tracked/sdk/explorer-content`; build them using the [SDK documentation instructions](docs/tracked/sdk/README.md). Generated HTML, captures, machine-specific notes, and historical working records stay local. They are not required to take over development.
 
 ## TMDB attribution
 
